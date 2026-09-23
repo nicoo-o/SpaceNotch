@@ -30,8 +30,14 @@ jobs:
         with:
           global-json-file: global.json
 
+      # La restauration porte la même plateforme que la construction, et ce
+      # n'est pas une redondance : `-p:Platform=x64` fait résoudre un identifiant
+      # d'exécution à l'application, donc le paquet d'exécution win-x64. Une
+      # restauration qui l'ignore ne le télécharge pas, et la construction qui le
+      # demande ensuite échoue en NETSDK1112 — précisément ce qui s'est produit au
+      # premier envoi, puisque les étapes suivantes utilisent `--no-restore`.
       - name: Restaurer
-        run: dotnet restore
+        run: dotnet restore -p:Platform=x64
 
       # Release porte TreatWarningsAsErrors : cette étape échoue donc sur le
       # moindre avertissement. C'est délibéré — c'est la construction de référence.
@@ -110,7 +116,7 @@ jobs:
 
       - name: Restaurer
         if: steps.cert.outputs.disponible == 'true'
-        run: dotnet restore
+        run: dotnet restore -p:Platform=x64
 
       # L'empaquetage exige la chaîne MSIX, désactivée par défaut parce que la
       # distribution portable n'en a pas besoin. Elle est activée ici uniquement.
