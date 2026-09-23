@@ -30,27 +30,33 @@ jobs:
         with:
           global-json-file: global.json
 
-      # La restauration porte la même plateforme que la construction, et ce
-      # n'est pas une redondance : `-p:Platform=x64` fait résoudre un identifiant
-      # d'exécution à l'application, donc le paquet d'exécution win-x64. Une
-      # restauration qui l'ignore ne le télécharge pas, et la construction qui le
-      # demande ensuite échoue en NETSDK1112 — précisément ce qui s'est produit au
-      # premier envoi, puisque les étapes suivantes utilisent `--no-restore`.
+      # La restauration porte la plateforme, et la construction ne s'en prive pas
+      # non plus — c'est ce dernier point qui compte.
+      #
+      # Cette étape a d'abord été écrite avec `--no-restore` sur les constructions
+      # suivantes, pour économiser quelques secondes. Elle a échoué sur l'agent en
+      # NETSDK1112 : le fichier de composants écrit par la restauration ne
+      # contenait pas la cible win-x64 que la construction réclamait, parce que
+      # l'identifiant d'exécution y est déduit de l'architecture du processus qui
+      # évalue le projet — et cette évaluation n'a pas donné le même résultat dans
+      # les deux commandes. Une commande qui se restaure elle-même ne peut pas
+      # diverger d'elle-même : la redondance coûte quelques secondes, la
+      # divergence coûtait la construction.
       - name: Restaurer
         run: dotnet restore -p:Platform=x64
 
       # Release porte TreatWarningsAsErrors : cette étape échoue donc sur le
       # moindre avertissement. C'est délibéré — c'est la construction de référence.
       - name: Construire en Release
-        run: dotnet build --no-restore -c Release -p:Platform=x64
+        run: dotnet build -c Release -p:Platform=x64
 
       - name: Construire en Debug
-        run: dotnet build --no-restore -c Debug -p:Platform=x64
+        run: dotnet build -c Debug -p:Platform=x64
 
       # Les tests du cœur s'exécutent sans machine graphique : NotchFlow.Core ne
       # référence aucune bibliothèque Windows.
       - name: Tester
-        run: dotnet test --no-restore -c Debug --logger "trx;LogFileName=resultats.trx"
+        run: dotnet test -c Debug --logger "trx;LogFileName=resultats.trx"
 
       - name: Publier les résultats de test
         if: always()
@@ -65,7 +71,7 @@ jobs:
       - name: Publier l'exécutable portable
         run: >
           dotnet publish src/NotchFlow.App/NotchFlow.App.csproj
-          --no-restore -c Release -p:Platform=x64
+          -c Release -p:Platform=x64
           --output "${{ runner.temp }}/notchflow"
 
       - name: Conserver l'exécutable portable
