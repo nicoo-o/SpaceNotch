@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="NotchFlow_App.Views.Scenes.ClipboardScene"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="14,10,14,12" RowSpacing="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                <FontIcon Glyph="&#xE77F;" FontSize="13" Foreground="#4EA1FF" />
+                <TextBlock
+                    Text="Presse-papier"
+                    FontSize="12"
+                    FontWeight="SemiBold"
+                    Foreground="#FFFFFF" />
+            </StackPanel>
+            <TextBlock
+                x:Name="CountText"
+                Text="0 élément"
+                FontSize="10.5"
+                Foreground="#80FFFFFF"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Center" />
+        </Grid>
+
+        <ListView
+            x:Name="EntriesListView"
+            Grid.Row="1"
+            SelectionMode="None"
+            MaxHeight="170">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Padding="2,3,2,3" ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!--
+                            Cliquer la ligne colle l'entrée. La prévisualisation est
+                            tronquée à la source : le contenu complet ne circule
+                            jamais dans l'Island.
+                        -->
+                        <Button
+                            Grid.Column="0"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            Padding="4,2,4,2"
+                            Click="OnPasteClicked">
+                            <StackPanel Spacing="1">
+                                <TextBlock
+                                    Text="{Binding Preview}"
+                                    FontSize="11"
+                                    Foreground="#FFFFFF"
+                                    TextTrimming="CharacterEllipsis"
+                                    MaxLines="1" />
+                                <TextBlock
+                                    Text="{Binding Kind}"
+                                    FontSize="9"
+                                    Foreground="#60FFFFFF" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button
+                            Grid.Column="1"
+                            Width="24"
+                            Height="24"
+                            Padding="0"
+                            CornerRadius="12"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            ToolTipService.ToolTip="Épingler"
+                            Click="OnPinClicked">
+                            <FontIcon x:Name="PinIcon" Glyph="&#xE718;" FontSize="10" Foreground="#80FFFFFF" />
+                        </Button>
+
+                        <Button
+                            Grid.Column="2"
+                            Width="24"
+                            Height="24"
+                            Padding="0"
+                            CornerRadius="12"
+                            Background="Transparent"
+                            BorderThickness="0"
+                            ToolTipService.ToolTip="Supprimer"
+                            Click="OnDeleteClicked">
+                            <FontIcon Glyph="&#xE74D;" FontSize="10" Foreground="#80FFFFFF" />
+                        </Button>
+                    </Grid>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <TextBlock
+            x:Name="EmptyText"
+            Grid.Row="1"
+            Text="Aucun élément"
+            FontSize="11"
+            Foreground="#60FFFFFF"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Visibility="Collapsed" />
+    </Grid>
+</UserControl>

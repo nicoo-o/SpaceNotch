@@ -1,0 +1,87 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+
+[*.{cs,csx}]
+indent_size = 4
+
+[*.{xaml,xml,csproj,props,targets,appxmanifest,manifest}]
+indent_size = 2
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+# Organisation
+dotnet_sort_system_directives_first = true
+csharp_using_directive_placement = outside_namespace:warning
+
+# Nommage
+dotnet_naming_rule.private_fields_underscore.severity = warning
+dotnet_naming_rule.private_fields_underscore.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore.style = underscore_camel
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.underscore_camel.required_prefix = _
+dotnet_naming_style.underscore_camel.capitalization = camel_case
+
+# Style
+csharp_prefer_braces = true:silent
+csharp_style_var_for_built_in_types = false:silent
+csharp_style_var_when_type_is_apparent = true:silent
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_namespace_declarations = file_scoped:suggestion
+
+# Nullabilité : on veut être averti tôt
+dotnet_diagnostic.CS8600.severity = warning
+dotnet_diagnostic.CS8601.severity = warning
+dotnet_diagnostic.CS8602.severity = warning
+
+# Interop : les membres P/Invoke restent en snake/upper Windows
+dotnet_diagnostic.IDE1006.severity = none
+
+# ---------------------------------------------------------------------------
+# Suppressions ciblées plutôt que globales : chaque exception est justifiée et
+# confinée à la zone de code concernée.
+# ---------------------------------------------------------------------------
+
+# Couche d'interopérabilité : les identifiants (WS_EX_*, SPI_*, WM_*, CLSCTX_*)
+# doivent rester identiques aux en-têtes Windows pour demeurer vérifiables face
+# à la documentation officielle.
+[src/NotchFlow.Platform.Windows/**/*.cs]
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1712.severity = none
+
+# Un bus d'événements nomme conventionnellement son paramètre `event`.
+[src/NotchFlow.Core/**/*.cs]
+dotnet_diagnostic.CA1716.severity = none
+
+# Convention xUnit : Précondition_Action_Résultat.
+[tests/**/*.cs]
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.CA1712.severity = none
+
+# Les types WinUI ne sont pas tous IDisposable mais exposent des ressources
+# libérées par le cycle de vie de la fenêtre.
+[src/NotchFlow.App/**/*.cs]
+dotnet_diagnostic.CA1001.severity = none
+
+# Dette assumée et suivie : l'espace de noms racine `NotchFlow_App` (avec trait
+# de soulignement) est un reste du modèle de projet. Son renommage en
+# `NotchFlow.App` touche tous les x:Class et est planifié comme tâche dédiée.
+# La suppression ci-dessous doit être retirée à ce moment-là.
+dotnet_diagnostic.CA1707.severity = none
+
+# Le fond de fenêtre et les pinceaux de composition ne sont pas des ressources
+# gérées : les signaler n'aide pas le lecteur.
+
+# Les surcharges P/Invoke des services plateforme suivent les conventions Windows.
+dotnet_diagnostic.CA1401.severity = none

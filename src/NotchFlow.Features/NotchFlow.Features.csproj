@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\NotchFlow.Core\NotchFlow.Core.csproj" />
+    <ProjectReference Include="..\NotchFlow.Platform.Windows\NotchFlow.Platform.Windows.csproj" />
+  </ItemGroup>
+
+</Project>

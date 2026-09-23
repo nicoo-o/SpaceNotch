@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Le cœur est volontairement sans dépendance : ni WinUI, ni Windows App SDK,
+    ni interop Win32. C'est ce qui rend la machine d'états, le gestionnaire
+    d'activités, le bus d'événements et le solveur de ressort testables sur une
+    machine sans Windows, et ce qui interdit au cœur de se mettre à décider à la
+    place des fonctionnalités.
+
+    Le framework et les options de langage viennent de Directory.Build.props :
+    les redéclarer ici avait conduit ce projet à rester sur net9.0 alors que le
+    reste de la solution était passé à net10.0.
+  -->
+  <PropertyGroup>
+    <IsNotchFlowCore>true</IsNotchFlowCore>
+  </PropertyGroup>
+
+</Project>

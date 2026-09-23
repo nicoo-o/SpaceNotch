@@ -1,0 +1,43 @@
+<Project>
+
+  <!--
+    Propriétés communes à tous les projets NotchFlow.
+
+    Le plancher est Windows 11 23H2 (10.0.22631) : voir ADR-009. Le cahier des
+    charges cible exclusivement Windows 11 pour bénéficier des capacités
+    graphiques modernes (composition, matériaux DWM) sans code de repli legacy.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.22631.0</TargetPlatformMinVersion>
+
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <Company>NotchFlow</Company>
+    <Product>NotchFlow</Product>
+    <NeutralLanguage>en-US</NeutralLanguage>
+
+    <!-- Analyse statique active partout, mais bloquante uniquement en Release
+         afin de ne pas interrompre la boucle de développement en Debug. -->
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+
+    <!--
+      Le toolchain WinUI élague l'application, et les cibles d'élagage désactivent
+      la sérialisation JSON par réflexion. La contrainte est déclarée ici, pour tous
+      les projets, afin que l'environnement des tests reproduise celui de
+      l'application : un retour à une sérialisation réflexive doit se voir en test,
+      pas chez l'utilisateur. C'est précisément l'écart qui avait rendu la
+      configuration silencieusement inerte.
+    -->
+    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity
+    Name="32AC23B3-5D6B-49B0-9CB9-F53BD67AF5B1"
+    Publisher="CN=AppPublisher"
+    Version="1.0.0.0" />
+
+  <Properties>
+    <DisplayName>NotchFlow</DisplayName>
+    <PublisherDisplayName>NotchFlow</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!-- Plancher Windows 11 23H2 : voir ADR-009. -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.22631.0" MaxVersionTested="10.0.26226.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="x-generate"/>
+  </Resources>
+
+  <Applications>
+    <Application Id="App"
+      Executable="$targetnametoken$.exe"
+      EntryPoint="$targetentrypoint$">
+      <uap:VisualElements
+        DisplayName="NotchFlow"
+        Description="Dynamic Island native pour Windows"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" />
+        <uap:SplashScreen Image="Assets\SplashScreen.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!--
+      Permissions minimales : NotchFlow est une application de bureau full-trust
+      qui n'utilise aucun service cloud, aucun compte et aucune télémétrie.
+      Toute capability supplémentaire devra être justifiée par un ADR.
+    -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

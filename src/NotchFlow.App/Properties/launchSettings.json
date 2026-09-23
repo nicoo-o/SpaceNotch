@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "NotchFlow.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "NotchFlow.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

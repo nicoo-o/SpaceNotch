@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Trou de verre — OLED et clair</title>
+<style>
+  body { margin: 0; padding: 24px; background: #08080b; color: #fff;
+         font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
+  h1 { font-size: 19px; margin: 0 0 6px; font-weight: 600; }
+  .lead { font-size: 12.5px; line-height: 18px; color: rgba(255,255,255,.62); margin: 0 0 18px; max-width: 840px; }
+  h2 { font-size: 13px; margin: 20px 0 8px; font-weight: 600; }
+  .tag { font-family: Consolas, ui-monospace, monospace; font-size: 10.5px; color: #a5b4fc; }
+  .mono { font-family: Consolas, ui-monospace, monospace; }
+  .mi { font-family: Consolas, ui-monospace, monospace; font-size: 9px;
+        letter-spacing: .14em; text-transform: uppercase; }
+
+  .wall { position: relative; height: 300px; border-radius: 12px; overflow: hidden; }
+  .wall-l {
+    background:
+      radial-gradient(170px 170px at 14% 70%, #ff9f0a 0 58px, transparent 59px),
+      radial-gradient(170px 170px at 50% 30%, #30d158 0 46px, transparent 47px),
+      radial-gradient(170px 170px at 84% 72%, #ff375f 0 52px, transparent 53px),
+      repeating-linear-gradient(122deg, rgba(255,255,255,.16) 0 3px, transparent 3px 20px),
+      linear-gradient(140deg, #48b3ff 0%, #7b7bff 52%, #d67bff 100%);
+  }
+  .wall-d {
+    background:
+      radial-gradient(170px 170px at 14% 70%, #ff9f0a 0 58px, transparent 59px),
+      radial-gradient(170px 170px at 50% 30%, #30d158 0 46px, transparent 47px),
+      radial-gradient(170px 170px at 84% 72%, #ff375f 0 52px, transparent 53px),
+      repeating-linear-gradient(122deg, rgba(255,255,255,.10) 0 3px, transparent 3px 20px),
+      linear-gradient(140deg, #123a6e 0%, #2b2a6e 52%, #4a2168 100%);
+  }
+  .deco { position: absolute; left: 20px; bottom: 14px; font-size: 20px; font-weight: 700;
+          color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.4); }
+
+  .glass { position: relative; }
+
+  /* La couche de verre. Le masque vertical éteint À LA FOIS la teinte et
+     le backdrop-filter : sous le point de fondu il n'y a plus de verre du
+     tout, donc aucune arête ne peut se dessiner. C'est le trou. */
+  .fill { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+  .fade {
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 56%, rgba(0,0,0,.72) 74%, rgba(0,0,0,.28) 88%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 56%, rgba(0,0,0,.72) 74%, rgba(0,0,0,.28) 88%, transparent 100%);
+  }
+
+  .fill-l  { background: rgba(255,255,255,.22);
+             backdrop-filter: url(#lensBig) blur(7px) saturate(175%) brightness(1.48);
+             -webkit-backdrop-filter: url(#lensBig) blur(7px) saturate(175%) brightness(1.48); }
+  /* OLED : teinte noire pure, luminance fortement rabattue. Les couleurs
+     du fond survivent, mais très sombres et saturées. */
+  .fill-d  { background: rgba(0,0,0,.40);
+             backdrop-filter: url(#lensBig) blur(7px) saturate(150%) brightness(.30);
+             -webkit-backdrop-filter: url(#lensBig) blur(7px) saturate(150%) brightness(.30); }
+  .fill-lp { background: rgba(255,255,255,.22);
+             backdrop-filter: url(#lensPill) blur(5px) saturate(175%) brightness(1.48);
+             -webkit-backdrop-filter: url(#lensPill) blur(5px) saturate(175%) brightness(1.48); }
+  .fill-dp { background: rgba(0,0,0,.40);
+             backdrop-filter: url(#lensPill) blur(5px) saturate(150%) brightness(.30);
+             -webkit-backdrop-filter: url(#lensPill) blur(5px) saturate(150%) brightness(.30); }
+
+  /* Liséré : haut et côtés seulement, éteint bien avant le bas. */
+  .edge { position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+          -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude; }
+  .edge-l { background: linear-gradient(to bottom, rgba(255,255,255,.95) 0%, rgba(255,255,255,.42) 34%, rgba(255,255,255,0) 64%); }
+  .edge-d { background: linear-gradient(to bottom, rgba(255,255,255,.50) 0%, rgba(255,255,255,.18) 34%, rgba(255,255,255,0) 64%); }
+
+  .spec { position: absolute; inset: 1px; border-radius: inherit; pointer-events: none; }
+  .spec-l { background: linear-gradient(to bottom, rgba(255,255,255,.62) 0%, rgba(255,255,255,.05) 22%, rgba(255,255,255,0) 50%); }
+  .spec-d { background: linear-gradient(to bottom, rgba(255,255,255,.22) 0%, rgba(255,255,255,.02) 22%, rgba(255,255,255,0) 50%); }
+
+  .fl, .fr { position: absolute; top: 0; width: 12px; height: 12px; pointer-events: none; }
+  .fl { left: -12px; -webkit-mask: radial-gradient(circle at 0 100%, transparent 11.5px, #000 12px);
+        mask: radial-gradient(circle at 0 100%, transparent 11.5px, #000 12px); }
+  .fr { right: -12px; -webkit-mask: radial-gradient(circle at 100% 100%, transparent 11.5px, #000 12px);
+        mask: radial-gradient(circle at 100% 100%, transparent 11.5px, #000 12px); }
+
+  .in { position: relative; z-index: 4; box-sizing: border-box; }
+</style>
+</head>
+<body>
+
+<h1>Trou de verre — le bas s'évapore</h1>
+<p class="lead">Le masque vertical éteint la teinte <em>et</em> le backdrop-filter : sous le point de fondu, il n'y a plus de verre du tout. Aucune arête ne peut donc se dessiner. Thème sombre en noir OLED, contenu déployé resserré à la Moody.</p>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <filter id="lensBig" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="520" height="200" color-interpolation-filters="sRGB">
+    <feImage id="mapBig" x="0" y="0" width="520" height="200" preserveAspectRatio="none" result="m" />
+    <feDisplacementMap in="SourceGraphic" in2="m" scale="0" id="bR" xChannelSelector="R" yChannelSelector="G" result="r" />
+    <feDisplacementMap in="SourceGraphic" in2="m" scale="0" id="bG" xChannelSelector="R" yChannelSelector="G" result="g" />
+    <feDisplacementMap in="SourceGraphic" in2="m" scale="0" id="bB" xChannelSelector="R" yChannelSelector="G" result="b" />
+    <feColorMatrix in="r" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="cr" />
+    <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="cg" />
+    <feColorMatrix in="b" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="cb" />
+    <feBlend in="cr" in2="cg" mode="screen" result="x" /><feBlend in="x" in2="cb" mode="screen" />
+  </filter>
+  <filter id="lensPill" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse" x="0" y="0" width="200" height="32" color-interpolation-filters="sRGB">
+    <feImage id="mapPill" x="0" y="0" width="200" height="32" preserveAspectRatio="none" result="m" />
+    <feDisplacementMap in="SourceGraphic" in2="m" scale="0" id="pR" xChannelSelector="R" yChannelSelector="G" result="r" />
+    <feDisplacementMap in="SourceGraphic" in2="m" scale="0" id="pG" xChannelSelector="R" yChannelSelector="G" result="g" />
+    <feDisplacementMap in="SourceGraphic" in2="m" scale="0" id="pB" xChannelSelector="R" yChannelSelector="G" result="b" />
+    <feColorMatrix in="r" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="cr" />
+    <feColorMatrix in="g" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="cg" />
+    <feColorMatrix in="b" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="cb" />
+    <feBlend in="cr" in2="cg" mode="screen" result="x" /><feBlend in="x" in2="cb" mode="screen" />
+  </filter>
+</defs></svg>
+
+<h2>Sombre — noir OLED <span class="tag">teinte #000 40 % · brightness 0.30 · masque vertical</span></h2>
+<div class="wall wall-d">
+  <div class="glass fade" style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:520px; height:200px; border-radius:0 0 20px 20px;">
+    <span class="fl fill-dp"></span><span class="fr fill-dp"></span>
+    <div class="fill fill-d"></div><div class="edge edge-d"></div><div class="spec spec-d"></div>
+    <div class="in" style="padding:22px 26px 0;">
+      <div class="mi" style="color:rgba(255,255,255,.46);">En lecture — Spotify</div>
+      <div style="display:flex; align-items:center; gap:18px; margin-top:14px;">
+        <div style="width:76px; height:76px; border-radius:14px; flex-shrink:0; background:linear-gradient(145deg,#E8623C,#8B2F6A 55%,#3B2A7A);"></div>
+        <div style="flex-grow:1; min-width:0;">
+          <div style="font-size:21px; font-weight:600; letter-spacing:-.3px; color:#fff;">Glass Gardens</div>
+          <div style="font-size:12.5px; color:rgba(255,255,255,.60); margin-top:4px;">Northbound — Afterlight</div>
+          <div style="display:flex; align-items:center; gap:10px; margin-top:12px;">
+            <span class="mono" style="font-size:10px; color:rgba(255,255,255,.50);">1:24</span>
+            <div style="flex-grow:1; height:3px; border-radius:2px; background:rgba(255,255,255,.18);"><div style="width:42%; height:100%; border-radius:2px; background:#fff;"></div></div>
+            <span class="mono" style="font-size:10px; color:rgba(255,255,255,.50);">3:18</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="glass" style="position:absolute; bottom:24px; left:50%; transform:translateX(-50%); width:200px; height:32px; border-radius:16px;">
+    <div class="fill fill-dp"></div><div class="edge edge-d"></div><div class="spec spec-d"></div>
+    <div class="in" style="height:100%; display:flex; align-items:center; justify-content:center; gap:8px;">
+      <span style="width:5px; height:5px; border-radius:50%; background:#a5b4fc;"></span>
+      <span class="mono" style="font-size:11px; color:rgba(255,255,255,.94);">09:41</span>
+    </div>
+  </div>
+  <span class="deco">bureau</span>
+</div>
+
+<h2>Clair <span class="tag">teinte blanc 22 % · brightness 1.48 · même masque</span></h2>
+<div class="wall wall-l">
+  <div class="glass fade" style="position:absolute; top:0; left:50%; transform:translateX(-50%); width:520px; height:200px; border-radius:0 0 20px 20px;">
+    <span class="fl fill-lp"></span><span class="fr fill-lp"></span>
+    <div class="fill fill-l"></div><div class="edge edge-l"></div><div class="spec spec-l"></div>
+    <div class="in" style="padding:22px 26px 0;">
+      <div class="mi" style="color:rgba(8,12,22,.52);">En lecture — Spotify</div>
+      <div style="display:flex; align-items:center; gap:18px; margin-top:14px;">
+        <div style="width:76px; height:76px; border-radius:14px; flex-shrink:0; background:linear-gradient(145deg,#E8623C,#8B2F6A 55%,#3B2A7A);"></div>
+        <div style="flex-grow:1; min-width:0;">
+          <div style="font-size:21px; font-weight:600; letter-spacing:-.3px; color:rgba(8,12,22,.96);">Glass Gardens</div>
+          <div style="font-size:12.5px; color:rgba(8,12,22,.66); margin-top:4px;">Northbound — Afterlight</div>
+          <div style="display:flex; align-items:center; gap:10px; margin-top:12px;">
+            <span class="mono" style="font-size:10px; color:rgba(8,12,22,.58);">1:24</span>
+            <div style="flex-grow:1; height:3px; border-radius:2px; background:rgba(8,12,22,.20);"><div style="width:42%; height:100%; border-radius:2px; background:#1d4ed8;"></div></div>
+            <span class="mono" style="font-size:10px; color:rgba(8,12,22,.58);">3:18</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="glass" style="position:absolute; bottom:24px; left:50%; transform:translateX(-50%); width:200px; height:32px; border-radius:16px;">
+    <div class="fill fill-lp"></div><div class="edge edge-l"></div><div class="spec spec-l"></div>
+    <div class="in" style="height:100%; display:flex; align-items:center; justify-content:center; gap:8px;">
+      <span style="width:5px; height:5px; border-radius:50%; background:#1d4ed8;"></span>
+      <span class="mono" style="font-size:11px; color:rgba(8,12,22,.92);">09:41</span>
+    </div>
+  </div>
+  <span class="deco">bureau</span>
+</div>
+
+<script>
+function buildLens(W, H, rTop, rBot, bezel, thickness, ior) {
+  function dist(x, y) {
+    var dT = y, dB = H - 1 - y, dL = x, dR = W - 1 - x, dx, dy;
+    if (rBot > 0 && y > H - 1 - rBot) {
+      if (x < rBot) { dx = rBot - x; dy = y - (H - 1 - rBot); dB = rBot - Math.sqrt(dx*dx+dy*dy); }
+      else if (x > W - 1 - rBot) { dx = x - (W - 1 - rBot); dy = y - (H - 1 - rBot); dB = rBot - Math.sqrt(dx*dx+dy*dy); }
+    }
+    if (rTop > 0 && y < rTop) {
+      if (x < rTop) { dx = rTop - x; dy = rTop - y; dT = rTop - Math.sqrt(dx*dx+dy*dy); }
+      else if (x > W - 1 - rTop) { dx = x - (W - 1 - rTop); dy = rTop - y; dT = rTop - Math.sqrt(dx*dx+dy*dy); }
+    }
+    return Math.max(0, Math.min(Math.min(dT, dB), Math.min(dL, dR)));
+  }
+  function h(x, y) {
+    var t = Math.min(1, dist(x, y) / bezel), u = 1 - t;
+    return Math.pow(1 - u*u*u*u, 0.25);
+  }
+  var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  var ctx = cv.getContext('2d'), img = ctx.createImageData(W, H), p = img.data;
+  var off = new Float32Array(W*H*2), maxMag = 1e-6, eta = 1 / ior;
+  for (var y = 0; y < H; y++) for (var x = 0; x < W; x++) {
+    var xm = Math.max(0,x-1), xp = Math.min(W-1,x+1), ym = Math.max(0,y-1), yp = Math.min(H-1,y+1);
+    var hx = (h(xp,y) - h(xm,y)) * 0.5 * thickness;
+    var hy = (h(x,yp) - h(x,ym)) * 0.5 * thickness;
+    var nl = Math.sqrt(hx*hx + hy*hy + 1);
+    var nx = -hx/nl, ny = -hy/nl, nz = 1/nl;
+    var cosi = nz, k = 1 - eta*eta*(1 - cosi*cosi), ox = 0, oy = 0;
+    if (k >= 0) {
+      var c2 = Math.sqrt(k), f = eta*cosi - c2;
+      var tz = -eta + f*nz;
+      if (tz < -1e-6) { var tr = thickness / -tz; ox = f*nx*tr; oy = f*ny*tr; }
+    }
+    var i2 = (y*W + x)*2; off[i2] = ox; off[i2+1] = oy;
+    var m = Math.sqrt(ox*ox + oy*oy); if (m > maxMag) maxMag = m;
+  }
+  for (var j = 0; j < W*H; j++) {
+    var i4 = j*4, i2b = j*2;
+    p[i4]   = Math.round(128 + (off[i2b]  /maxMag)*127);
+    p[i4+1] = Math.round(128 + (off[i2b+1]/maxMag)*127);
+    p[i4+2] = 128; p[i4+3] = 255;
+  }
+  ctx.putImageData(img, 0, 0);
+  return { url: cv.toDataURL('image/png'), max: maxMag };
+}
+function apply(mapId, ids, W, H, rTop, rBot, bezel, th, spread, strength) {
+  var L = buildLens(W, H, rTop, rBot, bezel, th, 1.520);
+  document.getElementById(mapId).setAttribute('href', L.url);
+  var s = L.max * strength;
+  document.getElementById(ids[0]).setAttribute('scale', (s*(1-spread)).toFixed(2));
+  document.getElementById(ids[1]).setAttribute('scale', s.toFixed(2));
+  document.getElementById(ids[2]).setAttribute('scale', (s*(1+spread)).toFixed(2));
+}
+apply('mapBig',  ['bR','bG','bB'], 520, 200, 0, 20, 34, 26, 0.16, 1.6);
+apply('mapPill', ['pR','pG','pB'], 200, 32, 16, 16, 13, 10, 0.16, 1.6);
+</script>
+
+</body>
+</html>

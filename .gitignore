@@ -1,0 +1,71 @@
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+ARM64/
+build/
+artifacts/
+publish/
+*.binlog
+*.tlog
+
+# Visual Studio / Rider / VS Code
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.csproj.user
+*.rsuser
+launchSettings.json.bak
+
+# Windows App SDK / MSIX
+AppPackages/
+BundleArtifacts/
+Package.StoreAssociation.xml
+_pkginfo.txt
+*.appx
+*.appxbundle
+*.appxupload
+*.msix
+*.msixbundle
+*.msixupload
+*.cer
+*.pfx
+*.p12
+
+# Test results / coverage
+[Tt]est[Rr]esult*/
+coverage*.json
+coverage*.xml
+coverage*.info
+*.coverage
+*.coveragexml
+TestResults/
+
+# NuGet
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+!**/packages/build/
+
+# OS / editors
+Thumbs.db
+desktop.ini
+.DS_Store
+*~
+*.swp
+
+# NotchFlow runtime data (ne doit jamais être committé)
+*.log
+notchflow.log*
+%AppData%/
+
+# État local de l'agent / de l'IDE
+.freebuff/

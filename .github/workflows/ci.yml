@@ -1,0 +1,144 @@
+name: CI
+
+# La construction cible Windows, donc l'agent doit être Windows : les cibles WinUI
+# et les projections WinRT ne se restaurent pas ailleurs.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+
+jobs:
+  build-and-test:
+    name: Construction et tests
+    runs-on: windows-latest
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      # La version est lue depuis global.json plutôt que répétée ici, où elle
+      # finirait par diverger de ce que la machine de développement utilise.
+      - name: Installer le SDK .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restaurer
+        run: dotnet restore
+
+      # Release porte TreatWarningsAsErrors : cette étape échoue donc sur le
+      # moindre avertissement. C'est délibéré — c'est la construction de référence.
+      - name: Construire en Release
+        run: dotnet build --no-restore -c Release -p:Platform=x64
+
+      - name: Construire en Debug
+        run: dotnet build --no-restore -c Debug -p:Platform=x64
+
+      # Les tests du cœur s'exécutent sans machine graphique : NotchFlow.Core ne
+      # référence aucune bibliothèque Windows.
+      - name: Tester
+        run: dotnet test --no-restore -c Debug --logger "trx;LogFileName=resultats.trx"
+
+      - name: Publier les résultats de test
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultats-tests
+          path: '**/resultats.trx'
+          if-no-files-found: warn
+
+      # Distribution portable : c'est la voie qui fonctionne sans certificat, et
+      # donc celle que la CI produit systématiquement.
+      - name: Publier l'exécutable portable
+        run: >
+          dotnet publish src/NotchFlow.App/NotchFlow.App.csproj
+          --no-restore -c Release -p:Platform=x64
+          --output "${{ runner.temp }}/notchflow"
+
+      - name: Conserver l'exécutable portable
+        uses: actions/upload-artifact@v4
+        with:
+          name: notchflow-portable-x64
+          path: ${{ runner.temp }}/notchflow
+          if-no-files-found: error
+
+  package-msix:
+    name: Empaquetage MSIX
+    runs-on: windows-latest
+    needs: build-and-test
+
+    # Il faut un certificat pour signer un MSIX, et ce certificat n'a rien à faire
+    # dans le dépôt. Sans ce secret, l'étape est franchement ignorée plutôt que
+    # d'échouer sur un paquet non signé, qui ne serait de toute façon pas
+    # installable.
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    env:
+      CERTIFICAT_BASE64: ${{ secrets.MSIX_CERTIFICATE_BASE64 }}
+      # Le mot de passe passe par l'environnement, jamais par la ligne de
+      # commande : un argument est visible dans la liste des processus de la
+      # machine, une variable d'environnement ne l'est pas.
+      CERTIFICAT_MOT_DE_PASSE: ${{ secrets.MSIX_CERTIFICATE_PASSWORD }}
+
+    steps:
+      - name: Vérifier la disponibilité du certificat
+        id: cert
+        shell: bash
+        run: |
+          if [ -z "$CERTIFICAT_BASE64" ]; then
+            echo "::notice::Aucun certificat MSIX configuré : empaquetage ignoré. Fournir le secret MSIX_CERTIFICATE_BASE64 pour l'activer."
+            echo "disponible=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "disponible=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Récupérer le dépôt
+        if: steps.cert.outputs.disponible == 'true'
+        uses: actions/checkout@v4
+
+      - name: Installer le SDK .NET
+        if: steps.cert.outputs.disponible == 'true'
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restaurer
+        if: steps.cert.outputs.disponible == 'true'
+        run: dotnet restore
+
+      # L'empaquetage exige la chaîne MSIX, désactivée par défaut parce que la
+      # distribution portable n'en a pas besoin. Elle est activée ici uniquement.
+      - name: Produire le paquet signé
+        if: steps.cert.outputs.disponible == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "$CERTIFICAT_BASE64" | base64 -d > certificat.pfx
+
+          dotnet publish src/NotchFlow.App/NotchFlow.App.csproj \
+            -c Release -p:Platform=x64 \
+            -p:EnableMsixTooling=true \
+            -p:WindowsPackageType=MSIX \
+            -p:GenerateAppxPackageOnBuild=true \
+            -p:AppxPackageSigningEnabled=true \
+            -p:PackageCertificateKeyFile=certificat.pfx \
+            -p:PackageCertificatePassword="$CERTIFICAT_MOT_DE_PASSE" \
+            -p:AppxPackageDir="${{ runner.temp }}/msix/" \
+            --output "${{ runner.temp }}/msix-publish"
+
+          rm -f certificat.pfx
+
+      - name: Conserver le paquet
+        if: steps.cert.outputs.disponible == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: notchflow-msix-x64
+          path: ${{ runner.temp }}/msix
+          if-no-files-found: error

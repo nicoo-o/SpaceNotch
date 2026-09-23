@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NotchFlow — Interactive Mockup</title>
+<style>
+  /* ============================================================
+     NotchFlow — Design tokens (spec §32–37)
+     ============================================================ */
+  :root {
+    --island-bg: rgba(11, 11, 13, 0.82);
+    --island-border: rgba(255, 255, 255, 0.09);
+    --text-primary: rgba(255, 255, 255, 0.96);
+    --text-secondary: rgba(255, 255, 255, 0.62);
+    --text-tertiary: rgba(255, 255, 255, 0.38);
+    --accent: #4ea1ff;
+    --ambient-h: 210;                 /* ambient hue, driven by album art */
+    --ambient: hsla(var(--ambient-h), 60%, 55%, 1);
+    --radius-collapsed: 26px;
+    --radius-expanded: 34px;
+    --font: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI",
+            -apple-system, "SF Pro Display", system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: var(--font);
+    color: var(--text-primary);
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ============================================================
+     Fake Windows 11 desktop backdrop
+     ============================================================ */
+  #desktop {
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(1200px 800px at 75% 20%, rgba(64, 120, 220, 0.35), transparent 60%),
+      radial-gradient(1000px 700px at 20% 80%, rgba(150, 80, 200, 0.28), transparent 60%),
+      radial-gradient(900px 600px at 55% 55%, rgba(30, 160, 160, 0.18), transparent 55%),
+      linear-gradient(160deg, #0e1a2e 0%, #14213d 38%, #1b1440 72%, #2a1030 100%);
+  }
+  /* abstract bloom shapes, Win11-like */
+  #desktop::before {
+    content: ""; position: absolute; inset: 0;
+    background:
+      radial-gradient(closest-side at 62% 34%, rgba(255,255,255,0.10), transparent 70%),
+      radial-gradient(closest-side at 30% 60%, rgba(255,255,255,0.05), transparent 70%);
+    filter: blur(2px);
+  }
+  #taskbar {
+    position: fixed; left: 0; right: 0; bottom: 0; height: 48px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    background: rgba(22, 24, 30, 0.55);
+    backdrop-filter: blur(28px) saturate(1.4);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    z-index: 5;
+  }
+  .tb-icon {
+    width: 34px; height: 34px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.75); font-size: 15px;
+    transition: background 0.15s;
+  }
+  .tb-icon:hover { background: rgba(255,255,255,0.08); }
+  .tb-icon svg { width: 17px; height: 17px; }
+  #clock-widget {
+    position: fixed; right: 14px; bottom: 8px; z-index: 6;
+    font-size: 11.5px; color: rgba(255,255,255,0.8); text-align: right; line-height: 1.35;
+  }
+  #desktop-hint {
+    position: fixed; left: 50%; bottom: 64px; transform: translateX(-50%);
+    font-size: 12px; color: rgba(255,255,255,0.35); letter-spacing: 0.2px;
+    z-index: 4; pointer-events: none;
+  }
+
+  /* ============================================================
+     Island container + Atmospheric Gradient (spec §10)
+     ============================================================ */
+  #island-root {
+    position: fixed; top: 14px; left: 0; right: 0;
+    display: flex; justify-content: center;
+    z-index: 50; pointer-events: none;
+  }
+  #ambient {
+    position: absolute; top: 6px; left: calc(50% - 190px);
+    width: 380px; height: 190px;
+    border-radius: 50%;
+    background: radial-gradient(closest-side, var(--ambient), transparent 72%);
+    opacity: 0; filter: blur(18px) saturate(0.55);
+    pointer-events: none;
+  }
+  @keyframes ambientBreathe {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.05); }
+  }
+  #ambient.breathe.on { animation: ambientBreathe 6s ease-in-out infinite; }
+
+  #island {
+    position: relative;
+    width: 168px; height: 36px; border-radius: 26px;
+    pointer-events: auto;
+    background: var(--island-bg);
+    backdrop-filter: blur(32px) saturate(1.5);
+    -webkit-backdrop-filter: blur(32px) saturate(1.5);
+    border: 1px solid var(--island-border);
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.55),
+      0 6px 18px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    overflow: hidden;
+    cursor: default;
+    will-change: width, height, transform;
+  }
+  /* the soft fade mask at the bottom edge — reinforces "dissolve" illusion
+     without ever drawing a visible line */
+  #island::after {
+    content: ""; position: absolute; left: 6%; right: 6%; bottom: 0; height: 26px;
+    background: linear-gradient(to top, rgba(255,255,255,0.05), transparent);
+    border-radius: 50% 50% 0 0 / 100% 100% 0 0;
+    pointer-events: none;
+  }
+
+  #content {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    opacity: 0;
+  }
+  #content.show { opacity: 1; }
+  #content.leaving { transition: opacity 90ms ease; opacity: 0 !important; }
+
+  /* ============================================================
+     Shared scene widgets
+     ============================================================ */
+  .scene { padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; }
+
+  .row { display: flex; align-items: center; gap: 10px; }
+
+  .icon-btn {
+    width: 34px; height: 34px; flex: none;
+    border-radius: 50%; border: none; cursor: pointer;
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .icon-btn:hover { background: rgba(255, 255, 255, 0.16); }
+  .icon-btn:active { transform: scale(0.92); }
+  .icon-btn svg { width: 15px; height: 15px; }
+  .icon-btn.primary { background: rgba(255, 255, 255, 0.92); color: #0b0b0d; }
+  .icon-btn.primary:hover { background: #ffffff; }
+  .icon-btn.small { width: 26px; height: 26px; }
+  .icon-btn.small svg { width: 12px; height: 12px; }
+
+  .app-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--text-secondary);
+    background: rgba(255,255,255,0.07);
+    padding: 3px 9px; border-radius: 999px;
+  }
+  .app-chip svg { width: 11px; height: 11px; }
+
+  .bar {
+    position: relative; height: 5px; border-radius: 3px;
+    background: rgba(255, 255, 255, 0.14);
+    cursor: pointer;
+  }
+  .bar .fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    border-radius: 3px;
+    background: linear-gradient(90deg,
+      hsla(var(--ambient-h), 70%, 62%, 0.95),
+      hsla(calc(var(--ambient-h) + 30), 70%, 62%, 0.95));
+  }
+  .bar .knob {
+    position: absolute; top: 50%; width: 11px; height: 11px;
+    border-radius: 50%; background: #fff;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+    pointer-events: none;
+  }
+  .meta { font-size: 11px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+  .title { font-size: 15px; font-weight: 600; letter-spacing: 0.1px; }
+  .subtitle { font-size: 12px; color: var(--text-secondary); }
+
+  .section-label {
+    font-size: 9.5px; font-weight: 600; letter-spacing: 1.4px;
+    color: var(--text-tertiary); text-transform: uppercase;
+  }
+
+  .hrow {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 11px; border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .hrow .grow { flex: 1; min-width: 0; }
+  .hrow .t { font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hrow .s { font-size: 11px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .badge {
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 999px;
+    background: rgba(78, 161, 255, 0.18); color: #8cc2ff;
+  }
+  .badge.ok    { background: rgba(80, 200, 120, 0.16); color: #8fe0ae; }
+  .badge.warn  { background: rgba(255, 190, 80, 0.16); color: #ffd48a; }
+
+  .avatar {
+    width: 34px; height: 34px; border-radius: 50%; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 14px; color: #fff;
+  }
+  .avatar svg { width: 16px; height: 16px; }
+
+  /* ============================================================
+     Mini pill (CLOSED / PREVIEW)
+     ============================================================ */
+  .mini-content {
+    height: 34px; display: flex; align-items: center; gap: 10px; white-space: nowrap;
+    align-self: flex-start;   /* fit-content width → measurable intrinsic pill size */
+    padding: 0 15px; font-variant-numeric: tabular-nums;
+  }
+  .mini-content .cam {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, #3a4a5a, #10151b 70%);
+    box-shadow: inset 0 0 2px rgba(120,180,255,0.4);
+  }
+  .mini-content .time { font-size: 13px; font-weight: 600; letter-spacing: 0.3px; }
+  .mini-content .dot { width: 3px; height: 3px; border-radius: 50%; background: rgba(255,255,255,0.25); }
+  .mini-content .media-hint {
+    display: flex; align-items: center; gap: 5px;
+    color: var(--text-secondary); font-size: 11.5px;
+  }
+  .mini-content .media-hint svg { width: 12px; height: 12px; }
+
+  /* ============================================================
+     Media scene
+     ============================================================ */
+  .artwork {
+    width: 92px; height: 92px; border-radius: 14px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.85);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.4);
+  }
+  .artwork svg { width: 34px; height: 34px; opacity: 0.9; }
+  .artwork.small { width: 34px; height: 34px; border-radius: 9px; }
+  .artwork.small svg { width: 15px; height: 15px; }
+
+  .media-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+  .media-title { font-size: 15.5px; font-weight: 700; letter-spacing: 0.1px;
+                 white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .media-artist { font-size: 12.5px; color: var(--text-secondary); margin-top: -4px;
+                  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .transport { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 2px; }
+  .transport .icon-btn { width: 38px; height: 38px; }
+  .transport .icon-btn svg { width: 16px; height: 16px; }
+  .transport .icon-btn.primary { width: 44px; height: 44px; }
+  .transport .icon-btn.primary svg { width: 18px; height: 18px; }
+
+  .progress-row { display: flex; align-items: center; gap: 9px; margin-top: 3px; }
+  .progress-row .bar { flex: 1; }
+
+  /* ============================================================
+     HUD scenes (volume / brightness)
+     ============================================================ */
+  .hud-icon {
+    width: 44px; height: 44px; border-radius: 14px; flex: none;
+    background: rgba(255, 255, 255, 0.08);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .hud-icon svg { width: 20px; height: 20px; }
+  .hud-body { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+  .hud-top { display: flex; justify-content: space-between; align-items: baseline; }
+  .hud-value { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .hud-label { font-size: 11px; color: var(--text-secondary); }
+  .hud-bar { height: 7px; border-radius: 4px; }
+
+  /* ============================================================
+     Notification
+     ============================================================ */
+  .notif-chip {
+    height: 34px; display: flex; align-items: center; gap: 9px; padding: 0 14px;
+    font-size: 12px; font-weight: 600;
+  }
+  .notif-chip .cnt {
+    min-width: 17px; height: 17px; padding: 0 5px; border-radius: 999px;
+    background: var(--accent); color: #fff; font-size: 10.5px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ============================================================
+     File drop / shelf
+     ============================================================ */
+  .drop-zone {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 20px 30px;
+    border: 1.5px dashed rgba(255, 255, 255, 0.22);
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.03);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop-zone:hover, .drop-zone.hot {
+    border-color: rgba(120, 180, 255, 0.65);
+    background: rgba(120, 180, 255, 0.07);
+  }
+  .drop-zone svg { width: 26px; height: 26px; color: var(--text-secondary); }
+  .drop-zone .dz-t { font-size: 13.5px; font-weight: 600; }
+  .drop-zone .dz-s { font-size: 10.5px; color: var(--text-tertiary); margin-top: -4px; }
+
+  .shelf-chip {
+    display: flex; align-items: center; gap: 9px;
+    padding: 8px 11px; border-radius: 12px;
+    background: rgba(255, 255, 255, 0.06);
+    cursor: pointer; transition: background 0.15s;
+  }
+  .shelf-chip:hover { background: rgba(255, 255, 255, 0.12); }
+  .shelf-chip svg { width: 14px; height: 14px; color: var(--text-secondary); flex: none; }
+  .shelf-chip .name { font-size: 12px; font-weight: 600; flex: 1;
+                      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .shelf-chip .size { font-size: 10.5px; color: var(--text-tertiary); }
+
+  /* ============================================================
+     Activity stack
+     ============================================================ */
+  .stack-list { display: flex; flex-direction: column; gap: 6px; }
+  .mini-progress { width: 54px; height: 4px; border-radius: 2px;
+                   background: rgba(255,255,255,0.14); overflow: hidden; flex: none; }
+  .mini-progress i { display: block; height: 100%; background: var(--accent); border-radius: 2px; }
+
+  /* ============================================================
+     Toast
+     ============================================================ */
+  #toast {
+    position: fixed; top: 0; left: 0; z-index: 60;
+    transform: translate(-50%, 0);
+    background: rgba(20, 22, 28, 0.92);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(20px);
+    color: var(--text-primary);
+    font-size: 12px; font-weight: 600;
+    padding: 8px 16px; border-radius: 999px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2,0.9,0.3,1.3);
+  }
+  #toast.show { opacity: 1; }
+
+  /* ============================================================
+     Demo panel
+     ============================================================ */
+  #panel {
+    position: fixed; left: 16px; bottom: 16px; z-index: 100;
+    width: 252px;
+    background: rgba(16, 18, 24, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    backdrop-filter: blur(24px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    overflow: hidden;
+  }
+  #panel-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 14px; cursor: pointer;
+  }
+  #panel-header .logo {
+    width: 20px; height: 20px; border-radius: 7px;
+    background: linear-gradient(135deg, #4ea1ff, #7a5cff);
+    flex: none;
+  }
+  #panel-header .name { font-size: 12.5px; font-weight: 700; flex: 1; }
+  #panel-header .chev { color: var(--text-tertiary); transition: transform 0.2s; }
+  #panel.collapsed .chev { transform: rotate(180deg); }
+  #panel-body { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 10px; }
+  #panel.collapsed #panel-body { display: none; }
+
+  .status-row { display: flex; gap: 6px; }
+  .status-badge {
+    flex: 1; text-align: center;
+    font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+    padding: 5px 6px; border-radius: 8px;
+    background: rgba(255,255,255,0.06); color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .status-badge b { color: #8cc2ff; font-weight: 700; }
+  .status-badge.engine b { color: #8fe0ae; }
+
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .demo-btn {
+    border: 1px solid rgba(255,255,255,0.09);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+    font-family: var(--font); font-size: 11px; font-weight: 600;
+    padding: 7px 8px; border-radius: 9px; cursor: pointer;
+    transition: background 0.15s;
+    text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .demo-btn:hover { background: rgba(255,255,255,0.12); }
+  .demo-btn.accent { background: rgba(78,161,255,0.16); border-color: rgba(78,161,255,0.3); }
+  .demo-btn.accent:hover { background: rgba(78,161,255,0.28); }
+  .demo-btn.wide { grid-column: 1 / -1; text-align: center; }
+
+  .panel-note { font-size: 9.5px; color: var(--text-tertiary); line-height: 1.45; }
+
+  /* ============================================================
+     Reduced motion (spec §38): springs become near-instant,
+     breathing/pulse animations disabled.
+     ============================================================ */
+  @media (prefers-reduced-motion: reduce) {
+    #ambient.breathe.on { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="desktop"></div>
+<div id="taskbar"></div>
+<div id="clock-widget">--:--<br>19/09/2026</div>
+<div id="desktop-hint">Click the desktop to collapse · Esc works too</div>
+
+<div id="island-root">
+  <div id="ambient"></div>
+  <div id="island"><div id="content"></div></div>
+</div>
+
+<div id="toast"></div>
+
+<div id="panel">
+  <div id="panel-header">
+    <div class="logo"></div>
+    <div class="name">NotchFlow · mockup</div>
+    <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none"
+         stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m6 9 6 6 6-6"/></svg>
+  </div>
+  <div id="panel-body">
+    <div class="status-row">
+      <div class="status-badge">STATE&nbsp;<b id="state-badge">CLOSED</b></div>
+      <div class="status-badge engine">ENGINE&nbsp;<b id="engine-badge">IDLE</b></div>
+    </div>
+    <div class="btn-grid">
+      <button class="demo-btn" data-act="hover">Hover preview</button>
+      <button class="demo-btn accent" data-act="expand">Expand media</button>
+      <button class="demo-btn" data-act="volume">Volume HUD</button>
+      <button class="demo-btn" data-act="brightness">Brightness HUD</button>
+      <button class="demo-btn" data-act="notify">Notification</button>
+      <button class="demo-btn" data-act="bluetooth">Bluetooth</button>
+      <button class="demo-btn" data-act="download">Download</button>
+      <button class="demo-btn" data-act="drop">File drop</button>
+      <button class="demo-btn" data-act="shelf">File shelf</button>
+      <button class="demo-btn" data-act="stack">Activity stack</button>
+      <button class="demo-btn" data-act="playpause">Play / pause</button>
+      <button class="demo-btn" data-act="next">Next track</button>
+      <button class="demo-btn wide" data-act="reset">Reset island</button>
+    </div>
+    <div class="panel-note" id="panel-note">
+      Spring engine: stiffness 190 · damping 21 · mass 1 — semi-implicit Euler at up to 240 Hz substeps.
+      The rAF loop runs ONLY while something moves: watch ENGINE go ANIMATING → TICK/IDLE.
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ================================================================
+   1. ICONS (inline SVG, Lucide-style — no emoji in the chrome)
+   ================================================================ */
+const I = {
+  play:   '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13l11-6.5z"/></svg>',
+  pause:  '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6.5" y="5" width="3.6" height="14" rx="1.2"/><rect x="13.9" y="5" width="3.6" height="14" rx="1.2"/></svg>',
+  prev:   '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 6h2v12H7zM19 6v12l-9-6z"/></svg>',
+  next:   '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M15 6h2v12h-2zM5 6v12l9-6z"/></svg>',
+  music:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+  volume: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M18.6 5.4a9 9 0 0 1 0 13.2"/></svg>',
+  mute:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><line x1="22" y1="9" x2="16" y2="15"/><line x1="16" y1="9" x2="22" y2="15"/></svg>',
+  sun:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>',
+  msg:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  bt:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10-5 5V2l5 5L7 17"/></svg>',
+  head:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7a9 9 0 0 1 18 0v7a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>',
+  dl:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>',
+  inbox:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/></svg>',
+  file:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>',
+  timer:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5"/><path d="M9 2h6"/></svg>',
+  chevD:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 2 8.5 4.8L12 11.5 3.5 6.8z"/><path d="m3.5 12 8.5 4.8 8.5-4.8"/><path d="m3.5 17 8.5 4.8 8.5-4.8"/></svg>',
+  check:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  web:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+};
+
+/* ================================================================
+   2. SPRING ENGINE — the heart of the mockup (spec §13, §27–28)
+      Semi-implicit Euler solver. The rAF loop exists ONLY while at
+      least one spring / tween is active, then everything stops.
+   ================================================================ */
+const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+class Spring {
+  constructor(value, stiffness = 190, damping = 21, mass = 1) {
+    this.x = value; this.v = 0; this.target = value;
+    // reduced motion → near-instant settling (simple fade feel)
+    this.k = REDUCED ? 2400 : stiffness;
+    this.c = REDUCED ? 130  : damping;
+    this.m = mass;
+  }
+  set(target) { if (target !== this.target) { this.target = target; Engine.kick(); } }
+  jump(v) { this.x = v; this.v = 0; this.target = v; }
+  step(dt) {
+    const steps = Math.max(1, Math.ceil(dt / (1 / 240)));
+    const h = dt / steps;
+    for (let i = 0; i < steps; i++) {
+      const a = (-this.k * (this.x - this.target) - this.c * this.v) / this.m;
+      this.v += a * h;
+      this.x += this.v * h;
+    }
+  }
+  get active() { return Math.abs(this.x - this.target) > 0.08 || Math.abs(this.v) > 0.08; }
+}
+
+const Engine = {
+  springs: [], tweens: new Set(), intervals: 0,
+  _running: false, _last: 0, _rafMode: true, _fpsFrames: 0, _fpsTime: 0,
+
+  // rAF is the only driver in a real browser. Some embedded webviews never
+  // composite frames, which starves rAF — a boot probe (below) switches those
+  // to a plain 60Hz timer so the demo still works everywhere.
+  _schedule(loop) { this._rafMode ? requestAnimationFrame(loop) : setTimeout(() => loop(performance.now()), 16); },
+
+  _downgrade(reason) {
+    this._rafMode = false;
+    this._downgradeReason = reason || "timer fallback active";
+  },
+
+  spring(value, k, c) { const s = new Spring(value, k, c); this.springs.push(s); return s; },
+
+  tween(dur, onUpdate, onDone) {
+    const t = { t: 0, dur, onUpdate, onDone, done: false };
+    this.tweens.add(t); this.kick(); return t;
+  },
+
+  interval(fn, ms) {  // counted 1s "clock" intervals (mini pill, timer…) — never 60fps polling
+    this.intervals++;
+    const id = setInterval(fn, ms);
+    return () => { clearInterval(id); this.intervals = Math.max(0, this.intervals - 1); Engine._badge(); };
+  },
+
+  kick() {
+    if (!this._running) { this._running = true; this._last = performance.now(); Engine._schedule(Engine._loop); }
+    this._badge();
+  },
+
+  _loop(now) {
+    if (now === undefined) now = performance.now();
+    const rawDt = (now - Engine._last) / 1000;
+    let dt = Math.min(Math.max(rawDt, 0), 0.5);   // generous cap: substepping absorbs big frames
+    if (!isFinite(dt) || dt <= 0) dt = 1 / 60;    // never let a bad frame poison the springs
+    Engine._last = now;
+    let busy = Engine.intervals > 0;
+
+    for (const s of Engine.springs) {
+      if (s.active) { s.step(dt); busy = true; }
+    }
+    for (const t of Engine.tweens) {
+      t.t += dt;
+      const p = Math.max(0, Math.min(t.t / t.dur, 1));
+      t.onUpdate(p);
+      if (p >= 1) { t.done = true; if (t.onDone) t.onDone(); }
+    }
+    for (const t of Engine.tweens) if (t.done) Engine.tweens.delete(t);
+
+    // runtime watchdog: measure the EFFECTIVE frame rate while animating.
+    // Bursty compositors and throttled webviews average far below 60fps; a
+    // healthy display stays at 30–60 and never triggers the fallback.
+    if (Engine._rafMode && busy) {
+      Engine._fpsFrames++;
+      Engine._fpsTime += rawDt;
+      if (Engine._fpsTime >= 1.5) {
+        if (Engine._fpsFrames / Engine._fpsTime < 12) Engine._downgrade("runtime watchdog: " + Math.round(Engine._fpsFrames / Engine._fpsTime) + "fps");
+        Engine._fpsFrames = 0; Engine._fpsTime = 0;
+      }
+    } else {
+      Engine._fpsFrames = 0; Engine._fpsTime = 0;
+    }
+
+    if (busy) Engine._schedule(Engine._loop);
+    else { Engine._running = false; Engine._badge(); }
+  },
+
+  _badge() {
+    const b = document.getElementById("engine-badge");
+    if (!b) return;
+    // truth in advertising: springs/tweens = ANIMATING, clock ticks = TICK, nothing = IDLE
+    b.textContent = this._running ? "ANIMATING" : (this.intervals > 0 ? "TICK 1Hz" : "IDLE");
+  },
+};
+
+/* Boot probe + runtime watchdog: real browsers stay pure rAF and idle when
+   settled. Frameless/bursty embedded webviews get a 60Hz timer fallback so
+   the demo behaves identically everywhere. */
+(function rafProbe() {
+  let n = 0;
+  function cb() { n++; if (n < 60) requestAnimationFrame(cb); }
+  requestAnimationFrame(cb);
+  setTimeout(function () {
+    // healthy display ≈ 27 frames in 450ms; starving webviews give far fewer
+    if (n < 12) Engine._downgrade("boot probe: " + n + " frames in 450ms");
+  }, 450);
+})();
+
+/* ================================================================
+   3. DEMO MEDIA MODEL
+   ================================================================ */
+const tracks = [
+  { title: "Midnight City",    artist: "M83",       hue: 265, dur: 244 },
+  { title: "Instant Crush",    artist: "Daft Punk", hue: 15,  dur: 337 },
+  { title: "Weightless",       artist: "Marconi Union", hue: 175, dur: 481 },
+];
+const media = {
+  trackIndex: 0, playing: true,
+  anchor: performance.now() / 1000 - 37,   // position anchor (event-driven: no ticking state)
+  get track() { return tracks[this.trackIndex]; },
+  position() {
+    const p = (performance.now() / 1000 - this.anchor) % this.track.dur;
+    return this.playing ? p : this._frozen;
+  },
+  _frozen: 37,
+  toggle() {
+    if (this.playing) this._frozen = this.position();
+    else this.anchor = performance.now() / 1000 - this._frozen;
+    this.playing = !this.playing;
+  },
+  next(dir = 1) {
+    this.trackIndex = (this.trackIndex + dir + tracks.length) % tracks.length;
+    this.anchor = performance.now() / 1000;
+    this._frozen = 0;
+  },
+  seek(frac) {
+    const pos = frac * this.track.dur;
+    this._frozen = pos;
+    if (this.playing) this.anchor = performance.now() / 1000 - pos;
+  },
+};
+
+const shelf = [];   // { name, size }
+
+/* ================================================================
+   4. ISLAND VIEW — state machine + scenes
+   ================================================================ */
+const el = {
+  island: document.getElementById("island"),
+  content: document.getElementById("content"),
+  ambient: document.getElementById("ambient"),
+  stateBadge: document.getElementById("state-badge"),
+  toast: document.getElementById("toast"),
+};
+
+const wSpring  = Engine.spring(168);   // width  (px)
+const hSpring  = Engine.spring(34);    // height (px)
+const sSpring  = Engine.spring(1);     // scale  (hover preview)
+const rSpring  = Engine.spring(26);    // corner radius
+const opSpring = Engine.spring(0);     // ambient halo opacity (slow fade = long settle)
+
+const SM = {
+  state: "CLOSED",          // CLOSED · PREVIEW · EXPANDING · EXPANDED · COLLAPSING
+  scene: "mini",            // current rendered scene
+  hoverTimer: null, autoTimer: null, clockStop: null, sceneStop: null,
+};
+
+function setState(s) { SM.state = s; el.stateBadge.textContent = s; }
+
+/* ---- render helpers ------------------------------------------------ */
+function fmt(sec) {
+  sec = Math.max(0, Math.floor(sec));
+  return Math.floor(sec / 60) + ":" + String(sec % 60).padStart(2, "0");
+}
+function artBG(hue) {
+  return `linear-gradient(135deg, hsl(${hue}, 62%, 46%), hsl(${(hue + 55) % 360}, 58%, 30%))`;
+}
+function setAmbient(hue, strong) {
+  document.documentElement.style.setProperty("--ambient-h", hue);
+  el.ambient.classList.toggle("strong", !!strong);
+}
+
+function render(scene) {
+  if (SM.sceneStop) { SM.sceneStop(); SM.sceneStop = null; }
+  SM.scene = scene;
+  const C = el.content;
+  C.innerHTML = SCENES[scene]();
+  wire(scene);
+  C.classList.remove("leaving");                // a collapse may have faded us out
+  if (scene === "mini") wSpring.set(miniW());   // pill always fits its live content
+  C.classList.add("show");
+  if (!REDUCED) {
+    try {  // entry flourish via WAAPI — never hides content if the timeline stalls
+      const a = C.animate(
+        [{ transform: "translateY(8px) scale(0.985)" }, { transform: "none" }],
+        { duration: 260, easing: "cubic-bezier(0.2, 0.9, 0.3, 1.25)" });
+      if (a && a.finished) a.finished.then(() => a.cancel()).catch(() => {});
+    } catch (e) {}
+  }
+  el.island.style.borderRadius = rSpring.x.toFixed(1) + "px";
+}
+
+/* Measure natural height for the current content at a given width */
+function measure(width) {
+  const probe = el.content.cloneNode(true);
+  probe.style.cssText = `position:absolute;visibility:hidden;width:${width}px;inset:auto;top:0;left:0;opacity:1;`;
+  el.island.appendChild(probe);
+  const h = probe.scrollHeight, w = Math.max(probe.scrollWidth, width);
+  el.island.removeChild(probe);
+  return { w, h: Math.max(h, 34) };
+}
+
+/* ---- core transitions ---------------------------------------------- */
+function openScene(scene, opts = {}) {
+  clearTimeout(SM.hoverTimer); clearTimeout(SM.autoTimer);
+  const targetW = opts.width || SCENE_W[scene] || 340;
+  render(scene);
+  const m = measure(targetW);
+  const targetH = opts.height || m.h;
+
+  if (SM.state === "CLOSED" || SM.state === "PREVIEW") setState("EXPANDING");
+  wSpring.set(targetW); hSpring.set(targetH); rSpring.set(opts.radius || 34);
+  sSpring.set(1);
+  const strong = !!(opts.strong ?? (scene === "media" || scene === "drop"));
+  setAmbient(opts.ambientHue ?? (media.playing || scene === "media" ? media.track.hue : 210), strong);
+  opSpring.set(strong ? 0.5 : 0.34);   // slow fade toward full glow
+  el.ambient.classList.toggle("breathe", strong);
+
+  // width change → ambient halo follows the island
+  Engine.tween(0.45, p => {
+    const w = wSpring.x;
+    el.ambient.style.width  = (w * 1.12) + "px";
+    el.ambient.style.left   = `calc(50% - ${(w * 1.12) / 2}px)`;
+  });
+
+}
+
+/* State machine completion: fires when the springs come to rest */
+(function patchLoop() {
+  const orig = Engine._loop;
+  Engine._loop = function (now) {
+    const wasActive = wSpring.active || hSpring.active;
+    orig.call(Engine, now);
+    if (wasActive && !wSpring.active && !hSpring.active) {
+      if (SM.state === "EXPANDING") setState("EXPANDED");
+      if (SM.state === "COLLAPSING") {
+        setState("CLOSED");
+        if (SM.scene !== "mini") render("mini");  // already rendered mid-collapse
+        startClock();
+      }
+    }
+  };
+})();
+
+function collapse() {
+  clearTimeout(SM.hoverTimer); clearTimeout(SM.autoTimer);
+  if (SM.sceneStop) { SM.sceneStop(); SM.sceneStop = null; }
+  setState("COLLAPSING");
+  el.content.classList.add("leaving");
+  setTimeout(() => {
+    render("mini");
+    wSpring.set(miniW()); hSpring.set(34); rSpring.set(26); sSpring.set(1);
+  }, REDUCED ? 0 : 90);
+  opSpring.set(0);                       // halo dissolves
+  setTimeout(() => el.ambient.classList.remove("breathe"), 350);
+  startClock();
+}
+
+function miniW() {
+  // size the pill to its actual content (never below the clock-only width)
+  const mc = document.querySelector(".mini-content");
+  if (mc) return Math.min(240, Math.max(120, Math.ceil(mc.getBoundingClientRect().width) + 2));
+  return 164;
+}
+
+/* ---- 1s clock: runs ONLY while the mini pill is visible ------------ */
+function startClock() {
+  if (SM.clockStop) return;
+  const tick = () => {
+    if (SM.scene !== "mini") return;
+    const t = document.getElementById("mini-time");
+    if (t) {
+      const d = new Date();
+      t.textContent = d.getHours().toString().padStart(2, "0") + ":" +
+                      d.getMinutes().toString().padStart(2, "0");
+    }
+  };
+  tick();
+  SM.clockStop = Engine.interval(tick, 1000);
+}
+function stopClock() { if (SM.clockStop) { SM.clockStop(); SM.clockStop = null; } }
+
+/* ---- hover preview (interaction level 1) --------------------------- */
+function enterPreview() {
+  if (SM.state !== "CLOSED") return;
+  setState("PREVIEW");
+  sSpring.set(1.045);
+  stopClock();
+}
+function leavePreview() {
+  if (SM.state !== "PREVIEW") return;
+  setState("CLOSED");
+  sSpring.set(1);
+  startClock();
+}
+
+/* ---- toast ---------------------------------------------------------- */
+let toastTimer = null;
+function toast(msg) {
+  el.toast.textContent = msg;
+  el.toast.style.left = (window.innerWidth / 2) + "px";
+  el.toast.style.top = (hSpring.x + 34) + "px";
+  el.toast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.toast.classList.remove("show"), 1900);
+}
+
+/* ================================================================
+   5. SCENES
+   ================================================================ */
+const SCENE_W = { media: 372, volume: 300, brightness: 300, notify: 330,
+                  notifyChip: 168, bluetooth: 330, download: 340, drop: 380,
+                  shelf: 392, stack: 400, downloadDone: 250 };
+
+const SCENES = {
+  /* -- mini pill ----------------------------------------------------- */
+  mini() {
+    const t = media.playing
+      ? `<div class="media-hint">${I.music}<span>${esc(media.track.title)}</span></div>`
+      : "";
+    return `<div class="mini-content">
+        <div class="cam"></div>
+        <span class="time" id="mini-time">--:--</span>
+        ${t ? '<span class="dot"></span>' + t : ""}
+      </div>`;
+  },
+
+  /* -- media player --------------------------------------------------- */
+  media() {
+    const tr = media.track;
+    return `<div class="scene" style="gap:11px">
+      <div class="row" style="justify-content:space-between">
+        <span class="app-chip">${I.web} Spotify · Web player</span>
+        <button class="icon-btn small" id="collapse-btn" title="Collapse">${I.chevD}</button>
+      </div>
+      <div class="row" style="gap:14px">
+        <div class="artwork" style="background:${artBG(tr.hue)}">${I.music}</div>
+        <div class="media-main">
+          <div class="media-title">${esc(tr.title)}</div>
+          <div class="media-artist">${esc(tr.artist)}</div>
+          <div class="progress-row">
+            <span class="meta" id="t-cur">0:00</span>
+            <div class="bar" id="seek"><div class="fill" id="seek-fill"></div><div class="knob" id="seek-knob"></div></div>
+            <span class="meta">${fmt(tr.dur)}</span>
+          </div>
+          <div class="transport">
+            <button class="icon-btn" id="prev-btn">${I.prev}</button>
+            <button class="icon-btn primary" id="play-btn">${media.playing ? I.pause : I.play}</button>
+            <button class="icon-btn" id="next-btn">${I.next}</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  },
+
+  /* -- volume / brightness HUD ---------------------------------------- */
+  volume() {
+    const v = HUD.volume;
+    return `<div class="scene" style="padding:15px 18px">
+      <div class="row" style="gap:13px">
+        <div class="hud-icon">${v > 0 ? I.volume : I.mute}</div>
+        <div class="hud-body">
+          <div class="hud-top"><span class="hud-label">Volume</span><span class="hud-value" id="hud-val">${v}%</span></div>
+          <div class="bar hud-bar" id="hud-bar"><div class="fill" id="hud-fill" style="width:${v}%"></div><div class="knob" id="hud-knob" style="left:${v}%"></div></div>
+        </div>
+      </div>
+    </div>`;
+  },
+  brightness() {
+    const v = HUD.brightness;
+    return `<div class="scene" style="padding:15px 18px">
+      <div class="row" style="gap:13px">
+        <div class="hud-icon">${I.sun}</div>
+        <div class="hud-body">
+          <div class="hud-top"><span class="hud-label">Brightness</span><span class="hud-value" id="hud-val">${v}%</span></div>
+          <div class="bar hud-bar" id="hud-bar"><div class="fill" id="hud-fill" style="width:${v}%"></div><div class="knob" id="hud-knob" style="left:${v}%"></div></div>
+        </div>
+      </div>
+    </div>`;
+  },
+
+  /* -- notification (expanded → chip → gone) --------------------------- */
+  notify() {
+    return `<div class="scene" style="padding:13px 16px">
+      <div class="row" style="gap:12px">
+        <div class="avatar" style="background:linear-gradient(135deg,#5865F2,#3c45a5)">${I.msg}</div>
+        <div class="grow" style="flex:1;min-width:0">
+          <div class="row" style="gap:7px">
+            <span class="title" style="font-size:13px">Discord</span>
+            <span class="meta">now</span>
+          </div>
+          <div class="subtitle" style="margin-top:2px">Lucas sent you a message</div>
+        </div>
+        <span class="badge">2 new</span>
+      </div>
+    </div>`;
+  },
+  notifyChip() {
+    return `<div class="notif-chip">
+        <div class="avatar" style="width:22px;height:22px;background:linear-gradient(135deg,#5865F2,#3c45a5);font-size:10px">
+          <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        Discord <span class="cnt">2</span>
+      </div>`;
+  },
+
+  /* -- bluetooth -------------------------------------------------------- */
+  bluetooth() {
+    return `<div class="scene" style="padding:13px 16px">
+      <div class="row" style="gap:12px">
+        <div class="avatar" style="background:linear-gradient(135deg,#2b8cff,#1a5fd0)">${I.head}</div>
+        <div style="flex:1;min-width:0">
+          <div class="row" style="gap:7px">
+            <span class="title" style="font-size:13px">Sony WH-1000XM5</span>
+            <span class="badge ok">Connected</span>
+          </div>
+          <div class="row" style="gap:8px;margin-top:7px">
+            <div class="bar" style="flex:1;cursor:default"><div class="fill" style="width:82%;background:rgba(120,220,160,0.9)"></div></div>
+            <span class="meta">82%</span>
+          </div>
+        </div>
+        <button class="icon-btn small" id="collapse-btn">${I.chevD}</button>
+      </div>
+    </div>`;
+  },
+
+  /* -- download ---------------------------------------------------------- */
+  download() {
+    return `<div class="scene" style="padding:13px 16px">
+      <div class="row" style="gap:12px">
+        <div class="avatar" style="background:rgba(255,255,255,0.08)">${I.dl}</div>
+        <div style="flex:1;min-width:0">
+          <div class="row" style="justify-content:space-between">
+            <span class="title" style="font-size:13px">project-archive.zip</span>
+            <span class="meta" id="dl-pct">0%</span>
+          </div>
+          <div class="row" style="gap:8px;margin-top:7px">
+            <div class="bar" style="flex:1;cursor:default"><div class="fill" id="dl-fill" style="width:0%"></div></div>
+            <span class="meta" id="dl-speed">— MB/s</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  },
+  downloadDone() {
+    return `<div class="scene" style="padding:12px 16px">
+      <div class="row" style="gap:10px;justify-content:center">
+        <span style="color:#8fe0ae;display:flex">${I.check}</span>
+        <span class="title" style="font-size:12.5px">Download complete</span>
+      </div>
+    </div>`;
+  },
+
+  /* -- file drop ----------------------------------------------------------- */
+  drop() {
+    return `<div class="scene" style="padding:14px">
+      <div class="drop-zone" id="drop-zone">
+        ${I.inbox}
+        <div class="dz-t">Drop files here</div>
+        <div class="dz-s">or click to simulate a drop</div>
+      </div>
+    </div>`;
+  },
+
+  /* -- file shelf ------------------------------------------------------------ */
+  shelf() {
+    const rows = shelf.length
+      ? shelf.map((f, i) => `<div class="shelf-chip" data-i="${i}">
+            ${I.file}<span class="name">${esc(f.name)}</span><span class="size">${f.size}</span>
+          </div>`).join("")
+      : `<div class="subtitle" style="text-align:center;padding:8px 0 4px">Shelf is empty — drop a file</div>`;
+    return `<div class="scene" style="padding:12px 14px;gap:8px">
+      <div class="row" style="justify-content:space-between">
+        <span class="section-label">File shelf · ${shelf.length} item${shelf.length === 1 ? "" : "s"}</span>
+        <button class="icon-btn small" id="collapse-btn">${I.chevD}</button>
+      </div>
+      <div class="stack-list">${rows}</div>
+    </div>`;
+  },
+
+  /* -- activity stack ----------------------------------------------------------- */
+  stack() {
+    const tr = media.track;
+    return `<div class="scene" style="padding:13px 15px;gap:9px">
+      <div class="row" style="justify-content:space-between">
+        <span class="section-label">Activities</span>
+        <button class="icon-btn small" id="collapse-btn">${I.chevD}</button>
+      </div>
+      <div class="hrow">
+        <div class="artwork small" style="background:${artBG(tr.hue)}">${I.music}</div>
+        <div class="grow">
+          <div class="t">${esc(tr.title)}</div>
+          <div class="s">${esc(tr.artist)} · Spotify</div>
+        </div>
+        <button class="icon-btn small" id="stack-play">${media.playing ? I.pause : I.play}</button>
+      </div>
+      <span class="section-label" style="margin-top:2px">Background · 3</span>
+      <div class="hrow" style="padding:7px 11px">
+        <span style="color:var(--text-secondary);display:flex;width:16px">${I.dl}</span>
+        <div class="grow"><div class="t" style="font-size:11.5px">project-archive.zip</div></div>
+        <div class="mini-progress"><i id="stack-dl" style="width:${Download.pct}%"></i></div>
+        <span class="meta">${Math.round(Download.pct)}%</span>
+      </div>
+      <div class="hrow" style="padding:7px 11px">
+        <span style="color:var(--text-secondary);display:flex;width:16px">${I.head}</span>
+        <div class="grow"><div class="t" style="font-size:11.5px">Sony WH-1000XM5</div></div>
+        <span class="meta">82%</span>
+      </div>
+      <div class="hrow" style="padding:7px 11px">
+        <span style="color:var(--text-secondary);display:flex;width:16px">${I.timer}</span>
+        <div class="grow"><div class="t" style="font-size:11.5px">Focus timer</div></div>
+        <span class="meta" id="stack-timer">${fmt(Timer.sec)}</span>
+      </div>
+      <div class="meta" style="text-align:center;margin-top:2px">Scroll or swipe to switch activities</div>
+    </div>`;
+  },
+};
+
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+/* ================================================================
+   6. SCENE WIRING (interactions per scene)
+   ================================================================ */
+const HUD = { volume: 74, brightness: 63 };
+const Download = { pct: 0, running: false };
+const Timer = { sec: 222 };
+
+function wire(scene) {
+  // generic collapse button
+  const cb = document.getElementById("collapse-btn");
+  if (cb) cb.addEventListener("click", e => { e.stopPropagation(); collapse(); });
+
+  if (scene === "mini") {
+    startClock();
+  }
+
+  if (scene === "media") {
+    const refresh = () => {
+      const fill = document.getElementById("seek-fill"), knob = document.getElementById("seek-knob"), cur = document.getElementById("t-cur");
+      if (!fill) return;
+      const p = media.position() / media.track.dur;
+      fill.style.width = (p * 100) + "%";
+      knob.style.left = (p * 100) + "%";
+      cur.textContent = fmt(media.position());
+    };
+    refresh();
+    SM.sceneStop = Engine.interval(refresh, 1000); // 1 Hz like a real SMTC push — never a 60fps poll
+
+    document.getElementById("play-btn").onclick = e => { e.stopPropagation(); media.toggle(); render("media"); syncMini(); };
+    document.getElementById("next-btn").onclick = e => { e.stopPropagation(); media.next(1); openScene("media"); toast("Next track"); };
+    document.getElementById("prev-btn").onclick = e => { e.stopPropagation(); media.next(-1); openScene("media"); toast("Previous track"); };
+
+    const bar = document.getElementById("seek");
+    bar.onpointerdown = e => {
+      const move = ev => {
+        const r = bar.getBoundingClientRect();
+        media.seek(Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)));
+        const fill = document.getElementById("seek-fill"), knob = document.getElementById("seek-knob"), cur = document.getElementById("t-cur");
+        const p = media.position() / media.track.dur;
+        fill.style.width = (p * 100) + "%"; knob.style.left = (p * 100) + "%";
+        cur.textContent = fmt(media.position());
+      };
+      const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+      move(e);
+    };
+  }
+
+  if (scene === "volume" || scene === "brightness") {
+    const key = scene;
+    const bar = document.getElementById("hud-bar");
+    bar.onpointerdown = e => {
+      clearTimeout(SM.autoTimer); // interacting → hold the HUD open
+      const move = ev => {
+        const r = bar.getBoundingClientRect();
+        HUD[key] = Math.round(Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)) * 100);
+        const val = document.getElementById("hud-val"), fill = document.getElementById("hud-fill"), knob = document.getElementById("hud-knob");
+        val.textContent = HUD[key] + "%";
+        fill.style.width = HUD[key] + "%"; knob.style.left = HUD[key] + "%";
+        if (key === "brightness") document.getElementById("desktop").style.filter = `brightness(${0.45 + HUD[key] / 100 * 0.55})`;
+      };
+      const up = () => {
+        window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up);
+        scheduleHudCollapse();
+        if (key === "volume") toast("Volume " + HUD[key] + "%");
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+      move(e);
+    };
+    scheduleHudCollapse(2600);
+  }
+
+  if (scene === "bluetooth") scheduleHudCollapse(4200);
+
+  if (scene === "notify") {
+    SM.autoTimer = setTimeout(() => {
+      openScene("notifyChip", { width: SCENE_W.notifyChip, radius: 26, ambientHue: 210 });
+      SM.autoTimer = setTimeout(collapse, 1700);
+    }, 2600);
+  }
+
+  if (scene === "download") startDownload();
+
+  if (scene === "drop") {
+    const dz = document.getElementById("drop-zone");
+    dz.onclick = e => { e.stopPropagation(); simulateDrop(); };
+  }
+
+  if (scene === "shelf") {
+    document.querySelectorAll(".shelf-chip").forEach(chip => {
+      chip.onclick = e => {
+        e.stopPropagation();
+        const f = shelf[+chip.dataset.i];
+        toast(f.name + " → restored");
+      };
+    });
+  }
+
+  if (scene === "stack") {
+    document.getElementById("stack-play").onclick = e => { e.stopPropagation(); media.toggle(); render("stack"); syncMini(); };
+    const t = document.getElementById("stack-timer");
+    SM.sceneStop = Engine.interval(() => {
+      Timer.sec++;
+      if (t) t.textContent = fmt(Timer.sec);
+      const dl = document.getElementById("stack-dl");
+      if (dl) { dl.style.width = Download.pct + "%"; }
+      const pct = dl && dl.nextElementSibling; if (pct) pct.textContent = Math.round(Download.pct) + "%";
+    }, 1000);
+  }
+}
+
+function syncMini() { if (SM.scene === "mini") render("mini"); }
+
+/* ---- HUD auto collapse ---------------------------------------------- */
+function scheduleHudCollapse(ms = 2400) {
+  clearTimeout(SM.autoTimer);
+  SM.autoTimer = setTimeout(() => { if (SM.state === "EXPANDED") collapse(); }, ms);
+}
+
+/* ---- download activity ------------------------------------------------ */
+function startDownload() {
+  if (Download.running) return;
+  Download.running = true;
+  Engine.tween(4.2, p => {
+    Download.pct = p * 100;
+    const fill = document.getElementById("dl-fill"), pct = document.getElementById("dl-pct"), spd = document.getElementById("dl-speed");
+    if (fill) fill.style.width = (p * 100) + "%";
+    if (pct) pct.textContent = Math.round(p * 100) + "%";
+    if (spd) spd.textContent = (9 + Math.random() * 6).toFixed(1) + " MB/s";
+  }, () => {
+    Download.running = false; Download.pct = 100;
+    openScene("downloadDone", { width: SCENE_W.downloadDone, ambientHue: 140 });
+    setTimeout(collapse, 1500);
+  });
+}
+
+/* ---- file drop ----------------------------------------------------------- */
+function simulateDrop() {
+  const samples = [
+    { name: "screenshot-2026.png", size: "1.8 MB" },
+    { name: "invoice-q3.pdf",      size: "412 KB" },
+    { name: "build-notes.md",      size: "8 KB"  },
+  ];
+  const pick = samples[Math.floor(Math.random() * samples.length)];
+  shelf.unshift(pick);
+  toast(pick.name + " added to shelf");
+  openScene("shelf");
+}
+
+/* real OS drag & drop onto the island / window */
+let dragDepth = 0;
+window.addEventListener("dragenter", e => {
+  if (![...e.dataTransfer.types].includes("Files")) return;
+  dragDepth++;
+  e.preventDefault();
+  openScene("drop", { width: SCENE_W.drop });
+});
+window.addEventListener("dragover", e => e.preventDefault());
+window.addEventListener("dragleave", e => {
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0 && SM.scene === "drop" && SM.state !== "COLLAPSING") collapse();
+});
+window.addEventListener("drop", e => {
+  e.preventDefault();
+  dragDepth = 0;
+  const files = [...(e.dataTransfer?.files || [])];
+  if (files.length) {
+    files.slice(0, 6).forEach(f => shelf.unshift({
+      name: f.name, size: f.size > 1048576 ? (f.size / 1048576).toFixed(1) + " MB" : Math.max(1, Math.round(f.size / 1024)) + " KB",
+    }));
+    toast(files.length + " file" + (files.length > 1 ? "s" : "") + " added to shelf");
+    openScene("shelf");
+  } else collapse();
+});
+
+/* ================================================================
+   7. GLOBAL INTERACTION (hover / click / esc / desktop click)
+   ================================================================ */
+el.island.addEventListener("mouseenter", () => { if (SM.state === "CLOSED") enterPreview(); });
+el.island.addEventListener("mouseleave", () => leavePreview());
+el.island.addEventListener("click", () => {
+  if (SM.state === "CLOSED" || SM.state === "PREVIEW") {
+    stopClock();
+    openScene("media");
+  }
+});
+document.getElementById("desktop").addEventListener("click", () => {
+  if (SM.state === "EXPANDED" || SM.state === "EXPANDING") collapse();
+});
+window.addEventListener("keydown", e => {
+  if (e.key === "Escape" && (SM.state === "EXPANDED" || SM.state === "EXPANDING")) collapse();
+});
+
+/* ================================================================
+   8. DEMO PANEL
+   ================================================================ */
+document.getElementById("panel").addEventListener("click", e => e.stopPropagation());
+document.getElementById("panel-header").addEventListener("click", () =>
+  document.getElementById("panel").classList.toggle("collapsed"));
+
+const actions = {
+  hover()      { SM.state === "CLOSED" ? (enterPreview(), setTimeout(leavePreview, 1400)) : collapse(); },
+  expand()     { stopClock(); openScene("media"); },
+  volume()     { stopClock(); openScene("volume"); },
+  brightness() { stopClock(); openScene("brightness"); },
+  notify()     { stopClock(); openScene("notify"); },
+  bluetooth()  { stopClock(); openScene("bluetooth"); },
+  download()   { stopClock(); openScene("download"); },
+  drop()       { stopClock(); openScene("drop"); },
+  shelf()      { stopClock(); openScene("shelf"); },
+  stack()      { stopClock(); openScene("stack"); },
+  playpause()  { media.toggle(); if (SM.scene === "media") render("media"); else if (SM.scene === "stack") render("stack"); else syncMini(); },
+  next()       { media.next(1); if (SM.scene === "media") openScene("media"); else if (SM.scene === "stack") render("stack"); else syncMini(); toast("Next track"); },
+  reset()      { shelf.length = 0; Download.pct = 0; Download.running = false; media.trackIndex = 0; media.playing = true; document.getElementById("desktop").style.filter = ""; collapse(); },
+};
+document.querySelectorAll(".demo-btn").forEach(b =>
+  b.addEventListener("click", e => { e.stopPropagation(); actions[b.dataset.act]?.(); }));
+
+if (REDUCED) {
+  document.getElementById("panel-note").innerHTML =
+    "<b>prefers-reduced-motion detected</b> — springs settle instantly and breathing effects are disabled (spec §38).";
+}
+
+/* ================================================================
+   9. DESKTOP CHROME (taskbar + clock widget)
+   ================================================================ */
+document.getElementById("taskbar").innerHTML = [
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/></svg>',
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>',
+  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  I.web, I.music,
+].map(s => `<div class="tb-icon">${s}</div>`).join("");
+
+function taskbarClock() {
+  const d = new Date();
+  document.getElementById("clock-widget").innerHTML =
+    d.getHours().toString().padStart(2, "0") + ":" + d.getMinutes().toString().padStart(2, "0") +
+    "<br>19/09/2026";
+}
+taskbarClock(); setInterval(taskbarClock, 10000);
+
+/* ================================================================
+   10. BOOT — island starts CLOSED, mini pill visible
+   ================================================================ */
+render("mini");
+wSpring.jump(miniW()); hSpring.jump(34); rSpring.jump(26);
+el.island.style.width = wSpring.x + "px";
+el.island.style.height = hSpring.x + "px";
+startClock();
+
+/* render loop: push spring values into the DOM (only runs while busy) */
+(function renderLoop() {
+  const orig = Engine._loop;
+  Engine._loop = function (now) {
+    orig.call(Engine, now);
+    el.island.style.width = wSpring.x.toFixed(2) + "px";
+    el.island.style.height = hSpring.x.toFixed(2) + "px";
+    el.island.style.borderRadius = rSpring.x.toFixed(1) + "px";
+    el.island.style.transform = `scale(${sSpring.x.toFixed(4)})`;
+    el.ambient.style.opacity = opSpring.x.toFixed(3);
+  };
+})();
+</script>
+</body>
+</html>
