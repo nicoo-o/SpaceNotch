@@ -623,6 +623,24 @@ public sealed partial class IslandWindow : Window
         NotificationSceneView.DismissRequested += () => _controller.RequestCollapse();
 
         Closed += OnWindowClosed;
+        Activated += OnWindowActivated;
+    }
+
+    /// <summary>
+    /// Clic à l'extérieur : la notch ouverte se referme.
+    ///
+    /// Un clic sur la notch la rend active — la saisie clavier y est permise tant
+    /// que le pointeur la désigne. Cliquer ailleurs la désactive : c'est ce
+    /// signal, fourni par Windows, qui referme la notch, sans crochet de souris
+    /// global et sans scrutation.
+    /// </summary>
+    private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
+    {
+        if (args.WindowActivationState == WindowActivationState.Deactivated
+            && _controller.State is IslandState.Expanded or IslandState.Expanding)
+        {
+            _controller.RequestCollapse();
+        }
     }
 
     // ------------------------------------------------------------------

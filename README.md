@@ -47,7 +47,7 @@ reste en version zéro : une rupture est possible, elle sera documentée.
 |---|---|
 | CPU au repos | **0,24 à 0,31 % d'un cœur** |
 | Journal pendant l'inactivité | **aucune ligne ajoutée** sur 15 s |
-| Tests | **174** (cœur et greffon, sans machine graphique) |
+| Tests | **212** (cœur et greffon, sans machine graphique) |
 | Construction Release | 0 erreur, **0 avertissement** |
 | Chemin de dissolution | **compositeur**, confirmé par sonde à l'exécution |
 | Greffon d'exemple | chargé par l'hôte réel : **1 fonctionnalité, 0 échec** |
@@ -58,10 +58,15 @@ et de WinUI 3 est réel. La mesure est publiée telle quelle — voir
 
 ## Fonctionnalités
 
-Média (pochette, titre, artiste, transport, position, teinte d'ambiance dérivée de l'album) · HUD
-volume · HUD luminosité · notifications · Bluetooth · minuteur de focus · minuteur · lanceur
-d'application · étagère de fichiers · presse-papier avec historique (désactivé par défaut) · pile
-d'activités navigable · greffons externes.
+Média (pochette qui grandit depuis la notch, transport, position, teinte d'ambiance) · volume et
+luminosité en recouvrement compact · notifications groupées par application · téléchargements
+(tous navigateurs) · Bluetooth · focus · minuteur · lanceur-commande · étagère de fichiers (déposer,
+reprendre en glissant) · presse-papier (désactivé par défaut) · pile d'activités · greffons
+externes · grille hypnotique pour tout travail en cours · annonces Narrateur.
+
+Pour tout voir d'un coup : `SpaceNotch.App.exe --demo` (ou *Lancer › Démonstration* dans le menu
+de la zone de notification) rejoue musique, volume, messages, téléchargement, casque et la
+référence « Thinking ».
 
 Un **greffon d'exemple complet** — météo locale, source de données réelle, actions, tests — vit dans
 [`samples/`](samples/SpaceNotch.SamplePlugin.Weather/README.md). Il est écrit sans modifier

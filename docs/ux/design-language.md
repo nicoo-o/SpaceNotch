@@ -64,9 +64,9 @@ plus loin.
 
 | Rôle | Valeur | Note |
 |---|---|---|
-| Corps | `#000000` | Noir pur : la notch se fond dans le bord de l'écran — et, sur OLED, se lit comme une découpe matérielle. |
+| Corps | `#000000` | Noir OLED pur : la notch se fond dans le bord de l'écran — et, sur OLED, se lit comme une découpe matérielle. Aucun reflet au bord. |
 | Verre / surfaces internes | `#08090C` | Le « noir relevé » : il laisse la place à la profondeur là où une surface doit se distinguer d'une autre. |
-| Texte | blanc à ~94 % d'opacité | Sur fond clair, encre sombre à la place. |
+| Texte | blanc à ~92 % d'opacité | Plafonné sous le blanc pur contre la halation sur OLED. Sur fond clair, encre sombre. |
 | Indicateur de pile | blanc à ~44 % | Doit se lire comme un indice, jamais comme un texte. |
 
 La teinte d'ambiance peut être influencée par la couleur dominante d'une pochette d'album, mais
@@ -81,11 +81,11 @@ Très arrondis, **interpolés continûment selon la hauteur**, et configurables 
 |---|---|---|
 | Congé compact | 26 DIP | 8–40 |
 | Congé ouvert | 34 DIP | 12–48 |
-| Épaules (raccord au bord de l'écran) | 8 DIP | 0–16 |
+| Épaules (raccord au bord de l'écran) | 12 DIP | 0–20 |
 
 Le congé est borné par ce que la forme porte — `min((largeur − 2·épaule)/2, hauteur − épaule)` —
-et non par la moitié de la hauteur : la notch n'a qu'un bord libre. Une forme compacte de 34 DIP
-porte donc un congé de 26.
+et non par la moitié de la hauteur : la notch n'a qu'un bord libre. Une forme compacte de 36 DIP
+porte donc un congé de 24 sous des épaules de 12.
 
 ## Typographie
 
@@ -96,7 +96,8 @@ chasse fixe, sinon le texte « danse » à chaque incrément.
 ## Espacement
 
 Au repos sans activité, la notch est une **lèvre** de 80 × 18 au bord de l'écran ; avec une
-activité, une forme compacte de 34 DIP portant au plus une icône et un libellé court. L'ouverture révèle la structure : le contenu n'est jamais comprimé dans la forme
+activité, une forme compacte de 36 DIP portant une icône — ou une pochette —, un libellé court
+et, à droite, une mesure (62 %, 12 Mo, ✓) ; sa largeur suit le texte. L'ouverture révèle la structure : le contenu n'est jamais comprimé dans la forme
 fermée.
 
 Les encombrements sont **déclarés** par le catalogue de scènes, jamais écrits en dur dans une vue.

@@ -102,8 +102,8 @@ Policy      Persistent / Passive / Temporary / Interrupting
 
 | Présentation | Quand | Forme | Objectif |
 |---|---|---|---|
-| **Hidden** | aucune activité | lèvre 80 × 18 | presque rien ; cible facile au bord (Fitts) |
-| **Compact** | une activité, au repos | 148 × 34 | savoir qu'il se passe quelque chose |
+| **Hidden** | aucune activité | lèvre 80 × 18, masquée en plein écran | presque rien ; cible facile au bord (Fitts) |
+| **Compact** | une activité, au repos | 36 de haut, largeur ajustée au texte (120–320) | savoir qu'il se passe quelque chose |
 | **Preview** | survol intentionnel | +10–20 %, 2ᵉ ligne depuis le signal | donner envie d'interagir |
 | **Expanded** | clic | taille de la scène | vraie interaction |
 
@@ -159,11 +159,11 @@ Pile : discrète — `Spotify  • •` — jamais un gestionnaire de tâches.
 | Élément | Valeur | Réglable |
 |---|---|---|
 | Bord supérieur | collé, pleine largeur, y = 0 | non (invariant testé) |
-| Épaules concaves | 8 DIP | 0–16 |
+| Épaules concaves | 12 DIP (mesurées sur la vidéo : ~⅔ du congé) | 0–20 |
 | Congé compact | 26 DIP | 8–40 |
 | Congé ouvert | 34 DIP | 12–48 |
 | Courbure | superellipse K = 2 (squircle) | arc / squircle |
-| Hauteur compacte | 34 DIP | — |
+| Hauteur compacte | 36 DIP (hauteur de la Dynamic Island) | — |
 | Hauteur aperçu | 40–60 DIP | — |
 | Hauteur ouverte | déterminée par le contenu (70–260) | — |
 
@@ -231,56 +231,66 @@ Inspiré de la notch HUD « Hypnotizing UI » d'Inspora (une IA qui lit, réflé
 > **Mouvement hypnotique = quelque chose travaille, cherche, absorbe ou se transforme.**
 > Jamais « quelque chose vient de se produire ».
 
-Ce qu'on garde de la référence : notch collée en haut, grands coins, contexte discret en haut
-(« Read app-sidebar.tsx · 219 lines »), état principal dessous (lumière + « Thinking »), source
-lumineuse chaude, halo très doux, contraste noir / lumière, respiration plutôt que spinner.
+### Ce que montre la vidéo de référence
 
-### Primitives
+Analyse image par image (34 s, 30 i/s) :
 
-Respiration · Flux · Attraction · Dispersion · Convergence — combinées dans une source, un halo et
-quatre particules. Peu de primitives : l'effet vient du rythme, pas du nombre.
+- **Une grille de 3 × 3 pixels carrés**, presque jointifs, avec un halo doux (« bloom ») — pas une
+  orbe floue. Environ 18 DIP de côté, à gauche du titre.
+- **Des motifs qui se succèdent** toutes les 150 à 250 ms, avec un fondu court : croix, anneau,
+  losange, plein, coins, plus, colonnes, « L ».
+- **Une couleur qui dérive selon l'état** : bleu / cyan pour « Reading file » et « Responding »,
+  orange → corail pour « Thinking », pêche → rose → bleu → lavande pour « Creating prototype ».
+- **Deux niveaux de texte** : contexte discret (« Read sidebar.tsx » + « 741 lines » un ton plus
+  clair) au-dessus de l'état en blanc.
+- **La largeur de la notch suit le texte**, et les états se remplacent par un fondu sur place.
+- **Épaules concaves** franches au raccord du bord supérieur, congés bas ≈ 1,5 × l'épaule.
+- **Une pluie binaire « 0 1 »** très pâle tombe sous la notch pendant « Creating prototype ».
 
-### Préréglages
+### Préréglages (grille 3 × 3)
 
-| Préréglage | Caractère | Période | Usage |
-|---|---|---|---|
-| Read | lent, régulier, respirant | 3,6 s | lecture, indexation douce |
-| Think | organique (Lissajous) | 4,8 s | réflexion, automatisation |
-| Search | balayage directionnel | 1,8 s | lanceur, recherche |
-| Process | dense, énergique | 1,4 s | téléchargement, installation |
-| Sync | flux gauche ↔ droite | 2,4 s | OneDrive, Git, Bluetooth, greffons |
-| Drop | attraction vers le centre | 1,2 s | glisser un fichier sur la notch |
-| Complete | convergence, impulsion, silence | 0,9 s une fois | fin de travail |
-| Error | dispersion, micro-secousse | 0,7 s une fois | échec |
+| Préréglage | Motifs | Palette | Pas | Usage |
+|---|---|---|---|---|
+| Read | curseur qui parcourt la grille avec une traîne (marches) | bleu ↔ cyan | 150 ms | lecture, indexation |
+| Think | serpent de 3 pixels autour de l'anneau (les « L ») | orange → corail → rose | 160 ms | réflexion, automatisation |
+| Search | colonne qui balaie de gauche à droite | cyan ↔ bleu | 180 ms | lanceur (lecture du menu Démarrer) |
+| Process | croix, anneau, losange, plein, coins, plus | pêche → rose → bleu → lavande | 220 ms | téléchargement, installation |
+| Sync | colonne qui va et vient | bleu ↔ orange | 200 ms | greffons, synchronisation |
+| Drop | anneau → losange → centre → extinction | pêche ↔ orange | 180 ms | fichier glissé sur la notch |
+| Complete | plein → plus → un seul pixel apaisé | menthe | une fois, 0,95 s | fin de travail |
+| Error | croix qui clignote deux fois, secousse, reste pâle | rouge | une fois, 0,8 s | échec |
 
 L'état décide **s'il y a** mouvement, le préréglage **lequel** :
 `Working + None → Process`, `Attention + None → Read`, `Completing → Complete`, `Error → Error`,
-`Idle / Complete → rien`.
+`Idle / Complete → rien`. La couleur appartient au préréglage (choix validé) : elle dit ce qui se
+passe.
 
 ### Architecture
 
 ```text
-Activity → ActivityMotionState → HypnoticField (fonction pure du temps, Core, testée)
-        → échantillonnage d'une boucle (32 images) → images clés du compositeur (App)
-        → Glow / Flow / Convergence  ⇄  AmbientState → respiration de l'atmosphère
+Activity → ActivityMotionState → HypnoticField (fonction linéaire par morceaux, Core, testée)
+        → images clés EXACTES (points de rupture) → compositeur (App) : 9 pixels + halo LayerVisual
+        → AmbientState → l'atmosphère respire ET dérive dans la couleur de la grille
 ```
 
-- Le GPU rejoue seul la boucle : **aucun calcul par image** sur le fil d'interface.
+- Le GPU rejoue seul la boucle : **aucun calcul par image** sur le fil d'interface. Les images
+  clés sont les points de rupture de la fonction : le rendu est identique au modèle, sans
+  approximation.
 - Au repos : animations arrêtées, visuels masqués, coût nul.
-- La matière vit **dans** la notch ; seul son halo se diffuse dans l'atmosphère, jamais hors de
-  la forme.
-- La dissolution respire **avec** la matière : même fonction, même période.
+- **Apaisement** : en Compact, une boucle se fige après 20 s (WCAG 2.2.2) et reprend au survol.
+- Réduction des animations ou réglage désactivé : un motif fixe, dans la couleur du préréglage.
+- La pluie binaire est une **option**, désactivée par défaut (Réglages › Mouvement).
 - Un greffon demande `MotionPreset = Sync` ; il ne dessine jamais sa propre animation.
-- Jamais sur : volume, luminosité, lecture/pause, notifications (mouvement court ou morph).
+- Jamais sur : volume, luminosité, lecture/pause, notifications.
 
 ### Scénarios
 
-**Dépôt de fichier** : survol → la notch devient cible (Drop, attraction) → dépôt → absorption
-(Complete : convergence, impulsion) → `1 fichier`.
-**Téléchargement** : Compact + Process ; au clic, progression et pourcentage à côté de la matière ;
-fin → Complete → Compact.
-**Recherche** : la frappe dans le lanceur passe en Search, puis les résultats convergent.
-**Synchronisation / mise à jour** : Sync, puis Process → Complete.
+**Dépôt de fichier** : survol → la notch devient cible (Drop) → dépôt → absorption (Complete) →
+l'étagère.
+**Téléchargement** : Compact + Process, taille reçue à droite ; fin → Complete → « Ouvrir ».
+**Lanceur** : Search pendant la lecture réelle du menu Démarrer, puis la liste.
+**Greffon météo** : Sync pendant chaque relevé.
+**Démonstration** (`--demo`) : la vidéo rejouée — Thinking, Reading file, Creating prototype, fin.
 
 ---
 
@@ -329,19 +339,30 @@ Windows → Feature → Event/Activity → ActivityManager → StateManager
 
 | Phase | Contenu | État |
 |---|---|---|
-| 1. Fondation | jetons Glass/Elevated/Hypnotic, typo Body+ et Hero, `MotionPresets` | **partiel** — reste : couleurs en dur des scènes et de la fenêtre de réglages |
-| 2. TopAttached | silhouette à épaules, rayon interpolé, bord collé, ombre au sommet plat, zone de contenu depuis les flancs, `TopOffset` neutralisé | **fait** — à valider à l'œil sur Windows (DPI 100–200 %) |
-| 3. Présentation | `NotchPresentation`, résolveur, politiques, décisions d'interruption, attente pendant l'ouverture, aperçu +10–20 %, `Eyebrow` | **partiel** — reste : tailles pilotées par le contenu, Overlay dédié |
-| 4. Morph | `MorphAnchor`, `ContentTransition` | à faire |
-| 5. Hypnotic | `HypnoticField` + `HypnoticSurface`, Drop → Complete, respiration de l'atmosphère, greffon météo en Sync | **fait (moteur)** — reste : Search dans le lanceur, scènes ouvertes, atténuation longue durée |
-| 6. Atmosphère 2.0 | `AmbientState`, intensité liée au travail | **partiel** — reste : flou réel sous la notch, reflet |
-| 7–12. Activités | Media, HUD, notifications, étagère, presse-papier, lanceur | à faire |
-| 13. Réglages | six sections, aperçu à la vraie géométrie, caractère de mouvement | **partiel** — reste : navigation, aperçu animé |
-| Menu | menu de la zone de notification réorganisé | **fait** |
-| 14–16. Polish, perf, torture test | | à faire |
+| 1. Fondation | jetons Glass / Elevated / Hypnotic / ArtworkSmall, styles Body+, Hero, Metric ; couleurs en dur retirées de toutes les scènes | **fait** — seule la fenêtre de réglages garde son fond sombre propre |
+| 2. TopAttached | silhouette à épaules (12), rayon interpolé, bord collé, ombre au sommet plat, contenu mesuré depuis les flancs, `TopOffset` neutralisé | **fait** |
+| 3. Présentation | Hidden / Compact / Preview / Expanded, politiques, interruptions, attente pendant l'ouverture, aperçu +10–20 %, largeur ajustée au texte, hauteur ouverte ajustée au contenu | **fait** |
+| 4. Morph | `MorphTransform` (FLIP), pochette et titre qui grandissent depuis la forme compacte, transitions de contenu sur place, entrée des scènes | **fait** |
+| 5. Hypnotic | grille 3 × 3 d'après la vidéo, 8 préréglages, images clés exactes, apaisement, pluie binaire optionnelle | **fait** |
+| 6. Atmosphère 2.0 | `AmbientState`, respiration et dérive de couleur synchronisées avec la grille | **fait** — le flou réel sous la notch reste le mode « Flouté » existant |
+| 7. Media | pochette compacte, morphing vers la scène, jetons | **fait** |
+| 8. HUD | recouvrement compact (glyphe, fil de niveau, valeur), valeur qui défile dans la scène ouverte ; corrige la charge utile du volume | **fait** |
+| 9. Notifications | groupes par application (« Discord 4 »), historique dans la scène ouverte | **fait** |
+| 10. Étagère | rangée horizontale, reprise des fichiers par glisser-déposer vers l'extérieur | **fait** |
+| 11. Presse-papier | jetons et noms Narrateur | **partiel** — le balayage pour supprimer reste à faire |
+| 12. Lanceur | surface de commande : champ, liste au clavier, Entrée lance | **fait** |
+| 13. Réglages | six sections navigables, aperçu à la vraie géométrie et à la vraie grille, thème sombre imposé | **fait** |
+| Menu | Déployer · Lancer (dont Démonstration) · Activités · Mouvement · Apparence · Réglages | **fait** |
+| 14. Motion polish | seule la géométrie rebondit ; effets sans dépassement ; réduction des animations partout ; clic extérieur referme | **fait**, à affiner à l'œil sur Windows |
+| 15. Performance | aucune boucle au repos : grille et atmosphère rejouées par le compositeur, rouleau de valeur limité à ~180 ms, un minuteur à usage unique par échéance | **à mesurer** sur Windows (voir performance.md) |
+| 16. Torture test | scénario rejoué en test (aucune ouverture forcée, musique préservée, pile lisible) et en vrai (`--demo`) | **fait** |
+| Nom | NotchFlow → SpaceNotch, reprise des préférences et greffons | **fait** |
+| Téléchargements | dossier Téléchargements (Chromium, Firefox, Opera, Safari), Ouvrir / Afficher | **fait** |
+| Accessibilité | annonces Narrateur (polie ; assertive pour un appel), noms des boutons | **fait** |
 
-Vérification : 151 tests du cœur et 23 du greffon d'exemple passent ; le code C# de l'App compile
-sans avertissement en Release. Le rendu XAML lui-même n'a pas pu être exécuté hors Windows.
+Vérification : 189 tests du cœur et 23 du greffon d'exemple passent ; le code C# de l'App compile
+sans avertissement en Release. Le rendu XAML n'a pas pu être exécuté hors Windows : à juger avec
+`SpaceNotch.App.exe --demo`.
 
 ---
 
@@ -355,21 +376,21 @@ sans avertissement en Release. Le rendu XAML lui-même n'a pas pu être exécut�
    dépassement). Règle ajoutée : seule la géométrie rebondit.
 3. **WCAG 2.2.2 (Pause, Stop, Hide).** Un mouvement automatique de plus de 5 s affiché en parallèle
    d'autres contenus doit pouvoir être arrêté : le réglage « Mouvement hypnotique » le permet
-   (image fixe). Proposition : **atténuation automatique** — après ~20 s en Compact, la boucle
-   ralentit vers une respiration Read, puis se fige ; elle reprend au survol. Et WCAG 2.3.1 :
-   jamais plus de 3 flashs/s (Process bat à 1,4 Hz, Complete ne pulse qu'une fois).
+   (image fixe), et l'**apaisement automatique** est *implémenté* : après 20 s en Compact, la
+   boucle se fige ; elle reprend au survol. Et WCAG 2.3.1 : jamais plus de 3 flashs/s — la grille
+   change de motif par fondus, sans flash plein écran, et Complete ne s'allume qu'une fois.
 4. **Anatomie Compact de la Dynamic Island.** Apple sépare *leading* (identité, métrique
-   principale) et *trailing* (petit état : ✓, pause, 62 %). Proposition : un emplacement trailing
-   dans Compact, alimenté par `Progress` ou une valeur courte.
+   principale) et *trailing* (petit état : ✓, pause, 62 %). *Implémenté* : `Metric` /
+   `TrailingMetric`, et un fil de niveau pour les retours système.
 5. **Concurrence.** Apple affiche deux activités avec une bulle *détachée* — contraire à notre
-   règle n°1. Le satellite flottant est donc désactivé par défaut ; alternatives à trancher :
-   points dans la notch (actuel) ou « notch partagée » dont les deux lobes restent attachés.
+   règle n°1. *Décidé* : une seule notch ; le satellite est supprimé, la pile se signale par des
+   points dans la notch.
 6. **Expanded n'est pas un mini-dashboard** (Apple) : peu d'actions, à haute confiance. Et l'île
    est plus immersive sans fond ni imagerie ajoutés — cohérent avec « une seule matière ».
 7. **Noir pur et OLED.** Le noir pur provoque du *smearing* au défilement et de la halation avec du
    blanc pur. La notch ne défile pas et doit se fondre dans le bord : **corps en `#000000`**,
-   surfaces internes en `#08090C`, encre primaire plafonnée à ~94 %.
-8. **Accessibilité Narrator.** Les arrivées doivent être annoncées : région vivante *polite* pour
+   surfaces internes en `#08090C`, encre primaire plafonnée à 92 %, aucun reflet au bord.
+8. **Accessibilité Narrator.** *Implémenté.* Les arrivées doivent être annoncées : région vivante *polite* pour
    Passive/Temporary, *assertive* pour Interrupting (`RaiseNotificationEvent`, WinUI 1.4+).
 9. **Durées Fluent** : ~100 ms pour les micro-interactions, jusqu'à ~500 ms pour les mouvements
    complexes, plus long pour les grands éléments — nos catégories (120 / 220 / 420 / ressort) s'y
@@ -377,7 +398,13 @@ sans avertissement en Release. Le rendu XAML lui-même n'a pas pu être exécut�
 10. **Loi de Fitts** : le bord supérieur est une cible de hauteur infinie ; une lèvre de 18 DIP y
     suffit, ce qui autorise une veille presque invisible sans perdre la découvrabilité.
 
-Sources : [NN/g — timing](https://www.nngroup.com/articles/timing-exposing-content/),
+11. **Téléchargements sans extension de navigateur.** Chromium (Chrome, Edge, Brave, Vivaldi)
+    écrit un `.crdownload`, Firefox un `.part`, Opera un `.opdownload`, Safari un `.download`,
+    puis chacun renomme le fichier à la fin : observer le dossier Téléchargements couvre tous les
+    navigateurs — *implémenté*.
+
+Sources : [fileinfo — CRDOWNLOAD](https://fileinfo.com/extension/crdownload),
+[NN/g — timing](https://www.nngroup.com/articles/timing-exposing-content/),
 [Baymard — hover delay](https://baymard.com/blog/dropdown-menu-flickering-issue),
 [W3C — Understanding 2.2.2](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html),
 [Material 3 — motion](https://m3.material.io/styles/motion/overview/how-it-works),
@@ -418,30 +445,40 @@ Preview et Expanded — et travaille-t-elle (quel préréglage hypnotique) ? »
 | Décision | Choix |
 |---|---|
 | Forme | notch attachée au top — capsule flottante interdite |
-| Coins | très arrondis, interpolés selon la hauteur |
-| Ligne inférieure / bordure | non |
+| Nombre de notches | **une seule** — pas de satellite, la pile se signale dans la notch |
+| Coins | très arrondis, interpolés selon la hauteur ; épaules concaves au bord de l'écran |
+| Ligne inférieure / bordure / reflet au bord | non |
+| Surface | **noir OLED pur** pour le corps, encre plafonnée à 92 % |
 | Atmosphère, flou, dissolution | oui, subtils, pilotés par la même géométrie |
-| Surface | sombre (noir pur pour le corps) / verre |
-| Survol | aperçu léger après une courte pose |
-| Clic | expansion |
+| Veille | lèvre visible ; masquée quand une application est en plein écran |
+| Survol | aperçu léger après une pose de 220 ms |
+| Clic | expansion ; clic extérieur ou Échap referment |
 | Animation | ressort + morph ; aucune animation permanente |
-| Mouvement hypnotique | uniquement pour un travail en cours |
-| Media | référence de validation |
+| Mouvement hypnotique | grille 3 × 3, couleurs de la référence, uniquement pour un travail en cours |
+| Pluie binaire | option, désactivée par défaut |
+| Téléchargements | dossier Téléchargements, tous navigateurs, sans extension |
+| Retours système | recouvrement compact, jamais une ouverture forcée |
+| Notifications | groupées par application |
 | Architecture | pas de réécriture ; les scènes évoluent vers la présentation |
-| Réglages | refonte complète |
-| Étagère | fonction signature ; presse-papier = étagère ; lanceur = surface de commande |
-| Notifications | groupées, contextuelles |
 | Performance | silence au repos |
 
-## 16. Questions ouvertes
+## 16. Questions tranchées et questions ouvertes
 
-1. Vidéo de la référence Inspora (la page n'est pas accessible depuis l'environnement de travail) :
-   indispensable pour caler périodes, amplitudes et transitions Reading → Thinking → Done.
-2. Renommer le code `SpaceNotch` en `SpaceNotch` (espaces de noms, exécutable, dossier de
-   configuration à migrer) ?
-3. Corps en noir pur `#000000` (fusion avec le bord, recommandé) ou `#08090C` partout ?
-4. Épaules concaves : conformes à la capture de référence, ou coins supérieurs à angle droit ?
-5. Veille : lèvre visible de 80 × 18, ou notch totalement invisible (zone de survol seule) ?
-6. Deux activités simultanées : points dans la notch, notch partagée attachée, ou satellite ?
-7. Atténuation automatique du mouvement hypnotique après ~20 s : d'accord ?
-8. Téléchargements : quelle source suivre (navigateurs, dossier Téléchargements, Steam…) ?
+Tranchées :
+
+1. Vidéo de référence : reçue et analysée (§8).
+2. Nom : le code s'appelle désormais SpaceNotch.
+3. Couleur : noir OLED pur pour le corps.
+4. Épaules arrondies au raccord de l'écran : oui.
+5. Veille : visible, masquée en plein écran.
+6. Une seule notch.
+7. Téléchargements : le dossier Téléchargements, qui couvre tous les navigateurs.
+8. Couleurs de la grille : celles de la référence, par préréglage.
+9. Pluie binaire : option désactivée par défaut.
+
+Ouvertes :
+
+1. Presse-papier : faut-il le glisser pour supprimer, ou garder les boutons ?
+2. Survol prolongé (≈ 1 s) : doit-il déployer sans clic, comme Boring Notch, en option ?
+3. Deux activités simultanées très importantes (appel + minuteur) : la seconde attend-elle, ou la
+   notch s'élargit-elle en deux parties restant attachées ?

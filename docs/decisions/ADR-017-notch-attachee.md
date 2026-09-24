@@ -24,7 +24,8 @@ La version précédente tenait déjà le bord supérieur droit, mais laissait tr
    décision.
 2. **Invariant de silhouette** : aucun point au-dessus du bord, bord supérieur à y = 0 sur toute la
    largeur, forme qui descend jusqu'à sa hauteur. Vérifié par les tests.
-3. **Épaules concaves** (8 DIP par défaut) : deux quarts de courbe tangents au bord de l'écran et
+3. **Épaules concaves** (12 DIP par défaut, mesurées sur la vidéo de référence : environ les deux
+   tiers du congé du bas) : deux quarts de courbe tangents au bord de l'écran et
    au flanc. Le bord « coule » dans la notch.
 4. **Deux rayons interpolés** : 26 DIP en compact, 34 ouvert, interpolés continûment selon la
    hauteur (smoothstep entre 34 et 120 DIP). Borne : `min((l − 2e)/2, h − e)` — la notch n'a
@@ -32,7 +33,10 @@ La version précédente tenait déjà le bord supérieur droit, mais laissait tr
 5. **`TopOffset` toujours ramené à zéro** par `Sanitize` ; le réglage disparaît de l'interface.
 6. **Une géométrie pour tout** : surface, reflet, zone de contenu, ombre (prolongée au-dessus du
    bord pour que son sommet soit plat) et atmosphère utilisent la même silhouette.
-7. **Satellite flottant désactivé par défaut** ; la pile se signale par des points dans la notch.
+7. **Une seule notch** : le satellite flottant est supprimé ; la pile se signale par des points
+   dans la notch.
+8. **Hauteur compacte de 36 DIP** et largeur ajustée au texte (bornée entre 120 et 320) : la notch
+   respire avec son contenu sans jamais devenir une barre ni une grande fenêtre.
 
 ## Justification
 
@@ -45,10 +49,11 @@ La version précédente tenait déjà le bord supérieur droit, mais laissait tr
 ## Conséquences
 
 - La largeur des formes inclut les épaules : le contenu est mesuré depuis les flancs (marge de la
-  zone de contenu égale à l'épaule effective), et les scènes gagnent 16 DIP de largeur.
+  zone de contenu égale à l'épaule effective), et les scènes gagnent deux épaules (24 DIP) de largeur.
 - Une configuration ancienne avec un décalage vertical est silencieusement recollée au bord.
 - Le rayon réglé par l'utilisateur n'est plus « le » rayon tracé : c'est une borne d'interpolation.
-- Un utilisateur qui préférait le satellite doit le réactiver.
+- Le satellite n'existe plus : deux activités se partagent la même notch (points de pile,
+  molette, flèches).
 
 ## Alternatives écartées
 

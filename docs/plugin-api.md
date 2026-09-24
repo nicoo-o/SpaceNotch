@@ -109,6 +109,9 @@ Une activité publiée sous `IslandSceneCatalog.Card` rend quatre choses : `Titl
 | `MotionState` | `Working` pendant un travail, `Completing` à sa fin, `Error` en cas d'échec, `Idle` sinon. |
 | `MotionPreset` | Nature du mouvement demandé : `Read`, `Think`, `Search`, `Process`, `Sync`, `Drop`. |
 | `Policy` | Facultatif. `Persistent`, `Passive`, `Temporary` ou `Interrupting` ; déduit sinon. |
+| `Metric` | Facultatif. Valeur courte à droite de la forme compacte : « 62 % », « 12 Mo », « ✓ ». Déduite de `Progress` sinon. |
+| `Artwork` | Facultatif. Image encodée (PNG, JPEG) montrée à la place du glyphe, qui grandit à l'ouverture. |
+| `ExpandedFootprint` | Facultatif. Taille ouverte propre au contenu, quand celle de la scène ne suffit pas. |
 
 **Le mouvement se demande, il ne se dessine pas.** Un greffon qui travaille déclare
 `MotionState = Working` et un préréglage ; l'hôte rend la matière hypnotique, la synchronise avec
