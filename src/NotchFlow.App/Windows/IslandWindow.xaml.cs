@@ -157,6 +157,9 @@ public sealed partial class IslandWindow : Window
     /// <summary>Fermeture différée de l'aperçu de survol.</summary>
     private DispatcherQueueTimer? _previewExitTimer;
 
+    /// <summary>Ouverture différée de l'aperçu : l'intention de survol.</summary>
+    private DispatcherQueueTimer? _previewEnterTimer;
+
     private SettingsWindow? _settingsWindow;
 
     /// <summary>
@@ -1443,7 +1446,20 @@ public sealed partial class IslandWindow : Window
 
         if (_settings.HoverToPreview)
         {
-            _controller.RequestPreview();
+            // Intention de survol : le pointeur qui ne fait que longer le bord de
+            // l'écran — pour atteindre un onglet, un menu — ne doit pas faire
+            // bouger la notch. Un temps de pose court suffit à distinguer les
+            // deux ; un aperçu déjà ouvert, lui, est repris sans attendre.
+            if (_controller.State == IslandState.Preview)
+            {
+                _controller.RequestPreview();
+            }
+            else
+            {
+                _previewEnterTimer ??= CreateOneShotTimer(PreviewEnterDwell, _controller.RequestPreview);
+                _previewEnterTimer.Stop();
+                _previewEnterTimer.Start();
+            }
         }
 
         // Le clavier n'est capté que tant que l'utilisateur désigne l'Island : le
@@ -1467,6 +1483,10 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void OnIslandPointerExited(object sender, PointerRoutedEventArgs e)
     {
+        // Un passage trop bref n'a jamais été une intention : l'aperçu n'a pas
+        // lieu du tout.
+        _previewEnterTimer?.Stop();
+
         _previewExitTimer ??= CreateOneShotTimer(PreviewExitGrace, OnPreviewExitTick);
 
         _previewExitTimer.Stop();
@@ -1476,6 +1496,14 @@ public sealed partial class IslandWindow : Window
     }
 
     private void OnPreviewExitTick() => _controller.EndPreview();
+
+    /// <summary>
+    /// Temps de pose avant l'aperçu. Les recommandations d'usage placent
+    /// l'intention entre 0,3 et 0,5 s pour un contenu qui s'ouvre ; l'aperçu
+    /// n'ouvre rien, il fait seulement descendre la notch de quelques DIPs, d'où
+    /// une pose plus courte. Le clic, lui, n'attend jamais.
+    /// </summary>
+    private static readonly TimeSpan PreviewEnterDwell = TimeSpan.FromMilliseconds(220);
 
     /// <summary>Délai de grâce avant que l'aperçu ne se retire.</summary>
     private static readonly TimeSpan PreviewExitGrace = TimeSpan.FromMilliseconds(1500);
@@ -1492,6 +1520,9 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void OnIslandPointerPressed(object sender, PointerRoutedEventArgs e)
     {
+        // Le clic exprime l'intention : l'aperçu en attente n'a plus lieu d'être.
+        _previewEnterTimer?.Stop();
+
         if (e.GetCurrentPoint(IslandBody).Properties.IsRightButtonPressed
             || (_controller.State is IslandState.Closed && _controller.PresentedActivity is null))
         {
@@ -2116,6 +2147,8 @@ public sealed partial class IslandWindow : Window
 
         _geometryTimer?.Stop();
         _expirationTimer?.Stop();
+        _previewEnterTimer?.Stop();
+        _previewExitTimer?.Stop();
 
         try
         {

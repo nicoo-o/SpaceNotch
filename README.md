@@ -7,19 +7,24 @@ Ce n'est pas « une barre noire en haut de l'écran ». C'est un espace contextu
 quelque chose mérite votre attention.
 
 ```
-    ╭──────────────────╮
-    │  ◉   Spotify  ▶  │        au repos : une pilule, presque rien
-    ╰──────────────────╯
+════════╭──────────────────╮════════   collée au bord de l'écran, jamais flottante
+        │  ◉   Spotify  ▶  │           au repos : une petite notch, presque rien
+        ╰──────────────────╯
 
-    ╭────────────────────────╮
-    │ Spotify                │
-    │     ALBUM ART          │        ouverte : une surface de travail
-    │     ━━━━━━━━━          │
-    │   ◀     ▶     ▶        │
-    ╰────────────────────────╯
-          ░░░░░░░░                sans bord marqué : le bas se dissout
-       ░░░░░░░░░░░
+══════╭────────────────────────╮══════
+      │ Spotify                │
+      │     ALBUM ART          │        ouverte : une surface de travail
+      │     ━━━━━━━━━          │
+      │   ◀     ▶     ▶        │
+      ╰────────────────────────╯
+            ░░░░░░░░                sans bord marqué : le bas se dissout
+         ░░░░░░░░░░░
 ```
+
+Le plan de refonte est dans [SpaceNotch 2.0](docs/ux/spacenotch-2.0.md) : notch attachée
+([ADR-017](docs/decisions/ADR-017-notch-attachee.md)), présentation Hidden / Compact / Preview /
+Expanded, et mouvement hypnotique pour le travail en cours
+([ADR-018](docs/decisions/ADR-018-mouvement-hypnotique.md)).
 
 ## Philosophie
 
@@ -42,7 +47,7 @@ reste en version zéro : une rupture est possible, elle sera documentée.
 |---|---|
 | CPU au repos | **0,24 à 0,31 % d'un cœur** |
 | Journal pendant l'inactivité | **aucune ligne ajoutée** sur 15 s |
-| Tests | **98** (cœur et greffon, sans machine graphique) |
+| Tests | **174** (cœur et greffon, sans machine graphique) |
 | Construction Release | 0 erreur, **0 avertissement** |
 | Chemin de dissolution | **compositeur**, confirmé par sonde à l'exécution |
 | Greffon d'exemple | chargé par l'hôte réel : **1 fonctionnalité, 0 échec** |

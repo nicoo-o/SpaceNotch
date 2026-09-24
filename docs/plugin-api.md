@@ -104,6 +104,17 @@ Une activité publiée sous `IslandSceneCatalog.Card` rend quatre choses : `Titl
 | `IconKey` | Clé logique (`"Timer"`, `"Folder"`…) **ou** glyphe littéral (`"\uE753"`). |
 | `Actions` | Contrôles déclarés, rendus tels quels et renvoyés par identifiant. |
 | `Priority` | `Background` pour une information d'ambiance : elle ne doit pas supplanter un appel. |
+| `Eyebrow` | Facultatif. Ligne de contexte discrète au-dessus du titre : « Read app-sidebar.tsx · 219 lines ». |
+| `Progress` | Facultatif. Avancement de 0 à 1. |
+| `MotionState` | `Working` pendant un travail, `Completing` à sa fin, `Error` en cas d'échec, `Idle` sinon. |
+| `MotionPreset` | Nature du mouvement demandé : `Read`, `Think`, `Search`, `Process`, `Sync`, `Drop`. |
+| `Policy` | Facultatif. `Persistent`, `Passive`, `Temporary` ou `Interrupting` ; déduit sinon. |
+
+**Le mouvement se demande, il ne se dessine pas.** Un greffon qui travaille déclare
+`MotionState = Working` et un préréglage ; l'hôte rend la matière hypnotique, la synchronise avec
+l'atmosphère, la fige si l'utilisateur l'a demandé, et l'arrête au repos. Le greffon météo
+d'exemple publie `Sync` pendant chaque relevé. Voir
+[ADR-018](decisions/ADR-018-mouvement-hypnotique.md).
 
 Une clé de scène inconnue ne casse rien — l'Island retombe sur la pilule — mais elle est
 **signalée une fois au journal**, avec la liste des clés valides. Sans ce signal, un greffon mal
