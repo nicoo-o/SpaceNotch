@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using NotchFlow.Core.Features;
+using NotchFlow.Core.Motion;
 using NotchFlow.Core.Scenes;
 using NotchFlow.Infrastructure.Config;
 using NotchFlow.Infrastructure.Logging;
@@ -107,7 +108,7 @@ public sealed partial class SettingsWindow : Window
             presenter.IsMaximizable = false;
         }
 
-        appWindow.Resize(new SizeInt32(500, 760));
+        appWindow.Resize(new SizeInt32(560, 820));
 
         // La fenêtre de réglages se place au centre de l'écran principal : les
         // réglages se lisent, ils ne doivent pas aller chercher l'utilisateur.
@@ -151,6 +152,9 @@ public sealed partial class SettingsWindow : Window
         DisplayBox.ItemsSource = new[] { "Écran principal", "Écran du curseur", "Écran désigné" };
         DensityBox.ItemsSource = new[] { "Compacte", "Confortable", "Aérée" };
         CutoutBox.ItemsSource = new[] { "Aucune", "Centrée", "À gauche", "À droite", "Personnalisée" };
+
+        // L'ordre suit l'énumération MotionStyle : l'index sélectionné en est la valeur.
+        MotionStyleBox.ItemsSource = new[] { "Calme", "Naturel", "Dynamique", "Personnalisé" };
     }
 
     /// <summary>
@@ -172,14 +176,18 @@ public sealed partial class SettingsWindow : Window
 
             DensityBox.SelectedIndex = (int)settings.Density;
             RadiusSlider.Value = settings.CornerRadiusBottom;
+            ExpandedRadiusSlider.Value = settings.CornerRadiusExpanded;
+            ShoulderSlider.Value = settings.ShoulderRadius;
             SmoothingToggle.IsOn = settings.CornerSmoothing > IslandShape.Circular;
-            TopOffsetSlider.Value = settings.TopOffset;
 
+            MotionStyleBox.SelectedIndex = (int)settings.MotionStyle;
             ResponseSlider.Value = settings.SpringResponseSeconds;
             BounceSlider.Value = settings.SpringBounce;
 
             BouncyToggle.IsOn = settings.AllowBouncyAnimations;
+            HypnoticToggle.IsOn = settings.AllowHypnoticMotion;
             HoverToggle.IsOn = settings.HoverToPreview;
+            FullscreenToggle.IsOn = settings.HideOverFullscreen;
             StackToggle.IsOn = settings.ShowActivityStack;
             SatelliteToggle.IsOn = settings.ShowSatellite;
             ClockToggle.IsOn = settings.ShowClockAtRest;
@@ -210,7 +218,11 @@ public sealed partial class SettingsWindow : Window
     {
         // Le rechargement complet est volontairement évité pendant la manipulation
         // d'un curseur : réécrire la valeur en cours de glissement ferait sauter le
-        // contrôle sous le doigt. Seuls l'aperçu et les libellés suivent.
+        // contrôle sous le doigt. Seuls l'aperçu, les libellés et le caractère de
+        // mouvement suivent — ce dernier bascule sur « Personnalisé » dès qu'un
+        // curseur de réglage fin bouge, ou change depuis le menu de la zone de
+        // notification.
+        SyncMotionStyle(settings);
         UpdateValueLabels();
         UpdatePreview();
     }
@@ -222,13 +234,19 @@ public sealed partial class SettingsWindow : Window
         // Les libellés sont des mesures : ils s'écrivent de la même façon quelle
         // que soit la locale, sans séparateur décimal inattendu.
         RadiusValue.Text = $"{settings.CornerRadiusBottom.ToString("0", CultureInfo.InvariantCulture)} px";
-        TopOffsetValue.Text = $"{settings.TopOffset.ToString("0", CultureInfo.InvariantCulture)} px";
+        ExpandedRadiusValue.Text = $"{settings.CornerRadiusExpanded.ToString("0", CultureInfo.InvariantCulture)} px";
+        ShoulderValue.Text = $"{settings.ShoulderRadius.ToString("0", CultureInfo.InvariantCulture)} px";
         ResponseValue.Text = $"{settings.SpringResponseSeconds.ToString("0.00", CultureInfo.InvariantCulture)} s";
         BounceValue.Text = settings.SpringBounce.ToString("0.00", CultureInfo.InvariantCulture);
     }
 
     /// <summary>
-    /// Met l'aperçu à jour à partir des préférences. Le fond suit le mode de
+    /// Met l'aperçu à jour à partir des préférences.
+    ///
+    /// Les formes sont tracées par la même géométrie que la notch — épaules,
+    /// congés interpolés selon la hauteur, superellipse — et non par des bords
+    /// arrondis : un aperçu qui dessinerait quatre coins ronds montrerait une
+    /// capsule là où l'utilisateur obtient une notch. Le fond suit le mode de
     /// composition choisi : montrer un dégradé transparent alors que le mode
     /// opaque est sélectionné serait un mensonge d'aperçu.
     /// </summary>
@@ -247,32 +265,89 @@ public sealed partial class SettingsWindow : Window
             ? Color.FromArgb(0xF0, 0x14, 0x14, 0x18)
             : Color.FromArgb(0xF0, 0xFF, 0xFF, 0xFF);
 
-        IslandFootprint card = IslandFootprint.For(IslandPresentationTier.Card, settings.Density);
+        NotchGeometry geometry = settings.Geometry;
 
-        // Un seul rayon pour les quatre formes : c'est exactement ce que le
-        // réglage fait, et l'aperçu doit le montrer plutôt que de laisser croire
-        // à deux rayons indépendants.
-        var corners = new CornerRadius(0, 0, settings.CornerRadiusBottom, settings.CornerRadiusBottom);
+        TraceShape(PreviewIdleHost, PreviewIdle, IslandFootprint.For(IslandPresentationTier.Idle), geometry, body);
+        TraceShape(PreviewSignalHost, PreviewSignal, IslandFootprint.For(IslandPresentationTier.Signal), geometry, body);
+        TraceShape(PreviewCardHost, PreviewCard, IslandFootprint.For(IslandPresentationTier.Card, settings.Density), geometry, body);
 
-        PreviewIdle.CornerRadius = corners;
-        PreviewSignal.CornerRadius = corners;
-        PreviewCard.CornerRadius = corners;
-        PreviewExpanded.CornerRadius = corners;
+        // Une forme ouverte de taille moyenne : c'est là que l'arrondi ouvert se
+        // juge, sur une surface large où le congé n'est plus une fraction
+        // importante de la hauteur.
+        TraceShape(PreviewExpandedHost, PreviewExpanded, new IslandFootprint(336, 112), geometry, body);
 
-        PreviewIdle.Background = body;
-        PreviewSignal.Background = body;
-        PreviewCard.Background = body;
-        PreviewExpanded.Background = body;
+        var ink = new SolidColorBrush(foreground);
+        PreviewExpandedText.Foreground = ink;
+        PreviewSignalText.Foreground = ink;
+        PreviewCardHeadline.Foreground = ink;
 
-        PreviewExpandedText.Foreground = new SolidColorBrush(foreground);
-
-        // Seule la carte change de taille : les paliers veille et signal portent
-        // un point et une ligne, et les étirer ne les rendrait pas plus lisibles.
-        PreviewCard.Width = card.Width;
-        PreviewCard.Height = card.Height;
-
+        // Le contenu se mesure depuis les flancs, comme dans la notch : les
+        // épaules appartiennent au bord de l'écran.
+        double shoulder = geometry.ShoulderFor(IslandFootprint.For(IslandPresentationTier.Card, settings.Density));
         double padding = IslandFootprint.CardVerticalPadding(settings.Density);
-        PreviewCardBody.Margin = new Thickness(14, padding, 14, padding);
+        PreviewCardBody.Margin = new Thickness(14 + shoulder, padding, 14 + shoulder, padding);
+    }
+
+    /// <summary>Trace une forme d'aperçu à la taille de son encombrement.</summary>
+    private static void TraceShape(
+        FrameworkElement host,
+        Microsoft.UI.Xaml.Shapes.Path path,
+        IslandFootprint footprint,
+        NotchGeometry geometry,
+        Brush fill)
+    {
+        host.Width = footprint.Width;
+        host.Height = footprint.Height;
+
+        // Une fabrique neuve à chaque tracé : sa mémoire sert à éviter les
+        // reconstructions image par image dans la notch, ce qui n'a pas de sens
+        // pour un aperçu redessiné à chaque réglage.
+        Geometry? shape = new IslandGeometryFactory().Build(
+            footprint,
+            geometry.RadiusFor(footprint),
+            geometry.Smoothing,
+            shoulder: geometry.ShoulderFor(footprint));
+
+        if (shape is not null)
+        {
+            path.Data = shape;
+        }
+
+        path.Fill = fill;
+    }
+
+    /// <summary>
+    /// Aligne le choix de caractère sur les préférences, sans déclencher de
+    /// modification en retour.
+    /// </summary>
+    private void SyncMotionStyle(AppSettings settings)
+    {
+        int index = (int)settings.MotionStyle;
+
+        if (MotionStyleBox.SelectedIndex == index)
+        {
+            return;
+        }
+
+        bool wasLoading = _loading;
+        _loading = true;
+
+        try
+        {
+            MotionStyleBox.SelectedIndex = index;
+
+            // Un préréglage choisi ailleurs — le menu de la zone de notification —
+            // déplace aussi les curseurs de réglage fin.
+            if (settings.MotionStyle != MotionStyle.Custom)
+            {
+                ResponseSlider.Value = settings.SpringResponseSeconds;
+                BounceSlider.Value = settings.SpringBounce;
+            }
+        }
+        finally
+        {
+            _loading = wasLoading;
+        }
     }
 
     // ------------------------------------------------------------------
@@ -324,17 +399,64 @@ public sealed partial class SettingsWindow : Window
     private void OnRadiusChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
         => ApplyContinuous(s => s.CornerRadiusBottom = e.NewValue);
 
+    private void OnExpandedRadiusChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        => ApplyContinuous(s => s.CornerRadiusExpanded = e.NewValue);
+
+    private void OnShoulderChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        => ApplyContinuous(s => s.ShoulderRadius = e.NewValue);
+
     private void OnSmoothingToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.CornerSmoothing = SmoothingToggle.IsOn ? IslandShape.Squircle : IslandShape.Circular);
 
-    private void OnTopOffsetChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
-        => ApplyContinuous(s => s.TopOffset = e.NewValue);
-
     private void OnResponseChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
-        => ApplyContinuous(s => s.SpringResponseSeconds = e.NewValue);
+        => ApplyContinuous(s =>
+        {
+            s.SpringResponseSeconds = e.NewValue;
+            s.MotionStyle = MotionStyle.Custom;
+        });
 
     private void OnBounceChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
-        => ApplyContinuous(s => s.SpringBounce = e.NewValue);
+        => ApplyContinuous(s =>
+        {
+            s.SpringBounce = e.NewValue;
+            s.MotionStyle = MotionStyle.Custom;
+        });
+
+    /// <summary>
+    /// Un caractère choisi pose la vitesse et le rebond ; les curseurs de
+    /// réglage fin suivent, sans renvoyer leur propre modification.
+    /// </summary>
+    private void OnMotionStyleChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_loading || MotionStyleBox.SelectedIndex < 0)
+        {
+            return;
+        }
+
+        var style = (MotionStyle)MotionStyleBox.SelectedIndex;
+
+        _settings.Update(s => s.ApplyMotionStyle(style));
+
+        _loading = true;
+
+        try
+        {
+            ResponseSlider.Value = _settings.Current.SpringResponseSeconds;
+            BounceSlider.Value = _settings.Current.SpringBounce;
+        }
+        finally
+        {
+            _loading = false;
+        }
+
+        UpdateValueLabels();
+    }
+
+    private void OnHypnoticToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.AllowHypnoticMotion = HypnoticToggle.IsOn);
+
+    private void OnFullscreenToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.HideOverFullscreen = FullscreenToggle.IsOn);
 
     private void OnBouncyToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.AllowBouncyAnimations = BouncyToggle.IsOn);

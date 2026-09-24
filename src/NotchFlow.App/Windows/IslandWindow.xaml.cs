@@ -13,6 +13,8 @@ using NotchFlow.Core.Activities;
 using NotchFlow.Core.Animation;
 using NotchFlow.Core.Events;
 using NotchFlow.Core.Features;
+using NotchFlow.Core.Motion;
+using NotchFlow.Core.Presentation;
 using NotchFlow.Core.Scenes;
 using NotchFlow.Core.State;
 using NotchFlow.Features.Bluetooth;
@@ -124,6 +126,29 @@ public sealed partial class IslandWindow : Window
 
     /// <summary>Palier de présentation présenté. Sert à savoir lequel annoncer au survol.</summary>
     private IslandPresentationTier _tier = IslandPresentationTier.Idle;
+
+    /// <summary>Épaule appliquée en dernier à la zone de contenu, pour ne la redisposer qu'au changement.</summary>
+    private double _contentShoulder = double.NaN;
+
+    /// <summary>
+    /// Matière hypnotique des paliers signal et carte, et de la cible de dépôt.
+    /// <c>null</c> si le compositeur l'a refusée : le glyphe fixe reste alors.
+    /// </summary>
+    private HypnoticSurface? _signalHypnotic;
+    private HypnoticSurface? _cardHypnotic;
+    private HypnoticSurface? _dropHypnotic;
+
+    /// <summary>Mouvement confié à l'atmosphère, pour ne relancer sa respiration qu'au changement.</summary>
+    private HypnoticPreset _atmospherePreset = HypnoticPreset.None;
+
+    /// <summary>
+    /// Vrai pendant l'achèvement d'un dépôt : la matière converge et pulse, et
+    /// le rendu attend la fin de ce geste avant de montrer l'étagère.
+    /// </summary>
+    private bool _dropCompleting;
+
+    /// <summary>Filet de sécurité : l'achèvement d'un dépôt ne peut pas bloquer la notch.</summary>
+    private DispatcherQueueTimer? _dropCompletionTimer;
 
     private WindowMessageMonitor? _messageMonitor;
     private DispatcherQueueTimer? _geometryTimer;
@@ -277,6 +302,7 @@ public sealed partial class IslandWindow : Window
         _diagnostics = new RuntimeDiagnostics(_activityManager, _stateManager, _controller);
 
         RegisterScenes();
+        AttachHypnoticSurfaces();
         WireEvents();
         WireSceneActions();
         ApplyBackdropMode();
@@ -307,6 +333,97 @@ public sealed partial class IslandWindow : Window
     /// <summary>Le ressort n'est utilisé que si Windows l'autorise.</summary>
     private bool UseSpringAnimations()
         => _visualState.UseSpringAnimations && _settings.AllowBouncyAnimations;
+
+    // ------------------------------------------------------------------
+    // Matière hypnotique
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// Attache la matière hypnotique aux emplacements des glyphes. Rien ne
+    /// tourne tant qu'aucune activité ne travaille : les surfaces naissent
+    /// masquées et arrêtées.
+    /// </summary>
+    private void AttachHypnoticSurfaces()
+    {
+        _signalHypnotic = HypnoticSurface.TryAttach(SignalHypnoticHost);
+        _cardHypnotic = HypnoticSurface.TryAttach(CardHypnoticHost);
+        _dropHypnotic = HypnoticSurface.TryAttach(DropHypnoticHost);
+
+        if (_dropHypnotic is not null)
+        {
+            _dropHypnotic.OneShotCompleted += (_, preset) =>
+            {
+                if (preset == HypnoticPreset.Complete)
+                {
+                    OnUiThread(FinishDrop);
+                }
+            };
+        }
+    }
+
+    /// <summary>
+    /// Le mouvement hypnotique est-il joué ? Sous réduction des animations, ou
+    /// si l'utilisateur l'a éteint, la composition est posée fixe.
+    /// </summary>
+    private bool AnimateHypnotic() => UseSpringAnimations() && _settings.AllowHypnoticMotion;
+
+    /// <summary>
+    /// Donne à un emplacement de glyphe sa matière hypnotique, ou son glyphe.
+    /// Jamais les deux : la matière remplace l'icône, elle ne s'y superpose pas.
+    /// </summary>
+    private void ApplyHypnoticSlot(
+        HypnoticSurface? surface,
+        FrameworkElement host,
+        FrameworkElement glyph,
+        HypnoticPreset preset,
+        Color tint)
+    {
+        bool hypnotic = surface is not null && preset != HypnoticPreset.None;
+
+        host.Visibility = hypnotic ? Visibility.Visible : Visibility.Collapsed;
+        glyph.Visibility = hypnotic ? Visibility.Collapsed : Visibility.Visible;
+
+        if (surface is null)
+        {
+            return;
+        }
+
+        surface.SetTint(tint);
+        surface.SetPreset(hypnotic ? preset : HypnoticPreset.None, AnimateHypnotic());
+    }
+
+    /// <summary>Arrête la matière des paliers de repos, qui ne sont plus visibles.</summary>
+    private void StopRestingHypnotic()
+    {
+        _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+        _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+    }
+
+    /// <summary>
+    /// Teinte de la matière : celle de l'état s'il en porte une, sinon la
+    /// lumière chaude de la référence — une source neutre et blanche se lirait
+    /// comme un voyant, pas comme une matière qui travaille.
+    /// </summary>
+    private static Color HypnoticTint(IslandActivity activity)
+    {
+        if (activity.MotionState == ActivityMotionState.Error)
+        {
+            return Color.FromArgb(0xFF, 0xF0, 0x83, 0x6B);
+        }
+
+        if (activity.State is IslandActivityState.Idle or IslandActivityState.SystemHud)
+        {
+            return WarmHypnoticTint();
+        }
+
+        return StatePalette.Tint(activity.State);
+    }
+
+    private static Color WarmHypnoticTint()
+        => Application.Current?.Resources?.TryGetValue("NfHypnoticWarmColor", out object? value) == true
+            && value is Color color
+                ? color
+                : Color.FromArgb(0xFF, 0xFF, 0xB4, 0x6A);
 
     // ------------------------------------------------------------------
     // Résolution des scènes
@@ -527,6 +644,12 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void Render()
     {
+        // L'achèvement d'un dépôt occupe la notch le temps de sa convergence :
+        // le rendu reprend à sa fin, et rattrape alors tout ce qui a changé.
+        if (_dropCompleting)
+        {
+            return;
+        }
 
         IslandActivity? activity = _controller.PresentedActivity;
         bool expanded = _controller.State is IslandState.Expanded or IslandState.Expanding;
@@ -553,14 +676,18 @@ public sealed partial class IslandWindow : Window
 
         if (activity is null)
         {
+            StopRestingHypnotic();
             IdleRestView.Visibility = Visibility.Visible;
 
             // L'heure est un réglage et non un défaut : elle installerait une
             // horloge à la minute dans un produit dont la promesse est de ne rien
-            // faire au repos.
+            // faire au repos. Sans elle, la lèvre est vide — le point de veille
+            // ne l'accompagne que pour lui donner un repère.
             IdleClockText.Visibility = _settings.ShowClockAtRest
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+
+            IdleStatusDot.Visibility = IdleClockText.Visibility;
 
             IdleClockText.Text = DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
             return;
@@ -570,6 +697,7 @@ public sealed partial class IslandWindow : Window
 
         if (expanded && known && scene is not null)
         {
+            StopRestingHypnotic();
             scene.Apply(activity);
             scene.Root.Visibility = Visibility.Visible;
             return;
@@ -596,26 +724,60 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void PresentResting(IslandActivity activity)
     {
-        if (_tier == IslandPresentationTier.Signal)
+        // L'aperçu d'un signal porte la seconde ligne : c'est l'information qui
+        // donne envie de cliquer. Il la porte dans une forme à peine plus grande.
+        bool previewing = _controller.State == IslandState.Preview;
+        IslandPresentationTier shown = previewing
+            ? NotchPresentationResolver.PreviewTier(_tier)
+            : _tier;
+
+        HypnoticPreset preset = HypnoticField.Resolve(activity.MotionState, activity.MotionPreset);
+        Color tint = HypnoticTint(activity);
+
+        if (shown == IslandPresentationTier.Signal)
         {
             SignalGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
             SignalLabel.Text = activity.Title;
             SignalRestView.Visibility = Visibility.Visible;
+
+            _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+            ApplyHypnoticSlot(_signalHypnotic, SignalHypnoticHost, SignalGlyph, preset, tint);
             return;
         }
 
         // La densité déplace l'air, jamais la taille du texte : une carte
         // compacte est la même carte avec moins de respiration, et non une carte
         // plus petite. La marge est donc posée ici, à partir de la même table que
-        // la hauteur — les deux ne peuvent pas diverger.
-        double padding = IslandFootprint.CardVerticalPadding(_settings.Density);
+        // la hauteur — les deux ne peuvent pas diverger. Pendant l'aperçu d'un
+        // signal, elle se déduit de la hauteur de l'aperçu, qui porte les mêmes
+        // deux lignes dans moins d'air.
+        double padding = shown != _tier
+            ? Math.Max(0, (IslandFootprint.PreviewOf(_tier, _settings.Density).Height - CardContentHeight) / 2)
+            : IslandFootprint.CardVerticalPadding(_settings.Density);
+
         CardRestView.Margin = new Thickness(14, padding, 14, padding);
 
         CardGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
-        CardSubhead.Text = BuildSubhead(activity);
+
+        // Le contexte d'abord, l'état ensuite : une activité qui déclare une
+        // ligne de contexte — « Read app-sidebar.tsx · 219 lines » — la voit à
+        // la place de la légende calculée.
+        CardSubhead.Text = string.IsNullOrWhiteSpace(activity.Eyebrow)
+            ? BuildSubhead(activity)
+            : activity.Eyebrow;
+
         CardHeadline.Text = activity.Title;
         CardRestView.Visibility = Visibility.Visible;
+
+        _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+        ApplyHypnoticSlot(_cardHypnotic, CardHypnoticHost, CardGlyph, preset, tint);
     }
+
+    /// <summary>
+    /// Hauteur des deux lignes d'une carte : légende 14, écart 2, titre 16. Voir
+    /// <see cref="IslandFootprint.CardVerticalPadding"/>.
+    /// </summary>
+    private const double CardContentHeight = 14 + 2 + 16;
 
     /// <summary>
     /// Met le satellite à jour : il montre l'activité <em>suivante</em>.
@@ -684,7 +846,7 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void OnSatelliteClicked(object? sender, EventArgs e)
     {
-        if (_activityManager.CyclePresentation(1))
+        if (_controller.CyclePresentation(1))
         {
             _diagnostics.CountEvent();
         }
@@ -750,7 +912,9 @@ public sealed partial class IslandWindow : Window
         // information feraient douter qu'ils disent la même chose.
         bool visible = _settings.ShowActivityStack && !_settings.ShowSatellite && count > 1;
 
-        string text = visible ? $"· {count}" : string.Empty;
+        // Des points plutôt qu'un nombre : la pile se constate, elle ne se lit
+        // pas. Au-delà de quatre, un point de plus n'apprendrait rien.
+        string text = visible ? string.Join(" ", Enumerable.Repeat("•", Math.Min(count, 4))) : string.Empty;
         Visibility state = visible ? Visibility.Visible : Visibility.Collapsed;
 
         SignalStackIndicator.Text = text;
@@ -768,30 +932,32 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void ApplyActivityTint(IslandActivity? activity)
     {
-        ActivityTint tint = activity?.Tint ?? ActivityTint.Default;
-
-        if (_visualState.HighContrast)
-        {
-            // En contraste élevé, une teinte d'ambiance dégrade la lisibilité
-            // sans rien apporter : l'atmosphère reste neutre.
-            tint = ActivityTint.Default;
-        }
-
-        double intensity = activity?.Tint is null ? 0.18 : 0.34;
-
-        _atmosphere.SetGlowIntensity(intensity, activity?.Tint is null ? 0.40 : 0.75);
-
         // Sans teinte déclarée, le halo prend celle de l'état plutôt qu'une
         // couleur propre : un halo neutre qui accompagne un glyphe ambré se lit
         // comme une lumière d'une autre source, et le regard cherche une
         // signification qui n'existe pas.
-        if (activity?.Tint is null)
-        {
-            Color state = StatePalette.Tint(activity?.State ?? IslandActivityState.Idle);
-            tint = new ActivityTint(state.R, state.G, state.B);
-        }
+        Color state = StatePalette.Tint(activity?.State ?? IslandActivityState.Idle);
 
-        _atmosphere.SetGlowColor(Color.FromArgb(0xFF, tint.R, tint.G, tint.B));
+        AmbientState ambient = AmbientState.For(
+            activity,
+            new ActivityTint(state.R, state.G, state.B),
+            _visualState.HighContrast);
+
+        _atmosphere.SetGlowIntensity(ambient.Intensity, ambient.TintOpacity);
+        _atmosphere.SetGlowColor(Color.FromArgb(0xFF, ambient.Tint.R, ambient.Tint.G, ambient.Tint.B));
+
+        // La dissolution respire avec la matière qui travaille : même fonction,
+        // même période. Elle n'est relancée qu'au changement de mouvement, sans
+        // quoi chaque rendu la ferait repartir de son image de départ.
+        HypnoticPreset preset = activity is null || !AnimateHypnotic() || ambient.Pulse <= 0
+            ? HypnoticPreset.None
+            : HypnoticField.Resolve(activity.MotionState, activity.MotionPreset);
+
+        if (preset != _atmospherePreset)
+        {
+            _atmospherePreset = preset;
+            _atmosphere.SetHypnoticPulse(preset, ambient.Pulse);
+        }
     }
 
     /// <summary>
@@ -828,10 +994,12 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void ApplyShape(IslandFootprint footprint)
     {
-        double radius = _settings.CornerRadiusBottom;
-        double smoothing = _settings.CornerSmoothing;
+        NotchGeometry geometry = _settings.Geometry;
 
-        Geometry? silhouette = _shape.Build(footprint, radius, smoothing);
+        double radius = geometry.RadiusFor(footprint);
+        double shoulder = geometry.ShoulderFor(footprint);
+
+        Geometry? silhouette = _shape.Build(footprint, radius, geometry.Smoothing, shoulder: shoulder);
 
         // Une géométrie nulle signifie « identique à la précédente » : le tracé
         // déjà posé est conservé, ce qui évite une reconstruction par image
@@ -842,32 +1010,32 @@ public sealed partial class IslandWindow : Window
         }
 
         // Le reflet suit la même courbe, borné à sa bande. La borne est ce qui
-        // l'empêche de mordre dans les congés sur les paliers bas : à 28 de haut,
+        // l'empêche de mordre dans les congés sur les paliers bas : à 34 de haut,
         // une bande de 22 lui ferait dessiner sa propre arête.
         double band = Math.Min(_specularHeight, footprint.Height * 0.45);
-        SpecularFill.Data = _shape.Build(footprint, radius, smoothing, band);
+        Geometry? specular = _shape.Build(footprint, radius, geometry.Smoothing, band, shoulder);
+
+        if (specular is not null)
+        {
+            SpecularFill.Data = specular;
+        }
+
+        // Le contenu se mesure depuis les flancs, pas depuis les épaules : les
+        // épaules appartiennent au bord de l'écran, aucun texte n'y a sa place.
+        if (Math.Abs(shoulder - _contentShoulder) > 0.25)
+        {
+            _contentShoulder = shoulder;
+            ContentArea.Margin = new Thickness(shoulder, 0, shoulder, 0);
+        }
     }
 
     /// <summary>
-    /// Palier annoncé par un survol : celui du dessus, jamais celui du dessous.
-    ///
-    /// La règle qui compte ici est la monotonie. Une table qui rabattrait la
-    /// carte vers le signal ferait *rétrécir* l'Island au moment précis où
-    /// l'utilisateur la désigne : 240 × 52 devient 132 × 28 sous le pointeur,
-    /// ce qui se lit comme un refus. Au plus haut palier, le survol ne change
-    /// donc plus la taille — il tient la forme acquise.
+    /// Encombrement annoncé par un survol : la même forme, descendue et élargie
+    /// de 10 à 20 %. Le survol invite, c'est le clic qui ouvre. Voir
+    /// <see cref="IslandFootprint.PreviewOf"/>.
     /// </summary>
     private IslandFootprint ResolvePreviewFootprint()
-        => IslandFootprint.For(NextTier(_tier), _settings.Density);
-
-    private static IslandPresentationTier NextTier(IslandPresentationTier tier) => tier switch
-    {
-        IslandPresentationTier.Idle => IslandPresentationTier.Signal,
-        IslandPresentationTier.Signal => IslandPresentationTier.Card,
-
-        // Déjà au plus haut : le survol ne peut que confirmer la forme.
-        _ => IslandPresentationTier.Card
-    };
+        => IslandFootprint.PreviewOf(_tier, _settings.Density);
 
     /// <summary>
     /// Hauteur de la bande de reflet, lue dans les jetons. Un jeton absent ne doit
@@ -901,10 +1069,13 @@ public sealed partial class IslandWindow : Window
         int widthPx = MonitorDpi.ToPhysicalPixels(footprint.Width, scale);
         int heightPx = MonitorDpi.ToPhysicalPixels(footprint.Height, scale);
         int offsetX = MonitorDpi.ToPhysicalPixels(_settings.HorizontalOffset, scale);
-        int offsetY = MonitorDpi.ToPhysicalPixels(_settings.TopOffset, scale);
 
         int x = display.Left + ((display.Width - widthPx) / 2) + offsetX;
-        int y = display.Top + offsetY;
+
+        // Règle n°1 : le bord supérieur de la notch est le bord supérieur du
+        // moniteur, sans aucun décalage. Il n'existe pas de réglage qui la
+        // décolle — une notch décalée vers le bas est une capsule flottante.
+        int y = display.Top;
 
         // Beaucoup d'images du ressort retombent sur le même rectangle en
         // pixels entiers, en particulier en fin de course où les écarts passent
@@ -946,6 +1117,8 @@ public sealed partial class IslandWindow : Window
 
         // Défensif : la géométrie est aussi calculée pendant la construction de
         // la fenêtre, avant que la couche décorative existe.
+        NotchGeometry geometry = _settings.Geometry;
+
         _atmosphere?.PositionAround(new AtmospherePlacement(
             x,
             y,
@@ -953,7 +1126,8 @@ public sealed partial class IslandWindow : Window
             heightPx,
             footprint.Width,
             footprint.Height,
-            _settings.CornerRadiusBottom,
+            geometry.RadiusFor(footprint),
+            geometry.ShoulderFor(footprint),
             DeploymentFor(footprint.Height)));
     }
 
@@ -1365,7 +1539,7 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        if (_activityManager.CyclePresentation(delta > 0 ? 1 : -1))
+        if (_controller.CyclePresentation(delta > 0 ? 1 : -1))
         {
             _diagnostics.CountEvent();
             e.Handled = true;
@@ -1389,12 +1563,12 @@ public sealed partial class IslandWindow : Window
 
             case global::Windows.System.VirtualKey.Left:
             case global::Windows.System.VirtualKey.Up:
-                _activityManager.CyclePresentation(-1);
+                _controller.CyclePresentation(-1);
                 break;
 
             case global::Windows.System.VirtualKey.Right:
             case global::Windows.System.VirtualKey.Down:
-                _activityManager.CyclePresentation(1);
+                _controller.CyclePresentation(1);
                 break;
 
             case global::Windows.System.VirtualKey.Enter:
@@ -1423,6 +1597,10 @@ public sealed partial class IslandWindow : Window
         await _featureRegistry.HandleActionAsync(new IslandActionRequest(activity.Id, primary.Id));
     }
 
+    /// <summary>
+    /// Un fichier survole la notch : elle devient une cible visuelle, et la
+    /// matière « Drop » attire vers son centre.
+    /// </summary>
     private void OnIslandDragOver(object sender, DragEventArgs e)
     {
         if (!e.DataView.Contains(StandardDataFormats.StorageItems))
@@ -1431,22 +1609,39 @@ public sealed partial class IslandWindow : Window
         }
 
         e.AcceptedOperation = DataPackageOperation.Copy;
-        e.DragUIOverride.Caption = "Déposer dans NotchFlow";
+        e.DragUIOverride.Caption = "Déposer dans la notch";
+
+        // DragOver arrive en rafale : la mise en place n'a lieu qu'une fois.
+        if (DropZoneView.Visibility == Visibility.Visible)
+        {
+            return;
+        }
 
         foreach (FrameworkElement root in _sceneRoots)
         {
             root.Visibility = Visibility.Collapsed;
         }
 
+        StopRestingHypnotic();
         IdleRestView.Visibility = Visibility.Collapsed;
         SignalRestView.Visibility = Visibility.Collapsed;
         CardRestView.Visibility = Visibility.Collapsed;
         DropZoneView.Visibility = Visibility.Visible;
+
+        _controller.BeginDragTarget(IslandSceneCatalog.FootprintFor(IslandSceneCatalog.DropZone));
+        ShowDropMatter(HypnoticPreset.Drop);
     }
 
     private void OnIslandDragLeave(object sender, DragEventArgs e)
     {
+        if (_dropCompleting)
+        {
+            return;
+        }
+
+        ShowDropMatter(HypnoticPreset.None);
         DropZoneView.Visibility = Visibility.Collapsed;
+        _controller.EndDragTarget();
         Render();
     }
 
@@ -1469,16 +1664,57 @@ public sealed partial class IslandWindow : Window
                 }
             }
 
-            DropZoneView.Visibility = Visibility.Collapsed;
             FileShelfSceneView.UpdateItems(_shelfManager.GetItems());
-            Render();
+
+            // Absorption : la matière converge et pulse, puis rend la main à
+            // l'étagère. Sans animation, le geste se conclut immédiatement.
+            BeginDropCompletion();
         }
         catch (Exception ex)
         {
             MiniLogger.Log("[WARN] Dépôt de fichiers interrompu", ex);
-            DropZoneView.Visibility = Visibility.Collapsed;
-            Render();
+            FinishDrop();
         }
+    }
+
+    /// <summary>Glyphe fixe ou matière hypnotique, pour la cible de dépôt.</summary>
+    private void ShowDropMatter(HypnoticPreset preset)
+    {
+        bool hypnotic = _dropHypnotic is not null && preset != HypnoticPreset.None;
+
+        DropGlyph.Visibility = hypnotic ? Visibility.Collapsed : Visibility.Visible;
+        _dropHypnotic?.SetTint(WarmHypnoticTint());
+        _dropHypnotic?.SetPreset(preset, AnimateHypnotic());
+    }
+
+    private void BeginDropCompletion()
+    {
+        if (_dropHypnotic is null || !AnimateHypnotic())
+        {
+            FinishDrop();
+            return;
+        }
+
+        _dropCompleting = true;
+        ShowDropMatter(HypnoticPreset.Complete);
+
+        // Le compositeur signale la fin du geste ; ce minuteur n'est qu'un filet,
+        // pour qu'une fin jamais signalée ne laisse pas la notch figée.
+        _dropCompletionTimer ??= CreateOneShotTimer(TimeSpan.FromMilliseconds(1600), FinishDrop);
+        _dropCompletionTimer.Stop();
+        _dropCompletionTimer.Start();
+    }
+
+    /// <summary>Conclut un dépôt : la cible disparaît, la notch reprend sa forme et son contenu.</summary>
+    private void FinishDrop()
+    {
+        _dropCompletionTimer?.Stop();
+        _dropCompleting = false;
+
+        ShowDropMatter(HypnoticPreset.None);
+        DropZoneView.Visibility = Visibility.Collapsed;
+        _controller.EndDragTarget();
+        Render();
     }
 
     // ------------------------------------------------------------------
@@ -1493,159 +1729,285 @@ public sealed partial class IslandWindow : Window
             windowManager.IsVisibleInTray = true;
             windowManager.TrayIconSelected += (_, _) => _controller.ToggleFromUser();
 
-            windowManager.TrayIconContextMenu += (s, e) =>
-            {
-                var flyout = new MenuFlyout();
-
-                var toggleItem = new MenuFlyoutItem
-                {
-                    Text = _controller.State is IslandState.Expanded or IslandState.Expanding
-                        ? "Réduire l'Island"
-                        : "Développer l'Island"
-                };
-                toggleItem.Click += (_, _) => _controller.ToggleFromUser();
-
-                var pomodoroItem = new MenuFlyoutItem
-                {
-                    Text = _pomodoroFeature.IsSessionRunning ? "Mettre le focus en pause" : "Démarrer un focus (25 min)"
-                };
-                pomodoroItem.Click += (_, _) =>
-                {
-                    if (_pomodoroFeature.IsSessionRunning)
-                    {
-                        _pomodoroFeature.Pause();
-                    }
-                    else
-                    {
-                        _pomodoroFeature.Start();
-                    }
-
-                    RevealPresented();
-                };
-
-                var launcherItem = new MenuFlyoutItem { Text = "Applications…" };
-                launcherItem.Click += (_, _) =>
-                {
-                    _launcherFeature.Show();
-                    RevealPresented();
-                };
-
-                // L'étiquette dit ce que le clic **va faire**, pas ce que l'entrée
-                // désigne : un même élément qui démarre et arrête sans le dire
-                // laisse croire qu'il n'y a aucun moyen d'arrêter.
-                var timerItem = new MenuFlyoutItem
-                {
-                    Text = _timerFeature.IsMeasuring && _timerFeature.Mode is TimerMode.Countdown
-                        ? "Arrêter le minuteur"
-                        : "Minuteur (5 min)"
-                };
-                timerItem.Click += (_, _) =>
-                {
-                    // Arrêter depuis le menu n'implique pas d'ouvrir l'Island :
-                    // la mesure cesse, il n'y a plus rien à regarder.
-                    bool stopping = _timerFeature.IsMeasuring && _timerFeature.Mode is TimerMode.Countdown;
-
-                    _timerFeature.SetMode(TimerMode.Countdown);
-                    _timerFeature.Toggle();
-
-                    if (!stopping)
-                    {
-                        RevealPresented();
-                    }
-                };
-
-                var stopwatchItem = new MenuFlyoutItem
-                {
-                    Text = _timerFeature.IsMeasuring && _timerFeature.Mode is TimerMode.Stopwatch
-                        ? "Arrêter le chronomètre"
-                        : "Chronomètre"
-                };
-                stopwatchItem.Click += (_, _) =>
-                {
-                    bool stopping = _timerFeature.IsMeasuring && _timerFeature.Mode is TimerMode.Stopwatch;
-
-                    _timerFeature.SetMode(TimerMode.Stopwatch);
-                    _timerFeature.Toggle();
-
-                    if (!stopping)
-                    {
-                        RevealPresented();
-                    }
-                };
-
-                var settingsItem = new MenuFlyoutItem { Text = "Réglages…" };
-                settingsItem.Click += (_, _) => OpenSettingsWindow();
-
-                var diagnosticsItem = new MenuFlyoutItem
-                {
-                    Text = _settings.EnableDiagnostics ? _diagnostics.BuildCompactSummary() : "Diagnostics désactivés",
-                    IsEnabled = false
-                };
-
-                // Bascules d'activation réelles : désactiver une fonctionnalité
-                // libère ses écouteurs système, ce n'est pas un simple masquage.
-                var featuresItem = new MenuFlyoutSubItem { Text = "Fonctionnalités" };
-
-                foreach (IIslandFeature feature in _featureRegistry.Features)
-                {
-                    var featureToggle = new ToggleMenuFlyoutItem
-                    {
-                        Text = feature.DisplayName,
-                        IsChecked = feature.IsEnabled
-                    };
-
-                    IIslandFeature captured = feature;
-
-                    featureToggle.Click += async (_, _) =>
-                    {
-                        bool enabled = featureToggle.IsChecked;
-
-                        await _featureRegistry.SetEnabledAsync(captured.Id, enabled);
-
-                        // La bascule est enregistrée par le service : sans cela elle
-                        // serait perdue au redémarrage, et l'utilisateur la prendrait
-                        // pour une régression alors que l'arrêt, lui, a bien eu lieu.
-                        _settingsService.SetFeatureEnabled(captured.Id, enabled);
-
-                        // On journalise l'état obtenu, pas l'intention : activer une
-                        // fonctionnalité dont l'API système est indisponible doit se
-                        // voir, et non s'afficher comme un succès.
-                        string outcome = captured.State switch
-                        {
-                            FeatureState.Running => "activée",
-                            FeatureState.Stopped => "désactivée",
-                            FeatureState.Faulted => "échec d'activation",
-                            _ => captured.State.ToString()
-                        };
-
-                        MiniLogger.Log($"[FEATURE] {captured.DisplayName} : {outcome}");
-                    };
-
-                    featuresItem.Items.Add(featureToggle);
-                }
-
-                var exitItem = new MenuFlyoutItem { Text = "Quitter NotchFlow" };
-                exitItem.Click += (_, _) => Application.Current.Exit();
-
-                flyout.Items.Add(toggleItem);
-                flyout.Items.Add(launcherItem);
-                flyout.Items.Add(timerItem);
-                flyout.Items.Add(stopwatchItem);
-                flyout.Items.Add(pomodoroItem);
-                flyout.Items.Add(new MenuFlyoutSeparator());
-                flyout.Items.Add(featuresItem);
-                flyout.Items.Add(settingsItem);
-                flyout.Items.Add(diagnosticsItem);
-                flyout.Items.Add(new MenuFlyoutSeparator());
-                flyout.Items.Add(exitItem);
-
-                e.Flyout = flyout;
-            };
+            windowManager.TrayIconContextMenu += (_, e) => e.Flyout = BuildTrayMenu();
         }
         catch (Exception ex)
         {
             MiniLogger.Log("[WARN] Zone de notification indisponible", ex);
         }
+    }
+
+    /// <summary>
+    /// Menu de la zone de notification, organisé comme les réglages.
+    ///
+    /// <para>
+    /// Le menu suit le vocabulaire du produit plutôt que la liste des
+    /// fonctionnalités : ce qu'on <em>lance</em>, ce qui s'<em>affiche</em>,
+    /// comment la notch <em>bouge</em>, et à quoi elle <em>ressemble</em>. Les
+    /// réglages fins restent dans la fenêtre de réglages ; le menu ne porte que
+    /// les gestes qu'on fait sans vouloir ouvrir une fenêtre.
+    /// </para>
+    ///
+    /// <para>
+    /// Chaque étiquette dit ce que le clic <em>va faire</em>, pas ce que l'entrée
+    /// désigne : un même élément qui démarre et arrête sans le dire laisse croire
+    /// qu'il n'y a aucun moyen d'arrêter.
+    /// </para>
+    /// </summary>
+    private MenuFlyout BuildTrayMenu()
+    {
+        var flyout = new MenuFlyout();
+
+        bool expanded = _controller.State is IslandState.Expanded or IslandState.Expanding;
+
+        var toggleItem = new MenuFlyoutItem
+        {
+            Text = expanded ? "Réduire la notch" : "Déployer la notch",
+            Icon = new FontIcon { Glyph = expanded ? "\uE70E" : "\uE70D" }
+        };
+        toggleItem.Click += (_, _) => _controller.ToggleFromUser();
+
+        flyout.Items.Add(toggleItem);
+        flyout.Items.Add(BuildLaunchMenu());
+        flyout.Items.Add(new MenuFlyoutSeparator());
+        flyout.Items.Add(BuildActivitiesMenu());
+        flyout.Items.Add(BuildMotionMenu());
+        flyout.Items.Add(BuildAppearanceMenu());
+        flyout.Items.Add(new MenuFlyoutSeparator());
+
+        var settingsItem = new MenuFlyoutItem
+        {
+            Text = "Réglages…",
+            Icon = new FontIcon { Glyph = "\uE713" }
+        };
+        settingsItem.Click += (_, _) => OpenSettingsWindow();
+        flyout.Items.Add(settingsItem);
+
+        // Les diagnostics sont une information, pas une action : ils ne
+        // s'affichent que lorsqu'ils sont activés, et jamais comme un bouton.
+        if (_settings.EnableDiagnostics)
+        {
+            flyout.Items.Add(new MenuFlyoutItem
+            {
+                Text = _diagnostics.BuildCompactSummary(),
+                IsEnabled = false
+            });
+        }
+
+        flyout.Items.Add(new MenuFlyoutSeparator());
+
+        var exitItem = new MenuFlyoutItem { Text = "Quitter NotchFlow" };
+        exitItem.Click += (_, _) => Application.Current.Exit();
+        flyout.Items.Add(exitItem);
+
+        return flyout;
+    }
+
+    /// <summary>Ce qu'on lance depuis la notch : applications, minuteurs, focus.</summary>
+    private MenuFlyoutSubItem BuildLaunchMenu()
+    {
+        var menu = new MenuFlyoutSubItem
+        {
+            Text = "Lancer",
+            Icon = new FontIcon { Glyph = "\uE768" }
+        };
+
+        var launcherItem = new MenuFlyoutItem { Text = "Applications…" };
+        launcherItem.Click += (_, _) =>
+        {
+            _launcherFeature.Show();
+            RevealPresented();
+        };
+
+        bool countdown = _timerFeature.IsMeasuring && _timerFeature.Mode is TimerMode.Countdown;
+        var timerItem = new MenuFlyoutItem { Text = countdown ? "Arrêter le minuteur" : "Minuteur (5 min)" };
+        timerItem.Click += (_, _) =>
+        {
+            // Arrêter depuis le menu n'implique pas d'ouvrir la notch : la mesure
+            // cesse, il n'y a plus rien à regarder.
+            _timerFeature.SetMode(TimerMode.Countdown);
+            _timerFeature.Toggle();
+
+            if (!countdown)
+            {
+                RevealPresented();
+            }
+        };
+
+        bool stopwatch = _timerFeature.IsMeasuring && _timerFeature.Mode is TimerMode.Stopwatch;
+        var stopwatchItem = new MenuFlyoutItem { Text = stopwatch ? "Arrêter le chronomètre" : "Chronomètre" };
+        stopwatchItem.Click += (_, _) =>
+        {
+            _timerFeature.SetMode(TimerMode.Stopwatch);
+            _timerFeature.Toggle();
+
+            if (!stopwatch)
+            {
+                RevealPresented();
+            }
+        };
+
+        var focusItem = new MenuFlyoutItem
+        {
+            Text = _pomodoroFeature.IsSessionRunning ? "Mettre le focus en pause" : "Focus (25 min)"
+        };
+        focusItem.Click += (_, _) =>
+        {
+            if (_pomodoroFeature.IsSessionRunning)
+            {
+                _pomodoroFeature.Pause();
+            }
+            else
+            {
+                _pomodoroFeature.Start();
+            }
+
+            RevealPresented();
+        };
+
+        menu.Items.Add(launcherItem);
+        menu.Items.Add(new MenuFlyoutSeparator());
+        menu.Items.Add(timerItem);
+        menu.Items.Add(stopwatchItem);
+        menu.Items.Add(focusItem);
+
+        return menu;
+    }
+
+    /// <summary>
+    /// Ce qui a le droit de s'afficher. Bascules d'activation réelles :
+    /// désactiver une activité libère ses écouteurs système, ce n'est pas un
+    /// simple masquage.
+    /// </summary>
+    private MenuFlyoutSubItem BuildActivitiesMenu()
+    {
+        var menu = new MenuFlyoutSubItem
+        {
+            Text = "Activités",
+            Icon = new FontIcon { Glyph = "\uE9D5" }
+        };
+
+        foreach (IIslandFeature feature in _featureRegistry.Features)
+        {
+            var featureToggle = new ToggleMenuFlyoutItem
+            {
+                Text = feature.DisplayName,
+                IsChecked = feature.IsEnabled
+            };
+
+            IIslandFeature captured = feature;
+
+            featureToggle.Click += async (_, _) =>
+            {
+                try
+                {
+                    bool enabled = featureToggle.IsChecked;
+
+                    await _featureRegistry.SetEnabledAsync(captured.Id, enabled);
+
+                    // La bascule est enregistrée par le service : sans cela elle
+                    // serait perdue au redémarrage, et l'utilisateur la prendrait
+                    // pour une régression alors que l'arrêt, lui, a bien eu lieu.
+                    _settingsService.SetFeatureEnabled(captured.Id, enabled);
+
+                    // On journalise l'état obtenu, pas l'intention : activer une
+                    // fonctionnalité dont l'API système est indisponible doit se
+                    // voir, et non s'afficher comme un succès.
+                    string outcome = captured.State switch
+                    {
+                        FeatureState.Running => "activée",
+                        FeatureState.Stopped => "désactivée",
+                        FeatureState.Faulted => "échec d'activation",
+                        _ => captured.State.ToString()
+                    };
+
+                    MiniLogger.Log($"[FEATURE] {captured.DisplayName} : {outcome}");
+                }
+                catch (Exception ex)
+                {
+                    MiniLogger.Log($"[FEATURE] bascule de {captured.DisplayName} interrompue", ex);
+                }
+            };
+
+            menu.Items.Add(featureToggle);
+        }
+
+        return menu;
+    }
+
+    /// <summary>Comment la notch bouge : trois caractères, et le mouvement hypnotique.</summary>
+    private MenuFlyoutSubItem BuildMotionMenu()
+    {
+        var menu = new MenuFlyoutSubItem
+        {
+            Text = "Mouvement",
+            Icon = new FontIcon { Glyph = "\uE916" }
+        };
+
+        foreach ((MotionStyle style, string label) in new[]
+                 {
+                     (MotionStyle.Quiet, "Calme"),
+                     (MotionStyle.Natural, "Naturel"),
+                     (MotionStyle.Dynamic, "Dynamique")
+                 })
+        {
+            var item = new RadioMenuFlyoutItem
+            {
+                Text = label,
+                GroupName = "NfMotionStyle",
+                IsChecked = _settings.MotionStyle == style
+            };
+
+            MotionStyle captured = style;
+            item.Click += (_, _) => _settingsService.Update(settings => settings.ApplyMotionStyle(captured));
+
+            menu.Items.Add(item);
+        }
+
+        menu.Items.Add(new MenuFlyoutSeparator());
+
+        var hypnotic = new ToggleMenuFlyoutItem
+        {
+            Text = "Mouvement hypnotique",
+            IsChecked = _settings.AllowHypnoticMotion
+        };
+        hypnotic.Click += (_, _) => _settingsService.Update(settings => settings.AllowHypnoticMotion = hypnotic.IsChecked);
+
+        menu.Items.Add(hypnotic);
+
+        return menu;
+    }
+
+    /// <summary>À quoi la notch ressemble : le thème, sans ouvrir les réglages.</summary>
+    private MenuFlyoutSubItem BuildAppearanceMenu()
+    {
+        var menu = new MenuFlyoutSubItem
+        {
+            Text = "Apparence",
+            Icon = new FontIcon { Glyph = "\uE790" }
+        };
+
+        foreach ((IslandAppearance appearance, string label) in new[]
+                 {
+                     (IslandAppearance.Dark, "Sombre"),
+                     (IslandAppearance.Light, "Clair"),
+                     (IslandAppearance.Auto, "Automatique")
+                 })
+        {
+            var item = new RadioMenuFlyoutItem
+            {
+                Text = label,
+                GroupName = "NfAppearance",
+                IsChecked = _settings.Appearance == appearance
+            };
+
+            IslandAppearance captured = appearance;
+            item.Click += (_, _) => _settingsService.Update(settings => settings.Appearance = captured);
+
+            menu.Items.Add(item);
+        }
+
+        return menu;
     }
 
     // ------------------------------------------------------------------
@@ -1668,6 +2030,11 @@ public sealed partial class IslandWindow : Window
 
         _atmosphere.UseSpringAnimations = UseSpringAnimations();
 
+        // Le mouvement hypnotique a pu être autorisé ou retiré : la respiration
+        // de l'atmosphère est reposée au prochain rendu.
+        _atmospherePreset = HypnoticPreset.None;
+        _atmosphere.SetHypnoticPulse(HypnoticPreset.None, 0);
+
         ApplyBackdropMode();
 
         // La forme au repos suit la préférence : un changement de densité ou de
@@ -1682,6 +2049,11 @@ public sealed partial class IslandWindow : Window
         // Les bascules de fonctionnalités sont appliquées sans repasser par le
         // disque : la préférence est déjà écrite.
         ApplyFeaturePreferences();
+
+        // « S'effacer devant le plein écran » se règle désormais depuis les
+        // réglages : son effet doit suivre sans attendre le prochain changement
+        // de fenêtre au premier plan.
+        ApplyPresence();
 
         Render();
     }
@@ -1762,6 +2134,11 @@ public sealed partial class IslandWindow : Window
 
             _settingsWindow?.Close();
             _settingsWindow = null;
+
+            _dropCompletionTimer?.Stop();
+            _signalHypnotic?.Dispose();
+            _cardHypnotic?.Dispose();
+            _dropHypnotic?.Dispose();
 
             _clipboardMonitor.Dispose();
             _bluetoothWatcher.Dispose();

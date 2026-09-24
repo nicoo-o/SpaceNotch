@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using NotchFlow.Core.Animation;
+using NotchFlow.Core.Motion;
 using NotchFlow.Platform.Windows.Windowing;
 using NotchFlow_App.Composition;
 using Windows.Graphics;
@@ -221,7 +223,7 @@ public sealed partial class AtmosphereWindow : Window
         ShadowHost.Width = placement.WidthDip;
         ShadowHost.Height = placement.HeightDip;
 
-        _shadow?.Configure(placement.WidthDip, placement.HeightDip, placement.CornerRadiusDip);
+        _shadow?.Configure(placement.WidthDip, placement.HeightDip, placement.CornerRadiusDip, placement.ShoulderDip);
         _shadow?.SetDeployment(_deployment);
 
         // La dissolution n'existe qu'au déploiement : au repos l'Island est un
@@ -295,6 +297,47 @@ public sealed partial class AtmosphereWindow : Window
         // déploiement : deux réglages indépendants finiraient par diverger
         // visuellement.
         _surface?.SetOpacity(_glowIntensity * _deployment);
+    }
+
+    /// <summary>
+    /// Fait respirer l'atmosphère au rythme du mouvement hypnotique de
+    /// l'activité présentée.
+    ///
+    /// <para>
+    /// La matière qui travaille dans la notch et la lumière qui s'en échappe
+    /// doivent battre ensemble, sinon on lit deux animations au lieu d'une. Les
+    /// deux sont donc tirées de la même fonction — <see cref="HypnoticField"/> —
+    /// et confiées au compositeur avec la même période. Aucune image n'est
+    /// calculée ici : au repos, rien ne tourne.
+    /// </para>
+    /// </summary>
+    /// <param name="preset">Mouvement en cours, ou <see cref="HypnoticPreset.None"/> pour arrêter.</param>
+    /// <param name="amplitude">Profondeur de la respiration, de 0 à 1 ; voir <c>AmbientState.Pulse</c>.</param>
+    public void SetHypnoticPulse(HypnoticPreset preset, double amplitude)
+    {
+        if (_surface is null)
+        {
+            return;
+        }
+
+        if (preset == HypnoticPreset.None || amplitude <= 0 || !UseSpringAnimations)
+        {
+            _surface.SetPulse([], TimeSpan.Zero, loop: false);
+            return;
+        }
+
+        double depth = Math.Clamp(amplitude, 0, 1);
+        var curve = new List<(double, double)>();
+
+        foreach ((double progress, HypnoticFrame frame) in HypnoticField.Sample(preset))
+        {
+            curve.Add((progress, 1 - (depth * (1 - frame.AmbientPulse))));
+        }
+
+        _surface.SetPulse(
+            curve,
+            TimeSpan.FromSeconds(HypnoticField.PeriodSeconds(preset)),
+            HypnoticField.IsLooping(preset));
     }
 
     /// <summary>Rétablit l'ordre attendu : le corps interactif reste au-dessus.</summary>

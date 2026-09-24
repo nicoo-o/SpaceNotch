@@ -298,8 +298,16 @@ public sealed class AppSettings
     /// une fenêtre unique contenant deux lobes séparés ne peut pas laisser passer
     /// les clics dans le vide qui les sépare, Windows ne faisant traverser
     /// <c>HTTRANSPARENT</c> qu'entre fenêtres d'un même thread. Voir ADR-015.
+    ///
+    /// <para>
+    /// Désactivé par défaut depuis SpaceNotch 2.0 : un disque posé à côté de la
+    /// notch est un objet flottant, ce que la règle n°1 écarte pour l'UI
+    /// principale. La pile se signale d'abord par des points discrets dans la
+    /// notch elle-même ; le satellite reste disponible pour qui le préfère.
+    /// Voir ADR-017.
+    /// </para>
     /// </summary>
-    public bool ShowSatellite { get; set; } = true;
+    public bool ShowSatellite { get; set; }
 
     /// <summary>
     /// Affiche l'heure dans la forme de veille. Désactivée par défaut : elle
@@ -483,6 +491,21 @@ public sealed class AppSettings
         CornerSmoothing = Clamp(CornerSmoothing, IslandShape.Circular, 4, IslandShape.Squircle);
         SpringResponseSeconds = Clamp(SpringResponseSeconds, 0.18, 1.20, 0.46);
         SpringBounce = Clamp(SpringBounce, 0.05, 1.20, 0.58);
+
+        // Un préréglage n'est vrai que si la vitesse et le rebond sont les
+        // siens : une configuration réglée à la main avant l'existence des
+        // préréglages — ou éditée depuis — se déclare personnalisée plutôt que
+        // d'afficher « Naturel » sur un mouvement qui ne l'est pas.
+        if (MotionStyle != MotionStyle.Custom)
+        {
+            SpringParameters preset = MotionPresets.Spring(MotionStyle);
+
+            if (Math.Abs(preset.ResponseSeconds - SpringResponseSeconds) > 0.005
+                || Math.Abs(preset.DampingRatio - SpringBounce) > 0.005)
+            {
+                MotionStyle = MotionStyle.Custom;
+            }
+        }
         SpringMass = Clamp(SpringMass, 0.2, 4, 1.0);
         HorizontalOffset = Clamp(HorizontalOffset, -2000, 2000, 0);
 

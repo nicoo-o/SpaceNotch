@@ -28,9 +28,10 @@
     <Grid x:Name="RootLayout" Background="Transparent">
         <!--
             Aucun CornerRadius ici, et ce n'est pas un oubli : la silhouette est un
-            tracé, pas un rectangle arrondi. Le congé du bas suit une superellipse
-            dont l'exposant est réglable, et un rayon de bord ne sait pas décrire
-            cette courbe. Voir IslandShape et ADR-012.
+            tracé, pas un rectangle arrondi. C'est une notch TopAttached — bord
+            haut collé à l'écran, épaules concaves, grands congés en bas — et
+            un rayon de bord ne sait décrire ni les épaules ni la superellipse.
+            Voir IslandShape, NotchGeometry et ADR-017.
 
             Deux tracés se superposent, et c'est voulu :
             — SurfaceFill porte la teinte et la dissolution ;
@@ -46,8 +47,8 @@
             x:Name="IslandBody"
             VerticalAlignment="Top"
             HorizontalAlignment="Center"
-            Width="34"
-            Height="28"
+            Width="80"
+            Height="18"
             Background="Transparent"
             AllowDrop="True"
             PointerEntered="OnIslandPointerEntered"
@@ -87,7 +88,9 @@
                 HorizontalAlignment="Stretch">
 
                 <!-- ====================================================
-                     PALIER VEILLE — un point neutre, et rien d'autre.
+                     PALIER VEILLE (Hidden) — une lèvre au bord de l'écran.
+                     Vide par défaut : le point n'apparaît qu'avec l'heure,
+                     parce qu'une notch sans activité n'a rien à dire.
                      ==================================================== -->
                 <StackPanel
                     x:Name="IdleRestView"
@@ -126,11 +129,22 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <FontIcon
-                        x:Name="SignalGlyph"
-                        Grid.Column="0"
-                        FontSize="{StaticResource NfSignalGlyphSize}"
-                        VerticalAlignment="Center" />
+                    <!-- Glyphe ou matière hypnotique : la même place, jamais les deux.
+                         L'hôte hypnotique prend la taille du glyphe, et son halo
+                         déborde dans la surface noire. -->
+                    <Grid Grid.Column="0" VerticalAlignment="Center">
+                        <FontIcon
+                            x:Name="SignalGlyph"
+                            FontSize="{StaticResource NfSignalGlyphSize}"
+                            VerticalAlignment="Center" />
+
+                        <Grid
+                            x:Name="SignalHypnoticHost"
+                            Width="{StaticResource NfSignalGlyphSize}"
+                            Height="{StaticResource NfSignalGlyphSize}"
+                            IsHitTestVisible="False"
+                            Visibility="Collapsed" />
+                    </Grid>
 
                     <TextBlock
                         x:Name="SignalLabel"
@@ -168,11 +182,19 @@
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
-                    <FontIcon
-                        x:Name="CardGlyph"
-                        Grid.Column="0"
-                        FontSize="{StaticResource NfCardGlyphSize}"
-                        VerticalAlignment="Center" />
+                    <Grid Grid.Column="0" VerticalAlignment="Center">
+                        <FontIcon
+                            x:Name="CardGlyph"
+                            FontSize="{StaticResource NfCardGlyphSize}"
+                            VerticalAlignment="Center" />
+
+                        <Grid
+                            x:Name="CardHypnoticHost"
+                            Width="{StaticResource NfCardGlyphSize}"
+                            Height="{StaticResource NfCardGlyphSize}"
+                            IsHitTestVisible="False"
+                            Visibility="Collapsed" />
+                    </Grid>
 
                     <StackPanel
                         Grid.Column="1"
@@ -206,7 +228,13 @@
                 <scenes:LauncherScene x:Name="LauncherSceneView" Visibility="Collapsed" />
                 <scenes:InfoScene x:Name="InfoSceneView" Visibility="Collapsed" />
 
-                <!-- Cible de dépôt de fichiers -->
+                <!--
+                    Cible de dépôt de fichiers. Pendant le survol d'un fichier, la
+                    notch s'agrandit et la matière hypnotique « Drop » attire vers
+                    le centre ; au dépôt, elle converge et pulse (« Complete »)
+                    avant de rendre la main à l'étagère. Le glyphe fixe n'est que
+                    le repli, si le compositeur refuse la matière.
+                -->
                 <StackPanel
                     x:Name="DropZoneView"
                     Visibility="Collapsed"
@@ -214,11 +242,23 @@
                     HorizontalAlignment="Center"
                     Spacing="{StaticResource NfSpace4}">
 
-                    <FontIcon
-                        Glyph="&#xE898;"
-                        FontSize="18"
-                        Foreground="{ThemeResource NfAccentBrush}"
-                        HorizontalAlignment="Center" />
+                    <Grid
+                        Width="{StaticResource NfHypnoticDropSize}"
+                        Height="{StaticResource NfHypnoticDropSize}"
+                        HorizontalAlignment="Center">
+
+                        <FontIcon
+                            x:Name="DropGlyph"
+                            Glyph="&#xE898;"
+                            FontSize="18"
+                            Foreground="{ThemeResource NfAccentBrush}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
+
+                        <Grid
+                            x:Name="DropHypnoticHost"
+                            IsHitTestVisible="False" />
+                    </Grid>
 
                     <TextBlock
                         Text="Déposez ici"

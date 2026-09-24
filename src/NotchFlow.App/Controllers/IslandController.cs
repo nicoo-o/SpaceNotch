@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using NotchFlow.Core.Activities;
 using NotchFlow.Core.Animation;
+using NotchFlow.Core.Presentation;
 using NotchFlow.Core.Scenes;
 using NotchFlow.Core.State;
 using NotchFlow_App.Animations;
@@ -28,6 +29,18 @@ public sealed class IslandController : IDisposable
 
     private IslandActivity? _presented;
     private Action<Action>? _post;
+
+    /// <summary>
+    /// Vrai lorsqu'une activité attend la fermeture pour être présentée. Voir
+    /// <see cref="ActivityInterruption.Queue"/>.
+    /// </summary>
+    private bool _hasQueued;
+
+    /// <summary>Vrai pendant un parcours de pile demandé par l'utilisateur.</summary>
+    private bool _userDriven;
+
+    /// <summary>Encombrement imposé pendant le survol d'un fichier, sinon <c>null</c>.</summary>
+    private IslandFootprint? _dragTarget;
     private bool _disposed;
 
     /// <summary>
@@ -223,6 +236,13 @@ public sealed class IslandController : IDisposable
         // l'Island est ouverte : elle s'appliquera à la fermeture.
         _collapsedFootprint = footprint;
 
+        // Un fichier survole la notch : la cible de dépôt garde la forme, et le
+        // repos s'appliquera quand le fichier partira.
+        if (_dragTarget is not null)
+        {
+            return;
+        }
+
         if (State is IslandState.Closed or IslandState.Preview)
         {
             // Une forme au repos qui change est un changement d'objet, pas un
@@ -312,6 +332,69 @@ public sealed class IslandController : IDisposable
         }
     }
 
+    /// <summary>
+    /// Parcourt la pile d'activités à la demande de l'utilisateur — molette,
+    /// flèches, satellite.
+    ///
+    /// Passer par ici plutôt que par le gestionnaire directement n'est pas un
+    /// détour : un changement demandé par l'utilisateur ne doit jamais être mis
+    /// en attente comme une arrivée spontanée, même notch ouverte.
+    /// </summary>
+    public bool CyclePresentation(int delta)
+    {
+        _userDriven = true;
+
+        try
+        {
+            return _activityManager.CyclePresentation(delta);
+        }
+        finally
+        {
+            _userDriven = false;
+        }
+    }
+
+    /// <summary>
+    /// Un fichier survole la notch : elle devient une cible visuelle, sans
+    /// changer d'état. Le ressort d'effleurement porte ce mouvement — c'est une
+    /// invitation, pas une ouverture.
+    /// </summary>
+    public void BeginDragTarget(IslandFootprint footprint)
+    {
+        if (_dragTarget == footprint)
+        {
+            return;
+        }
+
+        _dragTarget = footprint;
+        _animator.UpdateParameters(_hoverParameters);
+        AnimateTo(footprint);
+    }
+
+    /// <summary>
+    /// Le fichier est parti, ou a été déposé : la notch reprend la forme de son
+    /// état.
+    /// </summary>
+    public void EndDragTarget()
+    {
+        if (_dragTarget is null)
+        {
+            return;
+        }
+
+        _dragTarget = null;
+        _animator.UpdateParameters(_motionParameters);
+        AnimateTo(FootprintForState());
+    }
+
+    /// <summary>Encombrement que l'état courant réclame.</summary>
+    private IslandFootprint FootprintForState() => State switch
+    {
+        IslandState.Expanded or IslandState.Expanding when _presented is not null => _presented.Footprint,
+        IslandState.Preview when PreviewFootprint is not null => PreviewFootprint(),
+        _ => _collapsedFootprint
+    };
+
     private void OnActiveActivityChanged(object? sender, IslandActivity? activity)
     {
         // Le changement de fil précède la réaction, et non l'inverse : animer
@@ -325,6 +408,24 @@ public sealed class IslandController : IDisposable
     /// </summary>
     private void ReactToActivityChanged(IslandActivity? activity)
     {
+        NotchPresentation presentation = NotchPresentationResolver.Resolve(State, _presented);
+        ActivityInterruption decision = ActivityPolicies.Decide(_presented, activity, presentation);
+
+        // L'utilisateur a ouvert la notch pour regarder quelque chose : une
+        // arrivée moins urgente attend la fermeture au lieu de remplacer le
+        // contenu sous son pointeur. Trois conditions, toutes nécessaires : ce
+        // n'est pas lui qui parcourt la pile, ce qu'il regarde existe encore, et
+        // la règle de cohabitation demande l'attente.
+        if (decision == ActivityInterruption.Queue
+            && !_userDriven
+            && _presented is not null
+            && StillActive(_presented.Id))
+        {
+            _hasQueued = true;
+            return;
+        }
+
+        _hasQueued = false;
         _presented = activity;
         PresentedActivityChanged?.Invoke(this, activity);
 
@@ -346,7 +447,10 @@ public sealed class IslandController : IDisposable
         // identifiant. Sans cette mémoire, chaque rafraîchissement rouvrirait
         // l'Island que l'utilisateur vient de replier. Le geste de fermeture
         // serait alors sans effet, indéfiniment, ce qui se lit comme une panne.
-        if (activity.Priority >= ActivityPriority.High && _announcedActivities.Add(activity.Id))
+        bool claimsAttention = decision == ActivityInterruption.Interrupt
+            || activity.Priority >= ActivityPriority.High;
+
+        if (claimsAttention && _announcedActivities.Add(activity.Id))
         {
             RequestExpand();
             return;
@@ -356,6 +460,19 @@ public sealed class IslandController : IDisposable
         {
             AnimateTo(activity.Footprint);
         }
+    }
+
+    private bool StillActive(string activityId)
+    {
+        foreach (IslandActivity candidate in _activityManager.GetActiveActivities())
+        {
+            if (string.Equals(candidate.Id, activityId, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void OnActivityRemoved(object? sender, IslandActivity activity)
@@ -418,6 +535,14 @@ public sealed class IslandController : IDisposable
             case IslandState.Collapsing:
                 _stateManager.TryTransitionTo(IslandState.Closed);
                 break;
+        }
+
+        // La notch vient de se refermer sur une activité qui attendait : elle est
+        // présentée maintenant, dans la forme au repos.
+        if (_hasQueued && State == IslandState.Closed)
+        {
+            _hasQueued = false;
+            ReactToActivityChanged(_activityManager.CurrentActivity);
         }
 
         AnimationCompleted?.Invoke(this, EventArgs.Empty);

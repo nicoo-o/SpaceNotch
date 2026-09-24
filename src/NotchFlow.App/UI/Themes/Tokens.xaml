@@ -94,6 +94,20 @@
             </LinearGradientBrush>
             <x:Double x:Key="NfSpecularOpacity">0.08</x:Double>
 
+            <!-- Verre et élévation : pour les modes translucides et les surfaces
+                 internes seulement. Le corps de la notch reste noir pur — c'est
+                 ce qui la fond dans le bord de l'écran, et sur un écran OLED ce
+                 qui la fait lire comme une découpe matérielle. #08090C est le
+                 « noir relevé » du plan SpaceNotch 2.0 : il laisse la place à la
+                 profondeur là où une surface doit se distinguer d'une autre. -->
+            <Color x:Key="NfSurfaceGlassColor">#EB08090C</Color>
+            <SolidColorBrush x:Key="NfSurfaceGlassBrush" Color="#08090C" Opacity="0.92" />
+            <SolidColorBrush x:Key="NfSurfaceElevatedBrush" Color="#FFFFFF" Opacity="0.06" />
+
+            <!-- Matière hypnotique : une lumière chaude, comme la référence
+                 Inspora. Elle est teintée par l'état lorsqu'il en porte un. -->
+            <Color x:Key="NfHypnoticWarmColor">#FFB46A</Color>
+
         </ResourceDictionary>
 
         <!-- ============================================================
@@ -135,6 +149,12 @@
                 <GradientStop Color="#00FFFFFF" Offset="1.0" />
             </LinearGradientBrush>
             <x:Double x:Key="NfSpecularOpacity">0.35</x:Double>
+
+            <Color x:Key="NfSurfaceGlassColor">#EBF2F3F6</Color>
+            <SolidColorBrush x:Key="NfSurfaceGlassBrush" Color="#F2F3F6" Opacity="0.92" />
+            <SolidColorBrush x:Key="NfSurfaceElevatedBrush" Color="#101014" Opacity="0.05" />
+
+            <Color x:Key="NfHypnoticWarmColor">#D9822B</Color>
 
         </ResourceDictionary>
 
@@ -180,6 +200,12 @@
             </LinearGradientBrush>
             <x:Double x:Key="NfSpecularOpacity">0.0</x:Double>
 
+            <Color x:Key="NfSurfaceGlassColor">#FF000000</Color>
+            <SolidColorBrush x:Key="NfSurfaceGlassBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="NfSurfaceElevatedBrush" Color="{ThemeResource SystemColorWindowColor}" />
+
+            <Color x:Key="NfHypnoticWarmColor">#FFFFFF</Color>
+
         </ResourceDictionary>
 
     </ResourceDictionary.ThemeDictionaries>
@@ -187,13 +213,15 @@
     <!-- ================================================================
          GÉOMÉTRIE — invariante par thème.
 
-         Le rayon des congés de l'Island elle-même reste gouverné par
-         AppSettings (CornerRadiusBottom = 12), parce qu'il se règle. Les jetons
-         ci-dessous servent aux surfaces internes.
+         Le rayon des congés de la notch elle-même reste gouverné par
+         AppSettings, parce qu'il se règle : 26 en compact, 34 ouverte,
+         interpolé selon la hauteur (NotchGeometry). Les épaules concaves qui la
+         raccordent au bord de l'écran valent 8. Les jetons ci-dessous servent
+         aux surfaces internes.
 
          RÈGLE DE CONCENTRICITÉ. Un rayon intérieur ne peut pas être supérieur au
-         rayon de son conteneur : une surface nichée dans un congé de 12 ne peut
-         pas afficher un congé de 14, la courbe extérieure passerait alors à
+         rayon de son conteneur : une surface nichée dans un congé de 26 ne peut
+         pas afficher un congé de 28, la courbe extérieure passerait alors à
          l'intérieur de l'intérieure et les deux se croiseraient visiblement. La
          formule usuelle — rayon intérieur = rayon extérieur − marge — a été
          appliquée aux valeurs ci-dessous, et la règle est vérifiée par un test :
@@ -206,6 +234,9 @@
     <CornerRadius x:Key="NfCornerChip">6</CornerRadius>
     <CornerRadius x:Key="NfCornerControl">8</CornerRadius>
     <CornerRadius x:Key="NfCornerInner">10</CornerRadius>
+
+    <!-- Matière hypnotique de la cible de dépôt. -->
+    <x:Double x:Key="NfHypnoticDropSize">28</x:Double>
 
     <!-- Palier veille : un point, rien de plus. -->
     <x:Double x:Key="NfIdleDotSize">6</x:Double>
@@ -285,6 +316,7 @@
     <x:Double x:Key="NfDurationInstant">90</x:Double>
     <x:Double x:Key="NfDurationQuick">140</x:Double>
     <x:Double x:Key="NfDurationCalm">220</x:Double>
+    <x:Double x:Key="NfDurationSlow">420</x:Double>
 
     <!-- Échelle de départ d'une scène entrante. En dessous de 1, elle semble
          venir du fond : l'Island pousse son contenu vers l'utilisateur. -->

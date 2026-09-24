@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using NotchFlow.Core.Activities;
 using NotchFlow.Core.Events;
 using NotchFlow.Core.Features;
+using NotchFlow.Core.Motion;
 using NotchFlow.Core.Scenes;
 using NotchFlow.SamplePlugin.Weather;
 using Xunit;
@@ -31,6 +32,40 @@ public sealed class WeatherFeatureTests
         events = new EventBus();
 
         return new WeatherFeature(activities, events, source, Paris);
+    }
+
+    [Fact]
+    public async Task ARefresh_AsksForTheSyncMotion_ThenStopsIt()
+    {
+        // Le greffon ne dessine aucune animation : il demande le préréglage
+        // « Sync » pendant le relevé, et l'hôte s'occupe du reste. C'est la
+        // démonstration du langage de mouvement commun à l'écosystème.
+        var source = new FakeWeatherSource();
+
+        WeatherFeature feature = CreateFeature(source, out ActivityManager activities, out _);
+
+        await feature.StartAsync();
+        await feature.PendingRefresh;
+
+        IslandActivity settled = Assert.Single(activities.GetActiveActivities());
+        Assert.Equal(ActivityMotionState.Idle, settled.MotionState);
+
+        source.Hold = new TaskCompletionSource();
+
+        Task refresh = feature.HandleActionAsync(
+            new IslandActionRequest(WeatherFeature.ActivityId, WeatherFeature.RefreshAction));
+
+        IslandActivity syncing = Assert.Single(activities.GetActiveActivities());
+        Assert.Equal(ActivityMotionState.Working, syncing.MotionState);
+        Assert.Equal(HypnoticPreset.Sync, syncing.MotionPreset);
+
+        source.Hold.SetResult();
+        await refresh;
+
+        IslandActivity done = Assert.Single(activities.GetActiveActivities());
+        Assert.Equal(ActivityMotionState.Idle, done.MotionState);
+
+        await feature.DisposeAsync();
     }
 
     [Fact]

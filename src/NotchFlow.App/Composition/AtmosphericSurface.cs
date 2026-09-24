@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.UI;
 using Microsoft.UI.Composition;
@@ -61,6 +62,8 @@ public sealed class AtmosphericSurface : IDisposable
 
     private const float MaxRadiusX = 3.0f;
 
+    private readonly Compositor _compositor;
+    private readonly ContainerVisual _pulse;
     private readonly SpriteVisual _root;
     private readonly SpriteVisual _maskSource;
     private readonly CompositionVisualSurface _maskSurface;
@@ -114,7 +117,16 @@ public sealed class AtmosphericSurface : IDisposable
         _root = compositor.CreateSpriteVisual();
         _root.Brush = _masked;
 
-        ElementCompositionPreview.SetElementChildVisual(host, _root);
+        // 5. Un conteneur de respiration entre l'hôte et la surface. Son opacité
+        //    n'appartient qu'au mouvement hypnotique : elle module la dissolution
+        //    sans jamais toucher à l'intensité de base, que SetOpacity continue
+        //    de poser sur la surface elle-même. Les deux ne peuvent donc pas se
+        //    disputer la même propriété.
+        _compositor = compositor;
+        _pulse = compositor.CreateContainerVisual();
+        _pulse.Children.InsertAtTop(_root);
+
+        ElementCompositionPreview.SetElementChildVisual(host, _pulse);
 
         IsAvailable = true;
     }
@@ -164,6 +176,7 @@ public sealed class AtmosphericSurface : IDisposable
 
         var size = new Vector2((float)width, (float)height);
 
+        _pulse.Size = size;
         _root.Size = size;
         _maskSource.Size = size;
         _maskSurface.SourceSize = size;
@@ -206,6 +219,55 @@ public sealed class AtmosphericSurface : IDisposable
         _root.Opacity = (float)Math.Clamp(opacity, 0.0, 1.0);
     }
 
+    /// <summary>
+    /// Fait respirer la dissolution au rythme d'un mouvement hypnotique.
+    ///
+    /// La respiration est confiée au compositeur sous forme d'images clés
+    /// rejouées en boucle : aucune image n'est calculée par le fil d'interface,
+    /// et <paramref name="curve"/> vide arrête tout — l'opacité revient à 1.
+    /// </summary>
+    /// <param name="curve">Couples (avancement de 0 à 1, facteur d'opacité de 0 à 1).</param>
+    /// <param name="period">Durée d'un cycle.</param>
+    /// <param name="loop">Vrai pour boucler, faux pour un passage unique.</param>
+    public void SetPulse(IReadOnlyList<(double Progress, double Factor)> curve, TimeSpan period, bool loop)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _pulse.StopAnimation("Opacity");
+
+        if (curve.Count < 2 || period <= TimeSpan.Zero)
+        {
+            _pulse.Opacity = 1f;
+            return;
+        }
+
+        ScalarKeyFrameAnimation animation = _compositor.CreateScalarKeyFrameAnimation();
+        CompositionEasingFunction linear = _compositor.CreateLinearEasingFunction();
+
+        foreach ((double progress, double factor) in curve)
+        {
+            animation.InsertKeyFrame(
+                (float)Math.Clamp(progress, 0, 1),
+                (float)Math.Clamp(factor, 0, 1),
+                linear);
+        }
+
+        animation.Duration = period;
+        animation.IterationBehavior = loop
+            ? AnimationIterationBehavior.Forever
+            : AnimationIterationBehavior.Count;
+
+        if (!loop)
+        {
+            animation.IterationCount = 1;
+        }
+
+        _pulse.StartAnimation("Opacity", animation);
+    }
+
     /// <summary>Masque entièrement la surface sans la détacher.</summary>
     public void Hide() => SetOpacity(0.0);
 
@@ -224,7 +286,10 @@ public sealed class AtmosphericSurface : IDisposable
         // une erreur — d'où la tolérance globale.
         try
         {
+            _pulse.StopAnimation("Opacity");
+            _pulse.Children.RemoveAll();
             _root.Dispose();
+            _pulse.Dispose();
             _masked.Dispose();
             _maskBrush.Dispose();
             _maskSurface.Dispose();

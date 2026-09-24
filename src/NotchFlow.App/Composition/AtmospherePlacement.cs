@@ -17,7 +17,8 @@ namespace NotchFlow_App.Composition;
 /// <param name="HeightPx">Hauteur physique du corps.</param>
 /// <param name="WidthDip">Largeur du corps en DIPs.</param>
 /// <param name="HeightDip">Hauteur du corps en DIPs.</param>
-/// <param name="CornerRadiusDip">Rayon des congés du bas, en DIPs.</param>
+/// <param name="CornerRadiusDip">Rayon des congés du bas effectivement tracé, en DIPs.</param>
+/// <param name="ShoulderDip">Épaule effectivement tracée, en DIPs.</param>
 /// <param name="Deployment">
 /// Avancement du déploiement, de 0 au repos à 1 complètement ouvert.
 ///
@@ -34,4 +35,5 @@ public readonly record struct AtmospherePlacement(
     double WidthDip,
     double HeightDip,
     double CornerRadiusDip,
+    double ShoulderDip,
     double Deployment);

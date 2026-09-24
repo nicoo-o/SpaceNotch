@@ -167,4 +167,22 @@
         <Setter Property="MaxLines" Value="1" />
     </Style>
 
+    <!-- ================================================================
+         CORPS+ — la ligne qu'on lit en premier dans une scène ouverte quand
+         le titre serait trop fort : un artiste, un expéditeur.
+         ================================================================ -->
+    <Style x:Key="NfBodyPlusTextStyle" TargetType="TextBlock" BasedOn="{StaticResource NfBodyTextStyle}">
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <!-- ================================================================
+         HÉROS — la valeur qui devient la matière principale d'une scène :
+         65 pour le volume, 24:37 pour un minuteur. Toujours en chiffres à
+         chasse fixe, pour que la valeur évolue sans que sa largeur danse.
+         ================================================================ -->
+    <Style x:Key="NfHeroTextStyle" TargetType="TextBlock" BasedOn="{StaticResource NfNumericDisplayStyle}">
+        <Setter Property="FontSize" Value="28" />
+        <Setter Property="LineHeight" Value="32" />
+    </Style>
+
 </ResourceDictionary>

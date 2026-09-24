@@ -210,6 +210,23 @@ public class PresentationEngineTests
     }
 
     [Fact]
+    public void AHandTunedSpring_IsNotPassedOffAsAPreset()
+    {
+        // Une configuration réglée à la main avant les préréglages ne doit pas
+        // afficher « Naturel » sur un mouvement qui ne l'est pas.
+        var settings = new AppSettings { SpringResponseSeconds = 0.30, SpringBounce = 0.90 };
+
+        settings.Sanitize();
+
+        Assert.Equal(MotionStyle.Custom, settings.MotionStyle);
+
+        var untouched = new AppSettings();
+        untouched.Sanitize();
+
+        Assert.Equal(MotionStyle.Natural, untouched.MotionStyle);
+    }
+
+    [Fact]
     public void ContentTransitions_FinishBeforeTheShape()
     {
         Assert.True(MotionPresets.DurationMs(MotionKind.Standard) < MotionPresets.DurationMs(MotionKind.Spring));

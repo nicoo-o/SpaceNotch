@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using NotchFlow.Core.Activities;
 using NotchFlow.Core.Features;
+using NotchFlow.Core.Motion;
 using NotchFlow.Core.Scenes;
 
 namespace NotchFlow.SamplePlugin.Weather;
@@ -169,6 +170,12 @@ public sealed class WeatherFeature : IslandFeatureBase
 
         try
         {
+            // Pendant le relevé, la carte existante le dit par le mouvement
+            // « Sync » : le greffon demande un préréglage, il ne dessine rien. Le
+            // tout premier relevé n'a pas de carte à animer — il n'y a encore
+            // rien à montrer.
+            Publish(syncing: true);
+
             WeatherSnapshot snapshot = await _source
                 .GetCurrentAsync(_location, linked.Token)
                 .ConfigureAwait(false);
@@ -184,6 +191,9 @@ public sealed class WeatherFeature : IslandFeatureBase
         {
             // Une panne réseau ne doit pas mettre la fonctionnalité en échec : le
             // relevé précédent reste affiché, et l'erreur est signalée à l'hôte.
+            // La carte cesse de se synchroniser : un mouvement qui continuerait
+            // après l'échec mentirait sur ce qui se passe.
+            Publish();
             ReportError(ex);
         }
         finally
@@ -233,7 +243,10 @@ public sealed class WeatherFeature : IslandFeatureBase
     /// <summary>
     /// Publie le relevé courant sous forme de carte.
     /// </summary>
-    private void Publish()
+    /// <param name="syncing">
+    /// Vrai pendant un relevé : la carte porte le mouvement hypnotique « Sync ».
+    /// </param>
+    private void Publish(bool syncing = false)
     {
         WeatherSnapshot? snapshot = _latest;
 
@@ -272,6 +285,11 @@ public sealed class WeatherFeature : IslandFeatureBase
             // Information d'ambiance : elle ne doit jamais supplanter un appel, une
             // notification ou une lecture en cours.
             Priority = ActivityPriority.Background,
+
+            // Le langage de mouvement commun : pendant un relevé, la carte se
+            // synchronise ; le reste du temps, elle ne bouge pas.
+            MotionState = syncing ? ActivityMotionState.Working : ActivityMotionState.Idle,
+            MotionPreset = HypnoticPreset.Sync,
 
             Actions =
             [

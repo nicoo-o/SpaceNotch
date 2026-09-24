@@ -62,6 +62,7 @@ public sealed class IslandShadowSurface : IDisposable
     private double _width = -1;
     private double _height = -1;
     private double _radius = -1;
+    private double _shoulder = -1;
 
     private bool _disposed;
 
@@ -129,13 +130,30 @@ public sealed class IslandShadowSurface : IDisposable
     }
 
     /// <summary>
-    /// Aligne la silhouette de l'ombre sur celle de l'Island.
+    /// Aligne la silhouette de l'ombre sur celle de la notch.
     ///
+    /// <para>
+    /// <b>Le haut de l'ombre est plat, comme celui de la notch.</b> Un rectangle
+    /// arrondi arrondit ses quatre coins ; la notch n'arrondit que les deux du
+    /// bas. Le rectangle est donc prolongé d'un rayon au-dessus du bord et
+    /// décalé d'autant vers le haut : ses coins supérieurs tombent hors de la
+    /// surface capturée, et l'ombre part du bord de l'écran exactement comme la
+    /// forme qu'elle accompagne. Sans cela, l'ombre dessinerait deux coins
+    /// arrondis sous un bord droit — la silhouette d'une capsule sous celle
+    /// d'une notch.
+    /// </para>
+    ///
+    /// <para>
     /// Aucun travail n'est refait tant que la forme n'a pas changé : le ressort
     /// produit des dizaines d'images presque identiques en fin de course, et
     /// réécrire la géométrie pour elles n'aurait aucun effet visible.
+    /// </para>
     /// </summary>
-    public void Configure(double width, double height, double radius)
+    /// <param name="width">Largeur de la notch, épaules comprises, en DIPs.</param>
+    /// <param name="height">Hauteur de la notch, en DIPs.</param>
+    /// <param name="radius">Rayon des congés du bas effectivement tracé, en DIPs.</param>
+    /// <param name="shoulder">Épaule effectivement tracée, en DIPs : l'ombre suit le corps, pas les épaules.</param>
+    public void Configure(double width, double height, double radius, double shoulder = 0)
     {
         if (_disposed)
         {
@@ -144,7 +162,8 @@ public sealed class IslandShadowSurface : IDisposable
 
         if (Math.Abs(width - _width) < 0.05
             && Math.Abs(height - _height) < 0.05
-            && Math.Abs(radius - _radius) < 0.05)
+            && Math.Abs(radius - _radius) < 0.05
+            && Math.Abs(shoulder - _shoulder) < 0.05)
         {
             return;
         }
@@ -152,12 +171,15 @@ public sealed class IslandShadowSurface : IDisposable
         _width = width;
         _height = height;
         _radius = radius;
+        _shoulder = shoulder;
 
         var size = new Vector2((float)width, (float)height);
-        var corners = new Vector2((float)radius, (float)radius);
+        float body = (float)Math.Max(0, width - (2 * shoulder));
+        float r = (float)Math.Max(0, radius);
 
-        _geometry.Size = size;
-        _geometry.CornerRadius = corners;
+        _geometry.Offset = new Vector2((float)shoulder, -r);
+        _geometry.Size = new Vector2(body, (float)height + r);
+        _geometry.CornerRadius = new Vector2(r, r);
         _shape.Size = size;
         _surface.SourceSize = size;
         _caster.Size = size;

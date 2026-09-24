@@ -31,6 +31,12 @@ internal sealed class FakeWeatherSource : IWeatherSource
     /// <summary>Erreur à produire, ou <c>null</c> pour répondre normalement.</summary>
     public Exception? Failure { get; set; }
 
+    /// <summary>
+    /// Retient la réponse tant qu'elle n'est pas libérée, pour observer la carte
+    /// pendant un relevé. <c>null</c> répond immédiatement.
+    /// </summary>
+    public TaskCompletionSource? Hold { get; set; }
+
     /// <summary>Ajoute un relevé à servir, dans l'ordre.</summary>
     public FakeWeatherSource Enqueue(WeatherSnapshot snapshot)
     {
@@ -38,17 +44,22 @@ internal sealed class FakeWeatherSource : IWeatherSource
         return this;
     }
 
-    public Task<WeatherSnapshot> GetCurrentAsync(
+    public async Task<WeatherSnapshot> GetCurrentAsync(
         WeatherLocation location,
         CancellationToken cancellationToken)
     {
         Calls++;
 
-        if (Failure is not null)
+        if (Hold is { } hold)
         {
-            return Task.FromException<WeatherSnapshot>(Failure);
+            await hold.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        return Task.FromResult(_queued.Count > 0 ? _queued.Dequeue() : Default);
+        if (Failure is not null)
+        {
+            throw Failure;
+        }
+
+        return _queued.Count > 0 ? _queued.Dequeue() : Default;
     }
 }
