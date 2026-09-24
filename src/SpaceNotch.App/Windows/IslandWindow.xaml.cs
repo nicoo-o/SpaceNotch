@@ -815,6 +815,10 @@ public sealed partial class IslandWindow : Window
             {
                 hud.AnimateValues = UseSpringAnimations();
             }
+            else if (scene is ClipboardScene clipboard)
+            {
+                clipboard.AnimateSwipe = UseSpringAnimations();
+            }
 
             scene.Apply(activity);
             scene.Root.Visibility = Visibility.Visible;

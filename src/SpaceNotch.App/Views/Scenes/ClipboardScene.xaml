@@ -39,7 +39,30 @@
             MaxHeight="170">
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Padding="2,3,2,3" ColumnSpacing="8">
+                    <!--
+                        Une ligne se balaie vers la gauche pour être supprimée : elle
+                        suit la main, un fond rouge se découvre derrière elle, et le
+                        lâcher décide (voir SwipeToDelete). Les boutons restent : le
+                        geste est un raccourci, jamais le seul chemin — ni pour le
+                        clavier, ni pour Narrateur.
+                        Premier enfant : le fond découvert. Second : la ligne.
+                    -->
+                    <Grid Loaded="OnRowLoaded" DataContextChanged="OnRowDataContextChanged">
+                        <Border
+                            Background="{ThemeResource NfCriticalBrush}"
+                            CornerRadius="{StaticResource NfCornerControl}"
+                            Opacity="0"
+                            IsHitTestVisible="False">
+                            <FontIcon
+                                Glyph="&#xE74D;"
+                                FontSize="12"
+                                Foreground="White"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Margin="0,0,12,0" />
+                        </Border>
+
+                    <Grid Padding="2,3,2,3" ColumnSpacing="8" Background="{ThemeResource NfSurfaceBaseBrush}">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
@@ -100,6 +123,7 @@
                             Click="OnDeleteClicked">
                             <FontIcon Glyph="&#xE74D;" FontSize="10" Foreground="{ThemeResource NfTextTertiaryBrush}" />
                         </Button>
+                    </Grid>
                     </Grid>
                 </DataTemplate>
             </ListView.ItemTemplate>
