@@ -32,16 +32,16 @@ Il se fait oublier — et s'éveille quand quelque chose mérite votre attention
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/state-music-fr.jpg" alt="Notch compacte pendant la musique"></td>
-    <td width="50%"><img src="docs/assets/readme/state-expanded-fr.jpg" alt="Notch ouverte en lecteur de musique"></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-music-fr.jpg" alt="Notch compacte pendant la musique"><br><sub><b>En écoute</b> — la pochette, le titre et un niveau vivant, rien de plus</sub></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-expanded-fr.jpg" alt="Notch ouverte en lecteur de musique"><br><sub><b>Un clic, et elle grandit</b> — la pochette grandit depuis la notch compacte jusqu'au lecteur</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/state-download-fr.jpg" alt="Notch pendant un téléchargement, avec la grille de lumière"></td>
-    <td width="50%"><img src="docs/assets/readme/state-bubble-fr.jpg" alt="Notch avec une bulle d'appel à côté"></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-download-fr.jpg" alt="Notch pendant un téléchargement, avec la grille de lumière"><br><sub><b>Un travail qu'on sent</b> — une grille de lumière dit que quelque chose travaille</sub></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-bubble-fr.jpg" alt="Notch avec une bulle d'appel à côté"><br><sub><b>Elle se partage pour ce qui compte</b> — appels, enregistrements et téléchargements ont leur bulle ; un clic pour échanger</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/state-side-fr.jpg" alt="Notch accrochée au bord droit, en languette"></td>
-    <td width="50%"><img src="docs/assets/readme/state-floating-fr.jpg" alt="Notch arrachée du bord, flottante et étirée"></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-side-fr.jpg" alt="Notch accrochée au bord droit, en languette"><br><sub><b>Le bord de votre choix</b> — en haut, à gauche ou à droite, même sur votre second écran</sub></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-floating-fr.jpg" alt="Notch arrachée du bord, flottante et étirée"><br><sub><b>Arrachez-la du bord</b> — elle s'étire, se lance vers les coins et revient en goutte</sub></td>
   </tr>
 </table>
 
@@ -112,6 +112,16 @@ Envie de tout voir ? Lancez `SpaceNotch.exe --demo`.
 
 <br>
 
+## Inspirations
+
+Les animations de la grille lumineuse — leurs motifs, leurs couleurs, leurs rythmes, et la pluie
+binaire — sont inspirées de **[Hypnotizing UI](https://www.inspora.design/posts/hypnotizing-ui)**,
+présenté sur Inspora. L'animation d'origine n'est pas de nous : SpaceNotch reprend l'idée pour
+Windows et l'applique aux téléchargements, aux recherches, aux synchronisations et à tout travail en
+cours.
+
+<br>
+
 ## Pour les curieux
 
 SpaceNotch est une application native en C#, sur WinUI 3 et le compositeur de Windows — aucun
@@ -128,8 +138,8 @@ l'application, et chaque choix de conception est écrit.
 
 <div align="center">
 
-<sub>Inspirée de la Dynamic Island d'Apple et de <a href="https://www.inspora.design/posts/hypnotizing-ui"><em>Hypnotizing UI</em></a> d'Inspora.<br>
-Licence MIT · faite avec soin pour celles et ceux qui aiment un bureau calme.</sub>
+<sub>Licence MIT · faite avec soin pour celles et ceux qui aiment un bureau calme.<br>
+Le fond d'écran des captures a été créé pour cette page.</sub>
 
 <br><br>
 
