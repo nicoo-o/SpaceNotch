@@ -154,6 +154,17 @@
                             FontSize="{StaticResource NfSignalGlyphSize}"
                             VerticalAlignment="Center" />
 
+                        <!-- Image de l'activité — une pochette — à la place du glyphe :
+                             c'est elle qui grandira dans la scène ouverte. -->
+                        <Border
+                            x:Name="SignalArtwork"
+                            Width="{StaticResource NfSignalGlyphSize}"
+                            Height="{StaticResource NfSignalGlyphSize}"
+                            CornerRadius="{StaticResource NfCornerArtworkSmall}"
+                            Visibility="Collapsed">
+                            <Image x:Name="SignalArtworkImage" Stretch="UniformToFill" />
+                        </Border>
+
                         <Grid
                             x:Name="SignalHypnoticHost"
                             Width="{StaticResource NfSignalGlyphSize}"
@@ -177,6 +188,26 @@
                         Spacing="6"
                         Margin="8,0,0,0"
                         VerticalAlignment="Center">
+
+                        <!-- Fil de niveau d'un retour système : le volume se
+                             constate d'un coup d'œil, sans ouvrir la notch. -->
+                        <Grid
+                            x:Name="SignalLevel"
+                            Width="36"
+                            Height="3"
+                            CornerRadius="1.5"
+                            Background="{ThemeResource NfStrokeStrongBrush}"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed">
+                            <Border
+                                CornerRadius="1.5"
+                                Background="{ThemeResource NfTextPrimaryBrush}"
+                                RenderTransformOrigin="0,0.5">
+                                <Border.RenderTransform>
+                                    <ScaleTransform x:Name="SignalLevelScale" ScaleX="0" />
+                                </Border.RenderTransform>
+                            </Border>
+                        </Grid>
 
                         <TextBlock
                             x:Name="SignalMetric"
@@ -217,6 +248,15 @@
                             x:Name="CardGlyph"
                             FontSize="{StaticResource NfCardGlyphSize}"
                             VerticalAlignment="Center" />
+
+                        <Border
+                            x:Name="CardArtwork"
+                            Width="{StaticResource NfCardGlyphSize}"
+                            Height="{StaticResource NfCardGlyphSize}"
+                            CornerRadius="{StaticResource NfCornerArtworkSmall}"
+                            Visibility="Collapsed">
+                            <Image x:Name="CardArtworkImage" Stretch="UniformToFill" />
+                        </Border>
 
                         <Grid
                             x:Name="CardHypnoticHost"

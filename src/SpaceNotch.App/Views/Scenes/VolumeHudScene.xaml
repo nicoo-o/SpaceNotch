@@ -7,48 +7,64 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="14,10,14,12" ColumnSpacing="12">
+    <!--
+        Retour système ouvert : la valeur devient la matière principale.
+
+        Pas de pastille remplie, pas de couleur d'accent : le glyphe, la valeur
+        en grand et un fil de niveau. La valeur défile vers sa cible au lieu de
+        sauter, en chiffres à chasse fixe pour que sa largeur ne danse pas.
+    -->
+    <Grid Padding="16,8,16,12" ColumnSpacing="14">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
 
-        <Border
-            x:Name="IconBorder"
+        <FontIcon
+            x:Name="VolumeIcon"
             Grid.Column="0"
-            Width="38"
-            Height="38"
-            CornerRadius="12"
-            Background="#1C2028"
-            VerticalAlignment="Center">
-            <FontIcon x:Name="VolumeIcon" Glyph="&#xE995;" FontSize="18" Foreground="#FFFFFF" />
-        </Border>
+            Glyph="&#xE995;"
+            FontSize="20"
+            Foreground="{ThemeResource NfTextPrimaryBrush}"
+            VerticalAlignment="Center" />
 
         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-            <Grid>
+            <Grid ColumnSpacing="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                    x:Name="VolumeValue"
+                    Grid.Column="0"
+                    Text="65"
+                    Style="{StaticResource NfHeroTextStyle}"
+                    VerticalAlignment="Bottom" />
+
                 <TextBlock
                     x:Name="VolumeLabel"
+                    Grid.Column="1"
                     Text="Volume"
-                    FontSize="12"
-                    FontWeight="SemiBold"
-                    Foreground="#FFFFFF" />
-                <TextBlock
-                    x:Name="VolumePercent"
-                    Text="65%"
-                    FontSize="12"
-                    FontWeight="Bold"
-                    Foreground="#4EA1FF"
-                    HorizontalAlignment="Right" />
+                    Style="{StaticResource NfCaptionTextStyle}"
+                    Margin="0,0,0,5"
+                    VerticalAlignment="Bottom" />
             </Grid>
 
-            <ProgressBar
-                x:Name="VolumeBar"
-                Height="5"
-                CornerRadius="2.5"
-                Value="65"
-                Maximum="100"
-                Foreground="#4EA1FF"
-                Background="#25FFFFFF" />
+            <!-- Fil de niveau : une échelle, jamais une largeur recalculée. -->
+            <Grid
+                Height="3"
+                CornerRadius="1.5"
+                Background="{ThemeResource NfStrokeStrongBrush}">
+                <Border
+                    CornerRadius="1.5"
+                    Background="{ThemeResource NfTextPrimaryBrush}"
+                    RenderTransformOrigin="0,0.5">
+                    <Border.RenderTransform>
+                        <ScaleTransform x:Name="LevelScale" ScaleX="0.65" />
+                    </Border.RenderTransform>
+                </Border>
+            </Grid>
         </StackPanel>
     </Grid>
 </UserControl>

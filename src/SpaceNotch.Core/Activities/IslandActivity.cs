@@ -91,6 +91,17 @@ public sealed class IslandActivity
     /// <summary>Clé d'icône logique, résolue par le jeu d'icônes du rendu.</summary>
     public string? IconKey { get; set; }
 
+    /// <summary>
+    /// Image de l'activité — une pochette, un avatar — encodée (PNG, JPEG…).
+    ///
+    /// Générique à dessein : la forme compacte la montre à la place du glyphe, et
+    /// la forme ouverte la fait <em>grandir</em> depuis cette place. Un greffon
+    /// peut en fournir une sans que l'hôte connaisse son domaine.
+    /// </summary>
+#pragma warning disable CA1819 // Les octets sont transmis tels quels au décodeur, sans copie.
+    public byte[]? Artwork { get; set; }
+#pragma warning restore CA1819
+
     /// <summary>Application à l'origine du contenu (Spotify, Discord, Système…).</summary>
     public string? Source { get; set; }
 

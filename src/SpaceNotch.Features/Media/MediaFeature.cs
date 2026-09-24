@@ -144,6 +144,7 @@ public sealed class MediaFeature : IslandFeatureBase
             // La teinte de l'atmosphère est déclarée par la fonctionnalité :
             // l'Island ne devine jamais qu'un média doit colorer son halo.
             Tint = track.Tint,
+            Artwork = track.ArtworkBytes,
             Payload = track
         };
 

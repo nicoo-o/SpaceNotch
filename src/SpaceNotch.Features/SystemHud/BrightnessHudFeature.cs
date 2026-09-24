@@ -66,26 +66,15 @@ public sealed class BrightnessHudFeature : IslandFeatureBase
 
     private void OnBrightnessChanged(object? sender, BrightnessInfo info)
     {
-        var payload = new HudPayload(
-            Value: info.Percent,
-            Maximum: 100,
-            Label: "Luminosité",
-            ValueText: $"{info.Percent}%",
-            IconKey: "Brightness");
-
-        PublishActivity(new IslandActivity
-        {
-            Id = ActivityId,
-            FeatureId = FeatureKey,
-            SceneKey = IslandSceneCatalog.BrightnessHud,
-            Title = $"Luminosité {info.Percent}%",
-            Subtitle = "Écran principal",
-            Source = "System.Display",
-            IconKey = "Brightness",
-            State = IslandActivityState.SystemHud,
-            Priority = ActivityPriority.High,
-            Duration = HudLifetime,
-            Payload = payload
-        });
+        PublishActivity(HudActivity.Build(
+            ActivityId,
+            FeatureKey,
+            IslandSceneCatalog.BrightnessHud,
+            "Luminosité",
+            info.Percent,
+            100,
+            "Brightness",
+            "Écran principal",
+            HudLifetime));
     }
 }

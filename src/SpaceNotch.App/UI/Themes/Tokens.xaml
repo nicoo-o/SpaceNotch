@@ -240,6 +240,10 @@
     <CornerRadius x:Key="NfCornerControl">8</CornerRadius>
     <CornerRadius x:Key="NfCornerInner">10</CornerRadius>
 
+    <!-- Petite pochette dans la forme compacte : un carré à peine arrondi,
+         qui se lit comme une image et non comme une pastille. -->
+    <CornerRadius x:Key="NfCornerArtworkSmall">4</CornerRadius>
+
     <!-- Matière hypnotique de la cible de dépôt. -->
     <x:Double x:Key="NfHypnoticDropSize">28</x:Double>
 

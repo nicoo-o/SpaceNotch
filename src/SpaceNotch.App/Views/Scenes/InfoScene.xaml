@@ -28,7 +28,12 @@
                  Un fond légèrement plus clair serait une seconde surface, donc
                  une hiérarchie — et sur un objet de 38 DIP de côté, elle ne se
                  lit pas comme un plan mais comme une tache. -->
+            <!-- La pastille porte, dans l'ordre de préférence : la grille
+                 hypnotique d'un travail en cours, l'image de l'activité, son
+                 glyphe. Elle est aussi le point d'arrivée du morphing depuis la
+                 forme compacte. -->
             <Border
+                x:Name="IconBadge"
                 Grid.Column="0"
                 Width="38"
                 Height="38"
@@ -37,14 +42,42 @@
                 BorderBrush="{ThemeResource NfStrokeStrongBrush}"
                 BorderThickness="1"
                 VerticalAlignment="Center">
-                <FontIcon
-                    x:Name="SceneIcon"
-                    Glyph="&#xE946;"
-                    FontSize="16"
-                    Foreground="{ThemeResource NfTextPrimaryBrush}" />
+                <Grid>
+                    <FontIcon
+                        x:Name="SceneIcon"
+                        Glyph="&#xE946;"
+                        FontSize="16"
+                        Foreground="{ThemeResource NfTextPrimaryBrush}" />
+
+                    <Image
+                        x:Name="SceneArtwork"
+                        Stretch="UniformToFill"
+                        Visibility="Collapsed" />
+
+                    <Grid
+                        x:Name="SceneHypnoticHost"
+                        Width="20"
+                        Height="20"
+                        IsHitTestVisible="False"
+                        Visibility="Collapsed" />
+                </Grid>
             </Border>
 
             <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="3">
+                <!-- Contexte discret au-dessus de l'état, comme dans la
+                     référence : « Read app-sidebar.tsx · 219 lines ». -->
+                <TextBlock
+                    x:Name="EyebrowText"
+                    Style="{StaticResource NfCaptionTextStyle}"
+                    Foreground="{ThemeResource NfTextTertiaryBrush}"
+                    Visibility="Collapsed" />
+
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
                 <TextBlock
                     x:Name="TitleText"
                     Text="Information"
@@ -54,6 +87,14 @@
                     TextTrimming="CharacterEllipsis"
                     MaxLines="1" />
 
+                    <TextBlock
+                        x:Name="MetricText"
+                        Grid.Column="1"
+                        Style="{StaticResource NfMetricTextStyle}"
+                        VerticalAlignment="Center"
+                        Visibility="Collapsed" />
+                </Grid>
+
                 <TextBlock
                     x:Name="SubtitleText"
                     Text=""
@@ -61,6 +102,26 @@
                     Foreground="{ThemeResource NfTextSecondaryBrush}"
                     TextTrimming="CharacterEllipsis"
                     MaxLines="2" />
+
+                <!-- Progression : un fil, pas une barre de logiciel. Le
+                     remplissage est une échelle, jamais une largeur recalculée. -->
+                <Grid
+                    x:Name="ProgressTrack"
+                    Height="3"
+                    Margin="0,4,0,0"
+                    CornerRadius="1.5"
+                    Background="{ThemeResource NfStrokeSubtleBrush}"
+                    Visibility="Collapsed">
+                    <Border
+                        x:Name="ProgressFill"
+                        CornerRadius="1.5"
+                        Background="{ThemeResource NfTextPrimaryBrush}"
+                        RenderTransformOrigin="0,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform x:Name="ProgressScale" ScaleX="0" />
+                        </Border.RenderTransform>
+                    </Border>
+                </Grid>
             </StackPanel>
         </Grid>
 

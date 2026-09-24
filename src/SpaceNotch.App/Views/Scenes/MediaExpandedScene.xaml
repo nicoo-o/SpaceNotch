@@ -20,7 +20,7 @@
             Width="76"
             Height="76"
             CornerRadius="14"
-            Background="#1F232B"
+            Background="{ThemeResource NfSurfaceElevatedBrush}"
             VerticalAlignment="Center">
             <Grid>
                 <Image x:Name="ArtworkImage" Stretch="UniformToFill" />
@@ -28,7 +28,7 @@
                     x:Name="ArtworkFallback"
                     Glyph="&#xE8D6;"
                     FontSize="32"
-                    Foreground="#80FFFFFF" />
+                    Foreground="{ThemeResource NfTextTertiaryBrush}" />
             </Grid>
         </Border>
 
@@ -39,7 +39,7 @@
                 Text="Titre de la chanson"
                 FontSize="14"
                 FontWeight="SemiBold"
-                Foreground="#FFFFFF"
+                Foreground="{ThemeResource NfTextPrimaryBrush}"
                 TextTrimming="CharacterEllipsis"
                 MaxLines="1" />
 
@@ -47,7 +47,7 @@
                 x:Name="ArtistText"
                 Text="Nom de l'artiste"
                 FontSize="11.5"
-                Foreground="#99FFFFFF"
+                Foreground="{ThemeResource NfTextSecondaryBrush}"
                 TextTrimming="CharacterEllipsis"
                 MaxLines="1" />
 
@@ -77,7 +77,8 @@
                     Grid.Column="1"
                     Text="0:00 / 0:00"
                     FontSize="9.5"
-                    Foreground="#70FFFFFF"
+                    Typography.NumeralAlignment="Tabular"
+                    Foreground="{ThemeResource NfTextTertiaryBrush}"
                     VerticalAlignment="Center" />
             </Grid>
 
@@ -89,11 +90,12 @@
                     Height="32"
                     CornerRadius="16"
                     Padding="0"
-                    Background="#14FFFFFF"
+                    Background="{ThemeResource NfSurfaceElevatedBrush}"
                     BorderThickness="0"
                     ToolTipService.ToolTip="Piste précédente"
+                    AutomationProperties.Name="Piste précédente"
                     Click="OnPrevClicked">
-                    <FontIcon Glyph="&#xE892;" FontSize="12" Foreground="#FFFFFF" />
+                    <FontIcon Glyph="&#xE892;" FontSize="12" Foreground="{ThemeResource NfTextPrimaryBrush}" />
                 </Button>
 
                 <Button
@@ -102,11 +104,12 @@
                     Height="36"
                     CornerRadius="18"
                     Padding="0"
-                    Background="#FFFFFF"
+                    Background="{ThemeResource NfTextPrimaryBrush}"
                     BorderThickness="0"
                     ToolTipService.ToolTip="Lecture ou pause"
+                    AutomationProperties.Name="Lecture ou pause"
                     Click="OnPlayPauseClicked">
-                    <FontIcon x:Name="PlayPauseIcon" Glyph="&#xE769;" FontSize="14" Foreground="#0B0B0D" />
+                    <FontIcon x:Name="PlayPauseIcon" Glyph="&#xE769;" FontSize="14" Foreground="{ThemeResource NfSurfaceBaseBrush}" />
                 </Button>
 
                 <Button
@@ -115,11 +118,12 @@
                     Height="32"
                     CornerRadius="16"
                     Padding="0"
-                    Background="#14FFFFFF"
+                    Background="{ThemeResource NfSurfaceElevatedBrush}"
                     BorderThickness="0"
                     ToolTipService.ToolTip="Piste suivante"
+                    AutomationProperties.Name="Piste suivante"
                     Click="OnNextClicked">
-                    <FontIcon Glyph="&#xE893;" FontSize="12" Foreground="#FFFFFF" />
+                    <FontIcon Glyph="&#xE893;" FontSize="12" Foreground="{ThemeResource NfTextPrimaryBrush}" />
                 </Button>
             </StackPanel>
         </StackPanel>

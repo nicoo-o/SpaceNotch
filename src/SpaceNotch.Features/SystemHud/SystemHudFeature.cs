@@ -55,25 +55,31 @@ public sealed class SystemHudFeature : IslandFeatureBase
         return Task.CompletedTask;
     }
 
+    /// <summary>Le glyphe suit le niveau : trois ondes, deux, une.</summary>
+    private static string GlyphKeyFor(float volume) => volume switch
+    {
+        >= 66 => "VolumeHigh",
+        >= 33 => "VolumeMedium",
+        _ => "VolumeLow"
+    };
+
     private void OnVolumeChanged(float volume, bool isMuted)
     {
-        var activity = new IslandActivity
-        {
-            Id = VolumeActivityId,
-            FeatureId = FeatureKey,
-            SceneKey = IslandSceneCatalog.VolumeHud,
-            Title = isMuted ? "Muet" : $"Volume {volume:0}%",
-            Subtitle = isMuted ? "Audio désactivé" : "Sortie principale",
-            Source = "System.Audio",
-            IconKey = isMuted ? "VolumeMute" : "Volume",
-            State = IslandActivityState.SystemHud,
-            Priority = ActivityPriority.High,
-
-            // L'expiration appartient au gestionnaire d'activités : la
-            // fonctionnalité n'orchestre plus sa propre disparition.
-            Duration = HudLifetime,
-            Payload = (Volume: volume, IsMuted: isMuted)
-        };
+        // L'expiration appartient au gestionnaire d'activités : la
+        // fonctionnalité n'orchestre plus sa propre disparition. La charge utile
+        // est la forme commune des retours système — la scène de volume n'en lit
+        // pas d'autre.
+        IslandActivity activity = HudActivity.Build(
+            VolumeActivityId,
+            FeatureKey,
+            IslandSceneCatalog.VolumeHud,
+            "Volume",
+            volume,
+            100,
+            isMuted ? "VolumeMute" : GlyphKeyFor(volume),
+            "Sortie principale",
+            HudLifetime,
+            isMuted);
 
         PublishActivity(activity);
         PublishEvent(new VolumeChangedEvent(volume, isMuted));

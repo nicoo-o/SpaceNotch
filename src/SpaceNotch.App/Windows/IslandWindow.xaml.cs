@@ -45,6 +45,7 @@ using SpaceNotch_App.Composition;
 using SpaceNotch_App.Controllers;
 using SpaceNotch_App.Diagnostics;
 using SpaceNotch_App.Views;
+using SpaceNotch_App.Views.Scenes;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Graphics;
 using Windows.UI;
@@ -146,6 +147,12 @@ public sealed partial class IslandWindow : Window
 
     /// <summary>Dernière annonce faite à Narrateur : activité et titre.</summary>
     private string _announcedKey = string.Empty;
+
+    /// <summary>Racine de la scène ouverte affichée, pour ne jouer son entrée qu'une fois.</summary>
+    private FrameworkElement? _visibleSceneRoot;
+
+    /// <summary>Octets de la pochette compacte affichée, pour ne la décoder qu'au changement.</summary>
+    private byte[]? _restArtworkBytes;
 
     /// <summary>Visibilité des vues de repos avant le rendu en cours.</summary>
     private bool _signalWasVisible;
@@ -728,6 +735,13 @@ public sealed partial class IslandWindow : Window
         _signalWasVisible = SignalRestView.Visibility == Visibility.Visible;
         _cardWasVisible = CardRestView.Visibility == Visibility.Visible;
 
+        // Passage de la forme compacte à la scène ouverte : la position des
+        // éléments compacts est relevée maintenant, avant qu'ils ne soient
+        // masqués, pour que la scène les fasse grandir depuis leur place.
+        Dictionary<MorphAnchorKind, MorphRect>? morph = expanded && (_signalWasVisible || _cardWasVisible)
+            ? CaptureRestAnchors()
+            : null;
+
         IdleRestView.Visibility = Visibility.Collapsed;
         SignalRestView.Visibility = Visibility.Collapsed;
         CardRestView.Visibility = Visibility.Collapsed;
@@ -761,10 +775,38 @@ public sealed partial class IslandWindow : Window
         if (expanded && known && scene is not null)
         {
             StopRestingHypnotic();
+
+            if (scene is InfoScene generic)
+            {
+                generic.AnimateHypnotic = AnimateHypnotic();
+            }
+            else if (scene is VolumeHudScene hud)
+            {
+                hud.AnimateValues = UseSpringAnimations();
+            }
+
             scene.Apply(activity);
             scene.Root.Visibility = Visibility.Visible;
+
+            // Entrée de la scène, une seule fois : son contenu apparaît sur place
+            // pendant que la forme grandit, et les éléments ancrés grandissent
+            // depuis la forme compacte.
+            if (!ReferenceEquals(_visibleSceneRoot, scene.Root))
+            {
+                _visibleSceneRoot = scene.Root;
+                ContentTransition.Play(scene.Root, UseSpringAnimations());
+
+                if (morph is not null)
+                {
+                    MorphPlayer.PlayWhenLaidOut(morph, scene, ContentArea, UseSpringAnimations());
+                }
+            }
+
             return;
         }
+
+        _visibleSceneRoot = null;
+        InfoSceneView.Rest();
 
         PresentResting(activity);
 
@@ -805,10 +847,15 @@ public sealed partial class IslandWindow : Window
             SetText(SignalLabel, activity.Title, _signalWasVisible);
             SetText(SignalMetric, metric, _signalWasVisible);
             SignalMetric.Visibility = metricVisibility;
+
+            SignalLevel.Visibility = activity.Progress is null ? Visibility.Collapsed : Visibility.Visible;
+            SignalLevelScale.ScaleX = Math.Clamp(activity.Progress ?? 0, 0, 1);
             SignalRestView.Visibility = Visibility.Visible;
 
             _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
             ApplyHypnoticSlot(_signalHypnotic, SignalHypnoticHost, SignalGlyph, preset);
+            ApplyRestArtwork(activity, SignalArtwork, SignalArtworkImage, SignalGlyph, preset);
+            CardArtwork.Visibility = Visibility.Collapsed;
             return;
         }
 
@@ -838,6 +885,79 @@ public sealed partial class IslandWindow : Window
 
         _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
         ApplyHypnoticSlot(_cardHypnotic, CardHypnoticHost, CardGlyph, preset);
+        ApplyRestArtwork(activity, CardArtwork, CardArtworkImage, CardGlyph, preset);
+        SignalArtwork.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// Relève la place des éléments de la forme compacte visible, dans le repère
+    /// de la zone de contenu.
+    /// </summary>
+    private Dictionary<MorphAnchorKind, MorphRect> CaptureRestAnchors()
+    {
+        var anchors = new Dictionary<MorphAnchorKind, MorphRect>();
+
+        bool signal = _signalWasVisible;
+
+        FrameworkElement artwork = signal ? SignalArtwork : CardArtwork;
+        FrameworkElement hypnotic = signal ? SignalHypnoticHost : CardHypnoticHost;
+        FrameworkElement glyph = signal ? SignalGlyph : CardGlyph;
+        FrameworkElement title = signal ? SignalLabel : CardHeadline;
+
+        if (MorphPlayer.Measure(artwork, ContentArea) is { } art)
+        {
+            anchors[MorphAnchorKind.Artwork] = art;
+        }
+        else if ((MorphPlayer.Measure(hypnotic, ContentArea) ?? MorphPlayer.Measure(glyph, ContentArea)) is { } icon)
+        {
+            anchors[MorphAnchorKind.Icon] = icon;
+        }
+
+        if (MorphPlayer.Measure(title, ContentArea) is { } text)
+        {
+            anchors[MorphAnchorKind.Title] = text;
+        }
+
+        return anchors;
+    }
+
+    /// <summary>
+    /// Pochette de la forme compacte : montrée à la place du glyphe lorsque
+    /// l'activité en porte une et qu'aucune grille hypnotique ne l'occupe.
+    /// </summary>
+    private void ApplyRestArtwork(IslandActivity activity, FrameworkElement slot, Image image, FrameworkElement glyph, HypnoticPreset preset)
+    {
+        bool show = activity.Artwork is { Length: > 0 } && (preset == HypnoticPreset.None || !AnimateHypnoticAvailable());
+
+        slot.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+
+        if (!show)
+        {
+            return;
+        }
+
+        glyph.Visibility = Visibility.Collapsed;
+
+        if (!ReferenceEquals(activity.Artwork, _restArtworkBytes) || image.Source is null)
+        {
+            _restArtworkBytes = activity.Artwork;
+            _ = LoadRestArtworkAsync(image, activity.Artwork);
+        }
+    }
+
+    /// <summary>Vrai si une grille hypnotique peut s'afficher : le compositeur l'a acceptée.</summary>
+    private bool AnimateHypnoticAvailable() => _signalHypnotic is not null && _cardHypnotic is not null;
+
+    private static async Task LoadRestArtworkAsync(Image image, byte[]? bytes)
+    {
+        try
+        {
+            image.Source = await ArtworkLoader.LoadAsync(bytes);
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log("[ARTWORK] pochette compacte illisible", ex);
+        }
     }
 
     /// <summary>
@@ -1118,6 +1238,11 @@ public sealed partial class IslandWindow : Window
         {
             _measureMetric.Style ??= SignalMetric.Style;
             stack += 8 + Measure(_measureMetric, metric);
+        }
+
+        if (tier == IslandPresentationTier.Signal && activity.Progress is not null)
+        {
+            stack += 36 + 6;
         }
 
         double content = tier == IslandPresentationTier.Signal

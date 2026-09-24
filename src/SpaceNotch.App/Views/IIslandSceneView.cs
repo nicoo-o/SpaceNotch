@@ -1,6 +1,7 @@
 using System;
 using Microsoft.UI.Xaml;
 using SpaceNotch.Core.Activities;
+using SpaceNotch.Core.Presentation;
 
 namespace SpaceNotch_App.Views;
 
@@ -41,4 +42,12 @@ public interface IIslandSceneView
     /// lorsque le contenu évolue sans changer de scène.
     /// </summary>
     void Apply(IslandActivity activity);
+
+    /// <summary>
+    /// Élément de la scène qui prolonge un élément de la forme compacte — la
+    /// pochette, le titre — ou <c>null</c>. Déclaré par la scène, il permet à la
+    /// fenêtre de le faire <em>grandir</em> depuis sa place compacte au lieu de
+    /// le faire réapparaître. Voir <c>MorphTransform</c>.
+    /// </summary>
+    FrameworkElement? AnchorFor(MorphAnchorKind kind) => null;
 }

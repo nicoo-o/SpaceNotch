@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using SpaceNotch.Core.Activities;
+using SpaceNotch.Core.Presentation;
 using SpaceNotch.Platform.Windows.Media;
 using SpaceNotch_App.Views;
 
@@ -46,6 +47,18 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
     public event EventHandler<IslandActionRequest>? ActionRequested;
 
     public FrameworkElement Root => this;
+
+    /// <summary>
+    /// La pochette grandit depuis la pochette compacte ; le titre se déplace
+    /// depuis le libellé de la notch.
+    /// </summary>
+    public FrameworkElement? AnchorFor(MorphAnchorKind kind) => kind switch
+    {
+        MorphAnchorKind.Artwork or MorphAnchorKind.Icon => ArtworkBorder,
+        MorphAnchorKind.Title => TitleText,
+        MorphAnchorKind.Subtitle => ArtistText,
+        _ => null
+    };
 
     public void Apply(IslandActivity activity)
     {

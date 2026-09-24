@@ -1,9 +1,13 @@
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using SpaceNotch.Core.Activities;
+using SpaceNotch.Core.Motion;
+using SpaceNotch.Core.Presentation;
+using SpaceNotch_App.Composition;
 using SpaceNotch_App.Views;
 using Windows.UI;
 
@@ -32,6 +36,65 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
 
     public FrameworkElement Root => this;
 
+    /// <summary>
+    /// Le mouvement hypnotique est-il joué ? Renseigné par la fenêtre, qui seule
+    /// connaît les préférences et la réduction des animations.
+    /// </summary>
+    public bool AnimateHypnotic { get; set; } = true;
+
+    private HypnoticSurface? _hypnotic;
+    private byte[]? _artworkBytes;
+
+    /// <summary>La pastille reçoit ce qui grandit depuis la forme compacte.</summary>
+    public FrameworkElement? AnchorFor(MorphAnchorKind kind) => kind switch
+    {
+        MorphAnchorKind.Icon or MorphAnchorKind.Artwork => IconBadge,
+        MorphAnchorKind.Title => TitleText,
+        _ => null
+    };
+
+    /// <summary>
+    /// Pastille : la grille d'un travail en cours d'abord — c'est l'information
+    /// la plus vivante —, puis l'image, puis le glyphe.
+    /// </summary>
+    private void ApplyBadge(IslandActivity activity)
+    {
+        _hypnotic ??= HypnoticSurface.TryAttach(SceneHypnoticHost);
+
+        HypnoticPreset preset = HypnoticField.Resolve(activity.MotionState, activity.MotionPreset);
+        bool hypnotic = _hypnotic is not null && preset != HypnoticPreset.None;
+
+        SceneHypnoticHost.Visibility = hypnotic ? Visibility.Visible : Visibility.Collapsed;
+        _hypnotic?.SetPreset(hypnotic ? preset : HypnoticPreset.None, AnimateHypnotic);
+
+        bool artwork = !hypnotic && activity.Artwork is { Length: > 0 };
+
+        SceneIcon.Visibility = hypnotic || artwork ? Visibility.Collapsed : Visibility.Visible;
+        SceneArtwork.Visibility = artwork ? Visibility.Visible : Visibility.Collapsed;
+
+        if (artwork && !ReferenceEquals(activity.Artwork, _artworkBytes))
+        {
+            _artworkBytes = activity.Artwork;
+            _ = LoadArtworkAsync(activity.Artwork);
+        }
+    }
+
+    private async Task LoadArtworkAsync(byte[]? bytes)
+    {
+        try
+        {
+            SceneArtwork.Source = await ArtworkLoader.LoadAsync(bytes);
+        }
+        catch (Exception)
+        {
+            // Une image illisible laisse la pastille vide plutôt que la carte absente.
+            SceneArtwork.Source = null;
+        }
+    }
+
+    /// <summary>Arrête la grille quand la scène est masquée : rien ne tourne hors de la vue.</summary>
+    public void Rest() => _hypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+
     public void Apply(IslandActivity activity)
     {
         ArgumentNullException.ThrowIfNull(activity);
@@ -41,6 +104,18 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
         TitleText.Text = activity.Title;
         SubtitleText.Text = activity.Subtitle ?? string.Empty;
         SceneIcon.Glyph = GlyphCatalog.Resolve(activity.IconKey);
+
+        EyebrowText.Text = activity.Eyebrow ?? string.Empty;
+        EyebrowText.Visibility = string.IsNullOrWhiteSpace(activity.Eyebrow) ? Visibility.Collapsed : Visibility.Visible;
+
+        string? metric = activity.TrailingMetric;
+        MetricText.Text = metric ?? string.Empty;
+        MetricText.Visibility = metric is null ? Visibility.Collapsed : Visibility.Visible;
+
+        ProgressTrack.Visibility = activity.Progress is null ? Visibility.Collapsed : Visibility.Visible;
+        ProgressScale.ScaleX = Math.Clamp(activity.Progress ?? 0, 0, 1);
+
+        ApplyBadge(activity);
 
         RebuildActions(activity.Actions);
     }
