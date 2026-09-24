@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using NotchFlow.Core.Motion;
+using NotchFlow.Core.Presentation;
 using NotchFlow.Core.Scenes;
 using NotchFlow.Core.State;
 
@@ -38,6 +40,40 @@ public sealed class IslandActivity
     public required string Title { get; set; }
 
     public string? Subtitle { get; set; }
+
+    /// <summary>
+    /// Ligne de contexte au-dessus du titre, plus discrète que lui : « Read
+    /// app-sidebar.tsx · 219 lines » au-dessus de « Thinking ». Le contexte se lit
+    /// d'abord, l'état ensuite. Facultative.
+    /// </summary>
+    public string? Eyebrow { get; set; }
+
+    /// <summary>
+    /// Avancement, de 0 à 1, ou <c>null</c> lorsque l'activité n'a pas de
+    /// progression mesurable. Une valeur hors bornes est ramenée dans
+    /// l'intervalle par le rendu, jamais rejetée.
+    /// </summary>
+    public double? Progress { get; set; }
+
+    /// <summary>
+    /// Où en est le travail de l'activité. Décide s'il y a un mouvement
+    /// hypnotique, indépendamment de la forme de la notch. Voir ADR-018.
+    /// </summary>
+    public ActivityMotionState MotionState { get; set; } = ActivityMotionState.Idle;
+
+    /// <summary>
+    /// Nature du mouvement demandé pendant le travail : lecture, recherche,
+    /// synchronisation… Un greffon demande un préréglage ; il ne dessine jamais
+    /// sa propre animation.
+    /// </summary>
+    public HypnoticPreset MotionPreset { get; set; } = HypnoticPreset.None;
+
+    /// <summary>
+    /// Cohabitation avec les autres activités, lorsqu'elle doit être forcée.
+    /// Laissée à <c>null</c>, elle se déduit de la priorité et de la durée de vie.
+    /// Voir <see cref="ActivityPolicies"/>.
+    /// </summary>
+    public ActivityPresentationPolicy? Policy { get; init; }
 
     /// <summary>Clé d'icône logique, résolue par le jeu d'icônes du rendu.</summary>
     public string? IconKey { get; set; }

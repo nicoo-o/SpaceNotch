@@ -185,9 +185,9 @@ public class DesignLanguageTests
         Assert.True(card.Width > signal.Width);
         Assert.True(card.Height > signal.Height);
 
-        // Veille et signal partagent leur hauteur : ils portent un point et une
-        // ligne, et rien ne justifie qu'ils diffèrent verticalement.
-        Assert.Equal(idle.Height, signal.Height);
+        // La veille est une lèvre, plus basse que la forme compacte : sans
+        // activité, la notch n'a rien à porter et doit se faire presque oublier.
+        Assert.True(idle.Height < signal.Height);
     }
 
     [Fact]

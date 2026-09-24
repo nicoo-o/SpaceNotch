@@ -44,15 +44,25 @@ public enum IslandContentDensity
 public readonly record struct IslandFootprint(double Width, double Height)
 {
     /// <summary>
-    /// Veille : un point neutre et sa marge. L'Island dit qu'elle est là, rien de
-    /// plus.
+    /// Veille — l'état <c>Hidden</c> du plan : une lèvre descendue du bord de
+    /// l'écran, presque imperceptible. L'Island dit qu'elle est là, rien de plus.
+    ///
+    /// Elle reste une cible facile malgré sa taille : le pointeur bute contre le
+    /// bord supérieur de l'écran, qui se comporte comme une cible de hauteur
+    /// infinie (loi de Fitts). La lèvre n'a donc pas besoin d'être grande pour
+    /// être trouvée — seulement d'être au bord.
     /// </summary>
-    public static IslandFootprint Idle => new(34, 28);
+    public static IslandFootprint Idle => new(80, 18);
 
     /// <summary>
-    /// Signal : un glyphe, un libellé court, sur une ligne.
+    /// Signal — l'état <c>Compact</c> du plan : un glyphe, un libellé court, sur
+    /// une ligne. 34 de haut, dans la fourchette 32–40 : assez pour porter un
+    /// congé généreux sans que le texte touche la courbe.
+    ///
+    /// La largeur comprend les deux épaules : c'est la forme entière, du bord de
+    /// l'écran au bord de l'écran.
     /// </summary>
-    public static IslandFootprint Signal => new(132, 28);
+    public static IslandFootprint Signal => new(148, 34);
 
     /// <summary>
     /// Carte : glyphe, légende et titre. La hauteur est la somme de son contenu.
@@ -73,9 +83,9 @@ public readonly record struct IslandFootprint(double Width, double Height)
             IslandPresentationTier.Signal => Signal,
             IslandPresentationTier.Card => density switch
             {
-                IslandContentDensity.Compact => new IslandFootprint(216, 44),
-                IslandContentDensity.Aired => new IslandFootprint(264, 60),
-                _ => new IslandFootprint(240, 52)
+                IslandContentDensity.Compact => new IslandFootprint(232, 44),
+                IslandContentDensity.Aired => new IslandFootprint(280, 60),
+                _ => new IslandFootprint(256, 52)
             },
             _ => Idle
         };
@@ -114,4 +124,38 @@ public readonly record struct IslandFootprint(double Width, double Height)
     public static IslandFootprint Collapsed => Idle;
 
     public bool IsValid => Width > 0 && Height > 0;
+
+    /// <summary>
+    /// Encombrement de l'aperçu au survol — l'état <c>Preview</c> du plan.
+    ///
+    /// <para>
+    /// Le survol n'ouvre pas : il fait descendre et élargir légèrement la notch,
+    /// d'environ 10 à 20 %. C'est le clic qui exprime l'intention d'ouvrir. Une
+    /// Island qui sauterait à pleine taille à chaque passage du pointeur en haut
+    /// de l'écran se lirait comme une interface nerveuse.
+    /// </para>
+    ///
+    /// <para>
+    /// Une seule exception de contenu : depuis le palier signal, l'aperçu porte
+    /// la seconde ligne — c'est l'information qui donne envie de cliquer. Il la
+    /// porte dans une largeur à peine accrue, en tronquant plutôt qu'en
+    /// s'étalant.
+    /// </para>
+    ///
+    /// <para>La règle de monotonie tient : l'aperçu n'est jamais plus petit que
+    /// la forme qu'il prolonge, dans aucune dimension.</para>
+    /// </summary>
+    public static IslandFootprint PreviewOf(
+        IslandPresentationTier tier,
+        IslandContentDensity density = IslandContentDensity.Comfortable)
+    {
+        IslandFootprint rest = For(tier, density);
+
+        return tier switch
+        {
+            IslandPresentationTier.Signal => new IslandFootprint(Math.Round(rest.Width * 1.2), 48),
+            IslandPresentationTier.Card => new IslandFootprint(Math.Round(rest.Width * 1.08), rest.Height + 6),
+            _ => new IslandFootprint(Math.Round(rest.Width * 1.2), rest.Height + 6)
+        };
+    }
 }

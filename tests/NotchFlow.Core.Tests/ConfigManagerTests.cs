@@ -183,7 +183,7 @@ public class ConfigManagerTests : IDisposable
 
         AppSettings loaded = manager.Load();
 
-        Assert.InRange(loaded.CornerRadiusBottom, 4, 24);
+        Assert.InRange(loaded.CornerRadiusBottom, 8, 40);
         Assert.InRange(loaded.SpringResponseSeconds, 0.18, 1.20);
         Assert.InRange(loaded.SpringBounce, 0.05, 1.20);
 

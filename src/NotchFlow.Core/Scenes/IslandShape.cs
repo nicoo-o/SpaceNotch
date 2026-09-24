@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace NotchFlow.Core.Scenes;
 
@@ -34,12 +35,21 @@ public readonly record struct ShapePoint(double X, double Y);
 /// </para>
 ///
 /// <para>
-/// <b>Ce que cette classe ne fait pas encore.</b> Un exposant négatif décrirait un
-/// congé <em>concave</em> — les épaules qui raccorderaient un jour l'Island à une
-/// bande de bord d'écran. Ce n'est pas une variation d'exposant : un congé concave
-/// s'ajoute à l'extérieur de la silhouette, il ne se substitue pas à un coin
-/// convexe. Tant qu'aucune bande de ce type n'existe, la prétendre ici serait une
-/// branche morte qu'aucun test ne couvrirait.
+/// <b>Les épaules.</b> Un exposant négatif ne décrit pas un congé concave : un
+/// congé concave s'ajoute <em>à l'extérieur</em> de la silhouette. C'est
+/// exactement ce que sont les épaules — deux quarts de courbe tangents au bord
+/// de l'écran d'un côté, au flanc de la notch de l'autre. Ce sont elles qui font
+/// lire la forme comme une découpe descendue du bord, et non comme une capsule
+/// posée sous lui : sans épaules, le coin supérieur est un angle droit collé à
+/// l'écran ; avec elles, le bord de l'écran « coule » dans la notch. Voir
+/// ADR-017.
+/// </para>
+///
+/// <para>
+/// <b>Toujours attachée.</b> Aucun point du contour n'a une ordonnée négative, et
+/// le bord supérieur occupe toujours toute la largeur à l'ordonnée zéro. Il
+/// n'existe pas de paramètre qui décolle la forme du bord : c'est un invariant de
+/// la géométrie, vérifié par les tests, pas un réglage.
 /// </para>
 /// </summary>
 public static class IslandShape
@@ -57,14 +67,50 @@ public static class IslandShape
     /// </summary>
     private const int SegmentsPerCorner = 10;
 
-    /// <summary>Points produits par <see cref="Silhouette"/> pour un contour complet.</summary>
+    /// <summary>Points produits par <see cref="Silhouette"/> pour un contour complet, sans épaules.</summary>
     public static int PointCount => 3 + (2 * (SegmentsPerCorner + 1));
 
+    /// <summary>Points produits par <see cref="Silhouette"/> pour un contour complet avec épaules.</summary>
+    public static int PointCountWithShoulders => 5 + (4 * SegmentsPerCorner);
+
     /// <summary>
-    /// Contour de l'Island, dans le sens des aiguilles d'une montre, à partir du
-    /// coin supérieur gauche.
+    /// Rayon de congé effectivement tracé pour une forme donnée.
+    ///
+    /// La borne n'est pas celle d'un rectangle arrondi — la moitié du plus petit
+    /// côté — parce que la notch n'a qu'un bord libre : ses congés peuvent
+    /// occuper toute la hauteur sous les épaules. C'est ce qui permet à une
+    /// forme compacte de 36 DIP de porter un congé de 26 et de garder la
+    /// silhouette organique voulue, là où un rectangle arrondi l'aurait
+    /// plafonné à 18.
     /// </summary>
-    /// <param name="width">Largeur en DIPs.</param>
+    public static double EffectiveRadius(double width, double height, double radius, double shoulder = 0)
+    {
+        double s = EffectiveShoulder(width, height, shoulder);
+        double limit = Math.Min((width - (2 * s)) / 2, height - s);
+
+        return Math.Clamp(radius, 0, Math.Max(0, limit));
+    }
+
+    /// <summary>
+    /// Épaule effectivement tracée. Elle ne peut pas dépasser le quart de la
+    /// largeur, ni le tiers de la hauteur : au-delà, la notch deviendrait un
+    /// entonnoir et le contenu n'aurait plus de place.
+    /// </summary>
+    public static double EffectiveShoulder(double width, double height, double shoulder)
+    {
+        if (shoulder <= 0 || width <= 0 || height <= 0)
+        {
+            return 0;
+        }
+
+        return Math.Min(shoulder, Math.Min(width / 4, height / 3));
+    }
+
+    /// <summary>
+    /// Contour de la notch, dans le sens des aiguilles d'une montre, à partir du
+    /// coin supérieur gauche — qui est toujours sur le bord de l'écran.
+    /// </summary>
+    /// <param name="width">Largeur en DIPs, épaules comprises.</param>
     /// <param name="height">Hauteur en DIPs.</param>
     /// <param name="radius">Rayon des congés du bas, en DIPs.</param>
     /// <param name="smoothing">
@@ -76,16 +122,21 @@ public static class IslandShape
     ///
     /// Une valeur positive tronque le contour : le reflet spéculaire est ainsi
     /// découpé sans second calculateur de forme et sans intersection de
-    /// géométries. La silhouette étant convexe, borner les ordonnées de ses
-    /// sommets à la hauteur voulue donne exactement l'intersection du contour et
-    /// d'un demi-plan — aucun point à recalculer.
+    /// géométries. Chaque flanc étant monotone en ordonnée, borner les ordonnées
+    /// des sommets à la hauteur voulue donne exactement l'intersection du contour
+    /// et d'un demi-plan — aucun point à recalculer.
+    /// </param>
+    /// <param name="shoulder">
+    /// Rayon des épaules concaves qui raccordent la notch au bord de l'écran, en
+    /// DIPs. Zéro pour un raccord à angle droit.
     /// </param>
     public static ShapePoint[] Silhouette(
         double width,
         double height,
         double radius,
         double smoothing = Squircle,
-        double band = 0)
+        double band = 0,
+        double shoulder = 0)
     {
         if (width <= 0 || height <= 0)
         {
@@ -94,10 +145,11 @@ public static class IslandShape
 
         double w = width;
         double h = height;
-        double r = Math.Clamp(radius, 0, Math.Min(w, h) / 2);
+        double s = EffectiveShoulder(w, h, shoulder);
+        double r = EffectiveRadius(w, h, radius, s);
         double k = smoothing < Circular ? Circular : smoothing;
 
-        if (r <= 0)
+        if (r <= 0 && s <= 0)
         {
             return Limit(
                 [
@@ -109,37 +161,75 @@ public static class IslandShape
                 band);
         }
 
-        var points = new ShapePoint[PointCount];
-        int index = 0;
+        var points = new List<ShapePoint>(s > 0 ? PointCountWithShoulders : PointCount);
 
-        // Bord supérieur, d'un coin droit à l'autre : aucune courbure.
-        points[index++] = new ShapePoint(0, 0);
-        points[index++] = new ShapePoint(w, 0);
+        // Bord supérieur, d'un bout à l'autre : c'est le bord de l'écran, et la
+        // notch l'occupe sur toute sa largeur.
+        points.Add(new ShapePoint(0, 0));
+        points.Add(new ShapePoint(w, 0));
 
-        // Épaule droite jusqu'au début du congé.
-        points[index++] = new ShapePoint(w, h - r);
-
-        // Congé inférieur droit : de l'horizontale à la verticale.
-        for (int i = 0; i <= SegmentsPerCorner; i++)
+        if (s > 0)
         {
-            double t = Math.PI / 2 * i / SegmentsPerCorner;
-            points[index++] = new ShapePoint(
-                w - r + (r * Component(Math.Cos(t), k)),
-                h - r + (r * Component(Math.Sin(t), k)));
+            // Épaule droite : tangente au bord de l'écran en (w, 0), tangente au
+            // flanc en (w − s, s). Le centre de courbure est à l'extérieur de la
+            // forme, en (w, s) : c'est ce qui la rend concave.
+            for (int i = 1; i <= SegmentsPerCorner; i++)
+            {
+                double t = Math.PI / 2 * i / SegmentsPerCorner;
+                points.Add(new ShapePoint(
+                    w - (s * Component(Math.Sin(t), k)),
+                    s - (s * Component(Math.Cos(t), k))));
+            }
         }
 
-        // Congé inférieur gauche : de la verticale à l'horizontale, donc dans
-        // l'ordre inverse pour rester horaire. Le dernier point referme sur
-        // l'épaule gauche, qui n'a pas besoin d'être ajoutée deux fois.
-        for (int i = SegmentsPerCorner; i >= 0; i--)
+        // Flanc droit jusqu'au début du congé.
+        double right = w - s;
+        double left = s;
+
+        if (r > 0)
         {
-            double t = Math.PI / 2 * i / SegmentsPerCorner;
-            points[index++] = new ShapePoint(
-                r - (r * Component(Math.Cos(t), k)),
-                h - r + (r * Component(Math.Sin(t), k)));
+            points.Add(new ShapePoint(right, h - r));
+
+            // Congé inférieur droit : de la verticale à l'horizontale.
+            for (int i = 0; i <= SegmentsPerCorner; i++)
+            {
+                double t = Math.PI / 2 * i / SegmentsPerCorner;
+                points.Add(new ShapePoint(
+                    right - r + (r * Component(Math.Cos(t), k)),
+                    h - r + (r * Component(Math.Sin(t), k))));
+            }
+
+            // Congé inférieur gauche, dans l'ordre inverse pour rester horaire.
+            for (int i = SegmentsPerCorner; i >= 0; i--)
+            {
+                double t = Math.PI / 2 * i / SegmentsPerCorner;
+                points.Add(new ShapePoint(
+                    left + r - (r * Component(Math.Cos(t), k)),
+                    h - r + (r * Component(Math.Sin(t), k))));
+            }
+        }
+        else
+        {
+            points.Add(new ShapePoint(right, h));
+            points.Add(new ShapePoint(left, h));
         }
 
-        return Limit(points, band);
+        if (s > 0)
+        {
+            // Remontée du flanc gauche, puis épaule gauche, symétrique de la
+            // droite, jusqu'au point de départ exclu.
+            points.Add(new ShapePoint(left, s));
+
+            for (int i = SegmentsPerCorner - 1; i >= 1; i--)
+            {
+                double t = Math.PI / 2 * i / SegmentsPerCorner;
+                points.Add(new ShapePoint(
+                    s * Component(Math.Sin(t), k),
+                    s - (s * Component(Math.Cos(t), k))));
+            }
+        }
+
+        return Limit([.. points], band);
     }
 
     /// <summary>

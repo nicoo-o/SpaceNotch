@@ -1,6 +1,7 @@
 using System;
 using NotchFlow.Core.Animation;
 using NotchFlow.Core.Features;
+using NotchFlow.Core.Motion;
 using NotchFlow.Core.Scenes;
 
 namespace NotchFlow.Infrastructure.Config;
@@ -123,15 +124,31 @@ public sealed class AppSettings
     public IslandContentDensity Density { get; set; } = IslandContentDensity.Comfortable;
 
     /// <summary>
-    /// Rayon des congés du bas, en DIPs — un seul rayon pour toutes les formes.
-    ///
-    /// C'est lui qui fait lire l'ouverture comme un seul objet qui change de
-    /// taille plutôt que comme deux objets différents : un congé de 12 sur une
-    /// forme de 28 de haut donne une pastille, le même congé sur une forme de 52
-    /// donne un panneau. Un rayon qui varierait avec la taille produirait au
-    /// contraire deux silhouettes étrangères l'une à l'autre. Voir ADR-012.
+    /// Mode géométrique. Il n'en existe qu'un — TopAttached — et il n'est pas
+    /// réglable : exposé en lecture seule pour que le code qui dessine la forme
+    /// le nomme au lieu de le supposer. Voir ADR-017.
     /// </summary>
-    public double CornerRadiusBottom { get; set; } = 12;
+    public static IslandGeometryMode GeometryMode => NotchGeometry.Mode;
+
+    /// <summary>
+    /// Rayon des congés du bas à la hauteur compacte, en DIPs.
+    ///
+    /// Le nom est conservé pour relire les configurations existantes. Il ne
+    /// désigne plus « le » rayon : le rayon tracé est interpolé entre celui-ci et
+    /// <see cref="CornerRadiusExpanded"/> selon la hauteur de la forme, et borné
+    /// par ce que la forme peut porter. Voir <see cref="NotchGeometry"/>.
+    /// </summary>
+    public double CornerRadiusBottom { get; set; } = NotchGeometry.DefaultCompactRadius;
+
+    /// <summary>Rayon des congés du bas d'une forme ouverte, en DIPs.</summary>
+    public double CornerRadiusExpanded { get; set; } = NotchGeometry.DefaultExpandedRadius;
+
+    /// <summary>
+    /// Rayon des épaules concaves qui raccordent la notch au bord de l'écran, en
+    /// DIPs. Zéro donne un raccord à angle droit — toujours collé, jamais
+    /// flottant.
+    /// </summary>
+    public double ShoulderRadius { get; set; } = NotchGeometry.DefaultShoulder;
 
     /// <summary>
     /// Exposant de la superellipse des congés. 1 décrit un arc de cercle, 2 le
@@ -139,10 +156,19 @@ public sealed class AppSettings
     /// </summary>
     public double CornerSmoothing { get; set; } = IslandShape.Squircle;
 
+    /// <summary>Géométrie résolue, telle que le rendu la trace.</summary>
+    public NotchGeometry Geometry => new(CornerRadiusBottom, CornerRadiusExpanded, ShoulderRadius, CornerSmoothing);
+
     /// <summary>Décalage horizontal du centre, en DIPs. Utile pour se caler sur une caméra décentrée.</summary>
     public double HorizontalOffset { get; set; }
 
-    /// <summary>Décalage vertical depuis le bord supérieur, en DIPs.</summary>
+    /// <summary>
+    /// Ancien décalage vertical depuis le bord supérieur.
+    ///
+    /// Conservé uniquement pour relire une configuration ancienne, et toujours
+    /// ramené à zéro par <see cref="Sanitize"/> : une notch décalée vers le bas
+    /// devient une capsule flottante, ce que la règle n°1 interdit. Voir ADR-017.
+    /// </summary>
     public double TopOffset { get; set; }
 
     // ---- Placement --------------------------------------------------------
@@ -174,6 +200,38 @@ public sealed class AppSettings
     /// cible, 0,55 la dépasse franchement.
     /// </summary>
     public double SpringBounce { get; set; } = 0.58;
+
+    /// <summary>
+    /// Préréglage de mouvement choisi dans les réglages. <see cref="MotionStyle.Custom"/>
+    /// signifie que l'utilisateur a réglé la vitesse et le rebond à la main.
+    /// </summary>
+    public MotionStyle MotionStyle { get; set; } = MotionStyle.Natural;
+
+    /// <summary>
+    /// Autorise le mouvement hypnotique — la matière vivante qui signale qu'un
+    /// travail est en cours. Désactivé, les activités concernées affichent une
+    /// image fixe de la même composition : l'information reste, le mouvement
+    /// part. Voir ADR-018.
+    /// </summary>
+    public bool AllowHypnoticMotion { get; set; } = true;
+
+    /// <summary>
+    /// Applique un préréglage : la vitesse et le rebond prennent ses valeurs.
+    /// <see cref="MotionStyle.Custom"/> ne touche à rien.
+    /// </summary>
+    public void ApplyMotionStyle(MotionStyle style)
+    {
+        MotionStyle = style;
+
+        if (style == MotionStyle.Custom)
+        {
+            return;
+        }
+
+        SpringParameters spring = MotionPresets.Spring(style);
+        SpringResponseSeconds = spring.ResponseSeconds;
+        SpringBounce = spring.DampingRatio;
+    }
 
     /// <summary>
     /// Autorise le rebond. Désactivé automatiquement si Windows demande la
@@ -401,7 +459,14 @@ public sealed class AppSettings
             Density = IslandContentDensity.Comfortable;
         }
 
-        CornerRadiusBottom = Clamp(CornerRadiusBottom, 4, 24, 12);
+        CornerRadiusBottom = Clamp(CornerRadiusBottom, 8, 40, NotchGeometry.DefaultCompactRadius);
+        CornerRadiusExpanded = Clamp(CornerRadiusExpanded, 12, 48, NotchGeometry.DefaultExpandedRadius);
+        ShoulderRadius = Clamp(ShoulderRadius, 0, 16, NotchGeometry.DefaultShoulder);
+
+        if (!Enum.IsDefined(MotionStyle))
+        {
+            MotionStyle = MotionStyle.Natural;
+        }
 
         // Une profondeur nulle signifie « ne rien conserver » : activer la
         // surveillance du presse-papier sans profondeur donnerait une bascule qui
@@ -420,7 +485,10 @@ public sealed class AppSettings
         SpringBounce = Clamp(SpringBounce, 0.05, 1.20, 0.58);
         SpringMass = Clamp(SpringMass, 0.2, 4, 1.0);
         HorizontalOffset = Clamp(HorizontalOffset, -2000, 2000, 0);
-        TopOffset = Clamp(TopOffset, -40, 200, 0);
+
+        // Règle n°1 : la notch est collée au bord supérieur. Une valeur héritée,
+        // ou éditée à la main, est ramenée à zéro plutôt que bornée.
+        TopOffset = 0;
         ClipboardHistoryLimit = (int)Clamp(ClipboardHistoryLimit, 0, 500, 0);
     }
 
