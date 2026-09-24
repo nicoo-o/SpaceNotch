@@ -47,6 +47,10 @@ public static partial class NativeMethods
 
     // ---- Positionnement / visibilité --------------------------------------
 
+    /// <summary>Dossier connu de l'utilisateur — ici, Téléchargements.</summary>
+    [LibraryImport("shell32.dll")]
+    public static partial int SHGetKnownFolderPath(in Guid rfid, uint dwFlags, IntPtr hToken, out IntPtr ppszPath);
+
     [LibraryImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool SetWindowPos(

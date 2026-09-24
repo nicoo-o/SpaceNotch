@@ -295,6 +295,13 @@ public sealed class AppSettings
 
     public bool ShowFileShelf { get; set; } = true;
 
+    /// <summary>
+    /// Suivi des téléchargements, d'après le dossier Téléchargements. Activé par
+    /// défaut : il ne lit que des noms et des tailles de fichiers, jamais leur
+    /// contenu.
+    /// </summary>
+    public bool ShowDownloads { get; set; } = true;
+
     /// <summary>Regroupe les activités d'arrière-plan au-delà de la première.</summary>
     public bool ShowActivityStack { get; set; } = true;
 
@@ -343,6 +350,7 @@ public sealed class AppSettings
         FeatureKeys.Bluetooth => ShowBluetooth,
         FeatureKeys.Clipboard => ShowClipboard,
         FeatureKeys.FileShelf => ShowFileShelf,
+        FeatureKeys.Downloads => ShowDownloads,
         _ => true
     };
 
@@ -361,6 +369,7 @@ public sealed class AppSettings
         FeatureKeys.Bluetooth => true,
         FeatureKeys.Clipboard => true,
         FeatureKeys.FileShelf => true,
+        FeatureKeys.Downloads => true,
         _ => false
     };
 
@@ -395,6 +404,10 @@ public sealed class AppSettings
 
             case FeatureKeys.FileShelf:
                 ShowFileShelf = enabled;
+                return true;
+
+            case FeatureKeys.Downloads:
+                ShowDownloads = enabled;
                 return true;
 
             default:

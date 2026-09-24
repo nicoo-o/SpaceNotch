@@ -49,6 +49,9 @@ internal static class GlyphCatalog
         ["Folder"] = "\uE8B7",
         ["Clipboard"] = "\uE77F",
         ["Launcher"] = "\uE71D",
+        ["Download"] = "\uE896",
+        ["Search"] = "\uE721",
+        ["Check"] = "\uE73E",
         ["Info"] = "\uE946"
     };
 

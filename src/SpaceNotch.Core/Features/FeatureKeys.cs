@@ -28,4 +28,6 @@ public static class FeatureKeys
     public const string Clipboard = "feature.clipboard";
 
     public const string FileShelf = "feature.fileshelf";
+
+    public const string Downloads = "feature.downloads";
 }

@@ -185,4 +185,19 @@
         <Setter Property="LineHeight" Value="32" />
     </Style>
 
+    <!-- ================================================================
+         MESURE — la valeur de l'emplacement trailing : « 62 % », « 12 Mo ».
+         Chiffres à chasse fixe, encre secondaire : elle se constate d'un
+         coup d'œil sans concurrencer le titre.
+         ================================================================ -->
+    <Style x:Key="NfMetricTextStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource NfFontText}" />
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="LineHeight" Value="14" />
+        <Setter Property="Foreground" Value="{ThemeResource NfTextSecondaryBrush}" />
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+        <Setter Property="MaxLines" Value="1" />
+    </Style>
+
 </ResourceDictionary>

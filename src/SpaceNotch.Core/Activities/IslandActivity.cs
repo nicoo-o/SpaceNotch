@@ -56,6 +56,19 @@ public sealed class IslandActivity
     public double? Progress { get; set; }
 
     /// <summary>
+    /// Valeur courte affichée à droite de la forme compacte — « 62 % »,
+    /// « 12 Mo », « 24:37 », « ✓ ». C'est l'emplacement <em>trailing</em> de la
+    /// Dynamic Island : l'identité à gauche, la mesure à droite. Laissée à
+    /// <c>null</c>, elle se déduit de <see cref="Progress"/> lorsqu'il existe.
+    /// </summary>
+    public string? Metric { get; set; }
+
+    /// <summary>Valeur affichée à droite de la forme compacte, déclarée ou déduite.</summary>
+    public string? TrailingMetric => Metric ?? (Progress is { } progress
+        ? string.Create(System.Globalization.CultureInfo.CurrentCulture, $"{Math.Round(Math.Clamp(progress, 0, 1) * 100):0} %")
+        : null);
+
+    /// <summary>
     /// Où en est le travail de l'activité. Décide s'il y a un mouvement
     /// hypnotique, indépendamment de la forme de la notch. Voir ADR-018.
     /// </summary>

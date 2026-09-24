@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
@@ -19,6 +21,7 @@ using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
 using SpaceNotch.Features.Bluetooth;
 using SpaceNotch.Features.Clipboard;
+using SpaceNotch.Features.Downloads;
 using SpaceNotch.Features.FileShelf;
 using SpaceNotch.Features.Launcher;
 using SpaceNotch.Features.Media;
@@ -134,6 +137,16 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private IslandFootprint _restFootprint = IslandFootprint.Idle;
 
+    /// <summary>Préréglage hypnotique en cours et instant où il a commencé, pour l'apaisement.</summary>
+    private HypnoticPreset _runningPreset = HypnoticPreset.None;
+    private DateTimeOffset _runningSince = DateTimeOffset.UtcNow;
+
+    /// <summary>Minuteur unique de l'apaisement : il ne tourne que pendant une boucle compacte.</summary>
+    private DispatcherQueueTimer? _attenuationTimer;
+
+    /// <summary>Dernière annonce faite à Narrateur : activité et titre.</summary>
+    private string _announcedKey = string.Empty;
+
     /// <summary>Visibilité des vues de repos avant le rendu en cours.</summary>
     private bool _signalWasVisible;
     private bool _cardWasVisible;
@@ -145,6 +158,7 @@ public sealed partial class IslandWindow : Window
     private readonly TextBlock _measureSignal = new();
     private readonly TextBlock _measureSubhead = new();
     private readonly TextBlock _measureHeadline = new();
+    private readonly TextBlock _measureMetric = new();
 
     /// <summary>Épaule appliquée en dernier à la zone de contenu, pour ne la redisposer qu'au changement.</summary>
     private double _contentShoulder = double.NaN;
@@ -267,6 +281,9 @@ public sealed partial class IslandWindow : Window
                 _settings.IsFeatureEnabled(BrightnessHudFeature.FeatureKey)),
             _timerFeature,
             _launcherFeature,
+            new DownloadsFeature(
+                _activityManager, _eventBus, KnownFolders.Downloads,
+                _settings.IsFeatureEnabled(DownloadsFeature.FeatureKey)),
             new ClipboardFeature(
                 _activityManager, _eventBus, _clipboardMonitor, _hWnd,
                 _settings.IsFeatureEnabled(ClipboardFeature.FeatureKey))
@@ -403,7 +420,59 @@ public sealed partial class IslandWindow : Window
         host.Visibility = hypnotic ? Visibility.Visible : Visibility.Collapsed;
         glyph.Visibility = hypnotic ? Visibility.Collapsed : Visibility.Visible;
 
-        surface?.SetPreset(hypnotic ? preset : HypnoticPreset.None, AnimateHypnotic());
+        surface?.SetPreset(hypnotic ? preset : HypnoticPreset.None, AnimateHypnotic() && !HypnoticResting());
+    }
+
+    /// <summary>
+    /// Préréglage de repos d'une activité, avec la mémoire de son départ : un
+    /// nouveau préréglage — ou un regard de l'utilisateur — relance le compte de
+    /// l'apaisement.
+    /// </summary>
+    private HypnoticPreset RestingPreset(IslandActivity activity)
+    {
+        HypnoticPreset preset = HypnoticField.Resolve(activity.MotionState, activity.MotionPreset);
+        bool looking = _controller.State is IslandState.Preview or IslandState.Expanding or IslandState.Expanded;
+
+        if (preset != _runningPreset || looking)
+        {
+            _runningPreset = preset;
+            _runningSince = DateTimeOffset.UtcNow;
+        }
+
+        ArmAttenuation();
+
+        return preset;
+    }
+
+    /// <summary>
+    /// Vrai lorsqu'une boucle compacte tourne depuis assez longtemps pour se
+    /// figer. Elle a dit « ça travaille » dès sa première seconde ; au-delà, le
+    /// mouvement n'apprend plus rien et devient une distraction (WCAG 2.2.2).
+    /// </summary>
+    private bool HypnoticResting()
+        => HypnoticAttenuation.ShouldRest(
+            _runningPreset,
+            DateTimeOffset.UtcNow - _runningSince,
+            NotchPresentationResolver.Resolve(_controller.State, _controller.PresentedActivity));
+
+    /// <summary>
+    /// Arme l'unique minuteur de l'apaisement pour l'instant où la boucle doit
+    /// se figer — et seulement si une boucle tourne.
+    /// </summary>
+    private void ArmAttenuation()
+    {
+        if (!HypnoticField.IsLooping(_runningPreset) || HypnoticResting())
+        {
+            _attenuationTimer?.Stop();
+            return;
+        }
+
+        TimeSpan remaining = HypnoticAttenuation.Delay - (DateTimeOffset.UtcNow - _runningSince);
+
+        _attenuationTimer ??= CreateOneShotTimer(HypnoticAttenuation.Delay, RequestRender);
+        _attenuationTimer.Interval = remaining > TimeSpan.FromMilliseconds(50) ? remaining : TimeSpan.FromMilliseconds(50);
+        _attenuationTimer.Stop();
+        _attenuationTimer.Start();
     }
 
     /// <summary>Arrête la matière des paliers de repos, qui ne sont plus visibles.</summary>
@@ -664,6 +733,7 @@ public sealed partial class IslandWindow : Window
         CardRestView.Visibility = Visibility.Collapsed;
 
         UpdateStackIndicator();
+        Announce(activity);
         ApplyActivityTint(activity);
         ApplyStateTint(activity);
 
@@ -724,12 +794,17 @@ public sealed partial class IslandWindow : Window
             ? NotchPresentationResolver.PreviewTier(_tier)
             : _tier;
 
-        HypnoticPreset preset = HypnoticField.Resolve(activity.MotionState, activity.MotionPreset);
+        HypnoticPreset preset = RestingPreset(activity);
+
+        string? metric = activity.TrailingMetric;
+        Visibility metricVisibility = metric is null ? Visibility.Collapsed : Visibility.Visible;
 
         if (shown == IslandPresentationTier.Signal)
         {
             SignalGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
             SetText(SignalLabel, activity.Title, _signalWasVisible);
+            SetText(SignalMetric, metric, _signalWasVisible);
+            SignalMetric.Visibility = metricVisibility;
             SignalRestView.Visibility = Visibility.Visible;
 
             _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
@@ -757,6 +832,8 @@ public sealed partial class IslandWindow : Window
         // déjà visible se remplace sur place, par un fondu : la carte reste.
         SetText(CardSubhead, SubheadFor(activity), _cardWasVisible);
         SetText(CardHeadline, activity.Title, _cardWasVisible);
+        SetText(CardMetric, metric, _cardWasVisible);
+        CardMetric.Visibility = metricVisibility;
         CardRestView.Visibility = Visibility.Visible;
 
         _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
@@ -840,6 +917,46 @@ public sealed partial class IslandWindow : Window
     /// L'indicateur n'apparaît qu'à partir de deux activités : afficher « 1 » en
     /// permanence ajouterait du bruit sans rien apprendre.
     /// </summary>
+    /// <summary>
+    /// Annonce une activité à Narrateur, une seule fois par activité et par
+    /// titre : un téléchargement qui progresse ne parle pas à chaque bloc, mais
+    /// « Téléchargé » est dit. Un appel interrompt la lecture ; le reste attend.
+    /// </summary>
+    private void Announce(IslandActivity? activity)
+    {
+        string key = activity is null ? string.Empty : $"{activity.Id}\u001F{activity.Title}";
+        bool isNew = !string.Equals(key, _announcedKey, StringComparison.Ordinal);
+
+        _announcedKey = key;
+
+        if (Announcement.For(activity, isNew) is not { } announcement)
+        {
+            return;
+        }
+
+        try
+        {
+            AnnouncerText.Text = announcement.Text;
+            AutomationProperties.SetName(IslandBody, announcement.Text);
+
+            AutomationPeer? peer = FrameworkElementAutomationPeer.FromElement(AnnouncerText)
+                ?? FrameworkElementAutomationPeer.CreatePeerForElement(AnnouncerText);
+
+            peer?.RaiseNotificationEvent(
+                AutomationNotificationKind.Other,
+                announcement.Assertive
+                    ? AutomationNotificationProcessing.ImportantAll
+                    : AutomationNotificationProcessing.ImportantMostRecent,
+                announcement.Text,
+                "SpaceNotch.Activity");
+        }
+        catch (Exception ex)
+        {
+            // Aucun lecteur d'écran ne doit pouvoir faire tomber le rendu.
+            MiniLogger.Log("[A11Y] annonce impossible", ex);
+        }
+    }
+
     private bool StackIndicatorVisible() => _settings.ShowActivityStack && _activityManager.Count > 1;
 
     private void UpdateStackIndicator()
@@ -887,7 +1004,7 @@ public sealed partial class IslandWindow : Window
         // La dissolution respire avec la matière qui travaille : même fonction,
         // même période. Elle n'est relancée qu'au changement de mouvement, sans
         // quoi chaque rendu la ferait repartir de son image de départ.
-        HypnoticPreset preset = activity is null || !AnimateHypnotic() || ambient.Pulse <= 0
+        HypnoticPreset preset = activity is null || !AnimateHypnotic() || ambient.Pulse <= 0 || HypnoticResting()
             ? HypnoticPreset.None
             : HypnoticField.Resolve(activity.MotionState, activity.MotionPreset);
 
@@ -996,6 +1113,12 @@ public sealed partial class IslandWindow : Window
         }
 
         double stack = StackIndicatorVisible() ? 6 + (7 * Math.Min(_activityManager.Count, 4)) : 0;
+
+        if (activity.TrailingMetric is { } metric)
+        {
+            _measureMetric.Style ??= SignalMetric.Style;
+            stack += 8 + Measure(_measureMetric, metric);
+        }
 
         double content = tier == IslandPresentationTier.Signal
             ? SignalGlyphSpan + Measure(_measureSignal, activity.Title)
@@ -2119,6 +2242,7 @@ public sealed partial class IslandWindow : Window
         _expirationTimer?.Stop();
         _previewEnterTimer?.Stop();
         _previewExitTimer?.Stop();
+        _attenuationTimer?.Stop();
 
         try
         {

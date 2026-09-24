@@ -87,6 +87,22 @@
                 VerticalAlignment="Stretch"
                 HorizontalAlignment="Stretch">
 
+                <!--
+                    Voix de la notch pour Narrateur. Invisible mais présente dans
+                    l'arbre d'accessibilité : un élément replié n'y figure pas, et
+                    une notch purement visuelle ne dirait jamais qu'un
+                    téléchargement a fini ou qu'un appel arrive.
+                -->
+                <TextBlock
+                    x:Name="AnnouncerText"
+                    Width="1"
+                    Height="1"
+                    Opacity="0"
+                    IsHitTestVisible="False"
+                    AutomationProperties.LiveSetting="Polite"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top" />
+
                 <!-- ====================================================
                      PALIER VEILLE (Hidden) — une lèvre au bord de l'écran.
                      Vide par défaut : le point n'apparaît qu'avec l'heure,
@@ -153,13 +169,27 @@
                         Style="{StaticResource NfSignalLabelStyle}"
                         VerticalAlignment="Center" />
 
-                    <TextBlock
-                        x:Name="SignalStackIndicator"
+                    <!-- Emplacement trailing : la mesure à droite de l'identité —
+                         « 62 % », « 12 Mo », « ✓ » — puis la pile. -->
+                    <StackPanel
                         Grid.Column="2"
-                        Margin="6,0,0,0"
-                        Style="{StaticResource NfMicroTextStyle}"
-                        VerticalAlignment="Center"
-                        Visibility="Collapsed" />
+                        Orientation="Horizontal"
+                        Spacing="6"
+                        Margin="8,0,0,0"
+                        VerticalAlignment="Center">
+
+                        <TextBlock
+                            x:Name="SignalMetric"
+                            Style="{StaticResource NfMetricTextStyle}"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed" />
+
+                        <TextBlock
+                            x:Name="SignalStackIndicator"
+                            Style="{StaticResource NfMicroTextStyle}"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed" />
+                    </StackPanel>
                 </Grid>
 
                 <!-- ====================================================
@@ -210,12 +240,24 @@
                             Style="{StaticResource NfCardHeadlineStyle}" />
                     </StackPanel>
 
-                    <TextBlock
-                        x:Name="CardStackIndicator"
+                    <StackPanel
                         Grid.Column="2"
-                        Style="{StaticResource NfMicroTextStyle}"
-                        VerticalAlignment="Center"
-                        Visibility="Collapsed" />
+                        Orientation="Horizontal"
+                        Spacing="6"
+                        VerticalAlignment="Center">
+
+                        <TextBlock
+                            x:Name="CardMetric"
+                            Style="{StaticResource NfMetricTextStyle}"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed" />
+
+                        <TextBlock
+                            x:Name="CardStackIndicator"
+                            Style="{StaticResource NfMicroTextStyle}"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed" />
+                    </StackPanel>
                 </Grid>
 
                 <!-- Scènes : chacune est résolue par la clé déclarée par la fonctionnalité -->
