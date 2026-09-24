@@ -62,9 +62,9 @@ desktop.ini
 *~
 *.swp
 
-# NotchFlow runtime data (ne doit jamais être committé)
+# SpaceNotch runtime data (ne doit jamais être committé)
 *.log
-notchflow.log*
+spacenotch.log*
 %AppData%/
 
 # État local de l'agent / de l'IDE

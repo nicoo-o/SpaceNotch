@@ -437,7 +437,7 @@ Preview et Expanded — et travaille-t-elle (quel préréglage hypnotique) ? »
 
 1. Vidéo de la référence Inspora (la page n'est pas accessible depuis l'environnement de travail) :
    indispensable pour caler périodes, amplitudes et transitions Reading → Thinking → Done.
-2. Renommer le code `NotchFlow` en `SpaceNotch` (espaces de noms, exécutable, dossier de
+2. Renommer le code `SpaceNotch` en `SpaceNotch` (espaces de noms, exécutable, dossier de
    configuration à migrer) ?
 3. Corps en noir pur `#000000` (fusion avec le bord, recommandé) ou `#08090C` partout ?
 4. Épaules concaves : conformes à la capture de référence, ou coins supérieurs à angle droit ?

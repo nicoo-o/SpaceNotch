@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      Le greffon de test est référencé pour être compilé et copié dans la sortie des
+      tests : les tests de chargement dynamique le déplacent ensuite dans un dossier
+      de greffons temporaire.
+    -->
+    <ProjectReference Include="..\SpaceNotch.TestPlugin\SpaceNotch.TestPlugin.csproj" />
+    <ProjectReference Include="..\..\src\SpaceNotch.Core\SpaceNotch.Core.csproj" />
+    <ProjectReference Include="..\..\src\SpaceNotch.Infrastructure\SpaceNotch.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\SpaceNotch.Platform.Windows\SpaceNotch.Platform.Windows.csproj" />
+  </ItemGroup>
+
+</Project>

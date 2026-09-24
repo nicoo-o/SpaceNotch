@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "SpaceNotch.App (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "SpaceNotch.App (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

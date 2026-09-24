@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="SpaceNotch_App.Windows.SettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="SpaceNotch — Réglages"
+    mc:Ignorable="d">
+
+    <Grid x:Name="RootLayout" Background="#0F0F12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--
+            Aperçu en direct, tracé avec la vraie géométrie de la notch — les
+            mêmes épaules, les mêmes congés interpolés, la même superellipse.
+            Il est mis à jour par le même signal que la notch elle-même : il ne
+            peut donc pas montrer autre chose que ce que l'utilisateur obtient.
+
+            Chaque bande sombre figure un écran, et son bord supérieur le bord de
+            l'écran : les formes y sont accrochées, jamais posées dessous. C'est
+            la règle n°1 de SpaceNotch, et l'aperçu doit la montrer.
+        -->
+        <StackPanel Grid.Row="0" Background="#08080A" Spacing="10" Padding="0,0,0,14">
+
+            <!-- Repos : veille, compact, aperçu au survol. -->
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="14"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top">
+
+                <Grid x:Name="PreviewIdleHost" VerticalAlignment="Top">
+                    <Path x:Name="PreviewIdle" />
+                </Grid>
+
+                <Grid x:Name="PreviewSignalHost" VerticalAlignment="Top">
+                    <Path x:Name="PreviewSignal" />
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE8D6;" FontSize="14" Foreground="#7FB3F0" VerticalAlignment="Center" />
+                        <TextBlock
+                            x:Name="PreviewSignalText"
+                            Text="Spotify"
+                            FontSize="11.5"
+                            FontWeight="SemiBold"
+                            Foreground="#F0FFFFFF"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid x:Name="PreviewCardHost" VerticalAlignment="Top">
+                    <Path x:Name="PreviewCard" />
+                    <Grid x:Name="PreviewCardBody" Margin="22,10,22,10" ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <FontIcon
+                            Glyph="&#xE916;"
+                            FontSize="20"
+                            Foreground="#E8A66B"
+                            VerticalAlignment="Center" />
+
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                            <TextBlock
+                                x:Name="PreviewCardSubhead"
+                                Text="Focus · En cours"
+                                FontSize="11"
+                                LineHeight="14"
+                                Foreground="#9EFFFFFF" />
+                            <TextBlock
+                                x:Name="PreviewCardHeadline"
+                                Text="24:37 restantes"
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                LineHeight="16"
+                                Foreground="#F0FFFFFF"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </StackPanel>
+
+            <!-- Trait d'écran : le bord supérieur de la seconde bande. -->
+            <Rectangle Height="1" Fill="#1FFFFFFF" Margin="0,4,0,0" />
+
+            <!-- Ouverte : c'est là que les congés se jugent vraiment. -->
+            <Grid x:Name="PreviewExpandedHost" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-10,0,0">
+                <Path x:Name="PreviewExpanded" />
+                <TextBlock
+                    x:Name="PreviewExpandedText"
+                    Text="Notch ouverte"
+                    FontSize="11"
+                    Foreground="#CCFFFFFF"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center" />
+            </Grid>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="1" Padding="20,16,20,12">
+            <StackPanel Spacing="6">
+
+                <!-- ================================================
+                     APPARENCE — à quoi la notch ressemble.
+                     ================================================ -->
+                <TextBlock Text="APPARENCE" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,4,0,2" />
+                <ComboBox x:Name="AppearanceBox" Header="Thème" HorizontalAlignment="Stretch" SelectionChanged="OnAppearanceChanged" />
+                <ComboBox x:Name="BackdropBox" Header="Matière" HorizontalAlignment="Stretch" SelectionChanged="OnBackdropChanged" />
+
+                <!--
+                    La densité remplace les anciennes largeur et hauteur : trois
+                    densités déplacent les dimensions ensemble et gardent les
+                    proportions du langage visuel.
+                -->
+                <ComboBox x:Name="DensityBox" Header="Densité des cartes" HorizontalAlignment="Stretch" SelectionChanged="OnDensityChanged" />
+
+                <!--
+                    Maximum est toujours écrit AVANT Minimum. Un curseur dont le
+                    minimum dépasse le maximum par défaut — 100 pour un RangeBase —
+                    fait lever le constructeur XAML : la fenêtre ne s'ouvre alors
+                    pas du tout, avec un message qui ne dit pas quel contrôle est
+                    en cause.
+                -->
+                <Grid>
+                    <TextBlock Text="Arrondi compact" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="RadiusValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="RadiusSlider" Maximum="40" Minimum="8" StepFrequency="1" ValueChanged="OnRadiusChanged" />
+
+                <Grid>
+                    <TextBlock Text="Arrondi ouvert" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="ExpandedRadiusValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="ExpandedRadiusSlider" Maximum="48" Minimum="12" StepFrequency="1" ValueChanged="OnExpandedRadiusChanged" />
+
+                <!--
+                    Les épaules raccordent la notch au bord de l'écran. À zéro, le
+                    raccord est un angle droit : la notch reste collée au bord,
+                    mais le bord ne « coule » plus dans la forme.
+                -->
+                <Grid>
+                    <TextBlock Text="Épaules (raccord au bord de l'écran)" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="ShoulderValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="ShoulderSlider" Maximum="16" Minimum="0" StepFrequency="1" ValueChanged="OnShoulderChanged" />
+
+                <ToggleSwitch
+                    x:Name="SmoothingToggle"
+                    Header="Courbure continue (superellipse)"
+                    OnContent="Squircle"
+                    OffContent="Arc de cercle"
+                    Toggled="OnSmoothingToggled" />
+
+                <!-- ================================================
+                     COMPORTEMENT — comment la notch répond.
+                     ================================================ -->
+                <TextBlock Text="COMPORTEMENT" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <TextBlock
+                    Text="Le survol prévisualise, le clic déploie, Échap ou un clic ailleurs referme. La molette et les flèches parcourent les activités."
+                    FontSize="11"
+                    Foreground="#80FFFFFF"
+                    TextWrapping="Wrap"
+                    Margin="0,0,0,4" />
+                <ToggleSwitch x:Name="HoverToggle" Header="Aperçu au survol" Toggled="OnHoverToggled" />
+                <ToggleSwitch x:Name="FullscreenToggle" Header="S'effacer devant le plein écran" Toggled="OnFullscreenToggled" />
+                <ToggleSwitch x:Name="StackToggle" Header="Indicateur de pile d'activités" Toggled="OnStackToggled" />
+                <ToggleSwitch x:Name="SatelliteToggle" Header="Satellite détaché" Toggled="OnSatelliteToggled" />
+                <ToggleSwitch x:Name="ClockToggle" Header="Heure au repos" Toggled="OnClockToggled" />
+                <ToggleSwitch x:Name="StartupToggle" Header="Démarrer avec Windows" Toggled="OnStartupToggled" />
+
+                <!-- ================================================
+                     ACTIVITÉS — ce qui a le droit de s'afficher.
+                     ================================================ -->
+                <TextBlock Text="ACTIVITÉS" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <TextBlock
+                    Text="Une activité désactivée libère ses écouteurs système : elle ne consomme plus rien."
+                    FontSize="11"
+                    Foreground="#80FFFFFF"
+                    TextWrapping="Wrap"
+                    Margin="0,0,0,4" />
+
+                <StackPanel x:Name="FeaturesHost" Spacing="2" />
+
+                <!-- ================================================
+                     MOUVEMENT — trois caractères, puis le réglage fin.
+                     ================================================ -->
+                <TextBlock Text="MOUVEMENT" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <ComboBox x:Name="MotionStyleBox" Header="Caractère" HorizontalAlignment="Stretch" SelectionChanged="OnMotionStyleChanged" />
+                <ToggleSwitch x:Name="BouncyToggle" Header="Rebond du ressort" OnContent="Autorisé" OffContent="Neutre" Toggled="OnBouncyToggled" />
+                <ToggleSwitch
+                    x:Name="HypnoticToggle"
+                    Header="Mouvement hypnotique"
+                    OnContent="Matière vivante pendant un travail"
+                    OffContent="Image fixe"
+                    Toggled="OnHypnoticToggled" />
+
+                <!--
+                    Deux nombres au lieu de trois, et nommés pour ce qu'ils font.
+                    Les déplacer bascule le caractère sur « Personnalisé ».
+                -->
+                <Grid>
+                    <TextBlock Text="Vitesse (réglage fin)" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="ResponseValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="ResponseSlider" Maximum="0.8" Minimum="0.25" StepFrequency="0.01" ValueChanged="OnResponseChanged" />
+
+                <Grid>
+                    <TextBlock Text="Rebond (réglage fin)" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="BounceValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="BounceSlider" Maximum="1.1" Minimum="0.3" StepFrequency="0.01" ValueChanged="OnBounceChanged" />
+
+                <!-- ================================================
+                     ÉCRANS — où la notch s'accroche.
+                     ================================================ -->
+                <TextBlock Text="ÉCRANS" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <ComboBox x:Name="DisplayBox" Header="Écran" HorizontalAlignment="Stretch" SelectionChanged="OnDisplayModeChanged" />
+                <ComboBox x:Name="CutoutBox" Header="Découpe caméra" HorizontalAlignment="Stretch" SelectionChanged="OnCutoutChanged" />
+
+                <!-- ================================================
+                     AVANCÉ — ce qui n'a rien à faire dans l'interface
+                     principale : composition, diagnostics, fichiers.
+                     ================================================ -->
+                <TextBlock Text="AVANCÉ" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <ToggleSwitch
+                    x:Name="CompositionToggle"
+                    Header="Dissolution par le compositeur"
+                    OnContent="Compositeur (référence)"
+                    OffContent="Dégradé XAML (repli)"
+                    Toggled="OnCompositionToggled" />
+                <ToggleSwitch x:Name="DiagnosticsToggle" Header="Diagnostics" Toggled="OnDiagnosticsToggled" />
+
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                    <Button Content="Ouvrir la configuration" Click="OnOpenConfigClicked" />
+                    <Button Content="Ouvrir les greffons" Click="OnOpenPluginsClicked" />
+                </StackPanel>
+
+                <TextBlock
+                    x:Name="PathText"
+                    FontSize="10"
+                    Foreground="#60FFFFFF"
+                    TextTrimming="CharacterEllipsis"
+                    Margin="0,4,0,0" />
+
+                <TextBlock
+                    x:Name="StatusText"
+                    FontSize="11"
+                    Foreground="#E0A030"
+                    TextWrapping="Wrap"
+                    Margin="0,10,0,0" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="2" Padding="20,10,20,16" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" Content="Rétablir les valeurs par défaut" Click="OnResetClicked" />
+            <Button Grid.Column="2" Content="Fermer" Click="OnCloseClicked" />
+        </Grid>
+    </Grid>
+</Window>

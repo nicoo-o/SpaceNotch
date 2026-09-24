@@ -1,4 +1,4 @@
-# NotchFlow
+# SpaceNotch
 
 Une Dynamic Island native pour Windows. Minimaliste, fluide, pratiquement invisible lorsqu'elle n'est
 pas utile — et un véritable centre d'interactions lorsqu'on l'ouvre.
@@ -64,8 +64,8 @@ d'application · étagère de fichiers · presse-papier avec historique (désact
 d'activités navigable · greffons externes.
 
 Un **greffon d'exemple complet** — météo locale, source de données réelle, actions, tests — vit dans
-[`samples/`](samples/NotchFlow.SamplePlugin.Weather/README.md). Il est écrit sans modifier
-l'application et ne référence que `NotchFlow.Core` : c'est la démonstration que l'API est utilisable
+[`samples/`](samples/SpaceNotch.SamplePlugin.Weather/README.md). Il est écrit sans modifier
+l'application et ne référence que `SpaceNotch.Core` : c'est la démonstration que l'API est utilisable
 par un tiers. Voir [plugin-api.md](docs/plugin-api.md).
 
 ## Technologie
@@ -87,12 +87,12 @@ dotnet test
 ```
 
 ```bash
-EXE="src/NotchFlow.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64/NotchFlow.App.exe"
+EXE="src/SpaceNotch.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64/SpaceNotch.App.exe"
 "$EXE"
 ```
 
 L'application démarre sans console. Pour l'observer : *Diagnostics* dans le menu de la zone de
-notification, ou `%LocalAppData%\NotchFlow\logs\notchflow.log`.
+notification, ou `%LocalAppData%\SpaceNotch\logs\spacenotch.log`.
 
 ## Documentation
 
@@ -109,11 +109,11 @@ notification, ou `%LocalAppData%\NotchFlow\logs\notchflow.log`.
 ## Structure
 
 ```
-src/NotchFlow.Core               état, activités, bus, animation, contrats
-src/NotchFlow.Platform.Windows   interop Win32, média, audio, affichage, notifications
-src/NotchFlow.Features           les fonctionnalités concrètes
-src/NotchFlow.Infrastructure     configuration, journalisation, greffons
-src/NotchFlow.App                fenêtres, vues de scène, composition, réglages
+src/SpaceNotch.Core               état, activités, bus, animation, contrats
+src/SpaceNotch.Platform.Windows   interop Win32, média, audio, affichage, notifications
+src/SpaceNotch.Features           les fonctionnalités concrètes
+src/SpaceNotch.Infrastructure     configuration, journalisation, greffons
+src/SpaceNotch.App                fenêtres, vues de scène, composition, réglages
 tests/                           tests du cœur, greffon de test, tests du greffon d'exemple
 samples/                         greffon d'exemple, écrit comme le ferait un tiers
 docs/                            documentation et décisions d'architecture
@@ -122,7 +122,7 @@ docs/                            documentation et décisions d'architecture
 ## Sécurité et vie privée
 
 Aucun compte, aucune télémétrie, aucun traçage. La configuration est locale
-(`%AppData%\NotchFlow\config.json`), les secrets iraient dans le gestionnaire d'identification
+(`%AppData%\SpaceNotch\config.json`), les secrets iraient dans le gestionnaire d'identification
 Windows si le besoin apparaissait.
 
 **L'application elle-même n'effectue aucun appel réseau.** Une précision nécessaire depuis

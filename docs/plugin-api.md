@@ -70,9 +70,9 @@ un échec mineur n'est pas un succès.
 ## Exemple complet et exécutable
 
 Un greffon entier — météo locale, source de données réelle, configuration, tests — vit dans
-[`samples/NotchFlow.SamplePlugin.Weather`](../samples/NotchFlow.SamplePlugin.Weather/README.md).
+[`samples/SpaceNotch.SamplePlugin.Weather`](../samples/SpaceNotch.SamplePlugin.Weather/README.md).
 
-Il est écrit sans modifier l'application et ne référence que `NotchFlow.Core`. Son README est le
+Il est écrit sans modifier l'application et ne référence que `SpaceNotch.Core`. Son README est le
 guide d'un auteur tiers : démarrage, publication d'une carte, actions, glyphes, pièges, limites.
 
 Le squelette minimal, pour situer :
@@ -165,7 +165,7 @@ continuation asynchrone : la fenêtre rétablit le fil d'interface elle-même.
 
 ## Chargement
 
-`PluginLoader` parcourt `%AppData%\NotchFlow\plugins\`, charge chaque assembly et instancie les types
+`PluginLoader` parcourt `%AppData%\SpaceNotch\plugins\`, charge chaque assembly et instancie les types
 implémentant `IIslandPlugin`. Les échecs sont **isolés et rapportés** : un greffon mal formé, une
 dépendance manquante ou un constructeur fautif produit une ligne de journal, pas un arrêt de
 l'application.
@@ -176,7 +176,7 @@ d'actions que les fonctionnalités intégrées.
 
 ## Vérification
 
-`tests/NotchFlow.TestPlugin` est un greffon réel, compilé et chargé par les tests. Il contient
+`tests/SpaceNotch.TestPlugin` est un greffon réel, compilé et chargé par les tests. Il contient
 délibérément des cas dégradés :
 
 - une fabrique valide ;
@@ -190,6 +190,6 @@ charger. Une API de greffon qui n'est testée qu'avec un cas nominal est une API
 ## Stabilité
 
 L'API est en v0.x. Tant que la version majeure est zéro, une rupture est possible mais sera
-documentée dans un ADR et annoncée dans les notes de version. `NotchFlow.Core` est la seule
+documentée dans un ADR et annoncée dans les notes de version. `SpaceNotch.Core` est la seule
 dépendance qu'un greffon doit référencer — et cette dépendance ne tire aucune bibliothèque Windows,
 ce qui permet de compiler un greffon sans machine Windows graphique.

@@ -53,7 +53,7 @@ jobs:
       - name: Construire en Debug
         run: dotnet build -c Debug -p:Platform=x64
 
-      # Les tests du cœur s'exécutent sans machine graphique : NotchFlow.Core ne
+      # Les tests du cœur s'exécutent sans machine graphique : SpaceNotch.Core ne
       # référence aucune bibliothèque Windows.
       - name: Tester
         run: dotnet test -c Debug --logger "trx;LogFileName=resultats.trx"
@@ -70,15 +70,15 @@ jobs:
       # donc celle que la CI produit systématiquement.
       - name: Publier l'exécutable portable
         run: >
-          dotnet publish src/NotchFlow.App/NotchFlow.App.csproj
+          dotnet publish src/SpaceNotch.App/SpaceNotch.App.csproj
           -c Release -p:Platform=x64
-          --output "${{ runner.temp }}/notchflow"
+          --output "${{ runner.temp }}/spacenotch"
 
       - name: Conserver l'exécutable portable
         uses: actions/upload-artifact@v4
         with:
-          name: notchflow-portable-x64
-          path: ${{ runner.temp }}/notchflow
+          name: spacenotch-portable-x64
+          path: ${{ runner.temp }}/spacenotch
           if-no-files-found: error
 
   package-msix:
@@ -134,7 +134,7 @@ jobs:
 
           echo "$CERTIFICAT_BASE64" | base64 -d > certificat.pfx
 
-          dotnet publish src/NotchFlow.App/NotchFlow.App.csproj \
+          dotnet publish src/SpaceNotch.App/SpaceNotch.App.csproj \
             -c Release -p:Platform=x64 \
             -p:EnableMsixTooling=true \
             -p:WindowsPackageType=MSIX \
@@ -151,6 +151,6 @@ jobs:
         if: steps.cert.outputs.disponible == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: notchflow-msix-x64
+          name: spacenotch-msix-x64
           path: ${{ runner.temp }}/msix
           if-no-files-found: error

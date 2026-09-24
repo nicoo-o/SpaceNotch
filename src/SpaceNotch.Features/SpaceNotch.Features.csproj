@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\SpaceNotch.Core\SpaceNotch.Core.csproj" />
+    <ProjectReference Include="..\SpaceNotch.Platform.Windows\SpaceNotch.Platform.Windows.csproj" />
+  </ItemGroup>
+
+</Project>

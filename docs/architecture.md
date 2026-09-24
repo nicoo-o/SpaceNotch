@@ -2,22 +2,22 @@
 
 ## Principe
 
-NotchFlow suit une architecture en couches où **la dépendance ne remonte jamais**. Le cœur ne connaît
+SpaceNotch suit une architecture en couches où **la dépendance ne remonte jamais**. Le cœur ne connaît
 ni WinUI, ni Win32, ni le système de fichiers ; il décrit des états, des activités et des contrats.
 Les couches périphériques les réalisent.
 
 ```
 Windows Event
       ↓
-Feature            (NotchFlow.Features)
+Feature            (SpaceNotch.Features)
       ↓
-Island Event       (NotchFlow.Core.Events)
+Island Event       (SpaceNotch.Core.Events)
       ↓
-State Manager      (NotchFlow.Core.State)
+State Manager      (SpaceNotch.Core.State)
       ↓
 Island State
       ↓
-UI Renderer        (NotchFlow.App)
+UI Renderer        (SpaceNotch.App)
       ↓
 Animation
 ```
@@ -28,12 +28,12 @@ L'interface ne décide de rien. Elle reçoit un état, un encombrement et une sc
 
 | Projet | Rôle | Dépendances |
 |---|---|---|
-| `NotchFlow.Core` | États, activités, bus d'événements, résolveur de ressort, catalogue de scènes, contrats de fonctionnalité. Aucune dépendance Windows. | — |
-| `NotchFlow.Platform.Windows` | Interop : fenêtres, moniteurs, DPI, média système, audio, presse-papier, notifications, Bluetooth, luminosité, démarrage automatique. | Core |
-| `NotchFlow.Features` | Les fonctionnalités concrètes : média, HUD volume et luminosité, notifications, Bluetooth, focus, minuteur, lanceur, étagère de fichiers, presse-papier. | Core, Platform.Windows |
-| `NotchFlow.Infrastructure` | Configuration persistée, journalisation, chargement des greffons. | Core |
-| `NotchFlow.App` | Fenêtres, vues de scène, composition, animations, zone de notification, réglages. | Toutes |
-| `samples/` | Greffon d'exemple, écrit comme le ferait un tiers : `NotchFlow.Core` pour seule dépendance. | Core |
+| `SpaceNotch.Core` | États, activités, bus d'événements, résolveur de ressort, catalogue de scènes, contrats de fonctionnalité. Aucune dépendance Windows. | — |
+| `SpaceNotch.Platform.Windows` | Interop : fenêtres, moniteurs, DPI, média système, audio, presse-papier, notifications, Bluetooth, luminosité, démarrage automatique. | Core |
+| `SpaceNotch.Features` | Les fonctionnalités concrètes : média, HUD volume et luminosité, notifications, Bluetooth, focus, minuteur, lanceur, étagère de fichiers, presse-papier. | Core, Platform.Windows |
+| `SpaceNotch.Infrastructure` | Configuration persistée, journalisation, chargement des greffons. | Core |
+| `SpaceNotch.App` | Fenêtres, vues de scène, composition, animations, zone de notification, réglages. | Toutes |
+| `samples/` | Greffon d'exemple, écrit comme le ferait un tiers : `SpaceNotch.Core` pour seule dépendance. | Core |
 
 La direction des flèches est le contrat : `Core` ne peut pas référencer `App`. C'est ce qui rend le
 cœur testable sans machine Windows graphique — 75 tests s'exécutent en une fraction de seconde.

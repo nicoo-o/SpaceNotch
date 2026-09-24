@@ -31,20 +31,20 @@ désactive la sérialisation JSON par réflexion.
 dotnet test
 ```
 
-Les tests du cœur s'exécutent sans machine Windows graphique : `NotchFlow.Core` ne référence aucune
+Les tests du cœur s'exécutent sans machine Windows graphique : `SpaceNotch.Core` ne référence aucune
 bibliothèque Windows. C'est ce qui permet à la suite de tourner en une fraction de seconde.
 
 ## Lancer
 
 ```bash
-EXE="src/NotchFlow.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64/NotchFlow.App.exe"
+EXE="src/SpaceNotch.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64/SpaceNotch.App.exe"
 "$EXE"
 ```
 
 L'application démarre sans console. Deux façons d'observer ce qu'elle fait :
 
 - **menu de la zone de notification** → *Diagnostics* (état, mémoire, images rendues, temps de repos) ;
-- **journal** → `%LocalAppData%\NotchFlow\logs\notchflow.log`, avec rotation à 2 MB.
+- **journal** → `%LocalAppData%\SpaceNotch\logs\spacenotch.log`, avec rotation à 2 MB.
 
 ## Mesurer
 
@@ -88,7 +88,7 @@ build:     outillage, dépendances
 
 ### Configuration locale
 
-`%AppData%\NotchFlow\config.json`, écrit par sérialisation **générée à la compilation**
+`%AppData%\SpaceNotch\config.json`, écrit par sérialisation **générée à la compilation**
 (`AppSettingsJsonContext`). Les énumérations sont écrites en clair (`"Dark"`, `"Auto"`) pour que le
 fichier reste modifiable à la main. Les signaux `ReadFailed` / `WriteFailed` sont branchés sur le
 journal : un échec de configuration se voit, il ne retombe pas silencieusement sur les valeurs par
@@ -97,14 +97,14 @@ défaut.
 ## Structure
 
 ```
-src/NotchFlow.Core               état, activités, bus, animation, contrats — aucune dépendance Windows
-src/NotchFlow.Platform.Windows   interop Win32, média, audio, affichage, notifications
-src/NotchFlow.Features           les fonctionnalités concrètes
-src/NotchFlow.Infrastructure     configuration, journalisation, greffons
-src/NotchFlow.App                fenêtres, vues de scène, composition, réglages
-tests/NotchFlow.Core.Tests       tests du cœur
-tests/NotchFlow.TestPlugin       greffon de test, chargé par les tests
-tests/NotchFlow.SamplePlugin.Tests  tests du greffon d'exemple
+src/SpaceNotch.Core               état, activités, bus, animation, contrats — aucune dépendance Windows
+src/SpaceNotch.Platform.Windows   interop Win32, média, audio, affichage, notifications
+src/SpaceNotch.Features           les fonctionnalités concrètes
+src/SpaceNotch.Infrastructure     configuration, journalisation, greffons
+src/SpaceNotch.App                fenêtres, vues de scène, composition, réglages
+tests/SpaceNotch.Core.Tests       tests du cœur
+tests/SpaceNotch.TestPlugin       greffon de test, chargé par les tests
+tests/SpaceNotch.SamplePlugin.Tests  tests du greffon d'exemple
 samples/                         greffon d'exemple, écrit comme le ferait un tiers
 docs/                            cette documentation
 ```

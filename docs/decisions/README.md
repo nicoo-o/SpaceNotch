@@ -41,4 +41,4 @@ inconvénient est une décision mal analysée.
 - Pour comprendre la cible et les dépendances de plateforme → **ADR-009**, puis **ADR-001** et
   **ADR-002**.
 - Pour écrire un greffon → **ADR-010**, puis [plugin-api.md](../plugin-api.md) et
-  [`samples/NotchFlow.SamplePlugin.Weather`](../../samples/NotchFlow.SamplePlugin.Weather/README.md).
+  [`samples/SpaceNotch.SamplePlugin.Weather`](../../samples/SpaceNotch.SamplePlugin.Weather/README.md).

@@ -56,12 +56,12 @@ dotnet_diagnostic.IDE1006.severity = none
 # Couche d'interopérabilité : les identifiants (WS_EX_*, SPI_*, WM_*, CLSCTX_*)
 # doivent rester identiques aux en-têtes Windows pour demeurer vérifiables face
 # à la documentation officielle.
-[src/NotchFlow.Platform.Windows/**/*.cs]
+[src/SpaceNotch.Platform.Windows/**/*.cs]
 dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1712.severity = none
 
 # Un bus d'événements nomme conventionnellement son paramètre `event`.
-[src/NotchFlow.Core/**/*.cs]
+[src/SpaceNotch.Core/**/*.cs]
 dotnet_diagnostic.CA1716.severity = none
 
 # Convention xUnit : Précondition_Action_Résultat.
@@ -71,12 +71,12 @@ dotnet_diagnostic.CA1712.severity = none
 
 # Les types WinUI ne sont pas tous IDisposable mais exposent des ressources
 # libérées par le cycle de vie de la fenêtre.
-[src/NotchFlow.App/**/*.cs]
+[src/SpaceNotch.App/**/*.cs]
 dotnet_diagnostic.CA1001.severity = none
 
-# Dette assumée et suivie : l'espace de noms racine `NotchFlow_App` (avec trait
+# Dette assumée et suivie : l'espace de noms racine `SpaceNotch_App` (avec trait
 # de soulignement) est un reste du modèle de projet. Son renommage en
-# `NotchFlow.App` touche tous les x:Class et est planifié comme tâche dédiée.
+# `SpaceNotch.App` touche tous les x:Class et est planifié comme tâche dédiée.
 # La suppression ci-dessous doit être retirée à ce moment-là.
 dotnet_diagnostic.CA1707.severity = none
 

@@ -31,7 +31,7 @@ WinRT. Aucune capacité requise n'est absente.
   quelle.
 - Une réduction ultérieure passerait par **Native AOT**, dont la compatibilité WinUI doit être
   vérifiée avant d'être promise.
-- Le cœur (`NotchFlow.Core`) ne référence aucune bibliothèque Windows, ce qui rend la suite de tests
+- Le cœur (`SpaceNotch.Core`) ne référence aucune bibliothèque Windows, ce qui rend la suite de tests
   exécutable sans machine graphique — un bénéfice direct et mesurable de ce choix.
 
 ## Alternatives écartées
