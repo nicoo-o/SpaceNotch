@@ -188,6 +188,9 @@ public sealed partial class SettingsWindow : Window
             HypnoticToggle.IsOn = settings.AllowHypnoticMotion;
             RainToggle.IsOn = settings.ShowBinaryRain;
             HoverToggle.IsOn = settings.HoverToPreview;
+            HoverExpandToggle.IsOn = settings.HoverToExpand;
+            DetachToggle.IsOn = settings.AllowDetach;
+            BubbleToggle.IsOn = settings.ShowSplitBubble;
             FullscreenToggle.IsOn = settings.HideOverFullscreen;
             StackToggle.IsOn = settings.ShowActivityStack;
             ClockToggle.IsOn = settings.ShowClockAtRest;
@@ -472,6 +475,15 @@ public sealed partial class SettingsWindow : Window
 
     private void OnHoverToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.HoverToPreview = HoverToggle.IsOn);
+
+    private void OnHoverExpandToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.HoverToExpand = HoverExpandToggle.IsOn);
+
+    private void OnDetachToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.AllowDetach = DetachToggle.IsOn);
+
+    private void OnBubbleToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.ShowSplitBubble = BubbleToggle.IsOn);
 
     private void OnStackToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.ShowActivityStack = StackToggle.IsOn);

@@ -108,6 +108,22 @@ public readonly record struct NotchGeometry(
     /// interpolation linéaire produirait un coude perceptible au moment où la
     /// hauteur franchit le seuil de départ.
     /// </summary>
+    /// <summary>
+    /// Rayon d'une notch détachée : une pastille tant qu'elle est compacte, puis
+    /// les grands congés de l'ouverture quand elle grandit.
+    /// </summary>
+    public double FloatingRadiusFor(IslandFootprint footprint)
+    {
+        double progress = Progress(footprint.Height);
+        double radius = CompactRadius + ((ExpandedRadius - CompactRadius) * progress);
+
+        return Math.Clamp(radius, 0, Math.Max(0, Math.Min(footprint.Width, footprint.Height) / 2));
+    }
+
+    /// <summary>Contour d'une notch détachée, voir <see cref="IslandShape.Floating"/>.</summary>
+    public ShapePoint[] FloatingSilhouette(IslandFootprint footprint)
+        => IslandShape.Floating(footprint.Width, footprint.Height, FloatingRadiusFor(footprint), Smoothing);
+
     private static double Progress(double height)
     {
         double linear = Math.Clamp(

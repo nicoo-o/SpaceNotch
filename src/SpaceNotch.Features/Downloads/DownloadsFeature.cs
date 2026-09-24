@@ -239,6 +239,10 @@ public sealed class DownloadsFeature : IslandFeatureBase
             State = IslandActivityState.DownloadActive,
             Priority = ActivityPriority.Normal,
             Policy = ActivityPresentationPolicy.Passive,
+
+            // Un téléchargement ne se cache jamais derrière une autre activité :
+            // la notch se partage et lui donne une bulle.
+            Role = ActivityRole.Download,
             MotionState = ActivityMotionState.Working,
             MotionPreset = HypnoticPreset.Process
         });

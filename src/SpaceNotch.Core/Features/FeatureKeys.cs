@@ -30,4 +30,7 @@ public static class FeatureKeys
     public const string FileShelf = "feature.fileshelf";
 
     public const string Downloads = "feature.downloads";
+
+    /// <summary>Micro et caméra en cours d'utilisation : appels et enregistrements.</summary>
+    public const string Privacy = "feature.privacy";
 }

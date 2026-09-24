@@ -355,6 +355,25 @@ public sealed class IslandController : IDisposable
     }
 
     /// <summary>
+    /// Présente une activité précise à la demande de l'utilisateur — la bulle
+    /// qu'il vient de toucher. Comme le parcours de la pile, ce geste n'est
+    /// jamais mis en attente.
+    /// </summary>
+    public void PresentActivity(string activityId)
+    {
+        _userDriven = true;
+
+        try
+        {
+            _activityManager.PinPresentation(activityId);
+        }
+        finally
+        {
+            _userDriven = false;
+        }
+    }
+
+    /// <summary>
     /// Un fichier survole la notch : elle devient une cible visuelle, sans
     /// changer d'état. Le ressort d'effleurement porte ce mouvement — c'est une
     /// invitation, pas une ouverture.

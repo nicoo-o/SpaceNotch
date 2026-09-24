@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.UI.Xaml.Media;
 using SpaceNotch.Core.Scenes;
 using Windows.Foundation;
@@ -33,6 +34,7 @@ internal sealed class IslandGeometryFactory
     private double _radius = double.NaN;
     private double _smoothing = double.NaN;
     private double _shoulder = double.NaN;
+    private bool _floating;
 
     /// <summary>Nombre de tracés effectivement reconstruits. Sert de preuve au repos.</summary>
     public long Rebuilds { get; private set; }
@@ -51,8 +53,28 @@ internal sealed class IslandGeometryFactory
         double radius,
         double smoothing,
         double band = 0,
-        double shoulder = 0)
+        double shoulder = 0,
+        bool floating = false)
     {
+        if (floating)
+        {
+            if (_floating && Unchanged(footprint, radius, smoothing, 0))
+            {
+                return null;
+            }
+
+            _floating = true;
+            _width = footprint.Width;
+            _height = footprint.Height;
+            _radius = radius;
+            _smoothing = smoothing;
+            _shoulder = 0;
+
+            Rebuilds++;
+
+            return FromPoints(IslandShape.Floating(footprint.Width, footprint.Height, radius, smoothing));
+        }
+
         if (band > 0)
         {
             // Un tracé borné — le reflet — n'est pas mémorisé : il dépend de la
@@ -61,11 +83,12 @@ internal sealed class IslandGeometryFactory
             return BuildCore(footprint, radius, smoothing, band, shoulder);
         }
 
-        if (Unchanged(footprint, radius, smoothing, shoulder))
+        if (!_floating && Unchanged(footprint, radius, smoothing, shoulder))
         {
             return null;
         }
 
+        _floating = false;
         _width = footprint.Width;
         _height = footprint.Height;
         _radius = radius;
@@ -80,6 +103,7 @@ internal sealed class IslandGeometryFactory
     /// <summary>Force la reconstruction au prochain appel.</summary>
     public void Forget()
     {
+        _floating = false;
         _width = double.NaN;
         _height = double.NaN;
         _radius = double.NaN;
@@ -101,9 +125,49 @@ internal sealed class IslandGeometryFactory
         double band,
         double shoulder)
     {
-        ShapePoint[] points = IslandShape.Silhouette(
-            footprint.Width, footprint.Height, radius, smoothing, band, shoulder);
+        return FromPoints(IslandShape.Silhouette(
+            footprint.Width, footprint.Height, radius, smoothing, band, shoulder));
+    }
 
+    /// <summary>
+    /// Réunit plusieurs contours dans un même tracé, décalés d'une origine —
+    /// la trace, le fil et ses pointes de la goutte. Des contours opaques qui se
+    /// recouvrent se lisent comme une seule matière.
+    /// </summary>
+    public static Geometry? FromPolygons(IEnumerable<ShapePoint[]> polygons, double originX, double originY)
+    {
+        var geometry = new PathGeometry { FillRule = FillRule.Nonzero };
+
+        foreach (ShapePoint[] points in polygons)
+        {
+            if (points.Length < 3)
+            {
+                continue;
+            }
+
+            var figure = new PathFigure
+            {
+                StartPoint = new Point(points[0].X - originX, points[0].Y - originY),
+                IsClosed = true,
+                IsFilled = true
+            };
+
+            var segment = new PolyLineSegment();
+
+            for (int i = 1; i < points.Length; i++)
+            {
+                segment.Points.Add(new Point(points[i].X - originX, points[i].Y - originY));
+            }
+
+            figure.Segments.Add(segment);
+            geometry.Figures.Add(figure);
+        }
+
+        return geometry.Figures.Count == 0 ? null : geometry;
+    }
+
+    private static PathGeometry? FromPoints(ShapePoint[] points)
+    {
         // Une forme vide — encombrement nul pendant la construction — ne produit
         // aucun tracé : mieux vaut garder le précédent qu'indexer un tableau vide.
         if (points.Length == 0)

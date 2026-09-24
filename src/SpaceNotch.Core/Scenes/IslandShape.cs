@@ -233,6 +233,68 @@ public static class IslandShape
     }
 
     /// <summary>
+    /// Contour d'une notch <em>détachée</em> : ses quatre coins sont arrondis
+    /// par la même superellipse, sans épaules — elle n'est plus reliée au bord
+    /// de l'écran. Sens horaire, depuis la fin du coin supérieur gauche.
+    ///
+    /// <para>
+    /// Ce contour n'existe que parce que l'utilisateur a arraché la notch
+    /// (ADR-019) : au repos, au démarrage, et dès qu'elle revient au bord, c'est
+    /// <see cref="Silhouette"/> qui est tracée.
+    /// </para>
+    /// </summary>
+    /// <param name="width">Largeur en DIPs.</param>
+    /// <param name="height">Hauteur en DIPs.</param>
+    /// <param name="radius">Rayon des quatre coins, borné à la moitié du plus petit côté : une pastille au maximum.</param>
+    /// <param name="smoothing">Exposant de la superellipse.</param>
+    public static ShapePoint[] Floating(double width, double height, double radius, double smoothing = Squircle)
+    {
+        if (width <= 0 || height <= 0)
+        {
+            return [];
+        }
+
+        double w = width;
+        double h = height;
+        double r = Math.Clamp(radius, 0, Math.Min(w, h) / 2);
+        double k = smoothing < Circular ? Circular : smoothing;
+
+        if (r <= 0)
+        {
+            return [new ShapePoint(0, 0), new ShapePoint(w, 0), new ShapePoint(w, h), new ShapePoint(0, h)];
+        }
+
+        var points = new List<ShapePoint>(FloatingPointCount);
+
+        // Quatre coins, chacun décrit de son extrémité « entrante » à son
+        // extrémité « sortante » dans le sens horaire. Les arêtes droites sont
+        // les segments qui relient deux coins consécutifs.
+        AddCorner(points, w - r, r, r, k, -Math.PI / 2);
+        AddCorner(points, w - r, h - r, r, k, 0);
+        AddCorner(points, r, h - r, r, k, Math.PI / 2);
+        AddCorner(points, r, r, r, k, Math.PI);
+
+        return [.. points];
+    }
+
+    /// <summary>Points produits par <see cref="Floating"/> pour un rayon non nul.</summary>
+    public static int FloatingPointCount => 4 * (SegmentsPerCorner + 1);
+
+    private static void AddCorner(List<ShapePoint> points, double cx, double cy, double r, double k, double start)
+    {
+        for (int i = 0; i <= SegmentsPerCorner; i++)
+        {
+            double t = start + (Math.PI / 2 * i / SegmentsPerCorner);
+            double cos = Math.Cos(t);
+            double sin = Math.Sin(t);
+
+            points.Add(new ShapePoint(
+                cx + (r * Math.CopySign(Component(Math.Abs(cos), k), cos)),
+                cy + (r * Math.CopySign(Component(Math.Abs(sin), k), sin))));
+        }
+    }
+
+    /// <summary>
     /// Composante d'une superellipse : <c>c^(1/K)</c>.
     ///
     /// L'élévation à la puissance <c>1/K</c> est ce qui distingue les familles de

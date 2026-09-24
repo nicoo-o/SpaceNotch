@@ -63,6 +63,7 @@ public sealed class IslandShadowSurface : IDisposable
     private double _height = -1;
     private double _radius = -1;
     private double _shoulder = -1;
+    private bool _floating;
 
     private bool _disposed;
 
@@ -153,7 +154,12 @@ public sealed class IslandShadowSurface : IDisposable
     /// <param name="height">Hauteur de la notch, en DIPs.</param>
     /// <param name="radius">Rayon des congés du bas effectivement tracé, en DIPs.</param>
     /// <param name="shoulder">Épaule effectivement tracée, en DIPs : l'ombre suit le corps, pas les épaules.</param>
-    public void Configure(double width, double height, double radius, double shoulder = 0)
+    /// <param name="floating">
+    /// Notch arrachée au bord : l'ombre redevient un rectangle arrondi sur ses
+    /// quatre coins, sans prolongement au-dessus — la pastille n'a plus de bord
+    /// d'écran à épouser.
+    /// </param>
+    public void Configure(double width, double height, double radius, double shoulder = 0, bool floating = false)
     {
         if (_disposed)
         {
@@ -163,10 +169,13 @@ public sealed class IslandShadowSurface : IDisposable
         if (Math.Abs(width - _width) < 0.05
             && Math.Abs(height - _height) < 0.05
             && Math.Abs(radius - _radius) < 0.05
-            && Math.Abs(shoulder - _shoulder) < 0.05)
+            && Math.Abs(shoulder - _shoulder) < 0.05
+            && floating == _floating)
         {
             return;
         }
+
+        _floating = floating;
 
         _width = width;
         _height = height;
@@ -174,6 +183,20 @@ public sealed class IslandShadowSurface : IDisposable
         _shoulder = shoulder;
 
         var size = new Vector2((float)width, (float)height);
+
+        if (floating)
+        {
+            float round = (float)Math.Clamp(radius, 0, Math.Min(width, height) / 2);
+
+            _geometry.Offset = Vector2.Zero;
+            _geometry.Size = size;
+            _geometry.CornerRadius = new Vector2(round, round);
+            _shape.Size = size;
+            _surface.SourceSize = size;
+            _caster.Size = size;
+            return;
+        }
+
         float body = (float)Math.Max(0, width - (2 * shoulder));
         float r = (float)Math.Max(0, radius);
 

@@ -50,6 +50,9 @@ internal static class GlyphCatalog
         ["Clipboard"] = "\uE77F",
         ["Launcher"] = "\uE71D",
         ["Download"] = "\uE896",
+        ["Microphone"] = "\uE720",
+        ["Camera"] = "\uE714",
+        ["Call"] = "\uE717",
         ["Search"] = "\uE721",
         ["Check"] = "\uE73E",
         ["Info"] = "\uE946"

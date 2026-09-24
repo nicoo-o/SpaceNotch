@@ -88,6 +88,14 @@ public sealed class IslandActivity
     /// </summary>
     public ActivityPresentationPolicy? Policy { get; init; }
 
+    /// <summary>
+    /// Rôle de l'activité, quand elle en a un que l'utilisateur ne doit pas
+    /// perdre de vue : un téléchargement, un appel, un enregistrement. Une telle
+    /// activité ne se cache jamais derrière une autre : la notch se partage et
+    /// lui donne une bulle. Voir <see cref="SplitPresentation"/>.
+    /// </summary>
+    public ActivityRole Role { get; init; } = ActivityRole.None;
+
     /// <summary>Clé d'icône logique, résolue par le jeu d'icônes du rendu.</summary>
     public string? IconKey { get; set; }
 

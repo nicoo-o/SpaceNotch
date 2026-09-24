@@ -40,6 +40,12 @@ public sealed partial class AtmosphereWindow : Window
     /// </summary>
     private const int MinimumBottomBleedPhysical = 56;
 
+    /// <summary>Débord au-dessus d'une notch flottante, pour son ombre, en pixels physiques.</summary>
+    private const int FloatingTopBleedPhysical = 48;
+
+    /// <summary>Vrai tant que la notch est détachée du bord : seule l'ombre reste.</summary>
+    private bool _floating;
+
     /// <summary>
     /// Proportion de la hauteur de l'Island ajoutée sous elle pour la
     /// dissolution : une Island ouverte se dissout beaucoup plus loin qu'une
@@ -171,10 +177,14 @@ public sealed partial class AtmosphereWindow : Window
             MinimumBottomBleedPhysical,
             (int)(placement.HeightPx * BleedHeightRatio));
 
+        // Une notch flottante a un bord haut libre : son ombre déborde aussi
+        // au-dessus d'elle, et la couche doit lui en laisser la place.
+        int topBleed = placement.Floating ? FloatingTopBleedPhysical : 0;
+
         int x = placement.X - HorizontalBleedPhysical;
-        int y = placement.Y;
+        int y = placement.Y - topBleed;
         int width = placement.WidthPx + (2 * HorizontalBleedPhysical);
-        int height = placement.HeightPx + bleed;
+        int height = placement.HeightPx + bleed + topBleed;
 
         if (width <= 0 || height <= 0)
         {
@@ -223,9 +233,31 @@ public sealed partial class AtmosphereWindow : Window
         // désynchroniser de la forme qu'elle décrit.
         ShadowHost.Width = placement.WidthDip;
         ShadowHost.Height = placement.HeightDip;
+        ShadowHost.Margin = new Thickness(0, topBleed / scale, 0, 0);
 
-        _shadow?.Configure(placement.WidthDip, placement.HeightDip, placement.CornerRadiusDip, placement.ShoulderDip);
+        _shadow?.Configure(
+            placement.WidthDip,
+            placement.HeightDip,
+            placement.CornerRadiusDip,
+            placement.ShoulderDip,
+            placement.Floating);
         _shadow?.SetDeployment(_deployment);
+
+        // Loin du bord, il n'y a rien à dissoudre ni à faire rayonner : la
+        // pastille flottante ne garde que son ombre.
+        if (placement.Floating != _floating)
+        {
+            _floating = placement.Floating;
+            Glow.Visibility = _floating ? Visibility.Collapsed : Visibility.Visible;
+            RainHost.Visibility = _floating || !_rainActive ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        if (_floating)
+        {
+            FadeHost.Opacity = 0;
+            _surface?.SetOpacity(0);
+            return;
+        }
 
         // La dissolution n'existe qu'au déploiement : au repos l'Island est un
         // objet au contour franc, et c'est l'ombre qui le sépare du bureau.
@@ -384,7 +416,7 @@ public sealed partial class AtmosphereWindow : Window
         }
 
         RainHost.Children.Clear();
-        RainHost.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
+        RainHost.Visibility = active && !_floating ? Visibility.Visible : Visibility.Collapsed;
 
         if (!active)
         {

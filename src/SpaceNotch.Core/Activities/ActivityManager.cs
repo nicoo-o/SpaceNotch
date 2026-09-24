@@ -176,7 +176,16 @@ public sealed class ActivityManager : IActivityManager
         {
             ActiveActivityChanged?.Invoke(this, next);
         }
+
+        ActivityPosted?.Invoke(this, activity);
     }
+
+    /// <summary>
+    /// Déclenché pour chaque publication, qu'elle change ou non l'activité en
+    /// tête. Une activité importante publiée derrière celle qui est présentée
+    /// ne change rien à la tête, mais elle fait naître une bulle.
+    /// </summary>
+    public event EventHandler<IslandActivity>? ActivityPosted;
 
     public bool RemoveActivity(string activityId)
     {

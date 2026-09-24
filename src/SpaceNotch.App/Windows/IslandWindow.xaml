@@ -43,6 +43,19 @@
             un masque de mise en page produirait un escalier visible à petit
             rayon.
         -->
+        <!--
+            La goutte qui relie encore la notch au bord quand on l'arrache, puis
+            quand elle s'y raccroche : la trace restée au bord et le fil qui se
+            rompt. Même matière que la surface, tracée dans le repère de la
+            fenêtre. Invisible le reste du temps. Voir ADR-019.
+        -->
+        <Path
+            x:Name="GooFill"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            IsHitTestVisible="False"
+            Visibility="Collapsed" />
+
         <Grid
             x:Name="IslandBody"
             VerticalAlignment="Top"
@@ -54,6 +67,8 @@
             PointerEntered="OnIslandPointerEntered"
             PointerExited="OnIslandPointerExited"
             PointerPressed="OnIslandPointerPressed"
+            PointerReleased="OnIslandPointerReleased"
+            PointerCaptureLost="OnIslandPointerCaptureLost"
             PointerWheelChanged="OnIslandPointerWheelChanged"
             KeyDown="OnIslandKeyDown"
             IsTabStop="True"

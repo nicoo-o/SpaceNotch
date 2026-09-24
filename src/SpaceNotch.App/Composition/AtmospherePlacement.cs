@@ -27,6 +27,11 @@ namespace SpaceNotch_App.Composition;
 /// d'état se produirait à un instant précis du mouvement, ce qui se verrait comme
 /// un clignotement au milieu du morphing.
 /// </param>
+/// <param name="Floating">
+/// Vrai quand la notch a été arrachée au bord (ADR-019). La couche ne garde
+/// alors que l'ombre, tout autour de la pastille : la dissolution et le halo
+/// naissent du bord de l'écran, et n'ont pas de sens loin de lui.
+/// </param>
 public readonly record struct AtmospherePlacement(
     int X,
     int Y,
@@ -36,4 +41,5 @@ public readonly record struct AtmospherePlacement(
     double HeightDip,
     double CornerRadiusDip,
     double ShoulderDip,
-    double Deployment);
+    double Deployment,
+    bool Floating = false);

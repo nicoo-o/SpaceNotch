@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Input;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation;
@@ -27,6 +28,7 @@ using SpaceNotch.Features.FileShelf;
 using SpaceNotch.Features.Launcher;
 using SpaceNotch.Features.Media;
 using SpaceNotch.Features.Notifications;
+using SpaceNotch.Features.Privacy;
 using SpaceNotch.Features.Productivity;
 using SpaceNotch.Features.SystemHud;
 using SpaceNotch.Infrastructure.Config;
@@ -38,6 +40,7 @@ using SpaceNotch.Platform.Windows.Clipboard;
 using SpaceNotch.Platform.Windows.Display;
 using SpaceNotch.Platform.Windows.Media;
 using SpaceNotch.Platform.Windows.Notifications;
+using SpaceNotch.Platform.Windows.Privacy;
 using SpaceNotch.Platform.Windows.Shell;
 using SpaceNotch.Platform.Windows.System;
 using SpaceNotch.Platform.Windows.Windowing;
@@ -207,6 +210,9 @@ public sealed partial class IslandWindow : Window
     private SystemVisualState _visualState = SystemVisualState.Permissive;
     private bool _isClosed;
 
+    /// <summary>Faux tant que l'Island est retirée devant le plein écran : la bulle se retire avec elle.</summary>
+    private bool _islandShown = true;
+
     // Dernier rectangle physique réellement soumis au gestionnaire de fenêtres.
     // Sert uniquement à ne pas le resoumettre à l'identique (voir ApplyGeometry).
     private int _lastWindowX = int.MinValue;
@@ -253,6 +259,7 @@ public sealed partial class IslandWindow : Window
         // sa géométrie initiale dès sa construction (SnapTo), et la géométrie
         // doit pouvoir positionner les deux surfaces.
         _atmosphere = new AtmosphereWindow();
+        CreateBubble();
 
         // La préférence est lue par clé de fonctionnalité : la fenêtre n'associe
         // donc pas elle-même une fonctionnalité à un réglage, elle demande.
@@ -292,6 +299,9 @@ public sealed partial class IslandWindow : Window
             new DownloadsFeature(
                 _activityManager, _eventBus, KnownFolders.Downloads,
                 _settings.IsFeatureEnabled(DownloadsFeature.FeatureKey)),
+            new PrivacyFeature(
+                _activityManager, _eventBus, new CapabilityUsageWatcher(),
+                _settings.IsFeatureEnabled(PrivacyFeature.FeatureKey)),
             new ClipboardFeature(
                 _activityManager, _eventBus, _clipboardMonitor, _hWnd,
                 _settings.IsFeatureEnabled(ClipboardFeature.FeatureKey))
@@ -736,6 +746,8 @@ public sealed partial class IslandWindow : Window
 
         IslandActivity? activity = _controller.PresentedActivity;
         bool expanded = _controller.State is IslandState.Expanded or IslandState.Expanding;
+
+        UpdateBubble();
 
         // Le palier au repos ne dépend jamais de l'ouverture : il est résolu à
         // chaque rendu et mémorisé, parce que la fermeture doit retrouver
@@ -1310,6 +1322,18 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void ApplyGeometry(IslandFootprint footprint)
     {
+        // Arrachée au bord, la notch suit sa propre géométrie : voir
+        // IslandWindow.Detach. Tirée vers le bas, elle s'allonge en résistant.
+        if (UsesFloatingGeometry)
+        {
+            ApplyFloatingGeometry(footprint);
+            return;
+        }
+
+        if (_dragPhase is DragPhase.Pulling or DragPhase.Unpulling)
+        {
+            footprint = Detachment.Pulled(footprint, _pull);
+        }
 
         DisplayInfo display = ResolveDisplay();
         double scale = display.DpiScale;
@@ -1330,23 +1354,11 @@ public sealed partial class IslandWindow : Window
         // sous le pixel. Resoumettre alors la même géométrie enchaîne un
         // SetWindowPos et une reprise de composition DWM pour rien. La mesure
         // reste exacte : seule la redondance disparaît.
-        if (x != _lastWindowX
-            || y != _lastWindowY
-            || widthPx != _lastWindowWidth
-            || heightPx != _lastWindowHeight)
-        {
-            _lastWindowX = x;
-            _lastWindowY = y;
-            _lastWindowWidth = widthPx;
-            _lastWindowHeight = heightPx;
-
-            _appWindow.MoveAndResize(new RectInt32(x, y, widthPx, heightPx));
-
-            // L'Island vient de changer de place : ce qu'elle recouvre a changé
-            // avec elle. La relecture n'a lieu qu'ici, c'est-à-dire quand le
-            // rectangle a réellement bougé, et jamais à chaque image.
-            _presence.Recheck();
-        }
+        //
+        // L'Island qui change de place change aussi ce qu'elle recouvre : la
+        // présence plein écran est relue, mais seulement quand le rectangle a
+        // réellement bougé, et jamais à chaque image.
+        MoveWindow(x, y, widthPx, heightPx, recheck: true);
 
         // Le corps XAML, lui, suit chaque image : c'est lui qui porte le morphing
         // sous-pixel, et il ne coûte qu'une passe de disposition sur un arbre
@@ -1370,6 +1382,8 @@ public sealed partial class IslandWindow : Window
             geometry.RadiusFor(footprint),
             geometry.ShoulderFor(footprint),
             DeploymentFor(footprint.Height)));
+
+        PlaceBubbleAttached(display, x, footprint);
     }
 
     /// <summary>
@@ -1393,6 +1407,14 @@ public sealed partial class IslandWindow : Window
 
     private DisplayInfo ResolveDisplay()
     {
+        // Pendant un glisser et tant que la notch flotte, le moniteur est figé :
+        // en mode « écran du curseur », le suivre ferait sauter la pastille d'un
+        // écran à l'autre sous la main.
+        if (_detachDisplay is not null)
+        {
+            return _detachDisplay;
+        }
+
         switch (_settings.DisplayMode)
         {
             case IslandDisplayMode.Current:
@@ -1460,15 +1482,19 @@ public sealed partial class IslandWindow : Window
             // La géométrie et l'ordre de superposition sont repris avant
             // l'affichage : sinon la fenêtre apparaîtrait une image à sa position
             // d'avant, ce qui se voit immédiatement après un changement d'écran.
+            _islandShown = true;
             ApplyGeometry(_controller.CurrentFootprint);
             _atmosphere.SetVisible(true);
             _atmosphere.PlaceBehind(_hWnd);
             _appWindow.Show();
+            UpdateBubble();
             return;
         }
 
+        _islandShown = false;
         _atmosphere.SetVisible(false);
         _appWindow.Hide();
+        UpdateBubble();
     }
 
     private void OnEnvironmentChanged(object? sender, ScreenChangeKind kind)
@@ -1494,6 +1520,10 @@ public sealed partial class IslandWindow : Window
 
     private void RefreshFromEnvironment()
     {
+        // Un écran ajouté, retiré ou redimensionné rend la position d'une notch
+        // détachée incertaine : elle revient au bord, sa place de référence.
+        ForceAttach();
+
         SystemVisualState updated = SystemVisualState.Read();
 
         if (updated != _visualState)
@@ -1650,6 +1680,13 @@ public sealed partial class IslandWindow : Window
             light: light,
             opaque: mode == IslandBackdropMode.Opaque);
 
+        // La goutte est la même matière que la notch ; la bulle aussi, dans sa
+        // propre fenêtre — d'où un pinceau à elle, de même teinte.
+        GooFill.Fill = SurfaceFill.Fill;
+        _bubble.SetSurface(AtmosphericMaskHelper.CreateSolidSurface(
+            light: light,
+            opaque: mode == IslandBackdropMode.Opaque));
+
         // Les contrôles qui ne viennent pas de nos jetons — tout ce que Fluent
         // dessine, à commencer par les boutons d'une scène — suivent le thème
         // demandé **au niveau de la fenêtre**.
@@ -1680,6 +1717,22 @@ public sealed partial class IslandWindow : Window
         // Une entrée annule la fermeture en attente : le pointeur qui revient
         // dans le délai de grâce retrouve l'aperçu au lieu de le faire renaître.
         _previewExitTimer?.Stop();
+
+        // La main qui tient la notch passe sans cesse sur elle : ce n'est pas un
+        // survol, et la forme ne doit pas changer sous elle.
+        if (_dragPhase != DragPhase.None)
+        {
+            return;
+        }
+
+        // Survol prolongé : environ une seconde de pose ouvre la notch, si
+        // l'utilisateur l'a choisi. La pose courte reste un simple aperçu.
+        if (_settings.HoverToExpand && _controller.PresentedActivity is not null)
+        {
+            _hoverExpandTimer ??= CreateOneShotTimer(HoverExpandDwell, OnHoverExpandTick);
+            _hoverExpandTimer.Stop();
+            _hoverExpandTimer.Start();
+        }
 
         if (_settings.HoverToPreview)
         {
@@ -1723,6 +1776,12 @@ public sealed partial class IslandWindow : Window
         // Un passage trop bref n'a jamais été une intention : l'aperçu n'a pas
         // lieu du tout.
         _previewEnterTimer?.Stop();
+        _hoverExpandTimer?.Stop();
+
+        if (_dragPhase != DragPhase.None)
+        {
+            return;
+        }
 
         _previewExitTimer ??= CreateOneShotTimer(PreviewExitGrace, OnPreviewExitTick);
 
@@ -1732,7 +1791,36 @@ public sealed partial class IslandWindow : Window
         WindowChrome.SetKeyboardCapture(_hWnd, enabled: false);
     }
 
-    private void OnPreviewExitTick() => _controller.EndPreview();
+    private void OnPreviewExitTick()
+    {
+        // La notch flottante qu'on vient de lâcher, ou la bulle que le pointeur
+        // vise : l'aperçu reste le temps du geste.
+        if (_dragPhase != DragPhase.None)
+        {
+            return;
+        }
+
+        _controller.EndPreview();
+    }
+
+    private void OnHoverExpandTick()
+    {
+        if (_dragPhase != DragPhase.None || _controller.State is not (IslandState.Closed or IslandState.Preview))
+        {
+            return;
+        }
+
+        RevealPresented();
+    }
+
+    /// <summary>
+    /// Pose avant qu'un survol ouvre la notch, quand l'option est active. Une
+    /// seconde : au-delà des 0,3 à 0,5 s de l'intention, pour qu'un pointeur
+    /// qui ne fait que s'attarder n'ouvre rien.
+    /// </summary>
+    private static readonly TimeSpan HoverExpandDwell = TimeSpan.FromSeconds(1);
+
+    private DispatcherQueueTimer? _hoverExpandTimer;
 
     /// <summary>
     /// Temps de pose avant l'aperçu. Les recommandations d'usage placent
@@ -1760,17 +1848,61 @@ public sealed partial class IslandWindow : Window
         // Le clic exprime l'intention : l'aperçu en attente n'a plus lieu d'être.
         _previewEnterTimer?.Stop();
 
-        if (e.GetCurrentPoint(IslandBody).Properties.IsRightButtonPressed
-            || (_controller.State is IslandState.Closed && _controller.PresentedActivity is null))
+        _hoverExpandTimer?.Stop();
+
+        PointerPointProperties properties = e.GetCurrentPoint(IslandBody).Properties;
+
+        if (properties.IsRightButtonPressed)
         {
             e.Handled = true;
-            _launcherFeature.Show();
-            RevealPresented();
+            OpenLauncher();
+            return;
+        }
+
+        // Forme compacte : l'appui ne décide encore rien. Relâché sur place,
+        // c'est un clic ; tiré, c'est un glisser — l'arrachement au bord, ou le
+        // déplacement d'une notch déjà détachée. Voir IslandWindow.Detach.
+        if (properties.IsLeftButtonPressed
+            && _controller.State is IslandState.Closed or IslandState.Preview
+            && _dragPhase is DragPhase.None or DragPhase.Settling or DragPhase.Unpulling)
+        {
+            e.Handled = true;
+            _pressOpensLauncher = _controller.PresentedActivity is null;
+            BeginPress(e);
+            return;
+        }
+
+        if (_controller.State is IslandState.Closed && _controller.PresentedActivity is null)
+        {
+            e.Handled = true;
+            OpenLauncher();
             return;
         }
 
         _controller.ToggleFromUser();
     }
+
+    /// <summary>Clic validé au relâcher, sur une forme compacte.</summary>
+    private void CommitClick()
+    {
+        if (_pressOpensLauncher && _controller.PresentedActivity is null)
+        {
+            OpenLauncher();
+            return;
+        }
+
+        _controller.ToggleFromUser();
+    }
+
+    /// <summary>Ouvre la grille de fonctions et la montre.</summary>
+    private void OpenLauncher()
+    {
+        _launcherFeature.Show();
+        RevealPresented();
+    }
+
+    /// <summary>L'appui en cours ouvrira la grille de fonctions s'il reste un clic : rien d'autre à déplier.</summary>
+    private bool _pressOpensLauncher;
 
     /// <summary>
     /// Ouvre l'Island sur ce qu'une fonctionnalité vient de présenter.
@@ -2035,6 +2167,20 @@ public sealed partial class IslandWindow : Window
         toggleItem.Click += (_, _) => _controller.ToggleFromUser();
 
         flyout.Items.Add(toggleItem);
+
+        // Détachée, la notch se raccroche aussi d'ici : le geste de la ramener
+        // au bord n'est pas le seul chemin.
+        if (UsesFloatingGeometry)
+        {
+            var attachItem = new MenuFlyoutItem
+            {
+                Text = "Raccrocher au bord de l'écran",
+                Icon = new FontIcon { Glyph = "\uE8A7" }
+            };
+            attachItem.Click += (_, _) => ReattachFromMenu();
+            flyout.Items.Add(attachItem);
+        }
+
         flyout.Items.Add(BuildLaunchMenu());
         flyout.Items.Add(new MenuFlyoutSeparator());
         flyout.Items.Add(BuildActivitiesMenu());
@@ -2292,7 +2438,17 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void OnSettingsChanged(object? sender, AppSettings settings)
     {
+        bool displayChanged = settings.DisplayMode != _settings.DisplayMode
+            || settings.CustomDisplayHandle != _settings.CustomDisplayHandle;
+
         _settings = settings;
+
+        // Le détachement retiré, ou l'écran cible changé : la notch revient au
+        // bord de l'écran qui est désormais le sien.
+        if (!_settings.AllowDetach || displayChanged)
+        {
+            ForceAttach();
+        }
 
         // Un changement de ressort est appliqué à l'animateur en place : la
         // position et la vitesse courantes sont conservées, ce qui évite un à-coup
@@ -2447,6 +2603,9 @@ public sealed partial class IslandWindow : Window
         _previewExitTimer?.Stop();
         _attenuationTimer?.Stop();
         _demoTimer?.Stop();
+        _hoverExpandTimer?.Stop();
+        _bubbleRestTimer?.Stop();
+        HookDetachFrames();
 
         try
         {
@@ -2465,6 +2624,8 @@ public sealed partial class IslandWindow : Window
 
             _settingsWindow?.Close();
             _settingsWindow = null;
+
+            _bubble.Close();
 
             _dropCompletionTimer?.Stop();
             _signalHypnotic?.Dispose();

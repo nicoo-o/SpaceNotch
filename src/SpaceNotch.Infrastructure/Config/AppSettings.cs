@@ -264,6 +264,27 @@ public sealed class AppSettings
     public bool HoverToPreview { get; set; } = true;
 
     /// <summary>
+    /// Un survol prolongé — environ une seconde — ouvre la notch sans clic.
+    /// Désactivé par défaut : le survol court annonce, le clic ouvre, et un
+    /// pointeur qui s'attarde en haut de l'écran n'exprime pas toujours une
+    /// intention.
+    /// </summary>
+    public bool HoverToExpand { get; set; }
+
+    /// <summary>
+    /// La notch peut être arrachée au bord en la tirant vers le bas, puis posée
+    /// librement (ADR-019). Elle revient toujours accrochée au démarrage.
+    /// </summary>
+    public bool AllowDetach { get; set; } = true;
+
+    /// <summary>
+    /// Une activité importante — téléchargement, appel, enregistrement,
+    /// priorité critique — prend une bulle à côté de la notch au lieu
+    /// d'attendre derrière elle.
+    /// </summary>
+    public bool ShowSplitBubble { get; set; } = true;
+
+    /// <summary>
     /// Retire l'Island lorsqu'une application occupe l'écran — jeu, vidéo plein
     /// écran, présentation.
     ///
@@ -301,6 +322,14 @@ public sealed class AppSettings
     /// contenu.
     /// </summary>
     public bool ShowDownloads { get; set; } = true;
+
+    /// <summary>
+    /// Micro et caméra en cours d'utilisation, d'après l'indicateur de
+    /// confidentialité de Windows. Un appel ou un enregistrement prend une bulle
+    /// si une autre activité occupe la notch. Activé par défaut : l'information
+    /// est déjà celle que Windows affiche, et elle ne quitte jamais la machine.
+    /// </summary>
+    public bool ShowPrivacy { get; set; } = true;
 
     /// <summary>Regroupe les activités d'arrière-plan au-delà de la première.</summary>
     public bool ShowActivityStack { get; set; } = true;
@@ -351,6 +380,7 @@ public sealed class AppSettings
         FeatureKeys.Clipboard => ShowClipboard,
         FeatureKeys.FileShelf => ShowFileShelf,
         FeatureKeys.Downloads => ShowDownloads,
+        FeatureKeys.Privacy => ShowPrivacy,
         _ => true
     };
 
@@ -370,6 +400,7 @@ public sealed class AppSettings
         FeatureKeys.Clipboard => true,
         FeatureKeys.FileShelf => true,
         FeatureKeys.Downloads => true,
+        FeatureKeys.Privacy => true,
         _ => false
     };
 
@@ -408,6 +439,10 @@ public sealed class AppSettings
 
             case FeatureKeys.Downloads:
                 ShowDownloads = enabled;
+                return true;
+
+            case FeatureKeys.Privacy:
+                ShowPrivacy = enabled;
                 return true;
 
             default:

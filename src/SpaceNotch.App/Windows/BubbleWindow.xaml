@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="SpaceNotch_App.Windows.BubbleWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:winuiex="using:WinUIEx"
+    Title="SpaceNotch Bulle"
+    mc:Ignorable="d">
+
+    <Window.SystemBackdrop>
+        <winuiex:TransparentTintBackdrop />
+    </Window.SystemBackdrop>
+
+    <!--
+        La bulle : la notch qui se partage pour une activité importante
+        (téléchargement, appel, enregistrement, priorité critique). Une fenêtre à
+        part, pour la même raison que l'ancien satellite : l'espace entre la
+        notch et la bulle n'appartient à aucune fenêtre, et un clic y traverse
+        jusqu'au bureau. Accrochée, c'est une mini-notch — même noir, mêmes
+        épaules concaves, collée au bord ; derrière une notch détachée, c'est un
+        disque qui la suit. Voir ADR-019.
+    -->
+    <Grid
+        x:Name="BubbleRoot"
+        Background="Transparent"
+        PointerPressed="OnBubblePressed"
+        PointerEntered="OnBubblePointerEntered"
+        PointerExited="OnBubblePointerExited">
+
+        <Grid
+            x:Name="BubbleBody"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top">
+
+            <Path
+                x:Name="BubbleFill"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top" />
+
+            <Grid
+                x:Name="BubbleContent"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Width="{StaticResource NfSignalGlyphSize}"
+                Height="{StaticResource NfSignalGlyphSize}">
+
+                <FontIcon
+                    x:Name="BubbleGlyph"
+                    FontSize="{StaticResource NfSignalGlyphSize}"
+                    Foreground="{ThemeResource NfTextPrimaryBrush}"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center" />
+
+                <Grid
+                    x:Name="BubbleHypnoticHost"
+                    Width="{StaticResource NfSignalGlyphSize}"
+                    Height="{StaticResource NfSignalGlyphSize}"
+                    Visibility="Collapsed"
+                    IsHitTestVisible="False" />
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>

@@ -190,6 +190,9 @@
                     TextWrapping="Wrap"
                     Margin="0,0,0,4" />
                 <ToggleSwitch x:Name="HoverToggle" Header="Aperçu au survol" Toggled="OnHoverToggled" />
+                <ToggleSwitch x:Name="HoverExpandToggle" Header="Ouvrir après une seconde de survol" Toggled="OnHoverExpandToggled" />
+                <ToggleSwitch x:Name="DetachToggle" Header="Détacher en tirant vers le bas" Toggled="OnDetachToggled" />
+                <ToggleSwitch x:Name="BubbleToggle" Header="Bulle pour les activités importantes" Toggled="OnBubbleToggled" />
                 <ToggleSwitch x:Name="FullscreenToggle" Header="S'effacer devant le plein écran" Toggled="OnFullscreenToggled" />
                 <ToggleSwitch x:Name="StackToggle" Header="Indicateur de pile d'activités" Toggled="OnStackToggled" />
                 <ToggleSwitch x:Name="ClockToggle" Header="Heure au repos" Toggled="OnClockToggled" />
