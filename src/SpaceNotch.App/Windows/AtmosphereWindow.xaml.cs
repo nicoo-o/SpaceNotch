@@ -4,6 +4,7 @@ using System.Diagnostics;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using SpaceNotch.Core.Animation;
 using SpaceNotch.Core.Motion;
@@ -232,6 +233,13 @@ public sealed partial class AtmosphereWindow : Window
         FadeHost.Height = contentHeight;
         FadeHost.Opacity = _deployment;
 
+        // La pluie tombe du bas de la notch, sur sa largeur.
+        if (_rainActive)
+        {
+            RainHost.Width = placement.WidthDip;
+            RainHost.Margin = new Thickness(0, placement.HeightDip + 2, 0, 0);
+        }
+
         if (_surface is not null)
         {
             // Le fondu commence juste au-dessus du bas du corps : les derniers
@@ -323,21 +331,124 @@ public sealed partial class AtmosphereWindow : Window
         if (preset == HypnoticPreset.None || amplitude <= 0 || !UseSpringAnimations)
         {
             _surface.SetPulse([], TimeSpan.Zero, loop: false);
+
+            // La dérive de couleur s'arrête là où elle était : la teinte de
+            // l'atmosphère est reposée, sinon elle garderait la dernière couleur
+            // de la grille jusqu'au prochain changement d'activité.
+            _surface.SetTint(_tintCurrent);
             return;
         }
 
         double depth = Math.Clamp(amplitude, 0, 1);
         var curve = new List<(double, double)>();
+        var colors = new List<(double, Color)>();
 
-        foreach ((double progress, HypnoticFrame frame) in HypnoticField.Sample(preset))
+        foreach ((double progress, HypnoticFrame frame) in HypnoticField.Keyframes(preset))
         {
             curve.Add((progress, 1 - (depth * (1 - frame.AmbientPulse))));
+            colors.Add((progress, Color.FromArgb(0xFF, frame.Color.R, frame.Color.G, frame.Color.B)));
         }
 
         _surface.SetPulse(
             curve,
             TimeSpan.FromSeconds(HypnoticField.PeriodSeconds(preset)),
-            HypnoticField.IsLooping(preset));
+            HypnoticField.IsLooping(preset),
+            colors);
+    }
+
+    /// <summary>
+    /// Pluie binaire : quelques colonnes de « 0 » et de « 1 » qui tombent sous la
+    /// notch pendant un traitement, comme dans la référence vidéo.
+    ///
+    /// <para>
+    /// Option, désactivée par défaut. Elle vit dans la fenêtre décorative — donc
+    /// clic-traversante — et n'existe que pendant le travail : chaque colonne
+    /// glisse et s'efface par une animation du compositeur, puis tout est arrêté
+    /// et retiré. Aucun texte n'est réécrit pendant la chute.
+    /// </para>
+    /// </summary>
+    public void SetBinaryRain(bool active)
+    {
+        if (active == _rainActive)
+        {
+            return;
+        }
+
+        _rainActive = active;
+
+        foreach (UIElement column in RainHost.Children)
+        {
+            Microsoft.UI.Composition.Visual visual = ElementCompositionPreview.GetElementVisual(column);
+            visual.StopAnimation("Translation");
+            visual.StopAnimation("Opacity");
+        }
+
+        RainHost.Children.Clear();
+        RainHost.Visibility = active ? Visibility.Visible : Visibility.Collapsed;
+
+        if (!active)
+        {
+            return;
+        }
+
+        var compositor = ElementCompositionPreview.GetElementVisual(RainHost).Compositor;
+        var random = new Random();
+        double width = Math.Max(RainHost.Width, 80);
+
+        for (int i = 0; i < RainColumns; i++)
+        {
+            var column = new Microsoft.UI.Xaml.Controls.TextBlock
+            {
+                Text = string.Join('\n', RandomBits(random, 4)),
+                FontFamily = new FontFamily("Cascadia Mono, Consolas"),
+                FontSize = 8,
+                LineHeight = 9,
+                Opacity = 1,
+                Foreground = new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF)),
+                IsHitTestVisible = false
+            };
+
+            Microsoft.UI.Xaml.Controls.Canvas.SetLeft(column, (width / (RainColumns + 1) * (i + 1)) + random.Next(-6, 7));
+            Microsoft.UI.Xaml.Controls.Canvas.SetTop(column, 0);
+            RainHost.Children.Add(column);
+
+            ElementCompositionPreview.SetIsTranslationEnabled(column, true);
+            Microsoft.UI.Composition.Visual visual = ElementCompositionPreview.GetElementVisual(column);
+
+            TimeSpan fall = TimeSpan.FromMilliseconds(1600 + random.Next(0, 1000));
+            TimeSpan delay = TimeSpan.FromMilliseconds(random.Next(0, 1200));
+
+            var drop = compositor.CreateVector3KeyFrameAnimation();
+            drop.InsertKeyFrame(0f, new System.Numerics.Vector3(0, -12, 0));
+            drop.InsertKeyFrame(1f, new System.Numerics.Vector3(0, 30, 0));
+            drop.Duration = fall;
+            drop.DelayTime = delay;
+            drop.IterationBehavior = Microsoft.UI.Composition.AnimationIterationBehavior.Forever;
+
+            var fade = compositor.CreateScalarKeyFrameAnimation();
+            fade.InsertKeyFrame(0f, 0f);
+            fade.InsertKeyFrame(0.3f, 1f);
+            fade.InsertKeyFrame(1f, 0f);
+            fade.Duration = fall;
+            fade.DelayTime = delay;
+            fade.IterationBehavior = Microsoft.UI.Composition.AnimationIterationBehavior.Forever;
+
+            visual.Opacity = 0f;
+            visual.StartAnimation("Translation", drop);
+            visual.StartAnimation("Opacity", fade);
+        }
+    }
+
+    private const int RainColumns = 6;
+
+    private bool _rainActive;
+
+    private static IEnumerable<char> RandomBits(Random random, int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            yield return random.Next(2) == 0 ? '0' : '1';
+        }
     }
 
     /// <summary>Rétablit l'ordre attendu : le corps interactif reste au-dessus.</summary>

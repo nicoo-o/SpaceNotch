@@ -229,7 +229,16 @@ public sealed class AtmosphericSurface : IDisposable
     /// <param name="curve">Couples (avancement de 0 à 1, facteur d'opacité de 0 à 1).</param>
     /// <param name="period">Durée d'un cycle.</param>
     /// <param name="loop">Vrai pour boucler, faux pour un passage unique.</param>
-    public void SetPulse(IReadOnlyList<(double Progress, double Factor)> curve, TimeSpan period, bool loop)
+    /// <param name="colors">
+    /// Couleurs de la matière aux mêmes avancements, ou <c>null</c> pour garder
+    /// la teinte courante. Fournies, elles font dériver la dissolution avec la
+    /// grille hypnotique : une seule lumière, deux surfaces.
+    /// </param>
+    public void SetPulse(
+        IReadOnlyList<(double Progress, double Factor)> curve,
+        TimeSpan period,
+        bool loop,
+        IReadOnlyList<(double Progress, Color Color)>? colors = null)
     {
         if (_disposed)
         {
@@ -237,11 +246,39 @@ public sealed class AtmosphericSurface : IDisposable
         }
 
         _pulse.StopAnimation("Opacity");
+        _tint.StopAnimation("Color");
 
         if (curve.Count < 2 || period <= TimeSpan.Zero)
         {
             _pulse.Opacity = 1f;
             return;
+        }
+
+        if (colors is { Count: >= 2 })
+        {
+            ColorKeyFrameAnimation drift = _compositor.CreateColorKeyFrameAnimation();
+            CompositionEasingFunction easing = _compositor.CreateLinearEasingFunction();
+            byte alpha = _tint.Color.A;
+
+            foreach ((double progress, Color color) in colors)
+            {
+                drift.InsertKeyFrame(
+                    (float)Math.Clamp(progress, 0, 1),
+                    Color.FromArgb(alpha, color.R, color.G, color.B),
+                    easing);
+            }
+
+            drift.Duration = period;
+            drift.IterationBehavior = loop
+                ? AnimationIterationBehavior.Forever
+                : AnimationIterationBehavior.Count;
+
+            if (!loop)
+            {
+                drift.IterationCount = 1;
+            }
+
+            _tint.StartAnimation("Color", drift);
         }
 
         ScalarKeyFrameAnimation animation = _compositor.CreateScalarKeyFrameAnimation();

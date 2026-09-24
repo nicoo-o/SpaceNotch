@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
-using Microsoft.UI;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Hosting;
@@ -11,60 +10,48 @@ using Windows.UI;
 namespace SpaceNotch_App.Composition;
 
 /// <summary>
-/// Rendu du mouvement hypnotique : une source lumineuse, son halo et quelques
-/// particules, confiés au compositeur.
+/// Rendu de la grille hypnotique : neuf pixels lumineux et leur halo, confiés
+/// au compositeur.
 ///
 /// <para>
-/// <b>Aucune image n'est calculée ici.</b> Le champ est une fonction pure du
-/// temps, décrite dans le cœur (<see cref="HypnoticField"/>). Cette classe en
-/// échantillonne une boucle, la transforme en images clés, et le compositeur la
-/// rejoue seul sur le GPU. Le fil d'interface est libre pendant que la matière
-/// bouge ; au repos, les animations sont arrêtées et les visuels masqués — le
-/// moteur ne coûte rien.
+/// <b>Aucune image n'est calculée ici.</b> La grille est décrite dans le cœur
+/// (<see cref="HypnoticField"/>) comme une fonction linéaire par morceaux ; ses
+/// images clés exactes sont transmises au compositeur, qui les rejoue seul sur
+/// le GPU. Pendant que la grille vit, le fil d'interface est libre ; au repos,
+/// les animations sont arrêtées et les visuels masqués.
 /// </para>
 ///
 /// <para>
-/// <b>La lumière appartient à la notch.</b> Les visuels sont attachés à un
-/// élément de la notch et ne débordent que de leur halo : la matière vit dans la
-/// surface et se diffuse éventuellement dans l'atmosphère, elle ne flotte jamais
-/// hors de la forme.
+/// <b>Le halo est une ombre.</b> Les pixels vivent dans un <c>LayerVisual</c>
+/// portant une ombre sans décalage, de la couleur des pixels : le compositeur
+/// floute la forme exacte des pixels allumés, image par image. C'est le « bloom »
+/// de la référence, sans shader et sans rendu supplémentaire.
 /// </para>
 ///
 /// <para>
-/// Comme les autres décorations, la classe est tolérante : si le compositeur
-/// refuse les visuels, <see cref="TryAttach"/> renvoie <c>null</c> et l'appelant
-/// garde son glyphe fixe.
+/// Tolérante comme les autres décorations : si le compositeur refuse les
+/// visuels, <see cref="TryAttach"/> renvoie <c>null</c> et l'appelant garde son
+/// glyphe fixe.
 /// </para>
 /// </summary>
 public sealed class HypnoticSurface : IDisposable
 {
-    /// <summary>Diamètre de la source, relatif au demi-côté de l'hôte.</summary>
-    private const float CoreDiameter = 1.05f;
+    /// <summary>Écart entre pixels, relatif au côté de la grille : les pixels se touchent presque.</summary>
+    private const float GapRatio = 0.04f;
 
-    /// <summary>Diamètre du halo : il déborde volontairement de l'hôte, dans la surface noire.</summary>
-    private const float HaloDiameter = 3.2f;
-
-    /// <summary>Diamètre d'une particule à l'échelle 1.</summary>
-    private const float MoteDiameter = 0.95f;
-
-    /// <summary>Part de l'hôte que les particules parcourent : elles n'en touchent jamais le bord.</summary>
-    private const float Travel = 0.88f;
-
-    private static readonly string[] AnimatedProperties = ["Offset", "Scale", "Opacity"];
+    /// <summary>Rayon du halo, relatif au côté de la grille.</summary>
+    private const float BloomRatio = 0.55f;
 
     private readonly Compositor _compositor;
     private readonly FrameworkElement _host;
-    private readonly ContainerVisual _root;
-    private readonly SpriteVisual _halo;
-    private readonly SpriteVisual _core;
-    private readonly SpriteVisual[] _motes = new SpriteVisual[HypnoticField.MoteCount];
-    private readonly List<CompositionColorGradientStop> _tintedStops = [];
-    private readonly List<CompositionObject> _owned = [];
+    private readonly LayerVisual _layer;
+    private readonly DropShadow _bloom;
+    private readonly CompositionColorBrush _ink;
+    private readonly SpriteVisual[] _cells = new SpriteVisual[HypnoticField.CellCount];
     private readonly CompositionEasingFunction _linear;
 
     private HypnoticPreset _preset = HypnoticPreset.None;
     private bool _animate = true;
-    private Color _tint = Color.FromArgb(0xFF, 0xFF, 0xB4, 0x6A);
     private CompositionScopedBatch? _batch;
     private bool _disposed;
 
@@ -74,24 +61,28 @@ public sealed class HypnoticSurface : IDisposable
         _host = host;
         _linear = compositor.CreateLinearEasingFunction();
 
-        _root = compositor.CreateContainerVisual();
-        _root.IsVisible = false;
+        HypnoticColor warm = HypnoticField.WarmLight;
+        _ink = compositor.CreateColorBrush(Color.FromArgb(0xFF, warm.R, warm.G, warm.B));
 
-        // Ordre de dessin : le halo sous la source, les particules au-dessus —
-        // elles passent devant la lumière, ce qui donne la profondeur.
-        _halo = CreateGlow(Color.FromArgb(0x90, _tint.R, _tint.G, _tint.B), 0.0f);
-        _core = CreateGlow(Colors.White, 0.28f);
+        _layer = compositor.CreateLayerVisual();
+        _layer.IsVisible = false;
 
-        _root.Children.InsertAtTop(_halo);
-        _root.Children.InsertAtTop(_core);
+        _bloom = compositor.CreateDropShadow();
+        _bloom.Offset = Vector3.Zero;
+        _bloom.Color = _ink.Color;
+        _bloom.Opacity = 0f;
+        _layer.Shadow = _bloom;
 
-        for (int i = 0; i < _motes.Length; i++)
+        for (int i = 0; i < _cells.Length; i++)
         {
-            _motes[i] = CreateGlow(Color.FromArgb(0xFF, 0xFF, 0xF1, 0xDC), 0.18f);
-            _root.Children.InsertAtTop(_motes[i]);
+            SpriteVisual cell = compositor.CreateSpriteVisual();
+            cell.Brush = _ink;
+            cell.Opacity = 0f;
+            _cells[i] = cell;
+            _layer.Children.InsertAtTop(cell);
         }
 
-        ElementCompositionPreview.SetElementChildVisual(host, _root);
+        ElementCompositionPreview.SetElementChildVisual(host, _layer);
 
         _host.SizeChanged += OnHostSizeChanged;
 
@@ -105,15 +96,14 @@ public sealed class HypnoticSurface : IDisposable
     public HypnoticPreset Preset => _preset;
 
     /// <summary>
-    /// Signalé à la fin d'un préréglage ponctuel — achèvement ou échec — pour
-    /// que l'appelant puisse passer à la suite : retour au repos, résultat.
+    /// Signalé à la fin d'un préréglage ponctuel — achèvement ou échec — pour que
+    /// l'appelant passe à la suite.
     /// </summary>
     public event EventHandler<HypnoticPreset>? OneShotCompleted;
 
     /// <summary>
     /// Tente d'attacher le rendu à un élément hôte. Renvoie <c>null</c> si le
-    /// compositeur refuse : une décoration ne doit jamais empêcher la notch de
-    /// s'afficher.
+    /// compositeur refuse.
     /// </summary>
     public static HypnoticSurface? TryAttach(FrameworkElement host)
     {
@@ -132,32 +122,12 @@ public sealed class HypnoticSurface : IDisposable
     }
 
     /// <summary>
-    /// Change la teinte de la lumière. La source reste blanche en son cœur :
-    /// c'est ce qui la fait lire comme une lumière et non comme une pastille
-    /// colorée.
-    /// </summary>
-    public void SetTint(Color tint)
-    {
-        if (_disposed || (tint.R == _tint.R && tint.G == _tint.G && tint.B == _tint.B))
-        {
-            return;
-        }
-
-        _tint = tint;
-
-        foreach (CompositionColorGradientStop stop in _tintedStops)
-        {
-            stop.Color = Color.FromArgb(stop.Color.A, tint.R, tint.G, tint.B);
-        }
-    }
-
-    /// <summary>
     /// Affiche un préréglage.
     /// </summary>
     /// <param name="preset">Préréglage ; <see cref="HypnoticPreset.None"/> arrête et masque.</param>
     /// <param name="animate">
-    /// Faux sous réduction des animations : la composition est posée fixe, sur
-    /// une image représentative. L'information reste, le mouvement part.
+    /// Faux sous réduction des animations : un motif fixe est posé, dans la
+    /// couleur du préréglage. L'information reste, le mouvement part.
     /// </param>
     public void SetPreset(HypnoticPreset preset, bool animate)
     {
@@ -172,7 +142,7 @@ public sealed class HypnoticSurface : IDisposable
         _animate = animate;
 
         // Une boucle déjà en cours n'est pas relancée : la relancer ferait
-        // sauter la matière à son image de départ à chaque rendu.
+        // sauter la grille à son premier motif à chaque rendu.
         if (unchanged && preset != HypnoticPreset.None && HypnoticField.IsLooping(preset))
         {
             return;
@@ -183,9 +153,8 @@ public sealed class HypnoticSurface : IDisposable
 
     private void OnHostSizeChanged(object sender, SizeChangedEventArgs e)
     {
-        // Les positions sont exprimées en DIPs de l'hôte : une taille nouvelle
-        // oblige à recuire les images clés, ce qui n'arrive qu'au changement de
-        // palier, jamais à chaque image.
+        // Les positions sont en DIPs de l'hôte : une taille nouvelle oblige à
+        // redisposer la grille, ce qui n'arrive qu'au changement de palier.
         if (_preset != HypnoticPreset.None)
         {
             Apply();
@@ -198,99 +167,138 @@ public sealed class HypnoticSurface : IDisposable
 
         if (_preset == HypnoticPreset.None)
         {
-            _root.IsVisible = false;
+            _layer.IsVisible = false;
             return;
         }
 
-        var size = new Vector2((float)_host.ActualWidth, (float)_host.ActualHeight);
+        float side = (float)Math.Min(_host.ActualWidth, _host.ActualHeight);
 
-        if (size.X <= 0 || size.Y <= 0)
+        if (side <= 0)
         {
             // L'hôte n'est pas encore disposé : SizeChanged rappellera.
             return;
         }
 
-        _root.IsVisible = true;
-        _root.Size = size;
+        Layout(side, new Vector2((float)_host.ActualWidth, (float)_host.ActualHeight));
 
-        float unit = Math.Min(size.X, size.Y) / 2;
-
-        SetDiameter(_halo, unit * HaloDiameter);
-        SetDiameter(_core, unit * CoreDiameter);
-
-        foreach (SpriteVisual mote in _motes)
-        {
-            SetDiameter(mote, unit * MoteDiameter);
-        }
+        _layer.IsVisible = true;
 
         if (!_animate)
         {
-            Pose(HypnoticField.StaticFrame(_preset), size);
+            Pose(HypnoticField.StaticFrame(_preset), side);
             return;
         }
 
-        Animate(size);
+        Animate(side);
     }
 
-    /// <summary>Pose une image fixe, sans aucune animation.</summary>
-    private void Pose(HypnoticFrame frame, Vector2 size)
+    /// <summary>Dispose la grille au centre de l'hôte.</summary>
+    private void Layout(float side, Vector2 host)
     {
-        Vector2 centre = size / 2;
-        Vector2 reach = centre * Travel;
+        float gap = side * GapRatio;
+        float cell = (side - (2 * gap)) / HypnoticField.GridSize;
 
-        _core.Offset = new Vector3(centre.X + ((float)frame.CoreOffsetX * reach.X), centre.Y, 0);
-        _core.Scale = Uniform(frame.CoreScale);
-        _core.Opacity = (float)frame.CoreIntensity;
+        _layer.Size = new Vector2(side, side);
+        _layer.Offset = new Vector3((host.X - side) / 2, (host.Y - side) / 2, 0);
+        _bloom.BlurRadius = side * BloomRatio;
 
-        _halo.Offset = new Vector3(centre, 0);
-        _halo.Scale = Uniform(frame.HaloScale);
-        _halo.Opacity = (float)frame.HaloIntensity;
-
-        for (int i = 0; i < _motes.Length; i++)
+        for (int i = 0; i < _cells.Length; i++)
         {
-            HypnoticMote mote = frame.Motes[i];
-            _motes[i].Offset = MotePosition(mote, centre, reach);
-            _motes[i].Scale = Uniform(mote.Scale);
-            _motes[i].Opacity = (float)mote.Intensity;
+            int column = i % HypnoticField.GridSize;
+            int row = i / HypnoticField.GridSize;
+
+            _cells[i].Size = new Vector2(cell, cell);
+            _cells[i].Offset = new Vector3(column * (cell + gap), row * (cell + gap), 0);
         }
     }
 
-    /// <summary>
-    /// Cuit le préréglage en images clés et les confie au compositeur.
-    /// </summary>
-    private void Animate(Vector2 size)
+    /// <summary>Pose une image fixe, sans aucune animation.</summary>
+    private void Pose(HypnoticFrame frame, float side)
     {
-        IReadOnlyList<(double Progress, HypnoticFrame Frame)> samples = HypnoticField.Sample(_preset);
+        Color color = ToColor(frame.Color);
+
+        _ink.Color = color;
+        _bloom.Color = color;
+        _bloom.Opacity = (float)frame.Bloom;
+
+        Vector3 offset = _layer.Offset;
+        _layer.Offset = new Vector3(offset.X + ((float)frame.ShakeX * side), offset.Y, 0);
+
+        for (int i = 0; i < _cells.Length; i++)
+        {
+            _cells[i].Opacity = (float)frame.Cells[i];
+        }
+    }
+
+    /// <summary>Transmet les images clés exactes au compositeur.</summary>
+    private void Animate(float side)
+    {
+        IReadOnlyList<(double Progress, HypnoticFrame Frame)> keys = HypnoticField.Keyframes(_preset);
         bool loop = HypnoticField.IsLooping(_preset);
         TimeSpan duration = TimeSpan.FromSeconds(HypnoticField.PeriodSeconds(_preset));
 
-        Vector2 centre = size / 2;
-        Vector2 reach = centre * Travel;
-
-        // La première image est posée directement : pendant l'instant qui précède
-        // le démarrage des animations, la matière est déjà à sa place.
-        Pose(samples[0].Frame, size);
+        // La première image est posée directement : la grille est déjà en place
+        // pendant l'instant qui précède le démarrage des animations.
+        Pose(keys[0].Frame, side);
 
         CompositionScopedBatch? batch = loop ? null : _compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
 
-        Start(_core, samples, duration, loop,
-            frame => new Vector3(centre.X + ((float)frame.CoreOffsetX * reach.X), centre.Y, 0),
-            frame => Uniform(frame.CoreScale),
-            frame => frame.CoreIntensity);
+        ColorKeyFrameAnimation colors = _compositor.CreateColorKeyFrameAnimation();
+        ScalarKeyFrameAnimation bloom = _compositor.CreateScalarKeyFrameAnimation();
+        var cells = new ScalarKeyFrameAnimation[_cells.Length];
 
-        Start(_halo, samples, duration, loop,
-            _ => new Vector3(centre, 0),
-            frame => Uniform(frame.HaloScale),
-            frame => frame.HaloIntensity);
-
-        for (int i = 0; i < _motes.Length; i++)
+        for (int i = 0; i < cells.Length; i++)
         {
-            int index = i;
+            cells[i] = _compositor.CreateScalarKeyFrameAnimation();
+        }
 
-            Start(_motes[i], samples, duration, loop,
-                frame => MotePosition(frame.Motes[index], centre, reach),
-                frame => Uniform(frame.Motes[index].Scale),
-                frame => frame.Motes[index].Intensity);
+        Vector3KeyFrameAnimation? shake = null;
+        bool shakes = false;
+
+        foreach ((double progress, HypnoticFrame frame) in keys)
+        {
+            shakes |= Math.Abs(frame.ShakeX) > 1e-6;
+        }
+
+        if (shakes)
+        {
+            shake = _compositor.CreateVector3KeyFrameAnimation();
+        }
+
+        Vector3 origin = _layer.Offset;
+
+        foreach ((double progress, HypnoticFrame frame) in keys)
+        {
+            float key = (float)Math.Clamp(progress, 0, 1);
+
+            colors.InsertKeyFrame(key, ToColor(frame.Color), _linear);
+            bloom.InsertKeyFrame(key, (float)frame.Bloom, _linear);
+
+            for (int i = 0; i < cells.Length; i++)
+            {
+                cells[i].InsertKeyFrame(key, (float)frame.Cells[i], _linear);
+            }
+
+            shake?.InsertKeyFrame(key, new Vector3(origin.X + ((float)frame.ShakeX * side), origin.Y, 0), _linear);
+        }
+
+        Configure(colors, duration, loop);
+        Configure(bloom, duration, loop);
+
+        _ink.StartAnimation("Color", colors);
+        _bloom.StartAnimation("Color", colors);
+        _bloom.StartAnimation("Opacity", bloom);
+
+        for (int i = 0; i < cells.Length; i++)
+        {
+            Configure(cells[i], duration, loop);
+            _cells[i].StartAnimation("Opacity", cells[i]);
+        }
+
+        if (shake is not null)
+        {
+            Configure(shake, duration, loop);
+            _layer.StartAnimation("Offset", shake);
         }
 
         if (batch is null)
@@ -313,134 +321,38 @@ public sealed class HypnoticSurface : IDisposable
         _batch = batch;
     }
 
-    private void Start(
-        SpriteVisual visual,
-        IReadOnlyList<(double Progress, HypnoticFrame Frame)> samples,
-        TimeSpan duration,
-        bool loop,
-        Func<HypnoticFrame, Vector3> offset,
-        Func<HypnoticFrame, Vector3> scale,
-        Func<HypnoticFrame, double> opacity)
+    private static void Configure(KeyFrameAnimation animation, TimeSpan duration, bool loop)
     {
-        Vector3KeyFrameAnimation offsets = _compositor.CreateVector3KeyFrameAnimation();
-        Vector3KeyFrameAnimation scales = _compositor.CreateVector3KeyFrameAnimation();
-        ScalarKeyFrameAnimation opacities = _compositor.CreateScalarKeyFrameAnimation();
+        animation.Duration = duration;
+        animation.IterationBehavior = loop
+            ? AnimationIterationBehavior.Forever
+            : AnimationIterationBehavior.Count;
 
-        foreach ((double progress, HypnoticFrame frame) in samples)
+        if (!loop)
         {
-            float key = (float)progress;
-
-            offsets.InsertKeyFrame(key, offset(frame), _linear);
-            scales.InsertKeyFrame(key, scale(frame), _linear);
-            opacities.InsertKeyFrame(key, (float)Math.Clamp(opacity(frame), 0, 1), _linear);
+            animation.IterationCount = 1;
         }
-
-        foreach (KeyFrameAnimation animation in new KeyFrameAnimation[] { offsets, scales, opacities })
-        {
-            animation.Duration = duration;
-            animation.IterationBehavior = loop
-                ? AnimationIterationBehavior.Forever
-                : AnimationIterationBehavior.Count;
-
-            if (!loop)
-            {
-                animation.IterationCount = 1;
-            }
-        }
-
-        visual.StartAnimation("Offset", offsets);
-        visual.StartAnimation("Scale", scales);
-        visual.StartAnimation("Opacity", opacities);
     }
 
     private void StopAll()
     {
         // Un passage unique interrompu ne signale pas sa fin : le lot est oublié
-        // avant l'arrêt, si bien que son achèvement n'est plus reconnu.
+        // avant l'arrêt.
         _batch?.Dispose();
         _batch = null;
 
-        foreach (SpriteVisual visual in Visuals())
+        _ink.StopAnimation("Color");
+        _bloom.StopAnimation("Color");
+        _bloom.StopAnimation("Opacity");
+        _layer.StopAnimation("Offset");
+
+        foreach (SpriteVisual cell in _cells)
         {
-            foreach (string property in AnimatedProperties)
-            {
-                visual.StopAnimation(property);
-            }
+            cell.StopAnimation("Opacity");
         }
     }
 
-    private IEnumerable<SpriteVisual> Visuals()
-    {
-        yield return _halo;
-        yield return _core;
-
-        foreach (SpriteVisual mote in _motes)
-        {
-            yield return mote;
-        }
-    }
-
-    private static Vector3 MotePosition(HypnoticMote mote, Vector2 centre, Vector2 reach)
-        => new(centre.X + ((float)mote.X * reach.X), centre.Y + ((float)mote.Y * reach.Y), 0);
-
-    private static Vector3 Uniform(double scale) => new((float)scale, (float)scale, 1);
-
-    private static void SetDiameter(SpriteVisual visual, float diameter)
-    {
-        visual.Size = new Vector2(diameter, diameter);
-        visual.CenterPoint = new Vector3(diameter / 2, diameter / 2, 0);
-    }
-
-    /// <summary>
-    /// Une lumière ronde : un dégradé radial du centre vers la transparence.
-    /// </summary>
-    /// <param name="centre">Couleur du centre.</param>
-    /// <param name="hotSpot">
-    /// Part du rayon occupée par un cœur teinté avant la décroissance. Zéro pour
-    /// une lumière qui décroît dès le centre — le halo.
-    /// </param>
-    private SpriteVisual CreateGlow(Color centre, float hotSpot)
-    {
-        CompositionRadialGradientBrush brush = _compositor.CreateRadialGradientBrush();
-        brush.MappingMode = CompositionMappingMode.Relative;
-        brush.EllipseCenter = new Vector2(0.5f, 0.5f);
-        brush.EllipseRadius = new Vector2(0.5f, 0.5f);
-
-        CompositionColorGradientStop inner = _compositor.CreateColorGradientStop(0f, centre);
-        brush.ColorStops.Add(inner);
-
-        if (hotSpot > 0)
-        {
-            CompositionColorGradientStop tinted = _compositor.CreateColorGradientStop(
-                hotSpot,
-                Color.FromArgb(0xE6, _tint.R, _tint.G, _tint.B));
-            brush.ColorStops.Add(tinted);
-            _tintedStops.Add(tinted);
-            _owned.Add(tinted);
-        }
-        else
-        {
-            _tintedStops.Add(inner);
-        }
-
-        CompositionColorGradientStop outer = _compositor.CreateColorGradientStop(
-            1f,
-            Color.FromArgb(0, _tint.R, _tint.G, _tint.B));
-        brush.ColorStops.Add(outer);
-        _tintedStops.Add(outer);
-
-        SpriteVisual visual = _compositor.CreateSpriteVisual();
-        visual.Brush = brush;
-        visual.AnchorPoint = new Vector2(0.5f, 0.5f);
-        visual.Opacity = 0f;
-
-        _owned.Add(inner);
-        _owned.Add(outer);
-        _owned.Add(brush);
-        _owned.Add(visual);
-
-        return visual;
-    }
+    private static Color ToColor(HypnoticColor color) => Color.FromArgb(0xFF, color.R, color.G, color.B);
 
     public void Dispose()
     {
@@ -456,16 +368,18 @@ public sealed class HypnoticSurface : IDisposable
         try
         {
             StopAll();
-            _root.Children.RemoveAll();
+            _layer.Shadow = null;
+            _layer.Children.RemoveAll();
 
-            foreach (CompositionObject owned in _owned)
+            foreach (SpriteVisual cell in _cells)
             {
-                owned.Dispose();
+                cell.Dispose();
             }
 
-            _batch?.Dispose();
+            _bloom.Dispose();
+            _ink.Dispose();
             _linear.Dispose();
-            _root.Dispose();
+            _layer.Dispose();
         }
         catch (Exception)
         {

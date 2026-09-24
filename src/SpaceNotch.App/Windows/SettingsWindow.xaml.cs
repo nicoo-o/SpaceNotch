@@ -186,6 +186,7 @@ public sealed partial class SettingsWindow : Window
 
             BouncyToggle.IsOn = settings.AllowBouncyAnimations;
             HypnoticToggle.IsOn = settings.AllowHypnoticMotion;
+            RainToggle.IsOn = settings.ShowBinaryRain;
             HoverToggle.IsOn = settings.HoverToPreview;
             FullscreenToggle.IsOn = settings.HideOverFullscreen;
             StackToggle.IsOn = settings.ShowActivityStack;
@@ -454,6 +455,9 @@ public sealed partial class SettingsWindow : Window
 
     private void OnHypnoticToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.AllowHypnoticMotion = HypnoticToggle.IsOn);
+
+    private void OnRainToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.ShowBinaryRain = RainToggle.IsOn);
 
     private void OnFullscreenToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.HideOverFullscreen = FullscreenToggle.IsOn);

@@ -371,28 +371,24 @@ public sealed partial class IslandWindow : Window
     private bool AnimateHypnotic() => UseSpringAnimations() && _settings.AllowHypnoticMotion;
 
     /// <summary>
-    /// Donne à un emplacement de glyphe sa matière hypnotique, ou son glyphe.
-    /// Jamais les deux : la matière remplace l'icône, elle ne s'y superpose pas.
+    /// Donne à un emplacement de glyphe sa grille hypnotique, ou son glyphe.
+    /// Jamais les deux : la grille remplace l'icône, elle ne s'y superpose pas.
+    /// La couleur appartient au préréglage — bleu pour lire, orange pour
+    /// réfléchir, dérive pêche → lavande pour construire — comme dans la
+    /// référence : elle dit ce qui se passe.
     /// </summary>
     private void ApplyHypnoticSlot(
         HypnoticSurface? surface,
         FrameworkElement host,
         FrameworkElement glyph,
-        HypnoticPreset preset,
-        Color tint)
+        HypnoticPreset preset)
     {
         bool hypnotic = surface is not null && preset != HypnoticPreset.None;
 
         host.Visibility = hypnotic ? Visibility.Visible : Visibility.Collapsed;
         glyph.Visibility = hypnotic ? Visibility.Collapsed : Visibility.Visible;
 
-        if (surface is null)
-        {
-            return;
-        }
-
-        surface.SetTint(tint);
-        surface.SetPreset(hypnotic ? preset : HypnoticPreset.None, AnimateHypnotic());
+        surface?.SetPreset(hypnotic ? preset : HypnoticPreset.None, AnimateHypnotic());
     }
 
     /// <summary>Arrête la matière des paliers de repos, qui ne sont plus visibles.</summary>
@@ -401,32 +397,6 @@ public sealed partial class IslandWindow : Window
         _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
         _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
     }
-
-    /// <summary>
-    /// Teinte de la matière : celle de l'état s'il en porte une, sinon la
-    /// lumière chaude de la référence — une source neutre et blanche se lirait
-    /// comme un voyant, pas comme une matière qui travaille.
-    /// </summary>
-    private static Color HypnoticTint(IslandActivity activity)
-    {
-        if (activity.MotionState == ActivityMotionState.Error)
-        {
-            return Color.FromArgb(0xFF, 0xF0, 0x83, 0x6B);
-        }
-
-        if (activity.State is IslandActivityState.Idle or IslandActivityState.SystemHud)
-        {
-            return WarmHypnoticTint();
-        }
-
-        return StatePalette.Tint(activity.State);
-    }
-
-    private static Color WarmHypnoticTint()
-        => Application.Current?.Resources?.TryGetValue("NfHypnoticWarmColor", out object? value) == true
-            && value is Color color
-                ? color
-                : Color.FromArgb(0xFF, 0xFF, 0xB4, 0x6A);
 
     // ------------------------------------------------------------------
     // Résolution des scènes
@@ -735,7 +705,6 @@ public sealed partial class IslandWindow : Window
             : _tier;
 
         HypnoticPreset preset = HypnoticField.Resolve(activity.MotionState, activity.MotionPreset);
-        Color tint = HypnoticTint(activity);
 
         if (shown == IslandPresentationTier.Signal)
         {
@@ -744,7 +713,7 @@ public sealed partial class IslandWindow : Window
             SignalRestView.Visibility = Visibility.Visible;
 
             _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
-            ApplyHypnoticSlot(_signalHypnotic, SignalHypnoticHost, SignalGlyph, preset, tint);
+            ApplyHypnoticSlot(_signalHypnotic, SignalHypnoticHost, SignalGlyph, preset);
             return;
         }
 
@@ -773,7 +742,7 @@ public sealed partial class IslandWindow : Window
         CardRestView.Visibility = Visibility.Visible;
 
         _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
-        ApplyHypnoticSlot(_cardHypnotic, CardHypnoticHost, CardGlyph, preset, tint);
+        ApplyHypnoticSlot(_cardHypnotic, CardHypnoticHost, CardGlyph, preset);
     }
 
     /// <summary>
@@ -960,6 +929,7 @@ public sealed partial class IslandWindow : Window
         {
             _atmospherePreset = preset;
             _atmosphere.SetHypnoticPulse(preset, ambient.Pulse);
+            _atmosphere.SetBinaryRain(_settings.ShowBinaryRain && preset == HypnoticPreset.Process);
         }
     }
 
@@ -1714,7 +1684,6 @@ public sealed partial class IslandWindow : Window
         bool hypnotic = _dropHypnotic is not null && preset != HypnoticPreset.None;
 
         DropGlyph.Visibility = hypnotic ? Visibility.Collapsed : Visibility.Visible;
-        _dropHypnotic?.SetTint(WarmHypnoticTint());
         _dropHypnotic?.SetPreset(preset, AnimateHypnotic());
     }
 

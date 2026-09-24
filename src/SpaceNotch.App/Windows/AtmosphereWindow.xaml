@@ -54,5 +54,15 @@
             x:Name="Glow"
             VerticalAlignment="Top"
             HorizontalAlignment="Center" />
+
+        <!-- Pluie binaire optionnelle, pendant un traitement : voir SetBinaryRain. -->
+        <Canvas
+            x:Name="RainHost"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center"
+            Width="120"
+            Height="48"
+            IsHitTestVisible="False"
+            Visibility="Collapsed" />
     </Grid>
 </Window>

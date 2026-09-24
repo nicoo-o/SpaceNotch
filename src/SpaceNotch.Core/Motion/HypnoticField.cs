@@ -1,102 +1,139 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace SpaceNotch.Core.Motion;
 
 /// <summary>
-/// Une particule lumineuse du champ hypnotique.
+/// Couleur de la matière hypnotique, neutre vis-à-vis de toute bibliothèque
+/// d'interface.
 /// </summary>
-/// <param name="X">Abscisse relative au centre, de −1 (bord gauche) à 1 (bord droit).</param>
-/// <param name="Y">Ordonnée relative au centre, de −1 (haut) à 1 (bas).</param>
-/// <param name="Scale">Taille relative, 1 étant la taille de référence d'une particule.</param>
-/// <param name="Intensity">Luminosité, de 0 (éteinte) à 1.</param>
-public readonly record struct HypnoticMote(double X, double Y, double Scale, double Intensity);
+public readonly record struct HypnoticColor(byte R, byte G, byte B)
+{
+    /// <summary>Interpolation linéaire, composante par composante.</summary>
+    public static HypnoticColor Lerp(HypnoticColor from, HypnoticColor to, double t)
+    {
+        double k = Math.Clamp(t, 0, 1);
+
+        return new HypnoticColor(
+            (byte)Math.Round(from.R + ((to.R - from.R) * k)),
+            (byte)Math.Round(from.G + ((to.G - from.G) * k)),
+            (byte)Math.Round(from.B + ((to.B - from.B) * k)));
+    }
+}
 
 /// <summary>
-/// Une image du champ hypnotique : une source, son halo, quelques particules, et
-/// l'impulsion transmise à l'atmosphère.
+/// Une image du champ hypnotique : neuf pixels, leur couleur, leur halo.
 /// </summary>
-/// <param name="CoreScale">Taille de la source lumineuse, 1 au repos.</param>
-/// <param name="CoreIntensity">Luminosité de la source, de 0 à 1.</param>
-/// <param name="CoreOffsetX">Décalage horizontal de la source, relatif (micro-secousse, penchant).</param>
-/// <param name="HaloScale">Taille du halo, 1 au repos.</param>
-/// <param name="HaloIntensity">Luminosité du halo, de 0 à 1.</param>
-/// <param name="Motes">Les particules, toujours au nombre de <see cref="HypnoticField.MoteCount"/>.</param>
+/// <param name="Cells">
+/// Intensité des neuf pixels de la grille 3 × 3, de 0 (éteint) à 1, ligne par
+/// ligne depuis le coin supérieur gauche.
+/// </param>
+/// <param name="Color">Couleur commune des pixels et de leur halo.</param>
+/// <param name="Bloom">Intensité du halo lumineux autour de la grille, de 0 à 1.</param>
+/// <param name="ShakeX">Décalage horizontal de la grille, relatif à sa largeur (micro-secousse d'erreur).</param>
 /// <param name="AmbientPulse">
-/// Impulsion transmise à l'atmosphère, de 0 à 1 : c'est ce qui fait respirer la
-/// dissolution sous la notch au même rythme que la matière qui travaille.
+/// Impulsion transmise à l'atmosphère, de 0 à 1 : la dissolution sous la notch
+/// respire au rythme de la lumière de la grille.
 /// </param>
 public sealed record HypnoticFrame(
-    double CoreScale,
-    double CoreIntensity,
-    double CoreOffsetX,
-    double HaloScale,
-    double HaloIntensity,
-    IReadOnlyList<HypnoticMote> Motes,
+    IReadOnlyList<double> Cells,
+    HypnoticColor Color,
+    double Bloom,
+    double ShakeX,
     double AmbientPulse);
 
 /// <summary>
-/// Le champ hypnotique, décrit comme une fonction pure du temps.
+/// Le champ hypnotique : une grille de 3 × 3 pixels lumineux, dont le motif
+/// change par pas courts avec un fondu, et dont la couleur dérive lentement.
 ///
 /// <para>
-/// <b>Pourquoi une fonction pure.</b> Le rendu n'évalue pas ce champ à chaque
-/// image : il en échantillonne une boucle, la confie au compositeur sous forme
-/// d'images clés, et le GPU la rejoue seul. Le fil d'interface ne fait rien
-/// pendant que la matière bouge, et le moteur s'arrête entièrement au repos.
-/// La contrepartie est que chaque préréglage en boucle doit être exactement
-/// périodique — ce que les tests vérifient.
+/// <b>D'après la référence.</b> La vidéo « Hypnotizing UI » d'Inspora montre une
+/// petite matrice de pixels carrés, collés les uns aux autres, avec un halo
+/// doux : les motifs — croix, anneau, losange, plein, coins, plus — se
+/// succèdent toutes les 150 à 250 ms en se fondant, et la teinte dérive selon
+/// l'état (bleu pour la lecture, orange puis corail pour la réflexion, pêche,
+/// rose, bleu puis lavande pendant la construction). C'est cette grammaire qui
+/// est reprise ici, détachée de l'IA : chaque préréglage signifie une nature de
+/// travail. Voir ADR-018.
 /// </para>
 ///
 /// <para>
-/// <b>Pourquoi si peu de primitives.</b> Une source, un halo, quatre particules.
-/// L'effet hypnotique ne vient pas du nombre mais du rythme : respiration,
-/// flux, attraction, dispersion, convergence. Un vrai système de particules
-/// coûterait un rendu permanent pour un gain que l'œil ne mesure pas à cette
-/// taille.
+/// <b>Une fonction exactement cuisable.</b> Chaque grandeur est linéaire par
+/// morceaux dans le temps. <see cref="Keyframes"/> renvoie exactement les
+/// points de rupture : le compositeur, qui interpole linéairement entre images
+/// clés, reproduit donc le champ <em>sans aucune approximation</em>, et le fil
+/// d'interface ne calcule rien pendant que la grille vit.
 /// </para>
 /// </summary>
 public static class HypnoticField
 {
-    /// <summary>Nombre de particules du champ.</summary>
-    public const int MoteCount = 4;
+    /// <summary>Côté de la grille.</summary>
+    public const int GridSize = 3;
 
-    /// <summary>
-    /// Échantillons par boucle confiés au compositeur. Trente-deux suffisent :
-    /// entre deux échantillons l'interpolation est linéaire, et à cette taille
-    /// l'écart à la courbe reste sous le pixel.
-    /// </summary>
-    public const int DefaultSamples = 32;
+    /// <summary>Nombre de pixels.</summary>
+    public const int CellCount = GridSize * GridSize;
 
-    private const double Tau = 2 * Math.PI;
+    // ------------------------------------------------------------------
+    // Motifs (ligne par ligne, « x » allumé, « . » éteint)
+    // ------------------------------------------------------------------
+
+    private static readonly double[] Cross = Mask("x.x/.x./x.x");
+    private static readonly double[] Ring = Mask("xxx/x.x/xxx");
+    private static readonly double[] Diamond = Mask(".x./x.x/.x.");
+    private static readonly double[] Plus = Mask(".x./xxx/.x.");
+    private static readonly double[] Corners = Mask("x.x/.../x.x");
+    private static readonly double[] Center = Mask(".../.x./...");
+    private static readonly double[] Full = Mask("xxx/xxx/xxx");
+    private static readonly double[] Off = Mask(".../.../...");
+    private static readonly double[] Column0 = Mask("x../x../x..");
+    private static readonly double[] Column1 = Mask(".x./.x./.x.");
+    private static readonly double[] Column2 = Mask("..x/..x/..x");
+
+    /// <summary>Tour de l'anneau, dans le sens horaire depuis le coin supérieur gauche.</summary>
+    private static readonly int[] RingOrder = [0, 1, 2, 5, 8, 7, 6, 3];
+
+    // ------------------------------------------------------------------
+    // Palettes (tirées de la vidéo de référence)
+    // ------------------------------------------------------------------
+
+    private static readonly HypnoticColor Blue = new(0x6F, 0xAE, 0xFF);
+    private static readonly HypnoticColor Cyan = new(0x7F, 0xE6, 0xFF);
+    private static readonly HypnoticColor Orange = new(0xFF, 0xB2, 0x6B);
+    private static readonly HypnoticColor Coral = new(0xFF, 0x86, 0x7A);
+    private static readonly HypnoticColor Peach = new(0xFF, 0xC4, 0x8E);
+    private static readonly HypnoticColor Pink = new(0xFF, 0x8F, 0xA3);
+    private static readonly HypnoticColor Lavender = new(0xB9, 0xA8, 0xFF);
+    private static readonly HypnoticColor Mint = new(0x7F, 0xE8, 0xB0);
+    private static readonly HypnoticColor Red = new(0xFF, 0x6B, 0x6B);
+
+    /// <summary>Couleur de repos : la lumière chaude de la référence.</summary>
+    public static HypnoticColor WarmLight => Peach;
+
+    private static readonly Dictionary<HypnoticPreset, Choreography> Choreographies = Build();
 
     /// <summary>Vrai pour les préréglages qui bouclent tant que le travail dure.</summary>
     public static bool IsLooping(HypnoticPreset preset)
         => preset is not (HypnoticPreset.None or HypnoticPreset.Complete or HypnoticPreset.Error);
 
     /// <summary>
-    /// Durée d'une boucle, ou de l'unique passage d'un préréglage ponctuel, en
-    /// secondes. Le rythme porte le sens : la lecture respire, le traitement bat.
+    /// Durée d'une boucle complète — motifs et dérive de couleur — ou de l'unique
+    /// passage d'un préréglage ponctuel, en secondes.
     /// </summary>
-    public static double PeriodSeconds(HypnoticPreset preset) => preset switch
-    {
-        HypnoticPreset.Read => 3.6,
-        HypnoticPreset.Think => 4.8,
-        HypnoticPreset.Search => 1.8,
-        HypnoticPreset.Process => 1.4,
-        HypnoticPreset.Sync => 2.4,
-        HypnoticPreset.Drop => 1.2,
-        HypnoticPreset.Complete => 0.9,
-        HypnoticPreset.Error => 0.7,
-        _ => 0
-    };
+    public static double PeriodSeconds(HypnoticPreset preset)
+        => Choreographies.TryGetValue(preset, out Choreography? c) ? c.Period : 0;
+
+    /// <summary>
+    /// Durée moyenne d'un motif, en secondes : la cadence visible. La référence
+    /// change de motif toutes les 150 à 250 ms.
+    /// </summary>
+    public static double StepSeconds(HypnoticPreset preset)
+        => Choreographies.TryGetValue(preset, out Choreography? c) ? c.Sequence.Average(s => s.Duration) : 0;
 
     /// <summary>
     /// Préréglage effectif d'une activité, d'après son état de travail et le
-    /// préréglage qu'elle déclare.
-    ///
-    /// L'état décide s'il y a mouvement ; le préréglage déclaré décide lequel.
-    /// Une activité qui ne déclare rien reçoit le mouvement générique de son
-    /// état, ce qui permet à une fonctionnalité de n'écrire qu'une ligne.
+    /// préréglage qu'elle déclare. L'état décide s'il y a mouvement ; le
+    /// préréglage déclaré décide lequel.
     /// </summary>
     public static HypnoticPreset Resolve(ActivityMotionState state, HypnoticPreset declared) => state switch
     {
@@ -107,341 +144,389 @@ public static class HypnoticField
         _ => HypnoticPreset.None
     };
 
-    /// <summary>Image de repos : une source douce, sans particule, sans impulsion.</summary>
-    public static HypnoticFrame Rest { get; } = new(
-        CoreScale: 1,
-        CoreIntensity: 0.55,
-        CoreOffsetX: 0,
-        HaloScale: 1,
-        HaloIntensity: 0.2,
-        Motes: [new(0, 0, 0, 0), new(0, 0, 0, 0), new(0, 0, 0, 0), new(0, 0, 0, 0)],
-        AmbientPulse: 0);
+    /// <summary>Image de repos : grille éteinte, sans halo, sans impulsion.</summary>
+    public static HypnoticFrame Rest { get; } = new(Off, WarmLight, 0, 0, 0);
 
     /// <summary>
-    /// Image fixe représentative, pour la réduction des animations : la même
-    /// composition, sans le mouvement. L'information reste, l'animation part.
+    /// Image fixe représentative, pour la réduction des animations : un motif
+    /// allumé et sa couleur, sans le mouvement. Un préréglage ponctuel se fige
+    /// sur son état final.
     /// </summary>
     public static HypnoticFrame StaticFrame(HypnoticPreset preset)
     {
-        if (preset == HypnoticPreset.None)
+        if (!Choreographies.ContainsKey(preset))
         {
             return Rest;
         }
 
-        double period = PeriodSeconds(preset);
-
-        // Un préréglage ponctuel se fige sur son dernier état ; une boucle, sur
-        // un instant où ses particules sont réparties et visibles.
-        return Evaluate(preset, IsLooping(preset) ? period * 0.3 : period);
+        return Evaluate(preset, IsLooping(preset) ? 0 : PeriodSeconds(preset));
     }
 
     /// <summary>
-    /// Évalue le champ à l'instant <paramref name="seconds"/> depuis le début du
-    /// préréglage. Les boucles se répètent ; les préréglages ponctuels restent
-    /// figés sur leur dernière image une fois leur durée écoulée.
+    /// Évalue le champ à l'instant <paramref name="seconds"/>. Les boucles se
+    /// répètent ; les préréglages ponctuels restent figés sur leur dernière image.
     /// </summary>
     public static HypnoticFrame Evaluate(HypnoticPreset preset, double seconds)
     {
-        double period = PeriodSeconds(preset);
-
-        if (period <= 0 || double.IsNaN(seconds) || double.IsInfinity(seconds))
+        if (!Choreographies.TryGetValue(preset, out Choreography? c)
+            || double.IsNaN(seconds)
+            || double.IsInfinity(seconds))
         {
             return Rest;
         }
 
         double t = Math.Max(0, seconds);
+        t = c.Loop ? t - (Math.Floor(t / c.Period) * c.Period) : Math.Min(t, c.Period);
 
-        if (IsLooping(preset))
-        {
-            double p = Fraction(t / period);
+        double[] cells = c.CellsAt(t);
+        double mean = cells.Average();
 
-            return preset switch
-            {
-                HypnoticPreset.Read => Read(p),
-                HypnoticPreset.Think => Think(p),
-                HypnoticPreset.Search => Search(p),
-                HypnoticPreset.Process => Process(p),
-                HypnoticPreset.Sync => Sync(p),
-                HypnoticPreset.Drop => Drop(p),
-                _ => Rest
-            };
-        }
-
-        double u = Math.Clamp(t / period, 0, 1);
-
-        return preset == HypnoticPreset.Complete ? Complete(u) : Error(u);
+        return new HypnoticFrame(
+            cells,
+            c.ColorAt(t),
+            Math.Clamp(c.BloomBase + (c.BloomGain * mean), 0, 1),
+            c.ShakeAt(t),
+            Math.Clamp(0.2 + (0.8 * mean), 0, 1));
     }
 
     /// <summary>
-    /// Échantillonne une boucle — ou l'unique passage d'un préréglage ponctuel —
-    /// en <paramref name="samples"/> + 1 images réparties de 0 à 1 inclus.
+    /// Les images clés exactes d'une boucle — ou de l'unique passage d'un
+    /// préréglage ponctuel — avec leur avancement de 0 à 1.
     ///
-    /// Pour une boucle, la dernière image est celle du départ : c'est ce qui rend
-    /// la reprise invisible quand le compositeur recommence l'animation.
+    /// Entre deux images, toutes les grandeurs varient linéairement : un
+    /// compositeur qui interpole linéairement reproduit le champ à l'identique.
+    /// Pour une boucle, la dernière image est celle du départ.
     /// </summary>
-    public static IReadOnlyList<(double Progress, HypnoticFrame Frame)> Sample(
-        HypnoticPreset preset,
-        int samples = DefaultSamples)
+    public static IReadOnlyList<(double Progress, HypnoticFrame Frame)> Keyframes(HypnoticPreset preset)
     {
-        int count = Math.Max(2, samples);
-        double period = PeriodSeconds(preset);
-        var frames = new List<(double, HypnoticFrame)>(count + 1);
-
-        for (int i = 0; i <= count; i++)
+        if (!Choreographies.TryGetValue(preset, out Choreography? c))
         {
-            double progress = (double)i / count;
+            return [(0, Rest), (1, Rest)];
+        }
 
-            HypnoticFrame frame = i == count && IsLooping(preset)
+        var times = new SortedSet<double>(c.Breakpoints()) { 0, c.Period };
+        var frames = new List<(double, HypnoticFrame)>(times.Count);
+
+        foreach (double time in times)
+        {
+            HypnoticFrame frame = c.Loop && time >= c.Period
                 ? Evaluate(preset, 0)
-                : Evaluate(preset, progress * period);
+                : Evaluate(preset, time);
 
-            frames.Add((progress, frame));
+            frames.Add((time / c.Period, frame));
         }
 
         return frames;
     }
 
     // ------------------------------------------------------------------
-    // Préréglages en boucle — p ∈ [0, 1[
+    // Chorégraphies
     // ------------------------------------------------------------------
 
-    /// <summary>Lecture : une respiration, une orbite lente et aplatie comme une ligne qu'on parcourt.</summary>
-    private static HypnoticFrame Read(double p)
+    private static Dictionary<HypnoticPreset, Choreography> Build()
     {
-        double breath = Breath(p);
-        var motes = new HypnoticMote[MoteCount];
-
-        for (int i = 0; i < MoteCount; i++)
+        var map = new Dictionary<HypnoticPreset, Choreography>
         {
-            double angle = Tau * (p + ((double)i / MoteCount));
-            motes[i] = new HypnoticMote(
-                0.62 * Math.Cos(angle),
-                0.34 * Math.Sin(angle),
-                0.35,
-                0.30 + (0.25 * breath));
+            // Lecture : un curseur parcourt la grille comme une ligne de texte,
+            // suivi d'une traîne — ce qui dessine les marches bleues de la
+            // référence au passage à la ligne.
+            [HypnoticPreset.Read] = new(
+                Repeat(ScanWithTrail(9, 0.09, 0.06), 2),
+                [Blue, Cyan, Blue],
+                Loop: true,
+                BloomBase: 0.20,
+                BloomGain: 0.70),
+
+            // Réflexion : un serpent de trois pixels fait le tour de l'anneau ;
+            // ses coudes forment les « L » orangés de la référence.
+            [HypnoticPreset.Think] = new(
+                Repeat(Snake(0.10, 0.06), 3),
+                [Orange, Coral, Pink, Orange],
+                Loop: true,
+                BloomBase: 0.25,
+                BloomGain: 0.75),
+
+            // Recherche : une colonne balaie de gauche à droite, puis la grille
+            // se tait un instant avant le balayage suivant.
+            [HypnoticPreset.Search] = new(
+                Repeat(
+                [
+                    new Step(Column0, 0.12, 0.06),
+                    new Step(Column1, 0.12, 0.06),
+                    new Step(Column2, 0.12, 0.06),
+                    new Step(Scale(Full, 0.12), 0.12, 0.06)
+                ], 3),
+                [Cyan, Blue, Cyan],
+                Loop: true,
+                BloomBase: 0.20,
+                BloomGain: 0.70),
+
+            // Traitement — « Creating prototype » : croix, anneau, losange,
+            // plein, coins, plus… toutes les 220 ms, et la dérive pêche → rose →
+            // bleu → lavande sur quatre cycles.
+            [HypnoticPreset.Process] = new(
+                Repeat(
+                [
+                    new Step(Cross, 0.15, 0.07),
+                    new Step(Ring, 0.15, 0.07),
+                    new Step(Diamond, 0.15, 0.07),
+                    new Step(Scale(Full, 0.55), 0.15, 0.07),
+                    new Step(Cross, 0.15, 0.07),
+                    new Step(Corners, 0.15, 0.07),
+                    new Step(Plus, 0.15, 0.07),
+                    new Step(Ring, 0.15, 0.07)
+                ], 4),
+                [Peach, Pink, Blue, Lavender, Peach],
+                Loop: true,
+                BloomBase: 0.30,
+                BloomGain: 0.70),
+
+            // Synchronisation : une colonne va d'un bord à l'autre et revient ;
+            // la couleur passe d'un pôle froid à un pôle chaud.
+            [HypnoticPreset.Sync] = new(
+                Repeat(
+                [
+                    new Step(Column0, 0.13, 0.07),
+                    new Step(Column1, 0.13, 0.07),
+                    new Step(Column2, 0.13, 0.07),
+                    new Step(Column1, 0.13, 0.07)
+                ], 3),
+                [Blue, Orange, Blue],
+                Loop: true,
+                BloomBase: 0.20,
+                BloomGain: 0.70),
+
+            // Dépôt : la lumière se resserre de l'anneau vers le centre, puis
+            // s'éteint — la notch absorbe.
+            [HypnoticPreset.Drop] = new(
+                Repeat(
+                [
+                    new Step(Ring, 0.12, 0.06),
+                    new Step(Diamond, 0.12, 0.06),
+                    new Step(Center, 0.12, 0.06),
+                    new Step(Scale(Center, 0.15), 0.12, 0.06)
+                ], 2),
+                [Peach, Orange, Peach],
+                Loop: true,
+                BloomBase: 0.30,
+                BloomGain: 0.70),
+
+            // Achèvement : tout s'allume d'un coup, se resserre, et un seul
+            // pixel reste, apaisé.
+            [HypnoticPreset.Complete] = new(
+                [
+                    new Step(Full, 0.12, 0.10),
+                    new Step(Plus, 0.15, 0.10),
+                    new Step(Center, 0.20, 0.28),
+                    new Step(Scale(Center, 0.6), 0, 0)
+                ],
+                [Mint, Mint],
+                Loop: false,
+                BloomBase: 0.25,
+                BloomGain: 0.75),
+
+            // Échec : la croix clignote deux fois, la grille tremble, puis reste
+            // faiblement allumée.
+            [HypnoticPreset.Error] = new(
+                [
+                    new Step(Cross, 0.12, 0.04),
+                    new Step(Off, 0.06, 0.04),
+                    new Step(Cross, 0.12, 0.04),
+                    new Step(Off, 0.06, 0.04),
+                    new Step(Scale(Cross, 0.5), 0.28, 0)
+                ],
+                [Red, Red],
+                Loop: false,
+                BloomBase: 0.20,
+                BloomGain: 0.70,
+                Shake: [(0, 0), (0.08, 0.12), (0.16, -0.10), (0.26, 0.06), (0.36, -0.03), (0.44, 0)])
+        };
+
+        return map;
+    }
+
+    private static Step[] ScanWithTrail(int cells, double hold, double fade)
+    {
+        var steps = new Step[cells];
+
+        for (int k = 0; k < cells; k++)
+        {
+            var mask = new double[CellCount];
+            mask[k] = 1;
+
+            if (k >= 1)
+            {
+                mask[k - 1] = 0.5;
+            }
+
+            if (k >= 2)
+            {
+                mask[k - 2] = 0.2;
+            }
+
+            steps[k] = new Step(mask, hold, fade);
         }
 
-        return new HypnoticFrame(
-            CoreScale: 0.90 + (0.12 * breath),
-            CoreIntensity: 0.60 + (0.25 * breath),
-            CoreOffsetX: 0,
-            HaloScale: 1.0 + (0.20 * breath),
-            HaloIntensity: 0.25 + (0.20 * breath),
-            Motes: motes,
-            AmbientPulse: 0.30 + (0.40 * breath));
+        return steps;
+    }
+
+    private static Step[] Snake(double hold, double fade)
+    {
+        var steps = new Step[RingOrder.Length];
+
+        for (int k = 0; k < RingOrder.Length; k++)
+        {
+            var mask = new double[CellCount];
+            mask[RingOrder[k]] = 1;
+            mask[RingOrder[(k + RingOrder.Length - 1) % RingOrder.Length]] = 0.7;
+            mask[RingOrder[(k + RingOrder.Length - 2) % RingOrder.Length]] = 0.35;
+            steps[k] = new Step(mask, hold, fade);
+        }
+
+        return steps;
+    }
+
+    private static Step[] Repeat(Step[] steps, int times)
+    {
+        var result = new Step[steps.Length * times];
+
+        for (int i = 0; i < times; i++)
+        {
+            Array.Copy(steps, 0, result, i * steps.Length, steps.Length);
+        }
+
+        return result;
+    }
+
+    private static double[] Scale(double[] mask, double factor) => mask.Select(v => v * factor).ToArray();
+
+    private static double[] Mask(string pattern)
+    {
+        string compact = pattern.Replace("/", string.Empty, StringComparison.Ordinal);
+        var mask = new double[CellCount];
+
+        for (int i = 0; i < CellCount; i++)
+        {
+            mask[i] = compact[i] == 'x' ? 1 : 0;
+        }
+
+        return mask;
+    }
+
+    /// <summary>Un motif tenu, puis fondu vers le suivant.</summary>
+    private sealed record Step(double[] Cells, double Hold, double Fade)
+    {
+        public double Duration => Hold + Fade;
     }
 
     /// <summary>
-    /// Réflexion : des trajectoires de Lissajous à fréquences entières — donc
-    /// organiques à l'œil, mais exactement périodiques.
+    /// Une chorégraphie : une suite de motifs, une dérive de couleur répartie
+    /// uniformément sur la période, et éventuellement une secousse.
     /// </summary>
-    private static HypnoticFrame Think(double p)
+    private sealed record Choreography(
+        Step[] Sequence,
+        HypnoticColor[] Palette,
+        bool Loop,
+        double BloomBase,
+        double BloomGain,
+        (double Time, double Offset)[]? Shake = null)
     {
-        ReadOnlySpan<int> ax = [1, 2, 1, 3];
-        ReadOnlySpan<int> ay = [2, 3, 3, 2];
+        public double Period { get; } = Sequence.Sum(s => s.Duration);
 
-        double breath = Math.Clamp(0.5 - (0.3 * Math.Cos(Tau * p)) - (0.2 * Math.Cos((2 * Tau * p) + 1)), 0, 1);
-        var motes = new HypnoticMote[MoteCount];
-
-        for (int i = 0; i < MoteCount; i++)
+        public double[] CellsAt(double t)
         {
-            double phase = i * 1.7;
-            motes[i] = new HypnoticMote(
-                0.70 * Math.Sin((Tau * ax[i] * p) + phase),
-                0.45 * Math.Sin((Tau * ay[i] * p) + (phase * 0.6)),
-                0.30 + (0.15 * (0.5 + (0.5 * Math.Sin((2 * Tau * p) + i)))),
-                0.30 + (0.35 * (0.5 + (0.5 * Math.Sin((Tau * p) + phase)))));
+            double start = 0;
+
+            for (int i = 0; i < Sequence.Length; i++)
+            {
+                Step step = Sequence[i];
+                double end = start + step.Duration;
+
+                if (t < end || i == Sequence.Length - 1)
+                {
+                    if (t <= start + step.Hold || step.Fade <= 0)
+                    {
+                        return [.. step.Cells];
+                    }
+
+                    double[] next = i + 1 < Sequence.Length
+                        ? Sequence[i + 1].Cells
+                        : Loop ? Sequence[0].Cells : step.Cells;
+
+                    double k = Math.Clamp((t - start - step.Hold) / step.Fade, 0, 1);
+                    var cells = new double[CellCount];
+
+                    for (int c = 0; c < CellCount; c++)
+                    {
+                        cells[c] = step.Cells[c] + ((next[c] - step.Cells[c]) * k);
+                    }
+
+                    return cells;
+                }
+
+                start = end;
+            }
+
+            return [.. Sequence[^1].Cells];
         }
 
-        return new HypnoticFrame(
-            CoreScale: 0.92 + (0.14 * breath),
-            CoreIntensity: 0.58 + (0.30 * breath),
-            CoreOffsetX: 0.04 * Math.Sin(Tau * p),
-            HaloScale: 1.0 + (0.25 * breath),
-            HaloIntensity: 0.25 + (0.25 * breath),
-            Motes: motes,
-            AmbientPulse: 0.35 + (0.40 * breath));
-    }
-
-    /// <summary>
-    /// Recherche : un balayage de gauche à droite. Les particules naissent et
-    /// meurent éteintes, si bien que leur retour au bord gauche n'est jamais vu.
-    /// </summary>
-    private static HypnoticFrame Search(double p)
-    {
-        var motes = new HypnoticMote[MoteCount];
-
-        for (int i = 0; i < MoteCount; i++)
+        public HypnoticColor ColorAt(double t)
         {
-            double q = Fraction(p + ((double)i / MoteCount));
-            motes[i] = new HypnoticMote(
-                -0.9 + (1.8 * q),
-                0.15 * Math.Sin(Tau * q),
-                0.28 + (0.12 * Math.Sin(Math.PI * q)),
-                0.75 * Math.Sin(Math.PI * q));
+            if (Palette.Length == 1)
+            {
+                return Palette[0];
+            }
+
+            double position = t / Period * (Palette.Length - 1);
+            int index = Math.Clamp((int)Math.Floor(position), 0, Palette.Length - 2);
+
+            return HypnoticColor.Lerp(Palette[index], Palette[index + 1], position - index);
         }
 
-        double beat = 0.5 - (0.5 * Math.Cos(Tau * 4 * p));
-
-        return new HypnoticFrame(
-            CoreScale: 0.95 + (0.08 * beat),
-            CoreIntensity: 0.55 + (0.30 * beat),
-            CoreOffsetX: 0.08 * Math.Sin(Tau * p),
-            HaloScale: 1.05 + (0.10 * beat),
-            HaloIntensity: 0.28 + (0.15 * beat),
-            Motes: motes,
-            AmbientPulse: 0.35 + (0.30 * beat));
-    }
-
-    /// <summary>Traitement : une orbite rapide et serrée dont le rayon bat — dense, énergique.</summary>
-    private static HypnoticFrame Process(double p)
-    {
-        double beat = 0.5 - (0.5 * Math.Cos(Tau * 2 * p));
-        var motes = new HypnoticMote[MoteCount];
-
-        for (int i = 0; i < MoteCount; i++)
+        public double ShakeAt(double t)
         {
-            double angle = Tau * (p + ((double)i / MoteCount));
-            double radius = 0.55 + (0.15 * Math.Sin((Tau * 2 * p) + i));
-            motes[i] = new HypnoticMote(
-                radius * Math.Cos(angle),
-                radius * 0.7 * Math.Sin(angle),
-                0.32,
-                0.55 + (0.30 * (0.5 + (0.5 * Math.Sin((Tau * 2 * p) + i)))));
+            if (Shake is null || Shake.Length == 0)
+            {
+                return 0;
+            }
+
+            for (int i = 0; i < Shake.Length - 1; i++)
+            {
+                (double t0, double v0) = Shake[i];
+                (double t1, double v1) = Shake[i + 1];
+
+                if (t <= t1)
+                {
+                    return v0 + ((v1 - v0) * Math.Clamp((t - t0) / (t1 - t0), 0, 1));
+                }
+            }
+
+            return Shake[^1].Offset;
         }
 
-        return new HypnoticFrame(
-            CoreScale: 1.0 + (0.08 * beat),
-            CoreIntensity: 0.70 + (0.25 * beat),
-            CoreOffsetX: 0,
-            HaloScale: 1.10 + (0.15 * beat),
-            HaloIntensity: 0.35 + (0.20 * beat),
-            Motes: motes,
-            AmbientPulse: 0.50 + (0.35 * beat));
-    }
-
-    /// <summary>Synchronisation : un flux qui va et vient d'un pôle à l'autre.</summary>
-    private static HypnoticFrame Sync(double p)
-    {
-        var motes = new HypnoticMote[MoteCount];
-
-        for (int i = 0; i < MoteCount; i++)
+        public IEnumerable<double> Breakpoints()
         {
-            double phase = i * Math.PI / 4;
-            motes[i] = new HypnoticMote(
-                0.80 * Math.Cos((Tau * p) + phase),
-                0.18 * Math.Sin((2 * Tau * p) + i),
-                0.30,
-                0.40 + (0.30 * Math.Abs(Math.Cos((Tau * p) + phase))));
+            double start = 0;
+
+            foreach (Step step in Sequence)
+            {
+                yield return start;
+                yield return start + step.Hold;
+                start += step.Duration;
+            }
+
+            for (int i = 0; i < Palette.Length; i++)
+            {
+                yield return Period * i / (Palette.Length - 1 == 0 ? 1 : Palette.Length - 1);
+            }
+
+            if (Shake is not null)
+            {
+                foreach ((double time, _) in Shake)
+                {
+                    yield return Math.Min(time, Period);
+                }
+            }
         }
-
-        double beat = 0.5 + (0.5 * Math.Cos(2 * Tau * p));
-
-        return new HypnoticFrame(
-            CoreScale: 0.95 + (0.06 * beat),
-            CoreIntensity: 0.60 + (0.20 * beat),
-            CoreOffsetX: 0,
-            HaloScale: 1.05 + (0.10 * beat),
-            HaloIntensity: 0.28 + (0.14 * beat),
-            Motes: motes,
-            AmbientPulse: 0.35 + (0.25 * beat));
     }
-
-    /// <summary>
-    /// Dépôt : les particules viennent du bord et sont absorbées par la source,
-    /// en accélérant. Elles naissent et disparaissent éteintes.
-    /// </summary>
-    private static HypnoticFrame Drop(double p)
-    {
-        var motes = new HypnoticMote[MoteCount];
-
-        for (int i = 0; i < MoteCount; i++)
-        {
-            double q = Fraction(p + ((double)i / MoteCount));
-            double radius = Math.Pow(1 - q, 1.4);
-            double angle = (i * Math.PI / 2) + (Math.PI / 4);
-            motes[i] = new HypnoticMote(
-                radius * 0.9 * Math.Cos(angle),
-                radius * 0.9 * Math.Sin(angle),
-                0.20 + (0.25 * (1 - q)),
-                0.80 * Math.Sin(Math.PI * q));
-        }
-
-        double absorb = 0.5 - (0.5 * Math.Cos(Tau * 4 * p));
-
-        return new HypnoticFrame(
-            CoreScale: 1.0 + (0.10 * absorb),
-            CoreIntensity: 0.60 + (0.25 * absorb),
-            CoreOffsetX: 0,
-            HaloScale: 1.10 + (0.15 * absorb),
-            HaloIntensity: 0.35 + (0.20 * absorb),
-            Motes: motes,
-            AmbientPulse: 0.45 + (0.30 * absorb));
-    }
-
-    // ------------------------------------------------------------------
-    // Préréglages ponctuels — u ∈ [0, 1]
-    // ------------------------------------------------------------------
-
-    /// <summary>Achèvement : convergence, impulsion lumineuse, puis retour au calme.</summary>
-    private static HypnoticFrame Complete(double u)
-    {
-        double converge = Math.Clamp(u / 0.45, 0, 1);
-        double radius = 0.6 * (1 - (converge * converge));
-        double pulse = Math.Exp(-Math.Pow((u - 0.5) / 0.16, 2));
-        var motes = new HypnoticMote[MoteCount];
-
-        for (int i = 0; i < MoteCount; i++)
-        {
-            double angle = (i * Math.PI / 2) + (Math.PI / 4);
-            motes[i] = new HypnoticMote(
-                radius * Math.Cos(angle),
-                radius * Math.Sin(angle),
-                0.30,
-                0.80 * (1 - converge));
-        }
-
-        return new HypnoticFrame(
-            CoreScale: 1.0 + (0.45 * pulse),
-            CoreIntensity: 0.70 + (0.30 * pulse) - (0.10 * u),
-            CoreOffsetX: 0,
-            HaloScale: 1.0 + (0.60 * pulse) + (0.10 * u),
-            HaloIntensity: 0.30 + (0.40 * pulse) - (0.05 * u),
-            Motes: motes,
-            AmbientPulse: Math.Clamp(0.30 + (0.70 * pulse), 0, 1));
-    }
-
-    /// <summary>Échec : dispersion vers l'extérieur, micro-secousse amortie, extinction.</summary>
-    private static HypnoticFrame Error(double u)
-    {
-        double spread = 1 - Math.Pow(1 - u, 2);
-        double radius = 0.3 + (0.7 * spread);
-        var motes = new HypnoticMote[MoteCount];
-
-        for (int i = 0; i < MoteCount; i++)
-        {
-            double angle = (i * Math.PI / 2) + (Math.PI / 4);
-            motes[i] = new HypnoticMote(
-                radius * Math.Cos(angle),
-                radius * 0.8 * Math.Sin(angle),
-                0.30,
-                0.70 * (1 - u));
-        }
-
-        return new HypnoticFrame(
-            CoreScale: 1.0 - (0.10 * spread),
-            CoreIntensity: 0.70 - (0.25 * u),
-            CoreOffsetX: 0.12 * Math.Sin(Tau * 3 * u) * (1 - u),
-            HaloScale: 1.0,
-            HaloIntensity: 0.30 - (0.15 * u),
-            Motes: motes,
-            AmbientPulse: 0.40 - (0.25 * u));
-    }
-
-    // ------------------------------------------------------------------
-
-    /// <summary>Respiration : 0 → 1 → 0 sur une période, sans coude.</summary>
-    private static double Breath(double p) => 0.5 - (0.5 * Math.Cos(Tau * p));
-
-    private static double Fraction(double value) => value - Math.Floor(value);
 }

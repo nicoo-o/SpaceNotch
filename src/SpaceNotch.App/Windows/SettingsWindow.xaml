@@ -202,6 +202,10 @@
                     OnContent="Matière vivante pendant un travail"
                     OffContent="Image fixe"
                     Toggled="OnHypnoticToggled" />
+                <ToggleSwitch
+                    x:Name="RainToggle"
+                    Header="Pluie binaire pendant un traitement"
+                    Toggled="OnRainToggled" />
 
                 <!--
                     Deux nombres au lieu de trois, et nommés pour ce qu'ils font.

@@ -216,6 +216,13 @@ public sealed class AppSettings
     public bool AllowHypnoticMotion { get; set; } = true;
 
     /// <summary>
+    /// Pluie binaire sous la notch pendant un traitement, comme dans la référence
+    /// vidéo. Désactivée par défaut : c'est un ornement, et la règle est
+    /// qu'aucun ornement ne s'impose.
+    /// </summary>
+    public bool ShowBinaryRain { get; set; }
+
+    /// <summary>
     /// Applique un préréglage : la vitesse et le rebond prennent ses valeurs.
     /// <see cref="MotionStyle.Custom"/> ne touche à rien.
     /// </summary>
