@@ -62,7 +62,13 @@ Média (pochette qui grandit depuis la notch, transport, position, teinte d'ambi
 luminosité en recouvrement compact · notifications groupées par application · téléchargements
 (tous navigateurs) · Bluetooth · focus · minuteur · lanceur-commande · étagère de fichiers (déposer,
 reprendre en glissant) · presse-papier (désactivé par défaut) · pile d'activités · greffons
-externes · grille hypnotique pour tout travail en cours · annonces Narrateur.
+externes · grille hypnotique pour tout travail en cours · annonces Narrateur · appels et
+enregistrements (micro, caméra) · bulle à côté de la notch pour ce qui compte · presse-papier à
+balayer pour supprimer.
+
+**Détacher la notch** : tirez-la vers le bas — elle résiste, puis s'arrache en goutte. La pastille
+suit la souris avec un ressort ; lancez-la vers un coin, ou vers le haut pour la raccrocher
+(ADR-019). Elle revient toujours accrochée au démarrage.
 
 Pour tout voir d'un coup : `SpaceNotch.App.exe --demo` (ou *Lancer › Démonstration* dans le menu
 de la zone de notification) rejoue musique, volume, messages, téléchargement, casque et la

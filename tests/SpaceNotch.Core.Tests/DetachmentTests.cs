@@ -377,6 +377,25 @@ public class DetachmentTests
     }
 
     [Fact]
+    public void ACompactFloatingNotchHasRoundEndsAndAnOpenOneKeepsItsSquircle()
+    {
+        NotchGeometry g = NotchGeometry.Default;
+
+        Assert.Equal(IslandShape.Circular, g.FloatingSmoothingFor(new IslandFootprint(250, 44)), 6);
+        Assert.Equal(g.Smoothing, g.FloatingSmoothingFor(new IslandFootprint(420, 220)), 6);
+
+        // Continu pendant l'ouverture : aucun saut d'une image à l'autre.
+        double previous = g.FloatingSmoothingFor(new IslandFootprint(250, 44));
+
+        for (double h = 44; h <= 220; h += 1)
+        {
+            double current = g.FloatingSmoothingFor(new IslandFootprint(250 + h, h));
+            Assert.True(Math.Abs(current - previous) < 0.12);
+            previous = current;
+        }
+    }
+
+    [Fact]
     public void TheFloatingSilhouetteRunsClockwise()
     {
         ShapePoint[] points = NotchGeometry.Default.FloatingSilhouette(new IslandFootprint(250, 52));
@@ -473,12 +492,42 @@ public class DetachmentTests
     }
 
     [Fact]
-    public void NoNeckWhileTheShapesStillOverlap()
+    public void WhileTheShapesStillTouchTheNeckFillsTheirJoint()
     {
         var residue = new ScreenRect(820, 0, 280, 52);
         var pill = new ScreenRect(835, 40, 250, 52);
 
-        Assert.Empty(GooBridge.Neck(residue, pill, 0));
+        Assert.Single(GooBridge.Neck(residue, pill, 0));
+    }
+
+    [Fact]
+    public void APillAboveTheResidueIsNoLongerHangingFromIt()
+    {
+        var residue = new ScreenRect(820, 0, 280, 52);
+        var pill = new ScreenRect(835, -30, 250, 52);
+
+        Assert.Empty(GooBridge.Neck(residue, pill, 0.2));
+    }
+
+    [Fact]
+    public void TheNeckFlaresHorizontallyIntoEachShape()
+    {
+        // Le profil est un congé : tangente verticale à la taille, horizontale
+        // aux bouts. Pas d'« ailes » à la jointure.
+        Assert.Equal(0, GooBridge.Fillet(0), 9);
+        Assert.Equal(1, GooBridge.Fillet(1), 9);
+        Assert.True(GooBridge.Fillet(0.1) < 0.01, "Presque droit autour de la taille.");
+        Assert.True(GooBridge.Fillet(1) - GooBridge.Fillet(0.98) > 0.15, "Évasé brusquement au bout.");
+
+        var residue = new ScreenRect(820, 0, 280, 52);
+        var pill = new ScreenRect(835, 200, 250, 52);
+        ShapePoint[] neck = GooBridge.Neck(residue, pill, 0.2)[0];
+
+        double ends = 250 * GooBridge.NeckWidthRatio;
+        double top = neck.Min(p => p.Y);
+
+        Assert.Equal(residue.Bottom - GooBridge.Inset, top, 6);
+        Assert.Equal(ends, neck.Where(p => Math.Abs(p.Y - top) < 1e-6).Max(p => p.X) - neck.Where(p => Math.Abs(p.Y - top) < 1e-6).Min(p => p.X), 6);
     }
 
     private static double Width(ShapePoint[] outline, double y)

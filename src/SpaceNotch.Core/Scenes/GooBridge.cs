@@ -66,9 +66,23 @@ public static class GooBridge
         => ends * InitialWaist * Math.Max(0, 1 - (Math.Clamp(t, 0, 1) / BreakAt));
 
     /// <summary>
+    /// Profondeur à laquelle les bouts du fil plongent dans chaque forme, en
+    /// DIPs. Les bouts s'évasent jusqu'à l'horizontale : cachés sous la
+    /// surface, ils ne laissent voir qu'un congé qui naît de la forme.
+    /// </summary>
+    public const double Inset = 6;
+
+    /// <summary>
     /// Contours du fil à l'avancement <paramref name="t"/>, dans le repère de
     /// l'écran : un sablier avant la rupture, deux pointes après, rien une fois
-    /// les pointes rentrées ou si les deux formes se touchent encore.
+    /// les pointes rentrées.
+    ///
+    /// <para>
+    /// Chaque flanc est un arc d'ellipse : horizontal aux bouts — il épouse la
+    /// surface qu'il quitte, comme un congé —, vertical à la taille. C'est ce
+    /// qui distingue une goutte d'un tube posé entre deux formes : un profil
+    /// qui arrive en biais dessinerait deux « ailes » à la jointure.
+    /// </para>
     /// </summary>
     /// <param name="residue">Trace accrochée au bord, en coordonnées d'écran.</param>
     /// <param name="pill">Pastille, en coordonnées d'écran.</param>
@@ -79,19 +93,19 @@ public static class GooBridge
 
         double ends = Math.Min(residue.Width, pill.Width) * NeckWidthRatio;
 
-        if (ends <= 0 || pill.IsEmpty)
+        if (ends <= 0 || pill.IsEmpty || residue.Height <= 0.5)
         {
             return [];
         }
 
-        // Les bouts plongent dans chaque forme : la jointure est cachée sous la
-        // surface, jamais posée sur son bord.
-        double y0 = residue.Bottom - Math.Min(residue.Height * 0.5, 10);
-        double y1 = pill.Y + Math.Min(pill.Height * 0.5, 10);
+        // Le fil va du bas de la trace au haut de la pastille, et plonge un peu
+        // dans chacune. Si les deux se recouvrent encore, il comble la jointure
+        // entre leurs congés au lieu de disparaître.
+        double y0 = Math.Min(residue.Bottom, pill.Y) - Inset;
+        double y1 = Math.Max(residue.Bottom, pill.Y) + Inset;
 
-        // Tant que les deux formes se touchent, leur union suffit : un fil
-        // n'aurait rien à relier.
-        if (pill.Y <= residue.Bottom || residue.Height <= 0.5)
+        // Une pastille remontée au-dessus de la trace n'est plus reliée par le bas.
+        if (pill.CenterY <= residue.Bottom - (residue.Height / 2))
         {
             return [];
         }
@@ -132,18 +146,23 @@ public static class GooBridge
         return spikes;
     }
 
+    /// <summary>
+    /// Sablier : deux arcs d'ellipse par flanc, horizontaux aux bouts,
+    /// verticaux à la taille.
+    /// </summary>
     private static ShapePoint[] Hourglass(double x0, double y0, double x1, double y1, double ends, double waist)
     {
         var left = new ShapePoint[Samples + 1];
         var right = new ShapePoint[Samples + 1];
+        double flare = Math.Max(0, (ends - waist) / 2);
 
         for (int i = 0; i <= Samples; i++)
         {
             double s = (double)i / Samples;
             double y = y0 + ((y1 - y0) * s);
             double cx = x0 + ((x1 - x0) * SmoothStep(s));
-            double edge = ends / 2;
-            double half = edge - ((edge - (waist / 2)) * Math.Sin(Math.PI * s));
+            double u = Math.Abs((2 * s) - 1);
+            double half = (waist / 2) + (flare * Fillet(u));
 
             left[i] = new ShapePoint(cx - half, y);
             right[i] = new ShapePoint(cx + half, y);
@@ -152,7 +171,10 @@ public static class GooBridge
         return Clockwise(left, right);
     }
 
-    /// <summary>Pointe qui part d'une base de largeur <paramref name="ends"/> et s'effile jusqu'à la pointe.</summary>
+    /// <summary>
+    /// Pointe : la moitié d'un sablier rompu. Évasée à l'horizontale sur sa
+    /// forme, arrondie à la pointe, comme une goutte qui retombe.
+    /// </summary>
     private static ShapePoint[] Spike(double baseX, double baseY, double tipX, double tipY, double ends)
     {
         var left = new ShapePoint[Samples + 1];
@@ -163,13 +185,24 @@ public static class GooBridge
             double s = (double)i / Samples;
             double y = baseY + ((tipY - baseY) * s);
             double cx = baseX + ((tipX - baseX) * s);
-            double half = ends / 2 * Math.Pow(1 - s, 1.6);
+            double half = ends / 2 * Fillet(1 - s);
 
             left[i] = new ShapePoint(cx - half, y);
             right[i] = new ShapePoint(cx + half, y);
         }
 
         return Clockwise(left, right);
+    }
+
+    /// <summary>
+    /// Profil de congé : 0 à la taille (<paramref name="u"/> = 0, tangente
+    /// verticale), 1 au bout (<paramref name="u"/> = 1, tangente horizontale).
+    /// C'est un quart d'ellipse, <c>1 − √(1 − u²)</c>.
+    /// </summary>
+    public static double Fillet(double u)
+    {
+        u = Math.Clamp(u, 0, 1);
+        return 1 - Math.Sqrt(1 - (u * u));
     }
 
     /// <summary>

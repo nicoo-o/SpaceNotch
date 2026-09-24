@@ -120,9 +120,30 @@ public readonly record struct NotchGeometry(
         return Math.Clamp(radius, 0, Math.Max(0, Math.Min(footprint.Width, footprint.Height) / 2));
     }
 
+    /// <summary>
+    /// Lissage d'une notch détachée. Un squircle dont le rayon atteint la
+    /// demi-hauteur donne des bouts carrés : ce n'est plus une pastille mais un
+    /// rectangle arrondi. Quand le rayon approche de la demi-hauteur, le congé
+    /// glisse donc continûment vers le cercle — sans saut pendant l'ouverture.
+    /// </summary>
+    public double FloatingSmoothingFor(IslandFootprint footprint)
+    {
+        double half = Math.Min(footprint.Width, footprint.Height) / 2;
+
+        if (half <= 0)
+        {
+            return Smoothing;
+        }
+
+        double q = Math.Clamp(((FloatingRadiusFor(footprint) / half) - 0.7) / 0.3, 0, 1);
+        double blend = q * q * (3 - (2 * q));
+
+        return Smoothing + ((IslandShape.Circular - Smoothing) * blend);
+    }
+
     /// <summary>Contour d'une notch détachée, voir <see cref="IslandShape.Floating"/>.</summary>
     public ShapePoint[] FloatingSilhouette(IslandFootprint footprint)
-        => IslandShape.Floating(footprint.Width, footprint.Height, FloatingRadiusFor(footprint), Smoothing);
+        => IslandShape.Floating(footprint.Width, footprint.Height, FloatingRadiusFor(footprint), FloatingSmoothingFor(footprint));
 
     private static double Progress(double height)
     {

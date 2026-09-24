@@ -750,7 +750,7 @@ public sealed partial class IslandWindow
         var drawn = new IslandFootprint(pill.Width, pill.Height);
         double radius = geometry.FloatingRadiusFor(drawn);
 
-        if (_shape.Build(drawn, radius, geometry.Smoothing, floating: true) is { } silhouette)
+        if (_shape.Build(drawn, radius, geometry.FloatingSmoothingFor(drawn), floating: true) is { } silhouette)
         {
             SurfaceFill.Data = silhouette;
         }

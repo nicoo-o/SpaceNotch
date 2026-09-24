@@ -19,6 +19,7 @@ pourquoi la première avait été retenue.
 | [ADR-011](ADR-011-fil-interface.md) | L'hôte rétablit le fil d'interface, pas la fonctionnalité | Accepté |
 | [ADR-017](ADR-017-notch-attachee.md) | Une notch attachée au bord supérieur, jamais une capsule flottante | Accepté |
 | [ADR-018](ADR-018-mouvement-hypnotique.md) | Mouvement hypnotique : langage du travail en cours, rejoué par le compositeur | Accepté |
+| [ADR-019](ADR-019-notch-detachable.md) | Notch détachable par glisser (goutte, ressort, aimants) et bulle pour les activités importantes | Accepté |
 
 ## Format
 

@@ -216,7 +216,9 @@ public sealed partial class BubbleWindow : Window
             _shape.Forget();
         }
 
-        Geometry? silhouette = _shape.Build(footprint, radius, geometry.Smoothing, shoulder: shoulder, floating: floating);
+        // Flottante, la bulle est un disque : un cercle, pas un squircle.
+        double smoothing = floating ? IslandShape.Circular : geometry.Smoothing;
+        Geometry? silhouette = _shape.Build(footprint, radius, smoothing, shoulder: shoulder, floating: floating);
 
         if (silhouette is not null)
         {

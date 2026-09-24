@@ -112,6 +112,7 @@ Une activité publiée sous `IslandSceneCatalog.Card` rend quatre choses : `Titl
 | `Metric` | Facultatif. Valeur courte à droite de la forme compacte : « 62 % », « 12 Mo », « ✓ ». Déduite de `Progress` sinon. |
 | `Artwork` | Facultatif. Image encodée (PNG, JPEG) montrée à la place du glyphe, qui grandit à l'ouverture. |
 | `ExpandedFootprint` | Facultatif. Taille ouverte propre au contenu, quand celle de la scène ne suffit pas. |
+| `Role` | Facultatif. `Download`, `Call` ou `Recording` : l'activité ne se cache jamais derrière une autre, elle prend une bulle à côté de la notch (ADR-019). |
 
 **Le mouvement se demande, il ne se dessine pas.** Un greffon qui travaille déclare
 `MotionState = Working` et un préréglage ; l'hôte rend la matière hypnotique, la synchronise avec

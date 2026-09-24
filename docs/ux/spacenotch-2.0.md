@@ -349,7 +349,7 @@ Windows → Feature → Event/Activity → ActivityManager → StateManager
 | 8. HUD | recouvrement compact (glyphe, fil de niveau, valeur), valeur qui défile dans la scène ouverte ; corrige la charge utile du volume | **fait** |
 | 9. Notifications | groupes par application (« Discord 4 »), historique dans la scène ouverte | **fait** |
 | 10. Étagère | rangée horizontale, reprise des fichiers par glisser-déposer vers l'extérieur | **fait** |
-| 11. Presse-papier | jetons et noms Narrateur | **partiel** — le balayage pour supprimer reste à faire |
+| 11. Presse-papier | jetons, noms Narrateur, balayer une entrée vers la gauche pour la supprimer (seuil 45 % ou élan 650 DIPs/s) | **fait** |
 | 12. Lanceur | surface de commande : champ, liste au clavier, Entrée lance | **fait** |
 | 13. Réglages | six sections navigables, aperçu à la vraie géométrie et à la vraie grille, thème sombre imposé | **fait** |
 | Menu | Déployer · Lancer (dont Démonstration) · Activités · Mouvement · Apparence · Réglages | **fait** |
@@ -359,6 +359,10 @@ Windows → Feature → Event/Activity → ActivityManager → StateManager
 | Nom | NotchFlow → SpaceNotch, reprise des préférences et greffons | **fait** |
 | Téléchargements | dossier Téléchargements (Chromium, Firefox, Opera, Safari), Ouvrir / Afficher | **fait** |
 | Accessibilité | annonces Narrateur (polie ; assertive pour un appel), noms des boutons | **fait** |
+| Détachement | tirage avec résistance, arrachement en goutte, pastille qui suit la main (ressort + étirement), lancer vers les aimants, raccrochage par la goutte inversée, ouverture vers l'espace libre (ADR-019) | **fait**, à juger à l'œil sur Windows |
+| Bulle | mini-notch accrochée pour téléchargement, appel, enregistrement, priorité critique ; échange au toucher ; suit la notch détachée | **fait** |
+| Micro et caméra | appels et enregistrements d'après l'indicateur de confidentialité de Windows | **fait** |
+| Survol prolongé | option : une seconde de survol ouvre la notch (désactivée par défaut) | **fait** |
 
 Vérification : 189 tests du cœur et 23 du greffon d'exemple passent ; le code C# de l'App compile
 sans avertissement en Release. Le rendu XAML n'a pas pu être exécuté hors Windows : à juger avec
@@ -444,8 +448,11 @@ Preview et Expanded — et travaille-t-elle (quel préréglage hypnotique) ? »
 
 | Décision | Choix |
 |---|---|
-| Forme | notch attachée au top — capsule flottante interdite |
-| Nombre de notches | **une seule** — pas de satellite, la pile se signale dans la notch |
+| Forme | notch attachée au top au repos et au démarrage — flottante seulement si l'utilisateur l'arrache (ADR-019) |
+| Nombre de notches | **une seule** — la pile se signale dans la notch ; une bulle accrochée seulement pour une activité importante |
+| Détachement | tirer vers le bas ; goutte qui s'étire ; ressort + étirement ≤ 5 % ; lancer + aimants ; toujours raccrochée au redémarrage |
+| Presse-papier | balayer vers la gauche pour supprimer ; boutons conservés |
+| Survol prolongé | option d'une seconde pour ouvrir, désactivée par défaut |
 | Coins | très arrondis, interpolés selon la hauteur ; épaules concaves au bord de l'écran |
 | Ligne inférieure / bordure / reflet au bord | non |
 | Surface | **noir OLED pur** pour le corps, encre plafonnée à 92 % |
@@ -476,9 +483,16 @@ Tranchées :
 8. Couleurs de la grille : celles de la référence, par préréglage.
 9. Pluie binaire : option désactivée par défaut.
 
+10. Presse-papier : balayer pour supprimer (les boutons restent pour le clavier et Narrateur).
+11. Survol prolongé : option d'une seconde, désactivée par défaut.
+12. Deux activités importantes : la notch se partage avec une petite bulle accrochée au bord,
+    seulement pour téléchargement, appel, enregistrement et priorité critique ; toucher la
+    bulle échange les rôles.
+13. Détachement : goutte qui s'étire, ressort + étirement léger, tirage avec résistance,
+    lancer + aimants, ouverture vers l'espace libre, toujours accrochée au redémarrage, la
+    bulle suit la notch détachée (ADR-019).
+
 Ouvertes :
 
-1. Presse-papier : faut-il le glisser pour supprimer, ou garder les boutons ?
-2. Survol prolongé (≈ 1 s) : doit-il déployer sans clic, comme Boring Notch, en option ?
-3. Deux activités simultanées très importantes (appel + minuteur) : la seconde attend-elle, ou la
-   notch s'élargit-elle en deux parties restant attachées ?
+- Aucune question bloquante. À juger sur Windows : la vitesse du ressort de suivi, la durée
+  de la goutte (340 ms) et le seuil d'arrachement (40 DIPs).

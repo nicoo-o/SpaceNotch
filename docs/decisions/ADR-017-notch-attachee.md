@@ -1,6 +1,6 @@
 # ADR-017 — Une notch attachée au bord supérieur, jamais une capsule flottante
 
-**Statut** : Accepté
+**Statut** : Accepté — prolongé par [ADR-019](ADR-019-notch-detachable.md) (détachement volontaire, bulle)
 
 ## Contexte
 
@@ -34,7 +34,8 @@ La version précédente tenait déjà le bord supérieur droit, mais laissait tr
 6. **Une géométrie pour tout** : surface, reflet, zone de contenu, ombre (prolongée au-dessus du
    bord pour que son sommet soit plat) et atmosphère utilisent la même silhouette.
 7. **Une seule notch** : le satellite flottant est supprimé ; la pile se signale par des points
-   dans la notch.
+   dans la notch. Seule exception, voulue par l'utilisateur : la bulle d'une activité
+   importante, elle-même accrochée au bord (ADR-019).
 8. **Hauteur compacte de 36 DIP** et largeur ajustée au texte (bornée entre 120 et 320) : la notch
    respire avec son contenu sans jamais devenir une barre ni une grande fenêtre.
 
