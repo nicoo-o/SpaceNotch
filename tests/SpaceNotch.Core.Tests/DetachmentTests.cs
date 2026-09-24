@@ -712,3 +712,191 @@ public class VelocityTrackerTests
         Assert.Equal((0.0, 0.0), tracker.Velocity(0));
     }
 }
+
+/// <summary>
+/// La notch accrochée à un côté : une languette, même silhouette tournée,
+/// qui s'ouvre vers l'intérieur. Voir ADR-020.
+/// </summary>
+public class SideEdgeTests
+{
+    private const double Tolerance = 0.001;
+
+    private static readonly ScreenRect Screen = new(0, 0, 1920, 1080);
+
+    private static readonly ScreenRect Work = new(0, 0, 1920, 1040);
+
+    [Theory]
+    [InlineData(NotchEdge.Left)]
+    [InlineData(NotchEdge.Right)]
+    public void ASideTabIsAttachedAlongTheWholeEdgeAndStaysInsideItsBox(NotchEdge edge)
+    {
+        IslandFootprint rest = SideTab.Rest(ElementSize.Normal, SideTab.DefaultShoulder);
+        IslandFootprint drawn = EdgeFrame.Oriented(rest, edge, SideTab.DefaultShoulder);
+
+        Assert.Equal(SideTab.Depth(ElementSize.Normal), drawn.Width, 6);
+        Assert.Equal(SideTab.Length(ElementSize.Normal) + (2 * SideTab.DefaultShoulder), drawn.Height, 6);
+
+        ShapePoint[] points = EdgeFrame.Silhouette(NotchGeometry.Default, drawn, edge, SideTab.DefaultShoulder);
+        double edgeX = edge == NotchEdge.Left ? 0 : drawn.Width;
+
+        Assert.All(points, p =>
+        {
+            Assert.InRange(p.X, -Tolerance, drawn.Width + Tolerance);
+            Assert.InRange(p.Y, -Tolerance, drawn.Height + Tolerance);
+        });
+
+        // Le bord de l'écran est occupé sur toute la longueur : aux deux bouts.
+        Assert.Contains(points, p => Math.Abs(p.X - edgeX) < Tolerance && Math.Abs(p.Y) < Tolerance);
+        Assert.Contains(points, p => Math.Abs(p.X - edgeX) < Tolerance && Math.Abs(p.Y - drawn.Height) < Tolerance);
+
+        // Et elle s'avance jusqu'à sa profondeur, vers l'intérieur.
+        double innerX = edge == NotchEdge.Left ? drawn.Width : 0;
+        Assert.Contains(points, p => Math.Abs(p.X - innerX) < Tolerance);
+
+        Assert.True(GooBridge.SignedArea(points) > 0, "Même sens que toutes les autres pièces.");
+    }
+
+    [Fact]
+    public void TheTopEdgeIsTheReferenceSilhouetteUnchanged()
+    {
+        var footprint = new IslandFootprint(280, 52);
+
+        Assert.Equal(footprint, EdgeFrame.Oriented(footprint, NotchEdge.Top, 12));
+        Assert.Equal(
+            NotchGeometry.Default.Silhouette(footprint),
+            EdgeFrame.Silhouette(NotchGeometry.Default, footprint, NotchEdge.Top, NotchGeometry.DefaultShoulder));
+    }
+
+    [Fact]
+    public void OnASideTheShouldersMoveFromWidthToHeight()
+    {
+        IslandFootprint drawn = EdgeFrame.Oriented(new IslandFootprint(420, 200), NotchEdge.Left, 10);
+
+        Assert.Equal(400, drawn.Width, 6);
+        Assert.Equal(220, drawn.Height, 6);
+    }
+
+    [Theory]
+    [InlineData(NotchEdge.Top)]
+    [InlineData(NotchEdge.Left)]
+    [InlineData(NotchEdge.Right)]
+    public void TheEdgeFrameRoundTrips(NotchEdge edge)
+    {
+        var rect = new ScreenRect(300, 120, 200, 60);
+        ScreenRect local = EdgeFrame.ToLocal(edge, rect, Screen);
+
+        Assert.Equal(rect, EdgeFrame.ToScreenRect(edge, local, Screen));
+    }
+
+    [Fact]
+    public void TheLocalDepthIsTheDistanceFromTheEdge()
+    {
+        var nearRight = new ScreenRect(1900, 500, 20, 40);
+
+        Assert.Equal(0, EdgeFrame.ToLocal(NotchEdge.Right, nearRight, Screen).Y, 6);
+        Assert.Equal(500, EdgeFrame.ToLocal(NotchEdge.Right, nearRight, Screen).X, 6);
+        Assert.Equal(0, EdgeFrame.ToLocal(NotchEdge.Left, new ScreenRect(0, 10, 5, 5), Screen).Y, 6);
+    }
+
+    [Fact]
+    public void ASideTabStaysWhereItWasDroppedAndInsideTheWorkArea()
+    {
+        IslandFootprint drawn = new(28, 96);
+
+        ScreenRect middle = SideTab.Place(NotchEdge.Right, drawn, 0.5, Screen, Work);
+        Assert.Equal(1920 - 28, middle.X, 6);
+        Assert.Equal(520, middle.CenterY, 6);
+
+        ScreenRect low = SideTab.Place(NotchEdge.Left, drawn, 1, Screen, Work);
+        Assert.Equal(0, low.X);
+        Assert.Equal(Work.Bottom, low.Bottom, 6);
+
+        Assert.Equal(0.25, SideTab.OffsetOf(260, Work), 6);
+    }
+
+    [Fact]
+    public void ReleasingNearASideAttachesThereAtThatHeight()
+    {
+        var pill = new ScreenRect(20, 400, 214, 52);
+        FloatingTarget target = Detachment.Land(pill, 0, 0, Work, Work.CenterX);
+
+        Assert.Equal(FloatingLanding.Reattach, target.Landing);
+        Assert.Equal(NotchEdge.Left, target.Edge);
+        Assert.Equal(SideTab.OffsetOf(426, Work), target.Offset, 6);
+    }
+
+    [Fact]
+    public void AFlingTowardsTheRightSideAttachesThere()
+    {
+        var pill = new ScreenRect(900, 500, 214, 52);
+        FloatingTarget target = Detachment.Land(pill, 3000, 0, Work, Work.CenterX);
+
+        Assert.Equal(FloatingLanding.Reattach, target.Landing);
+        Assert.Equal(NotchEdge.Right, target.Edge);
+    }
+
+    [Fact]
+    public void NearTheCornersTheSidesLeaveItToTheCornerMagnets()
+    {
+        var pill = new ScreenRect(900, 500, 214, 52);
+        FloatingTarget target = Detachment.Land(pill, 2400, 2000, Work, Work.CenterX);
+
+        Assert.Equal(FloatingLanding.Magnet, target.Landing);
+    }
+
+    [Fact]
+    public void SideEdgesCanBeTurnedOff()
+    {
+        var pill = new ScreenRect(20, 400, 214, 52);
+        FloatingTarget target = Detachment.Land(pill, 0, 0, Work, Work.CenterX, new LandingOptions(SideEdges: false));
+
+        Assert.Equal(FloatingLanding.Stay, target.Landing);
+    }
+
+    [Fact]
+    public void WithoutMagnetsAThrownPillGlidesAndStaysOnScreen()
+    {
+        var pill = new ScreenRect(900, 500, 214, 52);
+        FloatingTarget target = Detachment.Land(pill, 2400, 2000, Work, Work.CenterX, new LandingOptions(Magnets: false));
+
+        Assert.Equal(FloatingLanding.Stay, target.Landing);
+        Assert.True(target.X + 214 <= Work.Right);
+        Assert.True(target.Y + 52 <= Work.Bottom);
+    }
+
+    [Fact]
+    public void CrossingToAnotherMonitorResistsFirstUnlessTurnedOff()
+    {
+        Assert.False(Detachment.CrossesMonitor(30, resist: true));
+        Assert.True(Detachment.CrossesMonitor(Detachment.MonitorEscape, resist: true));
+        Assert.True(Detachment.CrossesMonitor(1, resist: false));
+        Assert.False(Detachment.CrossesMonitor(0, resist: false));
+    }
+
+    [Fact]
+    public void TheTearDistanceIsAdjustableWithinBounds()
+    {
+        Assert.True(Detachment.ShouldTear(25, 20));
+        Assert.False(Detachment.ShouldTear(25, 60));
+        Assert.False(Detachment.ShouldTear(15, 5));
+        Assert.False(Detachment.ShouldTear(100, 500) && !Detachment.ShouldTear(80, 500));
+    }
+
+    [Fact]
+    public void OnASideTheBubbleFollowsBelowTheTab()
+    {
+        var tab = new ScreenRect(1892, 400, 28, 96);
+        IslandFootprint bubble = EdgeFrame.Oriented(SplitPresentation.AttachedBubbleOf(ElementSize.Normal), NotchEdge.Right, SplitPresentation.BubbleShoulder);
+        ScreenRect rect = SplitPresentation.AttachedBubbleRect(tab, Screen, NotchEdge.Right, bubble);
+
+        Assert.Equal(tab.Bottom + SplitPresentation.Gap, rect.Y, 6);
+        Assert.Equal(Screen.Right, rect.Right, 6);
+    }
+
+    [Fact]
+    public void ElementSizesScaleTheBubble()
+    {
+        Assert.True(SplitPresentation.FloatingBubbleOf(ElementSize.Small).Width < SplitPresentation.FloatingBubbleOf(ElementSize.Large).Width);
+        Assert.Equal(SplitPresentation.AttachedBubble, SplitPresentation.AttachedBubbleOf(ElementSize.Normal));
+    }
+}

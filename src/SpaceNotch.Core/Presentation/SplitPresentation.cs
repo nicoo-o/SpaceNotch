@@ -41,6 +41,63 @@ public static class SplitPresentation
     /// <summary>Encombrement de la bulle qui suit une notch détachée.</summary>
     public static IslandFootprint FloatingBubble => new(FloatingDiameter, FloatingDiameter);
 
+    /// <summary>Facteur d'échelle d'une taille réglable.</summary>
+    public static double ScaleOf(ElementSize size) => size switch
+    {
+        ElementSize.Small => 0.85,
+        ElementSize.Large => 1.2,
+        _ => 1.0
+    };
+
+    /// <summary>Bulle accrochée, épaules comprises, à la taille réglée, orientée comme en haut.</summary>
+    public static IslandFootprint AttachedBubbleOf(ElementSize size)
+    {
+        double k = ScaleOf(size);
+        return new IslandFootprint((BubbleBody * k) + (2 * BubbleShoulder), BubbleHeight * k);
+    }
+
+    /// <summary>Bulle flottante, à la taille réglée.</summary>
+    public static IslandFootprint FloatingBubbleOf(ElementSize size)
+    {
+        double d = FloatingDiameter * ScaleOf(size);
+        return new IslandFootprint(d, d);
+    }
+
+    /// <summary>
+    /// Place de la bulle accrochée à un bord : à la suite de la notch, le long
+    /// du bord. En haut, à sa droite ; sur un côté, en dessous — et de l'autre
+    /// côté quand la place manque.
+    /// </summary>
+    /// <param name="notch">Notch accrochée, en coordonnées d'écran.</param>
+    /// <param name="screen">Moniteur, en coordonnées d'écran.</param>
+    /// <param name="edge">Bord.</param>
+    /// <param name="bubble">Bulle déjà orientée pour ce bord.</param>
+    public static ScreenRect AttachedBubbleRect(ScreenRect notch, ScreenRect screen, NotchEdge edge, IslandFootprint bubble)
+    {
+        if (!EdgeFrame.IsSide(edge))
+        {
+            double x = notch.Right + Gap;
+
+            if (x + bubble.Width > screen.Right)
+            {
+                x = notch.X - Gap - bubble.Width;
+            }
+
+            return new ScreenRect(x, notch.Y, bubble.Width, bubble.Height);
+        }
+
+        double y = notch.Bottom + Gap;
+
+        if (y + bubble.Height > screen.Bottom)
+        {
+            y = notch.Y - Gap - bubble.Height;
+        }
+
+        double bx = edge == NotchEdge.Right ? screen.Right - bubble.Width : screen.X;
+
+        return new ScreenRect(bx, y, bubble.Width, bubble.Height);
+    }
+
     /// <summary>Vrai si l'activité mérite de partager la notch.</summary>
     public static bool IsImportant(IslandActivity activity)
     {

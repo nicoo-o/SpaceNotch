@@ -10,6 +10,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Motion;
+using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Infrastructure.Config;
 using SpaceNotch.Infrastructure.Logging;
@@ -149,7 +150,12 @@ public sealed partial class SettingsWindow : Window
     {
         AppearanceBox.ItemsSource = new[] { "Sombre", "Clair", "Automatique" };
         BackdropBox.ItemsSource = new[] { "Automatique", "Transparent", "Flouté", "Opaque" };
-        DisplayBox.ItemsSource = new[] { "Écran principal", "Écran du curseur", "Écran désigné" };
+        DisplayBox.ItemsSource = new[] { "Écran principal", "Écran du curseur", "Écran où elle a été accrochée" };
+        EdgeBox.ItemsSource = new[] { "Haut", "Gauche", "Droite" };
+        SurfaceTintBox.ItemsSource = new[] { "Noir OLED", "Graphite", "Personnalisée" };
+        BubbleSizeBox.ItemsSource = new[] { "Petite", "Normale", "Grande" };
+        TabSizeBox.ItemsSource = new[] { "Petite", "Normale", "Grande" };
+        DetachFeelBox.ItemsSource = new[] { "Souple", "Naturelle", "Ferme" };
         DensityBox.ItemsSource = new[] { "Compacte", "Confortable", "Aérée" };
         CutoutBox.ItemsSource = new[] { "Aucune", "Centrée", "À gauche", "À droite", "Personnalisée" };
 
@@ -190,6 +196,24 @@ public sealed partial class SettingsWindow : Window
             HoverToggle.IsOn = settings.HoverToPreview;
             HoverExpandToggle.IsOn = settings.HoverToExpand;
             DetachToggle.IsOn = settings.AllowDetach;
+            EdgeBox.SelectedIndex = (int)settings.DockEdge;
+            SideEdgesToggle.IsOn = settings.AllowSideEdges;
+            SurfaceTintBox.SelectedIndex = (int)settings.SurfaceTint;
+            CustomColorBox.Text = settings.CustomSurfaceColor;
+            OpacitySlider.Value = settings.SurfaceOpacity * 100;
+            SideShoulderSlider.Value = settings.SideShoulderRadius;
+            FloatingRadiusSlider.Value = settings.FloatingRadius;
+            ShadowSlider.Value = settings.FloatingShadowOpacity * 100;
+            OutlineToggle.IsOn = settings.ShowOutline;
+            OutlineSlider.Value = settings.OutlineOpacity * 100;
+            BubbleSizeBox.SelectedIndex = (int)settings.BubbleSize;
+            TabSizeBox.SelectedIndex = (int)settings.TabSize;
+            DetachFeelBox.SelectedIndex = (int)settings.DetachFeel;
+            StretchSlider.Value = settings.StretchAmount * 100;
+            TearSlider.Value = settings.TearDistance;
+            MagnetsToggle.IsOn = settings.MagnetsEnabled;
+            GooToggle.IsOn = settings.GooEnabled;
+            MonitorResistanceToggle.IsOn = settings.MonitorResistance;
             BubbleToggle.IsOn = settings.ShowSplitBubble;
             FullscreenToggle.IsOn = settings.HideOverFullscreen;
             StackToggle.IsOn = settings.ShowActivityStack;
@@ -241,7 +265,84 @@ public sealed partial class SettingsWindow : Window
         ShoulderValue.Text = $"{settings.ShoulderRadius.ToString("0", CultureInfo.InvariantCulture)} px";
         ResponseValue.Text = $"{settings.SpringResponseSeconds.ToString("0.00", CultureInfo.InvariantCulture)} s";
         BounceValue.Text = settings.SpringBounce.ToString("0.00", CultureInfo.InvariantCulture);
+        OpacityValue.Text = $"{(settings.SurfaceOpacity * 100).ToString("0", CultureInfo.InvariantCulture)} %";
+        SideShoulderValue.Text = $"{settings.SideShoulderRadius.ToString("0", CultureInfo.InvariantCulture)} px";
+        FloatingRadiusValue.Text = $"{settings.FloatingRadius.ToString("0", CultureInfo.InvariantCulture)} px";
+        ShadowValue.Text = $"{(settings.FloatingShadowOpacity * 100).ToString("0", CultureInfo.InvariantCulture)} %";
+        OutlineValue.Text = $"{(settings.OutlineOpacity * 100).ToString("0", CultureInfo.InvariantCulture)} %";
+        StretchValue.Text = $"{(settings.StretchAmount * 100).ToString("0", CultureInfo.InvariantCulture)} %";
+        TearValue.Text = $"{settings.TearDistance.ToString("0", CultureInfo.InvariantCulture)} px";
+
+        // La couleur personnalisée ne sert que si elle est choisie ; l'aperçu
+        // de la pastille dit ce qu'elle donnera.
+        bool custom = settings.SurfaceTint == SurfaceTint.Custom;
+        CustomColorBox.IsEnabled = custom;
+        (byte a, byte r, byte g, byte b) = settings.SurfaceColor();
+        CustomColorSwatch.Background = new SolidColorBrush(global::Windows.UI.Color.FromArgb(a, r, g, b));
+        OutlineSlider.IsEnabled = settings.ShowOutline;
+        EdgeBox.IsEnabled = settings.AllowSideEdges;
     }
+
+    private void OnEdgeChanged(object sender, SelectionChangedEventArgs e)
+        => Apply(s => s.DockEdge = (NotchEdge)Math.Max(0, EdgeBox.SelectedIndex));
+
+    private void OnSideEdgesToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.AllowSideEdges = SideEdgesToggle.IsOn);
+
+    private void OnSurfaceTintChanged(object sender, SelectionChangedEventArgs e)
+        => Apply(s => s.SurfaceTint = (SurfaceTint)Math.Max(0, SurfaceTintBox.SelectedIndex));
+
+    private void OnCustomColorChanged(object sender, TextChangedEventArgs e)
+    {
+        // Une couleur à moitié tapée ne s'applique pas : seule une couleur
+        // complète et valide remplace la précédente.
+        if (AppSettings.TryParseColor(CustomColorBox.Text, out _))
+        {
+            Apply(s => s.CustomSurfaceColor = "#" + CustomColorBox.Text.Trim().TrimStart('#').ToUpperInvariant());
+        }
+    }
+
+    private void OnOpacityChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        => ApplyContinuous(s => s.SurfaceOpacity = e.NewValue / 100);
+
+    private void OnSideShoulderChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        => ApplyContinuous(s => s.SideShoulderRadius = e.NewValue);
+
+    private void OnFloatingRadiusChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        => ApplyContinuous(s => s.FloatingRadius = e.NewValue);
+
+    private void OnShadowChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        => ApplyContinuous(s => s.FloatingShadowOpacity = e.NewValue / 100);
+
+    private void OnOutlineToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.ShowOutline = OutlineToggle.IsOn);
+
+    private void OnOutlineChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        => ApplyContinuous(s => s.OutlineOpacity = e.NewValue / 100);
+
+    private void OnBubbleSizeChanged(object sender, SelectionChangedEventArgs e)
+        => Apply(s => s.BubbleSize = (ElementSize)Math.Max(0, BubbleSizeBox.SelectedIndex));
+
+    private void OnTabSizeChanged(object sender, SelectionChangedEventArgs e)
+        => Apply(s => s.TabSize = (ElementSize)Math.Max(0, TabSizeBox.SelectedIndex));
+
+    private void OnDetachFeelChanged(object sender, SelectionChangedEventArgs e)
+        => Apply(s => s.DetachFeel = (DetachFeel)Math.Max(0, DetachFeelBox.SelectedIndex));
+
+    private void OnStretchChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        => ApplyContinuous(s => s.StretchAmount = e.NewValue / 100);
+
+    private void OnTearChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        => ApplyContinuous(s => s.TearDistance = e.NewValue);
+
+    private void OnMagnetsToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.MagnetsEnabled = MagnetsToggle.IsOn);
+
+    private void OnGooToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.GooEnabled = GooToggle.IsOn);
+
+    private void OnMonitorResistanceToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.MonitorResistance = MonitorResistanceToggle.IsOn);
 
     /// <summary>
     /// Met l'aperçu à jour à partir des préférences.

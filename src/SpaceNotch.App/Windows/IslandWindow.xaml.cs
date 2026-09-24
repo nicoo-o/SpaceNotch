@@ -180,6 +180,7 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private HypnoticSurface? _signalHypnotic;
     private HypnoticSurface? _cardHypnotic;
+    private HypnoticSurface? _tabHypnotic;
     private HypnoticSurface? _dropHypnotic;
 
     /// <summary>Mouvement confié à l'atmosphère, pour ne relancer sa respiration qu'au changement.</summary>
@@ -236,6 +237,10 @@ public sealed partial class IslandWindow : Window
         _settingsService.WriteFailed = (path, ex) => MiniLogger.Log($"[CONFIG] écriture impossible : {path}", ex);
 
         _settings = _settingsService.Current;
+
+        // Le bord et la position enregistrés : la notch redémarre là où elle a
+        // été accrochée la dernière fois (ADR-020).
+        LoadDock();
 
         _hWnd = WindowNative.GetWindowHandle(this);
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hWnd);
@@ -334,7 +339,9 @@ public sealed partial class IslandWindow : Window
             _activityManager,
             _settings.Motion,
             _settings.HoverMotion,
-            IslandFootprint.For(IslandPresentation.Resolve(null), _settings.Density),
+            UsesSideTab
+                ? SideTab.Rest(_settings.TabSize, _settings.SideShoulderRadius)
+                : IslandFootprint.For(IslandPresentation.Resolve(null), _settings.Density),
             UseSpringAnimations,
             ApplyGeometry);
 
@@ -370,6 +377,7 @@ public sealed partial class IslandWindow : Window
         _specularHeight = ResolveSpecularHeight();
 
         // Géométrie initiale : appliquée sans animation, l'Island démarre au repos.
+        ApplyLayout();
         ApplyGeometry(_controller.CurrentFootprint);
 
         _appWindow.Show();
@@ -400,6 +408,7 @@ public sealed partial class IslandWindow : Window
     {
         _signalHypnotic = HypnoticSurface.TryAttach(SignalHypnoticHost);
         _cardHypnotic = HypnoticSurface.TryAttach(CardHypnoticHost);
+        _tabHypnotic = HypnoticSurface.TryAttach(TabHypnoticHost);
         _dropHypnotic = HypnoticSurface.TryAttach(DropHypnoticHost);
 
         if (_dropHypnotic is not null)
@@ -498,6 +507,7 @@ public sealed partial class IslandWindow : Window
     {
         _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
         _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+        _tabHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
     }
 
     // ------------------------------------------------------------------
@@ -776,6 +786,7 @@ public sealed partial class IslandWindow : Window
         IdleRestView.Visibility = Visibility.Collapsed;
         SignalRestView.Visibility = Visibility.Collapsed;
         CardRestView.Visibility = Visibility.Collapsed;
+        TabRestView.Visibility = Visibility.Collapsed;
 
         UpdateStackIndicator();
         Announce(activity);
@@ -791,7 +802,7 @@ public sealed partial class IslandWindow : Window
             // horloge à la minute dans un produit dont la promesse est de ne rien
             // faire au repos. Sans elle, la lèvre est vide — le point de veille
             // ne l'accompagne que pour lui donner un repère.
-            IdleClockText.Visibility = _settings.ShowClockAtRest
+            IdleClockText.Visibility = _settings.ShowClockAtRest && !UsesSideTab
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
@@ -873,6 +884,14 @@ public sealed partial class IslandWindow : Window
 
         HypnoticPreset preset = RestingPreset(activity);
 
+        // Accrochée à un côté, la forme de repos est une languette : l'icône
+        // ou la grille, et la jauge. Le texte attend l'ouverture.
+        if (UsesSideTab)
+        {
+            PresentTab(activity, preset);
+            return;
+        }
+
         string? metric = activity.TrailingMetric;
         Visibility metricVisibility = metric is null ? Visibility.Collapsed : Visibility.Visible;
 
@@ -922,6 +941,27 @@ public sealed partial class IslandWindow : Window
         ApplyHypnoticSlot(_cardHypnotic, CardHypnoticHost, CardGlyph, preset);
         ApplyRestArtwork(activity, CardArtwork, CardArtworkImage, CardGlyph, preset);
         SignalArtwork.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>Languette latérale au repos : glyphe ou grille, jauge verticale.</summary>
+    private void PresentTab(IslandActivity activity, HypnoticPreset preset)
+    {
+        TabGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
+        TabGlyph.Foreground = StatePalette.Brush(activity.State);
+
+        double? progress = activity.Progress;
+        TabLevel.Visibility = progress is null ? Visibility.Collapsed : Visibility.Visible;
+        TabLevelFill.Height = TabLevel.Height * Math.Clamp(progress ?? 0, 0, 1);
+
+        _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+        _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+        ApplyHypnoticSlot(_tabHypnotic, TabHypnoticHost, TabGlyph, preset);
+
+        SignalArtwork.Visibility = Visibility.Collapsed;
+        CardArtwork.Visibility = Visibility.Collapsed;
+        TabRestView.Visibility = Visibility.Visible;
+
+        AutomationProperties.SetName(TabRestView, activity.Title ?? string.Empty);
     }
 
     /// <summary>
@@ -1246,7 +1286,9 @@ public sealed partial class IslandWindow : Window
     /// <see cref="IslandFootprint.PreviewOf"/>.
     /// </summary>
     private IslandFootprint ResolvePreviewFootprint()
-        => IslandFootprint.PreviewOf(_tier, _restFootprint);
+        => UsesSideTab
+            ? SideTab.Preview(_restFootprint)
+            : IslandFootprint.PreviewOf(_tier, _restFootprint);
 
     /// <summary>Glyphe du palier signal, en DIPs (jeton NfSignalGlyphSize), et son écart au libellé.</summary>
     private const double SignalGlyphSpan = 14 + 8;
@@ -1261,6 +1303,12 @@ public sealed partial class IslandWindow : Window
     /// n'importe quel autre changement de forme.
     /// </summary>
     private IslandFootprint FitRest(IslandActivity? activity, IslandPresentationTier tier)
+        => UsesSideTab
+            ? SideTab.Rest(_settings.TabSize, _settings.SideShoulderRadius)
+            : FitRestFor(activity, tier);
+
+    /// <summary>Forme au repos de la notch du haut — et de la pastille — ajustée à son contenu.</summary>
+    private IslandFootprint FitRestFor(IslandActivity? activity, IslandPresentationTier tier)
     {
         if (activity is null || tier == IslandPresentationTier.Idle)
         {
@@ -1334,6 +1382,12 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
+        if (UsesSideTab)
+        {
+            ApplySideGeometry(footprint);
+            return;
+        }
+
         if (_dragPhase is DragPhase.Pulling or DragPhase.Unpulling)
         {
             footprint = Detachment.Pulled(footprint, _pull);
@@ -1387,7 +1441,10 @@ public sealed partial class IslandWindow : Window
             geometry.ShoulderFor(footprint),
             DeploymentFor(footprint.Height)));
 
-        PlaceBubbleAttached(display, x, footprint);
+        PlaceBubbleAttached(
+            display,
+            new ScreenRect((x - display.Left) / scale, 0, footprint.Width, footprint.Height),
+            footprint);
     }
 
     /// <summary>
@@ -1423,6 +1480,11 @@ public sealed partial class IslandWindow : Window
         {
             case IslandDisplayMode.Current:
                 return DisplayManager.ResolveFromCursor();
+
+            // L'écran où la notch a été accrochée par glisser, s'il est toujours
+            // branché ; sinon l'écran principal.
+            case IslandDisplayMode.Custom when FindDisplayByBounds(_settings.DockDisplayBounds) is { } docked:
+                return docked;
 
             case IslandDisplayMode.Custom when _settings.CustomDisplayHandle is > 0:
                 return DisplayManager.FromMonitor(new IntPtr(_settings.CustomDisplayHandle.Value));
@@ -1526,6 +1588,8 @@ public sealed partial class IslandWindow : Window
     {
         // Un écran ajouté, retiré ou redimensionné rend la position d'une notch
         // détachée incertaine : elle revient au bord, sa place de référence.
+        // L'écran d'accroche est recherché à nouveau.
+        _dockDisplayCache = null;
         ForceAttach();
 
         SystemVisualState updated = SystemVisualState.Read();
@@ -1680,16 +1744,21 @@ public sealed partial class IslandWindow : Window
         // La teinte va au tracé, pas au panneau : la surface n'est plus un
         // rectangle arrondi mais une silhouette, et seule une forme sait la
         // remplir sans déborder de ses congés.
-        SurfaceFill.Fill = AtmosphericMaskHelper.CreateSolidSurface(
-            light: light,
-            opaque: mode == IslandBackdropMode.Opaque);
+        SurfaceFill.Fill = CreateSurfaceBrush(light, mode == IslandBackdropMode.Opaque);
+
+        // Contour optionnel, pour les fonds d'écran sombres où le noir se perd.
+        SurfaceFill.Stroke = CreateOutlineBrush(light);
+        SurfaceFill.StrokeThickness = SurfaceFill.Stroke is null ? 0 : 1;
 
         // La goutte est la même matière que la notch ; la bulle aussi, dans sa
-        // propre fenêtre — d'où un pinceau à elle, de même teinte.
+        // propre fenêtre — d'où des pinceaux à elle, de même teinte.
         GooFill.Fill = SurfaceFill.Fill;
-        _bubble.SetSurface(AtmosphericMaskHelper.CreateSolidSurface(
-            light: light,
-            opaque: mode == IslandBackdropMode.Opaque));
+        GooFill.Stroke = SurfaceFill.Stroke;
+        GooFill.StrokeThickness = SurfaceFill.StrokeThickness;
+        _bubble.SetSurface(CreateSurfaceBrush(light, mode == IslandBackdropMode.Opaque));
+        _bubble.SetOutline(CreateOutlineBrush(light), SurfaceFill.StrokeThickness);
+
+        _atmosphere.SetShadowStrength(_settings.FloatingShadowOpacity);
 
         // Les contrôles qui ne viennent pas de nos jetons — tout ce que Fluent
         // dessine, à commencer par les boutons d'une scène — suivent le thème
@@ -1710,6 +1779,37 @@ public sealed partial class IslandWindow : Window
         MiniLogger.Log(
             $"Apparence appliquée : {mode}, thème {(light ? "clair" : "sombre")}, "
             + $"dissolution {RuntimeDiagnostics.Describe(_diagnostics.AtmospherePath)}");
+    }
+
+    /// <summary>
+    /// Surface de la notch : la teinte choisie — noir OLED par défaut,
+    /// graphite, ou une couleur libre — et sa transparence. Le thème clair
+    /// garde sa surface claire ; seule la transparence s'y applique.
+    /// </summary>
+    private SolidColorBrush CreateSurfaceBrush(bool light, bool opaque)
+    {
+        (byte alpha, byte r, byte g, byte b) = _settings.SurfaceColor();
+
+        if (light)
+        {
+            var baseBrush = (SolidColorBrush)AtmosphericMaskHelper.CreateSolidSurface(light: true, opaque: opaque);
+            Color c = baseBrush.Color;
+            return new SolidColorBrush(Color.FromArgb((byte)Math.Min(c.A, alpha), c.R, c.G, c.B));
+        }
+
+        return new SolidColorBrush(Color.FromArgb(alpha, r, g, b));
+    }
+
+    /// <summary>Contour de la notch, s'il est demandé : un filet d'encre à peine visible.</summary>
+    private SolidColorBrush? CreateOutlineBrush(bool light)
+    {
+        if (!_settings.ShowOutline)
+        {
+            return null;
+        }
+
+        byte alpha = (byte)Math.Round(Math.Clamp(_settings.OutlineOpacity, 0.05, 0.5) * 255);
+        return new SolidColorBrush(light ? Color.FromArgb(alpha, 0, 0, 0) : Color.FromArgb(alpha, 255, 255, 255));
     }
 
     // ------------------------------------------------------------------
@@ -2030,6 +2130,7 @@ public sealed partial class IslandWindow : Window
         IdleRestView.Visibility = Visibility.Collapsed;
         SignalRestView.Visibility = Visibility.Collapsed;
         CardRestView.Visibility = Visibility.Collapsed;
+        TabRestView.Visibility = Visibility.Collapsed;
         DropZoneView.Visibility = Visibility.Visible;
 
         _controller.BeginDragTarget(IslandSceneCatalog.FootprintFor(IslandSceneCatalog.DropZone));
@@ -2454,6 +2555,19 @@ public sealed partial class IslandWindow : Window
             ForceAttach();
         }
 
+        // Le bord choisi dans les réglages — ou les côtés désactivés — : la
+        // notch accrochée change de bord sans passer par un geste.
+        if (!UsesFloatingGeometry)
+        {
+            NotchEdge previous = _edge;
+            LoadDock();
+
+            if (previous != _edge)
+            {
+                ApplyLayout();
+            }
+        }
+
         // Un changement de ressort est appliqué à l'animateur en place : la
         // position et la vitesse courantes sont conservées, ce qui évite un à-coup
         // pendant que l'utilisateur ajuste le curseur.
@@ -2634,6 +2748,7 @@ public sealed partial class IslandWindow : Window
             _dropCompletionTimer?.Stop();
             _signalHypnotic?.Dispose();
             _cardHypnotic?.Dispose();
+            _tabHypnotic?.Dispose();
             _dropHypnotic?.Dispose();
 
             _clipboardMonitor.Dispose();

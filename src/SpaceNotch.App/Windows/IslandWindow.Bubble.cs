@@ -140,11 +140,14 @@ public sealed partial class IslandWindow
     private void PositionBubble() => ApplyGeometry(_controller.CurrentFootprint);
 
     /// <summary>
-    /// Bulle à côté d'une notch accrochée, épaule contre épaule, sur le bord.
-    /// Elle suit la largeur de la notch image par image, sans ressort propre :
-    /// c'est le ressort de la notch qui la pousse.
+    /// Bulle à côté d'une notch accrochée, épaule contre épaule, sur le même
+    /// bord : à droite en haut, en dessous sur un côté. Elle suit la notch image
+    /// par image, sans ressort propre : c'est le ressort de la notch qui la pousse.
     /// </summary>
-    private void PlaceBubbleAttached(DisplayInfo display, int notchX, IslandFootprint footprint)
+    /// <param name="display">Écran de la notch.</param>
+    /// <param name="notch">Notch, en DIPs relatifs à l'écran.</param>
+    /// <param name="drawn">Encombrement dessiné de la notch.</param>
+    private void PlaceBubbleAttached(DisplayInfo display, ScreenRect notch, IslandFootprint drawn)
     {
         if (!_bubble.IsShown)
         {
@@ -153,17 +156,25 @@ public sealed partial class IslandWindow
 
         double scale = display.DpiScale;
         var screen = new ScreenRect(0, 0, display.Width / scale, display.Height / scale);
-        var notch = new ScreenRect((notchX - display.Left) / scale, 0, footprint.Width, footprint.Height);
+        IslandFootprint bubble = EdgeFrame.Oriented(
+            SplitPresentation.AttachedBubbleOf(_settings.BubbleSize), _edge, _settings.SideShoulderRadius);
 
-        ScreenRect rect = SplitPresentation.AttachedBubbleRect(notch, screen);
+        ScreenRect rect = SplitPresentation.AttachedBubbleRect(notch with { Width = drawn.Width, Height = drawn.Height }, screen, _edge, bubble);
+
+        int widthPx = (int)Math.Round(rect.Width * scale);
+        int x = _edge == NotchEdge.Right
+            ? display.Right - widthPx
+            : display.Left + (int)Math.Round(rect.X * scale);
 
         _bubble.Place(
-            display.Left + (int)Math.Round(rect.X * scale),
-            display.Top,
-            (int)Math.Round(rect.Width * scale),
+            x,
+            display.Top + (int)Math.Round(rect.Y * scale),
+            widthPx,
             (int)Math.Round(rect.Height * scale),
-            SplitPresentation.AttachedBubble,
-            floating: false);
+            bubble,
+            floating: false,
+            _edge,
+            _settings.SideShoulderRadius);
 
         _bubbleSpring.Snap(rect.CenterX, rect.CenterY);
     }
@@ -180,6 +191,8 @@ public sealed partial class IslandWindow
         }
 
         ScreenRect target = SplitPresentation.FloatingBubbleRect(pill, work);
+        IslandFootprint targetSize = SplitPresentation.FloatingBubbleOf(_settings.BubbleSize);
+        target = ScreenRect.Centered(target.CenterX, target.CenterY, targetSize.Width, targetSize.Height);
         _bubbleSpring.SetTarget(target.CenterX, target.CenterY);
 
         if (!UseSpringAnimations() || !_detachFramesHooked)
@@ -194,7 +207,7 @@ public sealed partial class IslandWindow
         _bubbleStepAt = _detachClock.Elapsed.TotalSeconds;
 
         double scale = display.DpiScale;
-        IslandFootprint size = SplitPresentation.FloatingBubble;
+        IslandFootprint size = SplitPresentation.FloatingBubbleOf(_settings.BubbleSize);
         ScreenRect rect = ScreenRect.Centered(_bubbleSpring.X, _bubbleSpring.Y, size.Width, size.Height);
 
         _bubble.Place(
@@ -203,7 +216,9 @@ public sealed partial class IslandWindow
             (int)Math.Round(rect.Width * scale),
             (int)Math.Round(rect.Height * scale),
             size,
-            floating: true);
+            floating: true,
+            NotchEdge.Top,
+            0);
     }
 
     private double _bubbleStepAt;

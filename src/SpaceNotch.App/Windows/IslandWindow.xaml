@@ -315,6 +315,49 @@
                     </StackPanel>
                 </Grid>
 
+                <!-- ====================================================
+                     LANGUETTE — la notch accrochée à un côté (ADR-020).
+                     Pas de texte couché : l'icône ou la grille, et une jauge
+                     verticale si l'activité avance. Le contenu se lit à
+                     l'ouverture, à l'horizontale.
+                     ==================================================== -->
+                <StackPanel
+                    x:Name="TabRestView"
+                    Spacing="6"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Visibility="Collapsed">
+
+                    <Grid
+                        Width="{StaticResource NfSignalGlyphSize}"
+                        Height="{StaticResource NfSignalGlyphSize}"
+                        HorizontalAlignment="Center">
+                        <FontIcon
+                            x:Name="TabGlyph"
+                            FontSize="{StaticResource NfSignalGlyphSize}" />
+                        <Grid
+                            x:Name="TabHypnoticHost"
+                            IsHitTestVisible="False"
+                            Visibility="Collapsed" />
+                    </Grid>
+
+                    <Border
+                        x:Name="TabLevel"
+                        Width="3"
+                        Height="22"
+                        CornerRadius="1.5"
+                        HorizontalAlignment="Center"
+                        Background="{ThemeResource NfStrokeStrongBrush}"
+                        Visibility="Collapsed">
+                        <Border
+                            x:Name="TabLevelFill"
+                            Height="0"
+                            VerticalAlignment="Bottom"
+                            CornerRadius="1.5"
+                            Background="{ThemeResource NfTextPrimaryBrush}" />
+                    </Border>
+                </StackPanel>
+
                 <!-- Scènes : chacune est résolue par la clé déclarée par la fonctionnalité -->
                 <scenes:MediaExpandedScene x:Name="MediaSceneView" Visibility="Collapsed" />
                 <scenes:VolumeHudScene x:Name="VolumeSceneView" Visibility="Collapsed" />

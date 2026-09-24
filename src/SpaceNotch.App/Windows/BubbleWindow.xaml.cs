@@ -59,6 +59,7 @@ public sealed partial class BubbleWindow : Window
     private bool _windowShown;
     private bool _shown;
     private bool _floating;
+    private NotchEdge _edge = NotchEdge.Top;
     private string? _activityId;
 
     public BubbleWindow()
@@ -186,10 +187,18 @@ public sealed partial class BubbleWindow : Window
 
     /// <summary>
     /// Place la bulle, en pixels physiques pour la fenêtre et en DIPs pour le
-    /// tracé. Accrochée, la forme est une mini-notch à épaules ; flottante, un
-    /// disque.
+    /// tracé. Accrochée, la forme est une mini-notch à épaules, sur le même bord
+    /// que la notch ; flottante, un disque.
     /// </summary>
-    public void Place(int x, int y, int widthPx, int heightPx, IslandFootprint footprint, bool floating)
+    public void Place(
+        int x,
+        int y,
+        int widthPx,
+        int heightPx,
+        IslandFootprint footprint,
+        bool floating,
+        NotchEdge edge,
+        double sideShoulder)
     {
         if (x != _lastX || y != _lastY || widthPx != _lastWidth || heightPx != _lastHeight)
         {
@@ -205,36 +214,65 @@ public sealed partial class BubbleWindow : Window
         BubbleBody.Height = footprint.Height;
 
         NotchGeometry geometry = NotchGeometry.Default;
-        double shoulder = floating ? 0 : SplitPresentation.BubbleShoulder;
-        double radius = floating
-            ? footprint.Height / 2
-            : IslandShape.EffectiveRadius(footprint.Width, footprint.Height, footprint.Height, shoulder);
+        bool side = !floating && EdgeFrame.IsSide(edge);
+        double shoulder = floating ? 0 : side ? sideShoulder : SplitPresentation.BubbleShoulder;
 
-        if (floating != _floating)
+        if (floating != _floating || edge != _edge)
         {
             _floating = floating;
+            _edge = edge;
             _shape.Forget();
         }
 
-        // Flottante, la bulle est un disque : un cercle, pas un squircle.
-        double smoothing = floating ? IslandShape.Circular : geometry.Smoothing;
-        Geometry? silhouette = _shape.Build(footprint, radius, smoothing, shoulder: shoulder, floating: floating);
-
-        if (silhouette is not null)
+        if (floating)
         {
-            BubbleFill.Data = silhouette;
-        }
+            // Flottante, la bulle est un disque : un cercle, pas un squircle.
+            if (_shape.Build(footprint, footprint.Height / 2, IslandShape.Circular, floating: true) is { } disc)
+            {
+                BubbleFill.Data = disc;
+            }
 
-        // Le contenu se centre sous les épaules, pas sur toute la largeur : les
-        // épaules appartiennent au bord de l'écran.
-        BubbleContent.Margin = new Thickness(shoulder, 0, shoulder, 0);
+            BubbleContent.Margin = new Thickness(0);
+        }
+        else
+        {
+            // Accrochée : la même silhouette que la notch, dans le repère de son
+            // bord. Le congé est un demi-cercle : une goutte pendue au bord.
+            IslandFootprint local = side ? new IslandFootprint(footprint.Height, footprint.Width) : footprint;
+            double s = IslandShape.EffectiveShoulder(local.Width, local.Height, shoulder);
+            NotchGeometry drop = geometry with { CompactRadius = local.Height, ExpandedRadius = local.Height, Shoulder = shoulder };
+
+            ShapePoint[] outline = EdgeFrame.Silhouette(drop, footprint, edge, shoulder);
+            BubbleFill.Data = IslandGeometryFactory.FromPolygons([outline], 0, 0);
+
+            // Le contenu se centre entre les épaules : elles appartiennent au
+            // bord de l'écran.
+            BubbleContent.Margin = side ? new Thickness(0, s, 0, s) : new Thickness(s, 0, s, 0);
+        }
 
         // L'échelle d'apparition part du bord pour une bulle accrochée — elle en
         // sort — et du centre pour une bulle flottante.
         if (EnsureBodyVisual() is { } visual)
         {
-            visual.CenterPoint = new Vector3((float)(footprint.Width / 2), floating ? (float)(footprint.Height / 2) : 0f, 0f);
+            float w = (float)footprint.Width;
+            float h = (float)footprint.Height;
+
+            visual.CenterPoint = floating
+                ? new Vector3(w / 2, h / 2, 0f)
+                : edge switch
+                {
+                    NotchEdge.Left => new Vector3(0f, h / 2, 0f),
+                    NotchEdge.Right => new Vector3(w, h / 2, 0f),
+                    _ => new Vector3(w / 2, 0f, 0f)
+                };
         }
+    }
+
+    /// <summary>Contour optionnel, le même que celui de la notch.</summary>
+    public void SetOutline(Brush? stroke, double thickness)
+    {
+        BubbleFill.Stroke = stroke;
+        BubbleFill.StrokeThickness = thickness;
     }
 
     private void ApplyContent(IslandActivity activity, HypnoticPreset preset, bool animateMotion)

@@ -178,13 +178,26 @@ public sealed partial class AtmosphereWindow : Window
             (int)(placement.HeightPx * BleedHeightRatio));
 
         // Une notch flottante a un bord haut libre : son ombre déborde aussi
-        // au-dessus d'elle, et la couche doit lui en laisser la place.
-        int topBleed = placement.Floating ? FloatingTopBleedPhysical : 0;
+        // au-dessus d'elle, et la couche doit lui en laisser la place. Une
+        // languette latérale déborde en haut et en bas, et seulement vers
+        // l'intérieur de l'écran : jamais sur l'écran voisin.
+        bool side = SpaceNotch.Core.Presentation.EdgeFrame.IsSide(placement.Edge) && !placement.Floating;
+        bool shadowOnly = placement.Floating || side;
+        int topBleed = shadowOnly ? FloatingTopBleedPhysical : 0;
 
         int x = placement.X - HorizontalBleedPhysical;
         int y = placement.Y - topBleed;
         int width = placement.WidthPx + (2 * HorizontalBleedPhysical);
         int height = placement.HeightPx + bleed + topBleed;
+
+        if (side)
+        {
+            x = placement.Edge == SpaceNotch.Core.Presentation.NotchEdge.Left
+                ? placement.X
+                : placement.X - HorizontalBleedPhysical;
+            width = placement.WidthPx + HorizontalBleedPhysical;
+            height = placement.HeightPx + (2 * topBleed);
+        }
 
         if (width <= 0 || height <= 0)
         {
@@ -234,20 +247,24 @@ public sealed partial class AtmosphereWindow : Window
         ShadowHost.Width = placement.WidthDip;
         ShadowHost.Height = placement.HeightDip;
         ShadowHost.Margin = new Thickness(0, topBleed / scale, 0, 0);
+        ShadowHost.HorizontalAlignment = side
+            ? (placement.Edge == SpaceNotch.Core.Presentation.NotchEdge.Left ? HorizontalAlignment.Left : HorizontalAlignment.Right)
+            : HorizontalAlignment.Center;
 
         _shadow?.Configure(
             placement.WidthDip,
             placement.HeightDip,
             placement.CornerRadiusDip,
             placement.ShoulderDip,
-            placement.Floating);
+            placement.Floating,
+            side ? placement.Edge : SpaceNotch.Core.Presentation.NotchEdge.Top);
         _shadow?.SetDeployment(_deployment);
 
         // Loin du bord, il n'y a rien à dissoudre ni à faire rayonner : la
         // pastille flottante ne garde que son ombre.
-        if (placement.Floating != _floating)
+        if (shadowOnly != _floating)
         {
-            _floating = placement.Floating;
+            _floating = shadowOnly;
             Glow.Visibility = _floating ? Visibility.Collapsed : Visibility.Visible;
             RainHost.Visibility = _floating || !_rainActive ? Visibility.Collapsed : Visibility.Visible;
         }
@@ -301,6 +318,9 @@ public sealed partial class AtmosphereWindow : Window
     /// Change la teinte du halo et de la dissolution, avec un ressort plus mou
     /// que celui de l'Island.
     /// </summary>
+    /// <summary>Intensité de l'ombre, réglable.</summary>
+    public void SetShadowStrength(double opacity) => _shadow?.SetStrength(opacity);
+
     public void SetGlowColor(Color color)
     {
         if (ColorsEqual(color, _tintTarget))

@@ -58,8 +58,24 @@ public enum FloatingLanding
     Reattach
 }
 
-/// <summary>Destination d'un lâcher : l'issue, et le coin supérieur gauche visé pour la pastille.</summary>
-public readonly record struct FloatingTarget(FloatingLanding Landing, double X, double Y);
+/// <summary>
+/// Destination d'un lâcher : l'issue, le coin supérieur gauche visé pour la
+/// pastille et, pour un raccrochage, le bord et la position le long du bord.
+/// </summary>
+public readonly record struct FloatingTarget(
+    FloatingLanding Landing,
+    double X,
+    double Y,
+    NotchEdge Edge = NotchEdge.Top,
+    double Offset = 0.5);
+
+/// <summary>Ce que le lâcher a le droit de faire, d'après les réglages.</summary>
+/// <param name="SideEdges">Les côtés gauche et droit accrochent la notch.</param>
+/// <param name="Magnets">Les coins et le milieu du bas attirent la pastille lancée.</param>
+public readonly record struct LandingOptions(bool SideEdges = true, bool Magnets = true)
+{
+    public static LandingOptions Default => new(true, true);
+}
 
 /// <summary>Sens d'ouverture d'une notch flottante.</summary>
 public enum FloatingExpansion
@@ -110,6 +126,30 @@ public static class Detachment
     public const double EdgeMargin = 8;
 
     /// <summary>
+    /// Part de la hauteur de l'écran, en haut et en bas, où un côté n'accroche
+    /// pas : près des coins, ce sont les aimants de coin qui décident.
+    /// </summary>
+    public const double SideCornerBand = 0.12;
+
+    /// <summary>
+    /// Distance, en DIPs, dont la main doit entrer dans l'écran voisin avant
+    /// que la pastille le rejoigne, quand la résistance entre écrans est active.
+    /// </summary>
+    public const double MonitorEscape = 56;
+
+    /// <summary>Bornes réglables de la distance d'arrachement.</summary>
+    public const double MinimumTearDistance = 20;
+
+    public const double MaximumTearDistance = 80;
+
+    /// <summary>
+    /// Vrai quand la main est assez entrée dans l'écran voisin pour que la
+    /// pastille la suive. Sans résistance, le passage est immédiat.
+    /// </summary>
+    public static bool CrossesMonitor(double penetration, bool resist)
+        => resist ? penetration >= MonitorEscape : penetration > 0;
+
+    /// <summary>
     /// Allongement de la notch accrochée qu'on tire vers le bas : la matière
     /// résiste, et de plus en plus. Tirer vers le haut ne fait rien.
     /// </summary>
@@ -117,7 +157,8 @@ public static class Detachment
         => pullDown <= 0 ? 0 : FluidMotion.RubberBand(pullDown, PullDimension);
 
     /// <summary>Vrai quand le tirage vers le bas suffit à arracher la notch.</summary>
-    public static bool ShouldTear(double pullDown) => pullDown >= TearDistance;
+    public static bool ShouldTear(double pullDown, double distance = TearDistance)
+        => pullDown >= Math.Clamp(distance, MinimumTearDistance, MaximumTearDistance);
 
     /// <summary>Vrai quand le déplacement depuis l'appui cesse d'être un clic.</summary>
     public static bool ExceedsClickSlop(double dx, double dy)
@@ -173,8 +214,10 @@ public static class Detachment
         double velocityX,
         double velocityY,
         ScreenRect work,
-        double attachCenterX)
+        double attachCenterX,
+        LandingOptions? options = null)
     {
+        LandingOptions rules = options ?? LandingOptions.Default;
         double speed = Math.Sqrt((velocityX * velocityX) + (velocityY * velocityY));
         bool fling = speed >= FlingSpeed;
 
@@ -191,14 +234,52 @@ public static class Detachment
             return new FloatingTarget(FloatingLanding.Reattach, attachCenterX - (pill.Width / 2), work.Y);
         }
 
-        if (!fling)
+        if (rules.SideEdges && ReachesSide(projected, work) is { } side)
         {
-            ScreenRect rest = pill.ClampInside(work, EdgeMargin);
+            double offset = SideTab.OffsetOf(projected.CenterY, work);
+            double x = side == NotchEdge.Left ? work.X : work.Right - pill.Width;
+            double y = Math.Clamp(projected.Y, work.Y, work.Bottom - pill.Height);
+
+            return new FloatingTarget(FloatingLanding.Reattach, x, y, side, offset);
+        }
+
+        if (!fling || !rules.Magnets)
+        {
+            // Sans aimants, la pastille lancée glisse jusqu'où son élan la porte
+            // et s'y pose, sans quitter l'écran.
+            ScreenRect rest = projected.ClampInside(work, EdgeMargin);
             return new FloatingTarget(FloatingLanding.Stay, rest.X, rest.Y);
         }
 
-        (double x, double y) = NearestMagnet(projected, work);
-        return new FloatingTarget(FloatingLanding.Magnet, x, y);
+        (double mx, double my) = NearestMagnet(projected, work, includeSides: !rules.SideEdges);
+        return new FloatingTarget(FloatingLanding.Magnet, mx, my);
+    }
+
+    /// <summary>
+    /// Côté que la pastille demande, à cet endroit : son bord touche presque le
+    /// côté de l'écran, loin des coins.
+    /// </summary>
+    public static NotchEdge? ReachesSide(ScreenRect pill, ScreenRect work)
+    {
+        double low = work.Y + (work.Height * SideCornerBand);
+        double high = work.Bottom - (work.Height * SideCornerBand);
+
+        if (pill.CenterY < low || pill.CenterY > high)
+        {
+            return null;
+        }
+
+        if (pill.X - work.X < ReattachZone)
+        {
+            return NotchEdge.Left;
+        }
+
+        if (work.Right - pill.Right < ReattachZone)
+        {
+            return NotchEdge.Right;
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -214,7 +295,7 @@ public static class Detachment
     /// Aimant le plus proche : quatre coins, milieux des côtés gauche et droit,
     /// milieu du bas. Le milieu du haut n'est pas un aimant, c'est l'accroche.
     /// </summary>
-    public static (double X, double Y) NearestMagnet(ScreenRect projected, ScreenRect work)
+    public static (double X, double Y) NearestMagnet(ScreenRect projected, ScreenRect work, bool includeSides = true)
     {
         double left = work.X + MagnetMargin;
         double right = work.Right - MagnetMargin - projected.Width;
@@ -223,16 +304,27 @@ public static class Detachment
         double middleX = work.CenterX - (projected.Width / 2);
         double middleY = work.CenterY - (projected.Height / 2);
 
-        ReadOnlySpan<(double X, double Y)> magnets =
-        [
-            (left, top),
-            (right, top),
-            (left, bottom),
-            (right, bottom),
-            (left, middleY),
-            (right, middleY),
-            (middleX, bottom)
-        ];
+        // Quand les côtés accrochent la notch, leurs milieux ne sont plus des
+        // aimants : c'est l'accroche qui les occupe.
+        ReadOnlySpan<(double X, double Y)> magnets = includeSides
+            ?
+            [
+                (left, top),
+                (right, top),
+                (left, bottom),
+                (right, bottom),
+                (left, middleY),
+                (right, middleY),
+                (middleX, bottom)
+            ]
+            :
+            [
+                (left, top),
+                (right, top),
+                (left, bottom),
+                (right, bottom),
+                (middleX, bottom)
+            ];
 
         (double X, double Y) best = magnets[0];
         double bestDistance = double.MaxValue;

@@ -32,6 +32,10 @@ namespace SpaceNotch_App.Composition;
 /// alors que l'ombre, tout autour de la pastille : la dissolution et le halo
 /// naissent du bord de l'écran, et n'ont pas de sens loin de lui.
 /// </param>
+/// <param name="Edge">
+/// Bord auquel la notch est accrochée. Sur un côté, la couche ne garde que
+/// l'ombre, prolongée au-delà du bord pour que sa base soit droite.
+/// </param>
 public readonly record struct AtmospherePlacement(
     int X,
     int Y,
@@ -42,4 +46,5 @@ public readonly record struct AtmospherePlacement(
     double CornerRadiusDip,
     double ShoulderDip,
     double Deployment,
-    bool Floating = false);
+    bool Floating = false,
+    SpaceNotch.Core.Presentation.NotchEdge Edge = SpaceNotch.Core.Presentation.NotchEdge.Top);

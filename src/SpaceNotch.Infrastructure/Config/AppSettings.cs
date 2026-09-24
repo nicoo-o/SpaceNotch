@@ -2,6 +2,7 @@ using System;
 using SpaceNotch.Core.Animation;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Motion;
+using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 
 namespace SpaceNotch.Infrastructure.Config;
@@ -74,6 +75,32 @@ public enum CameraCutoutMode
 }
 
 /// <summary>Thème de l'Island.</summary>
+/// <summary>Sensation de la pastille qui suit la main (ADR-019).</summary>
+public enum DetachFeel
+{
+    /// <summary>Plus de retard et un rebond plus ample.</summary>
+    Soft = 0,
+
+    /// <summary>La référence : un léger retard, un rebond à l'arrêt.</summary>
+    Natural = 1,
+
+    /// <summary>Presque collée à la main, un rebond bref.</summary>
+    Firm = 2
+}
+
+/// <summary>Teinte de la surface de la notch, de la languette, de la pastille et de la bulle.</summary>
+public enum SurfaceTint
+{
+    /// <summary>Noir pur : la référence.</summary>
+    Oled = 0,
+
+    /// <summary>Gris très sombre, un peu moins tranché.</summary>
+    Graphite = 1,
+
+    /// <summary>Couleur choisie par l'utilisateur.</summary>
+    Custom = 2
+}
+
 public enum IslandAppearance
 {
     Dark = 0,
@@ -283,6 +310,120 @@ public sealed class AppSettings
     /// d'attendre derrière elle.
     /// </summary>
     public bool ShowSplitBubble { get; set; } = true;
+
+    // ---- Bords et détachement (ADR-019, ADR-020) ----------------------------
+
+    /// <summary>Bord où la notch est accrochée ; retrouvé au démarrage.</summary>
+    public NotchEdge DockEdge { get; set; } = NotchEdge.Top;
+
+    /// <summary>Position d'une languette latérale le long du bord, de 0 (haut) à 1 (bas).</summary>
+    public double DockOffset { get; set; } = 0.5;
+
+    /// <summary>
+    /// Écran où la notch a été accrochée par glisser, repéré par son rectangle
+    /// physique « gauche,haut,largeur,hauteur » ; un écran disparu ramène la
+    /// notch en haut de l'écran principal.
+    /// </summary>
+    public string? DockDisplayBounds { get; set; }
+
+    /// <summary>Les côtés gauche et droit accrochent la notch en languette.</summary>
+    public bool AllowSideEdges { get; set; } = true;
+
+    /// <summary>Sensation de la pastille qui suit la main.</summary>
+    public DetachFeel DetachFeel { get; set; } = DetachFeel.Natural;
+
+    /// <summary>Étirement maximal de la pastille en mouvement, de 0 à 0,10.</summary>
+    public double StretchAmount { get; set; } = FluidMotion.MaximumStretch;
+
+    /// <summary>Distance de tirage avant l'arrachement, en DIPs.</summary>
+    public double TearDistance { get; set; } = Detachment.TearDistance;
+
+    /// <summary>Les coins et le milieu du bas attirent la pastille lancée.</summary>
+    public bool MagnetsEnabled { get; set; } = true;
+
+    /// <summary>L'arrachement et le raccrochage passent par la goutte ; sinon, un simple pop.</summary>
+    public bool GooEnabled { get; set; } = true;
+
+    /// <summary>La pastille résiste un peu avant de passer sur un autre écran.</summary>
+    public bool MonitorResistance { get; set; } = true;
+
+    // ---- Style ---------------------------------------------------------------
+
+    /// <summary>Teinte de la surface.</summary>
+    public SurfaceTint SurfaceTint { get; set; } = SurfaceTint.Oled;
+
+    /// <summary>Couleur personnalisée, « #RRGGBB », quand <see cref="SurfaceTint"/> vaut <c>Custom</c>.</summary>
+    public string CustomSurfaceColor { get; set; } = "#14161C";
+
+    /// <summary>Opacité de la surface, de 0,55 à 1 : en dessous, le texte ne se lit plus sur un bureau clair.</summary>
+    public double SurfaceOpacity { get; set; } = 1.0;
+
+    /// <summary>Épaules de la languette latérale et de la bulle, en DIPs.</summary>
+    public double SideShoulderRadius { get; set; } = SideTab.DefaultShoulder;
+
+    /// <summary>Rayon des coins d'une pastille flottante ouverte, en DIPs.</summary>
+    public double FloatingRadius { get; set; } = NotchGeometry.DefaultExpandedRadius;
+
+    /// <summary>Intensité de l'ombre de la pastille flottante et de la languette, de 0 à 0,6.</summary>
+    public double FloatingShadowOpacity { get; set; } = 0.30;
+
+    /// <summary>Fin contour autour de la notch, pour les fonds d'écran sombres.</summary>
+    public bool ShowOutline { get; set; }
+
+    /// <summary>Opacité du contour, de 0,05 à 0,5.</summary>
+    public double OutlineOpacity { get; set; } = 0.14;
+
+    /// <summary>Taille de la bulle.</summary>
+    public ElementSize BubbleSize { get; set; } = ElementSize.Normal;
+
+    /// <summary>Taille de la languette latérale.</summary>
+    public ElementSize TabSize { get; set; } = ElementSize.Normal;
+
+    /// <summary>Ressort de la pastille qui suit la main, d'après la sensation choisie.</summary>
+    public SpringParameters DetachFollowSpring => DetachFeel switch
+    {
+        DetachFeel.Soft => SpringParameters.FromResponse(0.30, 0.55),
+        DetachFeel.Firm => SpringParameters.FromResponse(0.16, 0.75),
+        _ => SpringParameters.FromResponse(0.22, 0.62)
+    };
+
+    /// <summary>Ce que le lâcher a le droit de faire.</summary>
+    public LandingOptions Landing => new(AllowSideEdges, MagnetsEnabled);
+
+    /// <summary>Couleur de surface résolue, en ARGB, opacité comprise.</summary>
+    public (byte A, byte R, byte G, byte B) SurfaceColor()
+    {
+        (byte r, byte g, byte b) = SurfaceTint switch
+        {
+            SurfaceTint.Graphite => ((byte)0x1A, (byte)0x1B, (byte)0x1F),
+            SurfaceTint.Custom when TryParseColor(CustomSurfaceColor, out var custom) => custom,
+            _ => ((byte)0, (byte)0, (byte)0)
+        };
+
+        return ((byte)Math.Round(Math.Clamp(SurfaceOpacity, 0.55, 1) * 255), r, g, b);
+    }
+
+    /// <summary>Lit une couleur « #RRGGBB » ou « RRGGBB ».</summary>
+    public static bool TryParseColor(string? text, out (byte R, byte G, byte B) color)
+    {
+        color = (0, 0, 0);
+
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return false;
+        }
+
+        string hex = text.Trim().TrimStart('#');
+
+        if (hex.Length != 6
+            || !int.TryParse(hex, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int value))
+        {
+            return false;
+        }
+
+        color = ((byte)(value >> 16), (byte)(value >> 8), (byte)value);
+        return true;
+    }
 
     /// <summary>
     /// Retire l'Island lorsqu'une application occupe l'écran — jeu, vidéo plein
@@ -551,6 +692,47 @@ public sealed class AppSettings
         // ou éditée à la main, est ramenée à zéro plutôt que bornée.
         TopOffset = 0;
         ClipboardHistoryLimit = (int)Clamp(ClipboardHistoryLimit, 0, 500, 0);
+
+        if (!Enum.IsDefined(DockEdge) || (!AllowSideEdges && DockEdge != NotchEdge.Top))
+        {
+            DockEdge = NotchEdge.Top;
+        }
+
+        DockOffset = Clamp(DockOffset, 0, 1, 0.5);
+
+        if (!Enum.IsDefined(DetachFeel))
+        {
+            DetachFeel = DetachFeel.Natural;
+        }
+
+        StretchAmount = Clamp(StretchAmount, 0, 0.10, FluidMotion.MaximumStretch);
+        TearDistance = Clamp(TearDistance, Detachment.MinimumTearDistance, Detachment.MaximumTearDistance, Detachment.TearDistance);
+
+        if (!Enum.IsDefined(SurfaceTint))
+        {
+            SurfaceTint = SurfaceTint.Oled;
+        }
+
+        if (!TryParseColor(CustomSurfaceColor, out _))
+        {
+            CustomSurfaceColor = "#14161C";
+        }
+
+        SurfaceOpacity = Clamp(SurfaceOpacity, 0.55, 1, 1);
+        SideShoulderRadius = Clamp(SideShoulderRadius, 0, 16, SideTab.DefaultShoulder);
+        FloatingRadius = Clamp(FloatingRadius, 12, 48, NotchGeometry.DefaultExpandedRadius);
+        FloatingShadowOpacity = Clamp(FloatingShadowOpacity, 0, 0.6, 0.30);
+        OutlineOpacity = Clamp(OutlineOpacity, 0.05, 0.5, 0.14);
+
+        if (!Enum.IsDefined(BubbleSize))
+        {
+            BubbleSize = ElementSize.Normal;
+        }
+
+        if (!Enum.IsDefined(TabSize))
+        {
+            TabSize = ElementSize.Normal;
+        }
     }
 
     private static double Clamp(double value, double min, double max, double fallback)

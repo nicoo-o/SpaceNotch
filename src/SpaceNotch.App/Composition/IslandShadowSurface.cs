@@ -4,6 +4,7 @@ using Microsoft.UI;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Hosting;
+using SpaceNotch.Core.Presentation;
 using Windows.UI;
 
 namespace SpaceNotch_App.Composition;
@@ -64,6 +65,8 @@ public sealed class IslandShadowSurface : IDisposable
     private double _radius = -1;
     private double _shoulder = -1;
     private bool _floating;
+    private NotchEdge _edge = NotchEdge.Top;
+    private float _strength = RestOpacity;
 
     private bool _disposed;
 
@@ -159,7 +162,14 @@ public sealed class IslandShadowSurface : IDisposable
     /// quatre coins, sans prolongement au-dessus — la pastille n'a plus de bord
     /// d'écran à épouser.
     /// </param>
-    public void Configure(double width, double height, double radius, double shoulder = 0, bool floating = false)
+    /// <param name="edge">Bord d'accroche : la base plate de l'ombre est prolongée au-delà de lui.</param>
+    public void Configure(
+        double width,
+        double height,
+        double radius,
+        double shoulder = 0,
+        bool floating = false,
+        NotchEdge edge = NotchEdge.Top)
     {
         if (_disposed)
         {
@@ -170,12 +180,14 @@ public sealed class IslandShadowSurface : IDisposable
             && Math.Abs(height - _height) < 0.05
             && Math.Abs(radius - _radius) < 0.05
             && Math.Abs(shoulder - _shoulder) < 0.05
-            && floating == _floating)
+            && floating == _floating
+            && edge == _edge)
         {
             return;
         }
 
         _floating = floating;
+        _edge = edge;
 
         _width = width;
         _height = height;
@@ -190,6 +202,24 @@ public sealed class IslandShadowSurface : IDisposable
 
             _geometry.Offset = Vector2.Zero;
             _geometry.Size = size;
+            _geometry.CornerRadius = new Vector2(round, round);
+            _shape.Size = size;
+            _surface.SourceSize = size;
+            _caster.Size = size;
+            return;
+        }
+
+        if (EdgeFrame.IsSide(edge))
+        {
+            // Languette : l'ombre est une notch couchée. Le rectangle est prolongé
+            // d'un rayon au-delà du bord de l'écran, comme en haut.
+            float along = (float)Math.Max(0, height - (2 * shoulder));
+            float round = (float)Math.Max(0, radius);
+
+            _geometry.Offset = edge == NotchEdge.Left
+                ? new Vector2(-round, (float)shoulder)
+                : new Vector2(0, (float)shoulder);
+            _geometry.Size = new Vector2((float)width + round, along);
             _geometry.CornerRadius = new Vector2(round, round);
             _shape.Size = size;
             _surface.SourceSize = size;
@@ -225,9 +255,24 @@ public sealed class IslandShadowSurface : IDisposable
 
         float progress = (float)Math.Clamp(deployment, 0.0, 1.0);
 
-        _shadow.Opacity = Lerp(RestOpacity, DeployedOpacity, progress);
+        _shadow.Opacity = Lerp(_strength, _strength * (DeployedOpacity / RestOpacity), progress);
         _shadow.BlurRadius = Lerp(RestBlurRadius, DeployedBlurRadius, progress);
         _shadow.Offset = new Vector3(0, Lerp(RestOffsetY, DeployedOffsetY, progress), 0);
+    }
+
+    /// <summary>
+    /// Intensité de l'ombre au repos, réglable de 0 à 0,6 ; l'ombre déployée
+    /// garde la même proportion.
+    /// </summary>
+    public void SetStrength(double opacity)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _strength = (float)Math.Clamp(opacity, 0, 0.6);
+        _shadow.Opacity = _strength;
     }
 
     private static float Lerp(float from, float to, float progress)

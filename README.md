@@ -66,9 +66,10 @@ externes · grille hypnotique pour tout travail en cours · annonces Narrateur �
 enregistrements (micro, caméra) · bulle à côté de la notch pour ce qui compte · presse-papier à
 balayer pour supprimer.
 
-**Détacher la notch** : tirez-la vers le bas — elle résiste, puis s'arrache en goutte. La pastille
-suit la souris avec un ressort ; lancez-la vers un coin, ou vers le haut pour la raccrocher
-(ADR-019). Elle revient toujours accrochée au démarrage.
+**Détacher la notch** : tirez-la vers l'intérieur de l'écran — elle résiste, puis s'arrache en
+goutte. La pastille suit la souris avec un ressort et passe d'un écran à l'autre ; lancez-la vers
+un coin, ou vers le haut, la gauche ou la droite pour l'y accrocher (en languette sur les côtés).
+Double-clic : elle revient à son dernier bord, où elle redémarre aussi (ADR-019, ADR-020).
 
 Pour tout voir d'un coup : `SpaceNotch.App.exe --demo` (ou *Lancer › Démonstration* dans le menu
 de la zone de notification) rejoue musique, volume, messages, téléchargement, casque et la

@@ -363,6 +363,10 @@ Windows → Feature → Event/Activity → ActivityManager → StateManager
 | Bulle | mini-notch accrochée pour téléchargement, appel, enregistrement, priorité critique ; échange au toucher ; suit la notch détachée | **fait** |
 | Micro et caméra | appels et enregistrements d'après l'indicateur de confidentialité de Windows | **fait** |
 | Survol prolongé | option : une seconde de survol ouvre la notch (désactivée par défaut) | **fait** |
+| Côtés | languette à gauche ou à droite, ouverture vers l'intérieur, bulle sous la languette (ADR-020) | **fait**, à juger sur Windows |
+| Écrans | passage d'un écran à l'autre avec résistance, échelle convertie, dernier bord et écran retrouvés au démarrage | **fait**, à juger sur Windows |
+| Raccrocher | lancer ou lâcher près d'un bord, double-clic, menu | **fait** |
+| Réglages de détachement et de style | sensation, étirement, distance, aimants, goutte, résistance ; teinte, opacité, épaules, arrondis, ombre, contour, tailles | **fait** |
 
 Vérification : 189 tests du cœur et 23 du greffon d'exemple passent ; le code C# de l'App compile
 sans avertissement en Release. Le rendu XAML n'a pas pu être exécuté hors Windows : à juger avec
@@ -450,7 +454,9 @@ Preview et Expanded — et travaille-t-elle (quel préréglage hypnotique) ? »
 |---|---|
 | Forme | notch attachée au top au repos et au démarrage — flottante seulement si l'utilisateur l'arrache (ADR-019) |
 | Nombre de notches | **une seule** — la pile se signale dans la notch ; une bulle accrochée seulement pour une activité importante |
-| Détachement | tirer vers le bas ; goutte qui s'étire ; ressort + étirement ≤ 5 % ; lancer + aimants ; toujours raccrochée au redémarrage |
+| Détachement | tirer vers l'intérieur ; goutte qui s'étire ; ressort + étirement réglables ; lancer + aimants ; double-clic pour raccrocher |
+| Bords | haut, gauche, droite — pas le bas ; languette sur les côtés ; dernier bord et écran retrouvés au démarrage |
+| Écrans | la pastille passe d'un écran à l'autre en résistant d'abord |
 | Presse-papier | balayer vers la gauche pour supprimer ; boutons conservés |
 | Survol prolongé | option d'une seconde pour ouvrir, désactivée par défaut |
 | Coins | très arrondis, interpolés selon la hauteur ; épaules concaves au bord de l'écran |
@@ -491,6 +497,10 @@ Tranchées :
 13. Détachement : goutte qui s'étire, ressort + étirement léger, tirage avec résistance,
     lancer + aimants, ouverture vers l'espace libre, toujours accrochée au redémarrage, la
     bulle suit la notch détachée (ADR-019).
+
+14. Plusieurs écrans : la pastille passe en résistant ; bords haut, gauche, droite ; languette
+    qui s'ouvre vers l'intérieur ; double-clic pour raccrocher ; dernier bord au démarrage ;
+    réglages de détachement et de style (ADR-020).
 
 Ouvertes :
 

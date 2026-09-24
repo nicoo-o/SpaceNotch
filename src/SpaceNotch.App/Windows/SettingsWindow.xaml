@@ -179,6 +179,49 @@
                     OffContent="Arc de cercle"
                     Toggled="OnSmoothingToggled" />
 
+                <!--
+                    Style de la matière : teinte, transparence, contour, ombre,
+                    et les proportions de la languette, de la pastille et de la
+                    bulle (ADR-020).
+                -->
+                <ComboBox x:Name="SurfaceTintBox" Header="Couleur de la surface" HorizontalAlignment="Stretch" SelectionChanged="OnSurfaceTintChanged" />
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="CustomColorBox" Header="Couleur personnalisée" PlaceholderText="#14161C" MaxLength="7" TextChanged="OnCustomColorChanged" />
+                    <Border x:Name="CustomColorSwatch" Grid.Column="1" Width="32" Height="32" CornerRadius="8" VerticalAlignment="Bottom" BorderThickness="1" BorderBrush="#30FFFFFF" />
+                </Grid>
+                <Grid>
+                    <TextBlock Text="Opacité de la surface" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="OpacityValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="OpacitySlider" Maximum="100" Minimum="55" StepFrequency="1" ValueChanged="OnOpacityChanged" />
+                <Grid>
+                    <TextBlock Text="Épaules de la languette et de la bulle" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="SideShoulderValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="SideShoulderSlider" Maximum="16" Minimum="0" StepFrequency="1" ValueChanged="OnSideShoulderChanged" />
+                <Grid>
+                    <TextBlock Text="Arrondi de la pastille ouverte" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="FloatingRadiusValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="FloatingRadiusSlider" Maximum="48" Minimum="12" StepFrequency="1" ValueChanged="OnFloatingRadiusChanged" />
+                <Grid>
+                    <TextBlock Text="Ombre" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="ShadowValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="ShadowSlider" Maximum="60" Minimum="0" StepFrequency="1" ValueChanged="OnShadowChanged" />
+                <ToggleSwitch x:Name="OutlineToggle" Header="Contour fin (fonds d'écran sombres)" Toggled="OnOutlineToggled" />
+                <Grid>
+                    <TextBlock Text="Intensité du contour" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="OutlineValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="OutlineSlider" Maximum="50" Minimum="5" StepFrequency="1" ValueChanged="OnOutlineChanged" />
+                <ComboBox x:Name="BubbleSizeBox" Header="Taille de la bulle" HorizontalAlignment="Stretch" SelectionChanged="OnBubbleSizeChanged" />
+                <ComboBox x:Name="TabSizeBox" Header="Taille de la languette" HorizontalAlignment="Stretch" SelectionChanged="OnTabSizeChanged" />
+
                 <!-- ================================================
                      COMPORTEMENT — comment la notch répond.
                      ================================================ -->
@@ -191,7 +234,9 @@
                     Margin="0,0,0,4" />
                 <ToggleSwitch x:Name="HoverToggle" Header="Aperçu au survol" Toggled="OnHoverToggled" />
                 <ToggleSwitch x:Name="HoverExpandToggle" Header="Ouvrir après une seconde de survol" Toggled="OnHoverExpandToggled" />
-                <ToggleSwitch x:Name="DetachToggle" Header="Détacher en tirant vers le bas" Toggled="OnDetachToggled" />
+                <ComboBox x:Name="EdgeBox" Header="Bord d'accroche" HorizontalAlignment="Stretch" SelectionChanged="OnEdgeChanged" />
+                <ToggleSwitch x:Name="SideEdgesToggle" Header="Accrocher aussi à gauche et à droite" Toggled="OnSideEdgesToggled" />
+                <ToggleSwitch x:Name="DetachToggle" Header="Détacher en tirant (double-clic pour raccrocher)" Toggled="OnDetachToggled" />
                 <ToggleSwitch x:Name="BubbleToggle" Header="Bulle pour les activités importantes" Toggled="OnBubbleToggled" />
                 <ToggleSwitch x:Name="FullscreenToggle" Header="S'effacer devant le plein écran" Toggled="OnFullscreenToggled" />
                 <ToggleSwitch x:Name="StackToggle" Header="Indicateur de pile d'activités" Toggled="OnStackToggled" />
@@ -243,6 +288,22 @@
                     <TextBlock x:Name="BounceValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
                 </Grid>
                 <Slider x:Name="BounceSlider" Maximum="1.1" Minimum="0.3" StepFrequency="0.01" ValueChanged="OnBounceChanged" />
+
+                <!-- Détachement : la pastille qu'on tient et qu'on lance (ADR-019). -->
+                <ComboBox x:Name="DetachFeelBox" Header="Sensation de la pastille en main" HorizontalAlignment="Stretch" SelectionChanged="OnDetachFeelChanged" />
+                <Grid>
+                    <TextBlock Text="Étirement en mouvement" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="StretchValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="StretchSlider" Maximum="10" Minimum="0" StepFrequency="1" ValueChanged="OnStretchChanged" />
+                <Grid>
+                    <TextBlock Text="Distance d'arrachement" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="TearValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="TearSlider" Maximum="80" Minimum="20" StepFrequency="1" ValueChanged="OnTearChanged" />
+                <ToggleSwitch x:Name="MagnetsToggle" Header="Aimants aux coins" Toggled="OnMagnetsToggled" />
+                <ToggleSwitch x:Name="GooToggle" Header="Effet de goutte" OnContent="Goutte" OffContent="Simple pop" Toggled="OnGooToggled" />
+                <ToggleSwitch x:Name="MonitorResistanceToggle" Header="Résister au passage d'un écran à l'autre" Toggled="OnMonitorResistanceToggled" />
 
                 <!-- ================================================
                      ÉCRANS — où la notch s'accroche.

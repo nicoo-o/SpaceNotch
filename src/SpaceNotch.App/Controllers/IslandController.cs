@@ -252,6 +252,20 @@ public sealed class IslandController : IDisposable
         }
     }
 
+    /// <summary>
+    /// Pose la forme de repos sans animation. Sert quand la notch change de
+    /// nature sous un geste qui la dessine déjà — la pastille qui se raccroche
+    /// et devient languette : un ressort entre les deux formes se verrait comme
+    /// un saut, puisque la goutte a déjà fait la transition.
+    /// </summary>
+    public void SnapToRest()
+    {
+        if (State is IslandState.Closed or IslandState.Preview && _dragTarget is null)
+        {
+            _animator.SnapTo(_collapsedFootprint);
+        }
+    }
+
     /// <summary>Réaction à un clic sur l'Island.</summary>
     public void ToggleFromUser()
     {
