@@ -8,7 +8,12 @@
     Title="SpaceNotch — Réglages"
     mc:Ignorable="d">
 
-    <Grid x:Name="RootLayout" Background="#0F0F12">
+    <!--
+        Thème sombre imposé : la fenêtre est dessinée en noir, et des contrôles
+        Fluent qui suivraient un Windows en thème clair y apparaîtraient en
+        pastilles blanches illisibles.
+    -->
+    <Grid x:Name="RootLayout" Background="#0F0F12" RequestedTheme="Dark">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -64,22 +69,26 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
-                        <FontIcon
-                            Glyph="&#xE916;"
-                            FontSize="20"
-                            Foreground="#E8A66B"
-                            VerticalAlignment="Center" />
+                        <!-- La vraie grille hypnotique, pour juger du mouvement. -->
+                        <Grid Width="20" Height="20" VerticalAlignment="Center">
+                            <FontIcon
+                                x:Name="PreviewCardGlyph"
+                                Glyph="&#xE916;"
+                                FontSize="20"
+                                Foreground="#E8A66B" />
+                            <Grid x:Name="PreviewHypnoticHost" IsHitTestVisible="False" />
+                        </Grid>
 
                         <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
                             <TextBlock
                                 x:Name="PreviewCardSubhead"
-                                Text="Focus · En cours"
+                                Text="Read sidebar.tsx · 741 lines"
                                 FontSize="11"
                                 LineHeight="14"
                                 Foreground="#9EFFFFFF" />
                             <TextBlock
                                 x:Name="PreviewCardHeadline"
-                                Text="24:37 restantes"
+                                Text="Thinking"
                                 FontSize="13"
                                 FontWeight="SemiBold"
                                 LineHeight="16"
@@ -106,13 +115,23 @@
             </Grid>
         </StackPanel>
 
-        <ScrollViewer Grid.Row="1" Padding="20,16,20,12">
+        <ScrollViewer x:Name="SettingsScroll" Grid.Row="1" Padding="20,10,20,12">
             <StackPanel Spacing="6">
+
+                <!-- Navigation : un saut vers chaque section. -->
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="-8,0,0,6">
+                    <HyperlinkButton Content="Apparence" Tag="Appearance" Click="OnSectionClicked" />
+                    <HyperlinkButton Content="Comportement" Tag="Behavior" Click="OnSectionClicked" />
+                    <HyperlinkButton Content="Activités" Tag="Activities" Click="OnSectionClicked" />
+                    <HyperlinkButton Content="Mouvement" Tag="Motion" Click="OnSectionClicked" />
+                    <HyperlinkButton Content="Écrans" Tag="Displays" Click="OnSectionClicked" />
+                    <HyperlinkButton Content="Avancé" Tag="Advanced" Click="OnSectionClicked" />
+                </StackPanel>
 
                 <!-- ================================================
                      APPARENCE — à quoi la notch ressemble.
                      ================================================ -->
-                <TextBlock Text="APPARENCE" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,4,0,2" />
+                <TextBlock x:Name="SectionAppearance" Text="APPARENCE" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,4,0,2" />
                 <ComboBox x:Name="AppearanceBox" Header="Thème" HorizontalAlignment="Stretch" SelectionChanged="OnAppearanceChanged" />
                 <ComboBox x:Name="BackdropBox" Header="Matière" HorizontalAlignment="Stretch" SelectionChanged="OnBackdropChanged" />
 
@@ -163,7 +182,7 @@
                 <!-- ================================================
                      COMPORTEMENT — comment la notch répond.
                      ================================================ -->
-                <TextBlock Text="COMPORTEMENT" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <TextBlock x:Name="SectionBehavior" Text="COMPORTEMENT" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
                 <TextBlock
                     Text="Le survol prévisualise, le clic déploie, Échap ou un clic ailleurs referme. La molette et les flèches parcourent les activités."
                     FontSize="11"
@@ -179,7 +198,7 @@
                 <!-- ================================================
                      ACTIVITÉS — ce qui a le droit de s'afficher.
                      ================================================ -->
-                <TextBlock Text="ACTIVITÉS" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <TextBlock x:Name="SectionActivities" Text="ACTIVITÉS" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
                 <TextBlock
                     Text="Une activité désactivée libère ses écouteurs système : elle ne consomme plus rien."
                     FontSize="11"
@@ -192,7 +211,7 @@
                 <!-- ================================================
                      MOUVEMENT — trois caractères, puis le réglage fin.
                      ================================================ -->
-                <TextBlock Text="MOUVEMENT" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <TextBlock x:Name="SectionMotion" Text="MOUVEMENT" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
                 <ComboBox x:Name="MotionStyleBox" Header="Caractère" HorizontalAlignment="Stretch" SelectionChanged="OnMotionStyleChanged" />
                 <ToggleSwitch x:Name="BouncyToggle" Header="Rebond du ressort" OnContent="Autorisé" OffContent="Neutre" Toggled="OnBouncyToggled" />
                 <ToggleSwitch
@@ -225,7 +244,7 @@
                 <!-- ================================================
                      ÉCRANS — où la notch s'accroche.
                      ================================================ -->
-                <TextBlock Text="ÉCRANS" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <TextBlock x:Name="SectionDisplays" Text="ÉCRANS" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
                 <ComboBox x:Name="DisplayBox" Header="Écran" HorizontalAlignment="Stretch" SelectionChanged="OnDisplayModeChanged" />
                 <ComboBox x:Name="CutoutBox" Header="Découpe caméra" HorizontalAlignment="Stretch" SelectionChanged="OnCutoutChanged" />
 
@@ -233,7 +252,7 @@
                      AVANCÉ — ce qui n'a rien à faire dans l'interface
                      principale : composition, diagnostics, fichiers.
                      ================================================ -->
-                <TextBlock Text="AVANCÉ" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <TextBlock x:Name="SectionAdvanced" Text="AVANCÉ" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
                 <ToggleSwitch
                     x:Name="CompositionToggle"
                     Header="Dissolution par le compositeur"

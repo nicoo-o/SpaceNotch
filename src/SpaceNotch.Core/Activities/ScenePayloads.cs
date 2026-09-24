@@ -21,6 +21,24 @@ public sealed record HudPayload(
     string ValueText,
     string? IconKey);
 
+/// <summary>Une notification d'un groupe.</summary>
+/// <param name="Title">Titre — souvent l'expéditeur.</param>
+/// <param name="Body">Corps du message.</param>
+/// <param name="ReceivedAt">Instant de réception.</param>
+public sealed record NotificationItem(string Title, string Body, DateTimeOffset ReceivedAt);
+
+/// <summary>
+/// Charge utile d'un groupe de notifications d'une même application : la plus
+/// récente en tête.
+/// </summary>
+/// <param name="AppName">Application d'origine.</param>
+/// <param name="Items">Notifications, de la plus récente à la plus ancienne.</param>
+public sealed record NotificationGroupPayload(string AppName, IReadOnlyList<NotificationItem> Items)
+{
+    /// <summary>Nombre de notifications du groupe.</summary>
+    public int Count => Items.Count;
+}
+
 /// <summary>
 /// Charge utile d'un minuteur.
 /// </summary>

@@ -15,18 +15,19 @@
 
         <Grid Grid.Row="0">
             <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <FontIcon Glyph="&#xE77F;" FontSize="13" Foreground="#4EA1FF" />
+                <FontIcon Glyph="&#xE77F;" FontSize="13" Foreground="{ThemeResource NfTextSecondaryBrush}" />
                 <TextBlock
                     Text="Presse-papier"
+                    Style="{StaticResource NfCaptionStrongStyle}"
                     FontSize="12"
                     FontWeight="SemiBold"
-                    Foreground="#FFFFFF" />
+                    Foreground="{ThemeResource NfTextPrimaryBrush}" />
             </StackPanel>
             <TextBlock
                 x:Name="CountText"
                 Text="0 élément"
                 FontSize="10.5"
-                Foreground="#80FFFFFF"
+                Foreground="{ThemeResource NfTextTertiaryBrush}"
                 HorizontalAlignment="Right"
                 VerticalAlignment="Center" />
         </Grid>
@@ -62,13 +63,13 @@
                                 <TextBlock
                                     Text="{Binding Preview}"
                                     FontSize="11"
-                                    Foreground="#FFFFFF"
+                                    Foreground="{ThemeResource NfTextPrimaryBrush}"
                                     TextTrimming="CharacterEllipsis"
                                     MaxLines="1" />
                                 <TextBlock
                                     Text="{Binding Kind}"
                                     FontSize="9"
-                                    Foreground="#60FFFFFF" />
+                                    Foreground="{ThemeResource NfTextTertiaryBrush}" />
                             </StackPanel>
                         </Button>
 
@@ -81,8 +82,9 @@
                             Background="Transparent"
                             BorderThickness="0"
                             ToolTipService.ToolTip="Épingler"
+                            AutomationProperties.Name="Épingler"
                             Click="OnPinClicked">
-                            <FontIcon x:Name="PinIcon" Glyph="&#xE718;" FontSize="10" Foreground="#80FFFFFF" />
+                            <FontIcon x:Name="PinIcon" Glyph="&#xE718;" FontSize="10" Foreground="{ThemeResource NfTextTertiaryBrush}" />
                         </Button>
 
                         <Button
@@ -94,8 +96,9 @@
                             Background="Transparent"
                             BorderThickness="0"
                             ToolTipService.ToolTip="Supprimer"
+                            AutomationProperties.Name="Supprimer"
                             Click="OnDeleteClicked">
-                            <FontIcon Glyph="&#xE74D;" FontSize="10" Foreground="#80FFFFFF" />
+                            <FontIcon Glyph="&#xE74D;" FontSize="10" Foreground="{ThemeResource NfTextTertiaryBrush}" />
                         </Button>
                     </Grid>
                 </DataTemplate>
@@ -107,7 +110,7 @@
             Grid.Row="1"
             Text="Aucun élément"
             FontSize="11"
-            Foreground="#60FFFFFF"
+            Foreground="{ThemeResource NfTextTertiaryBrush}"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
             Visibility="Collapsed" />

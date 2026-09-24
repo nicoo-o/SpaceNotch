@@ -23,6 +23,8 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
     private string? _activityId;
 
+    private List<LauncherItem> _items = [];
+
     public LauncherScene()
     {
         InitializeComponent();
@@ -53,15 +55,18 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
         List<LauncherItem> items = payload.Entries.Select(LauncherItem.From).ToList();
 
-        // La liste est reconstruite à chaque publication : la grille reste donc
+        // La liste est reconstruite à chaque publication : elle reste donc
         // exactement le reflet du catalogue de la fonctionnalité.
-
-        AppsGridView.ItemsSource = items;
+        AppsList.ItemsSource = items;
+        _items = items;
 
         bool empty = items.Count == 0;
 
-        AppsGridView.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
+        AppsList.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
         EmptyText.Visibility = empty ? Visibility.Visible : Visibility.Collapsed;
+
+        SectionText.Text = string.IsNullOrWhiteSpace(payload.Query) ? "Récents" : "Résultats";
+        SectionText.Visibility = empty ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void OnSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
@@ -74,6 +79,25 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
         }
 
         Raise(SearchAction, sender.Text);
+    }
+
+    /// <summary>Entrée dans le champ : le premier résultat est lancé.</summary>
+    private void OnQuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
+    {
+        if (_items.Count > 0)
+        {
+            Raise(LaunchAction, _items[0].Target);
+        }
+    }
+
+    /// <summary>Entrée sur un élément de la liste : il est lancé.</summary>
+    private void OnListKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (e.Key == global::Windows.System.VirtualKey.Enter && AppsList.SelectedItem is LauncherItem item)
+        {
+            e.Handled = true;
+            Raise(LaunchAction, item.Target);
+        }
     }
 
     private void OnAppInvoked(object sender, ItemClickEventArgs e)

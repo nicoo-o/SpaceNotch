@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
+using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
 
@@ -115,6 +116,14 @@ public sealed class LauncherFeature : IslandFeatureBase
     {
         _query = string.Empty;
         Publish();
+
+        // Un catalogue encore vide — premier lancement, dossiers pas encore
+        // lus — est lu maintenant, en arrière-plan : la notch montre la
+        // recherche pendant ce travail réel, puis les applications.
+        if (_catalogue.Count == 0 && !_scanning)
+        {
+            _ = Task.Run(Rescan);
+        }
     }
 
     private bool Launch(string? target)
@@ -201,8 +210,37 @@ public sealed class LauncherFeature : IslandFeatureBase
         _rescanTimer.Change(TimeSpan.FromMilliseconds(600), Timeout.InfiniteTimeSpan);
     }
 
+    /// <summary>Vrai pendant la lecture des dossiers du menu Démarrer.</summary>
+    private volatile bool _scanning;
+
     private void Rescan()
     {
+        _scanning = true;
+
+        try
+        {
+            RescanCore();
+        }
+        finally
+        {
+            _scanning = false;
+
+            // Le lanceur affiché se met à jour : la grille « Search » s'arrête et
+            // les applications trouvées apparaissent.
+            if (GetActivities().Any())
+            {
+                Publish();
+            }
+        }
+    }
+
+    private void RescanCore()
+    {
+        if (GetActivities().Any())
+        {
+            Publish();
+        }
+
         var found = new List<App>();
 
         foreach (string root in SearchRoots)
@@ -270,6 +308,13 @@ public sealed class LauncherFeature : IslandFeatureBase
             IconKey = "Launcher",
             State = IslandActivityState.Idle,
             Priority = ActivityPriority.Normal,
+
+            // Pendant la lecture des dossiers du menu Démarrer — un vrai travail
+            // de disque —, la grille « Search » le dit. Filtrer une liste déjà
+            // chargée, en revanche, est instantané : aucune animation ne
+            // prétendrait le contraire.
+            MotionState = _scanning ? ActivityMotionState.Working : ActivityMotionState.Idle,
+            MotionPreset = HypnoticPreset.Search,
             Actions =
             [
                 new ActivityAction(LaunchAction, "Lancer", "Launch", ActivityActionKind.Open, IsPrimary: true),

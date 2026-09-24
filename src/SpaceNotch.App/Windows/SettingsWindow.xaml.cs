@@ -286,6 +286,8 @@ public sealed partial class SettingsWindow : Window
         double shoulder = geometry.ShoulderFor(IslandFootprint.For(IslandPresentationTier.Card, settings.Density));
         double padding = IslandFootprint.CardVerticalPadding(settings.Density);
         PreviewCardBody.Margin = new Thickness(14 + shoulder, padding, 14 + shoulder, padding);
+
+        UpdateHypnoticPreview(settings);
     }
 
     /// <summary>Trace une forme d'aperçu à la taille de son encombrement.</summary>
@@ -595,9 +597,50 @@ public sealed partial class SettingsWindow : Window
 
     private void OnCloseClicked(object sender, RoutedEventArgs e) => Close();
 
+    /// <summary>Saut vers une section : son titre vient en haut de la zone de défilement.</summary>
+    private void OnSectionClicked(object sender, RoutedEventArgs e)
+    {
+        FrameworkElement? header = (sender as FrameworkElement)?.Tag switch
+        {
+            "Appearance" => SectionAppearance,
+            "Behavior" => SectionBehavior,
+            "Activities" => SectionActivities,
+            "Motion" => SectionMotion,
+            "Displays" => SectionDisplays,
+            "Advanced" => SectionAdvanced,
+            _ => null
+        };
+
+        header?.StartBringIntoView(new BringIntoViewOptions
+        {
+            VerticalAlignmentRatio = 0,
+            AnimationDesired = true
+        });
+    }
+
+    /// <summary>
+    /// Grille hypnotique de l'aperçu : la vraie, jouée si le mouvement est
+    /// autorisé, figée sinon — exactement ce que la notch fera.
+    /// </summary>
+    private void UpdateHypnoticPreview(AppSettings settings)
+    {
+        _previewHypnotic ??= HypnoticSurface.TryAttach(PreviewHypnoticHost);
+
+        if (_previewHypnotic is null)
+        {
+            return;
+        }
+
+        PreviewCardGlyph.Visibility = Visibility.Collapsed;
+        _previewHypnotic.SetPreset(HypnoticPreset.Think, settings.AllowHypnoticMotion && settings.AllowBouncyAnimations);
+    }
+
+    private HypnoticSurface? _previewHypnotic;
+
     private void OnWindowClosed(object sender, WindowEventArgs args)
     {
         _settings.Changed -= OnSettingsChanged;
+        _previewHypnotic?.Dispose();
 
         // Une écriture en attente ne doit pas être perdue parce que la fenêtre se
         // ferme juste après le dernier glissement de curseur.

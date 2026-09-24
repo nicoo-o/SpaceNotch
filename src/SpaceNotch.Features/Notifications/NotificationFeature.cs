@@ -4,8 +4,6 @@ using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
-using SpaceNotch.Core.Scenes;
-using SpaceNotch.Core.State;
 using SpaceNotch.Platform.Windows.Notifications;
 
 namespace SpaceNotch.Features.Notifications;
@@ -18,13 +16,13 @@ public sealed class NotificationFeature : IslandFeatureBase
     public const string FeatureKey = FeatureKeys.Notifications;
 
     /// <summary>
-    /// Durée de vie d'une notification dans l'Island. C'est elle qui évite
-    /// l'accumulation : sans durée, chaque notification resterait indéfiniment
-    /// dans le gestionnaire d'activités.
+    /// Source système des notifications. Leur durée de vie dans la notch
+    /// appartient aux groupes (<see cref="NotificationGroups.Lifetime"/>) : sans
+    /// durée, chaque notification resterait indéfiniment dans le gestionnaire.
     /// </summary>
-    private static readonly TimeSpan NotificationLifetime = TimeSpan.FromSeconds(4);
-
     private readonly WindowsNotificationListener _listener;
+    private readonly NotificationGroups _groups = new();
+    private readonly object _gate = new();
 
     public NotificationFeature(
         IActivityManager activities,
@@ -53,22 +51,15 @@ public sealed class NotificationFeature : IslandFeatureBase
 
     private void OnNotificationReceived(string appName, string title, string body)
     {
-        // Chaque notification est un événement distinct : identifiant unique, mais
-        // durée de vie explicite pour garantir sa disparition.
-        var activity = new IslandActivity
+        // Une notification rejoint le groupe de son application : l'activité du
+        // groupe est republiée — même identifiant — au lieu d'en empiler une de
+        // plus. Sa durée de vie repart à chaque arrivée.
+        IslandActivity activity;
+
+        lock (_gate)
         {
-            Id = $"notification.{Guid.NewGuid():N}",
-            FeatureId = FeatureKey,
-            SceneKey = IslandSceneCatalog.Notification,
-            Title = title,
-            Subtitle = body,
-            Source = appName,
-            IconKey = "Notification",
-            State = IslandActivityState.Notification,
-            Priority = ActivityPriority.High,
-            Duration = NotificationLifetime,
-            Payload = (AppName: appName, Title: title, Body: body)
-        };
+            activity = _groups.Add(FeatureKey, appName, title, body, DateTimeOffset.UtcNow);
+        }
 
         PublishActivity(activity);
         PublishEvent(new NotificationPostedEvent(appName, title, body));

@@ -156,7 +156,17 @@ public sealed class IslandActivity
     public bool IsExpiredAt(DateTimeOffset now) => ExpiresAt is { } expiresAt && expiresAt <= now;
 
     /// <summary>
-    /// Encombrement de l'Island lorsque cette activité est présentée.
+    /// Encombrement ouvert propre à ce contenu, lorsque la scène déclarée ne
+    /// suffit pas à le décrire : une notification seule et un groupe de quatre
+    /// n'ont pas la même hauteur. Laissé à <c>null</c>, la scène décide.
     /// </summary>
-    public IslandFootprint Footprint => IslandSceneCatalog.FootprintFor(SceneKey);
+    public IslandFootprint? ExpandedFootprint { get; init; }
+
+    /// <summary>
+    /// Encombrement de l'Island lorsque cette activité est présentée : celui du
+    /// contenu s'il est déclaré, sinon celui de la scène.
+    /// </summary>
+    public IslandFootprint Footprint => ExpandedFootprint is { IsValid: true } own
+        ? own
+        : IslandSceneCatalog.FootprintFor(SceneKey);
 }

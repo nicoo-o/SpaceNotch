@@ -7,8 +7,13 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="14,10,14,12" RowSpacing="8">
+    <!--
+        Surface de commande, pas un menu Démarrer : un champ, puis une liste
+        courte qui se parcourt au clavier. Entrée lance le premier résultat.
+    -->
+    <Grid Padding="14,8,14,12" RowSpacing="6">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
@@ -21,58 +26,69 @@
         <AutoSuggestBox
             x:Name="SearchBox"
             Grid.Row="0"
-            PlaceholderText="Rechercher une application…"
+            PlaceholderText="Rechercher…"
             QueryIcon="Find"
             FontSize="12"
-            TextChanged="OnSearchTextChanged" />
+            AutomationProperties.Name="Rechercher une application"
+            TextChanged="OnSearchTextChanged"
+            QuerySubmitted="OnQuerySubmitted" />
 
-        <GridView
-            x:Name="AppsGridView"
+        <TextBlock
+            x:Name="SectionText"
             Grid.Row="1"
-            SelectionMode="None"
-            IsItemClickEnabled="True"
-            ItemClick="OnAppInvoked">
-            <GridView.ItemTemplate>
-                <DataTemplate>
-                    <Grid Width="96" Height="62" Padding="8,6,8,6" RowSpacing="4">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="*" />
-                            <RowDefinition Height="Auto" />
-                        </Grid.RowDefinitions>
+            Text="Récents"
+            Style="{StaticResource NfCaptionTextStyle}"
+            Foreground="{ThemeResource NfTextTertiaryBrush}"
+            Margin="4,2,0,0" />
 
-                        <!--
-                            La marque de favori est un texte, pas un booléen : cela
-                            évite un convertisseur de visibilité dans le rendu, pour
-                            un résultat identique.
-                        -->
-                        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="4" HorizontalAlignment="Center">
-                            <FontIcon Glyph="&#xECAA;" FontSize="14" Foreground="#FFFFFF" />
-                            <TextBlock
-                                Text="{Binding FavoriteMark}"
-                                FontSize="9"
-                                Foreground="#4EA1FF"
-                                VerticalAlignment="Top" />
-                        </StackPanel>
+        <ListView
+            x:Name="AppsList"
+            Grid.Row="2"
+            SelectionMode="Single"
+            IsItemClickEnabled="True"
+            ItemClick="OnAppInvoked"
+            KeyDown="OnListKeyDown">
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <Grid Height="30" ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <FontIcon
+                            Grid.Column="0"
+                            Glyph="&#xECAA;"
+                            FontSize="13"
+                            Foreground="{ThemeResource NfTextSecondaryBrush}"
+                            VerticalAlignment="Center" />
 
                         <TextBlock
-                            Grid.Row="1"
+                            Grid.Column="1"
                             Text="{Binding Name}"
-                            FontSize="10"
-                            Foreground="#CCFFFFFF"
-                            TextTrimming="CharacterEllipsis"
-                            MaxLines="1"
-                            HorizontalAlignment="Center" />
+                            Style="{StaticResource NfBodyTextStyle}"
+                            VerticalAlignment="Center" />
+
+                        <!--
+                            La marque de récent est un texte, pas un booléen : cela
+                            évite un convertisseur de visibilité dans le rendu.
+                        -->
+                        <TextBlock
+                            Grid.Column="2"
+                            Text="{Binding FavoriteMark}"
+                            Style="{StaticResource NfMicroTextStyle}"
+                            VerticalAlignment="Center" />
                     </Grid>
                 </DataTemplate>
-            </GridView.ItemTemplate>
-        </GridView>
+            </ListView.ItemTemplate>
+        </ListView>
 
         <TextBlock
             x:Name="EmptyText"
-            Grid.Row="1"
+            Grid.Row="2"
             Text="Aucune application trouvée"
-            FontSize="11"
-            Foreground="#60FFFFFF"
+            Style="{StaticResource NfCaptionTextStyle}"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
             Visibility="Collapsed" />

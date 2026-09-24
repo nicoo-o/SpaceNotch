@@ -7,53 +7,69 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="14,10,14,12" RowSpacing="8">
+    <!--
+        L'étagère : une rangée de fichiers posés dans la notch, qu'on dépose en
+        les glissant dessus et qu'on reprend en les glissant dehors — vers le
+        bureau, un courriel, une autre application. C'est une étagère, pas une
+        liste de logiciel.
+    -->
+    <Grid Padding="14,8,14,12" RowSpacing="6">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- En-tête -->
-        <Grid Grid.Row="0">
-            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                <FontIcon Glyph="&#xE8B7;" FontSize="13" Foreground="#4EA1FF" />
-                <TextBlock
-                    Text="File Shelf"
-                    FontSize="12"
-                    FontWeight="SemiBold"
-                    Foreground="#FFFFFF" />
-            </StackPanel>
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6">
+            <TextBlock
+                Text="Étagère"
+                Style="{StaticResource NfCaptionTextStyle}"
+                Foreground="{ThemeResource NfTextTertiaryBrush}" />
             <TextBlock
                 x:Name="CountText"
-                Text="0 fichier"
-                FontSize="11"
-                Foreground="#80FFFFFF"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Center" />
-        </Grid>
+                Text="0"
+                Style="{StaticResource NfMetricTextStyle}" />
+        </StackPanel>
 
-        <!-- Liste des fichiers -->
         <ListView
             x:Name="FilesListView"
             Grid.Row="1"
-            MaxHeight="80"
-            SelectionMode="None">
+            SelectionMode="None"
+            CanDragItems="True"
+            DragItemsStarting="OnDragItemsStarting"
+            ScrollViewer.HorizontalScrollMode="Enabled"
+            ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+            ScrollViewer.VerticalScrollMode="Disabled">
+            <ListView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsStackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ListView.ItemsPanel>
             <ListView.ItemTemplate>
                 <DataTemplate>
-                    <Grid Padding="4,4,4,4" ColumnSpacing="8">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <FontIcon Glyph="&#xE8A5;" FontSize="12" Foreground="#80FFFFFF" VerticalAlignment="Center" />
-                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding FileName}" FontSize="11" FontWeight="Medium" Foreground="#FFFFFF" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Text="{Binding FormattedSize}" FontSize="9.5" Foreground="#70FFFFFF" />
-                        </StackPanel>
-                    </Grid>
+                    <StackPanel Width="68" Spacing="4" Padding="0,4,0,0">
+                        <FontIcon
+                            Glyph="&#xE8A5;"
+                            FontSize="22"
+                            Foreground="{ThemeResource NfTextSecondaryBrush}"
+                            HorizontalAlignment="Center" />
+                        <TextBlock
+                            Text="{Binding FileName}"
+                            Style="{StaticResource NfMicroTextStyle}"
+                            Foreground="{ThemeResource NfTextPrimaryBrush}"
+                            TextAlignment="Center"
+                            HorizontalAlignment="Center" />
+                    </StackPanel>
                 </DataTemplate>
             </ListView.ItemTemplate>
         </ListView>
+
+        <TextBlock
+            x:Name="EmptyText"
+            Grid.Row="1"
+            Text="Glissez un fichier sur la notch"
+            Style="{StaticResource NfCaptionTextStyle}"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Visibility="Collapsed" />
     </Grid>
 </UserControl>
