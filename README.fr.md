@@ -1,10 +1,12 @@
 <div align="center">
 
+<img src="docs/assets/brand/spacenotch-logo-128.png" alt="Logo de SpaceNotch — une grille de pixels lumineuse 3×3" width="72">
+
 <img src="docs/assets/readme/hero-fr.svg" alt="SpaceNotch — une notch qui grandit depuis le haut de l'écran, avec une grille de pixels lumineuse" width="100%">
 
 <br>
 
-<a href="https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch.exe"><img src="https://img.shields.io/badge/T%C3%A9l%C3%A9charger_pour_Windows-000000?style=for-the-badge&logo=windows11&logoColor=white" alt="Télécharger pour Windows" height="44"></a>
+<a href="https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe"><img src="https://img.shields.io/badge/T%C3%A9l%C3%A9charger_pour_Windows-000000?style=for-the-badge&logo=windows11&logoColor=white" alt="Télécharger pour Windows" height="44"></a>
 
 <br><br>
 
@@ -101,14 +103,17 @@ fichiers · **L'historique du presse-papier** (désactivé par défaut, balayez 
 
 ## Pour commencer
 
-1. **[Téléchargez SpaceNotch.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch.exe)** — un seul fichier, rien à installer.
+1. **[Téléchargez SpaceNotch-Setup.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe)**.
 2. Lancez-le. Windows peut dire qu'il *a protégé votre ordinateur* : choisissez **Informations complémentaires › Exécuter quand même** (l'application n'est pas encore signée).
-3. Levez les yeux. Survolez la notch pour un aperçu, cliquez pour l'ouvrir, clic droit pour le lanceur.
+3. L'installeur est la notch elle-même : elle descend du haut de l'écran et s'ouvre sur quelques
+   choix — pour vous ou pour tous, lancement au démarrage, raccourci sur le bureau. Appuyez sur
+   **Installer**, et elle se referme en notch.
+4. Levez les yeux. Survolez la notch pour un aperçu, cliquez pour l'ouvrir, clic droit pour le lanceur.
    Les réglages sont dans l'icône de la zone de notification.
 
 Envie de tout voir ? Lancez `SpaceNotch.exe --demo`.
 
-<sub>Windows 11 (23H2 ou plus récent), x64. Vous préférez un dossier ? Prenez <code>SpaceNotch-win-x64.zip</code> dans la <a href="https://github.com/nicoo-o/SpaceNotch/releases/latest">dernière version</a>.</sub>
+<sub>Windows 11 (23H2 ou plus récent), x64. Sans installation ? <a href="https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch.exe"><code>SpaceNotch.exe</code></a> se lance tel quel, et <code>SpaceNotch-win-x64.zip</code> est dans la <a href="https://github.com/nicoo-o/SpaceNotch/releases/latest">dernière version</a>. Pour désinstaller : Paramètres › Applications › SpaceNotch.</sub>
 
 <br>
 

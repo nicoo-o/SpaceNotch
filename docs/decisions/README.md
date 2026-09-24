@@ -22,6 +22,7 @@ pourquoi la première avait été retenue.
 | [ADR-019](ADR-019-notch-detachable.md) | Notch détachable par glisser (goutte, ressort, aimants) et bulle pour les activités importantes | Accepté |
 | [ADR-020](ADR-020-bords-et-ecrans.md) | Trois bords (haut, gauche, droite), passage d'un écran à l'autre, double-clic, matière réglable | Accepté |
 | [ADR-021](ADR-021-transitions-et-distribution.md) | Transitions entre les états (voile de flou, respiration, bulle en goutte) et .exe produit par GitHub | Accepté |
+| [ADR-022](ADR-022-installeur-et-logo.md) | Logo (la grille hypnotique) et installeur sur mesure : l'installeur est la notch | Accepté |
 
 ## Format
 
