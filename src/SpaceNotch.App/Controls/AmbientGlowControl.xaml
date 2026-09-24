@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="SpaceNotch_App.Controls.AmbientGlowControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid x:Name="GlowRoot" IsHitTestVisible="False">
+        <Ellipse
+            x:Name="GlowEllipse"
+            Width="340"
+            Height="140"
+            Opacity="0.22"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center">
+            <Ellipse.Fill>
+                <RadialGradientBrush Center="0.5,0.2" GradientOrigin="0.5,0.2" RadiusX="0.5" RadiusY="0.5">
+                    <GradientStop x:Name="GlowColorStop" Color="#4EA1FF" Offset="0.0" />
+                    <GradientStop Color="#004EA1FF" Offset="1.0" />
+                </RadialGradientBrush>
+            </Ellipse.Fill>
+        </Ellipse>
+    </Grid>
+</UserControl>

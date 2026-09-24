@@ -1,0 +1,360 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="SpaceNotch_App.Windows.SettingsWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="SpaceNotch — Réglages"
+    mc:Ignorable="d">
+
+    <!--
+        Thème sombre imposé : la fenêtre est dessinée en noir, et des contrôles
+        Fluent qui suivraient un Windows en thème clair y apparaîtraient en
+        pastilles blanches illisibles.
+    -->
+    <Grid x:Name="RootLayout" Background="#0F0F12" RequestedTheme="Dark">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--
+            Aperçu en direct, tracé avec la vraie géométrie de la notch — les
+            mêmes épaules, les mêmes congés interpolés, la même superellipse.
+            Il est mis à jour par le même signal que la notch elle-même : il ne
+            peut donc pas montrer autre chose que ce que l'utilisateur obtient.
+
+            Chaque bande sombre figure un écran, et son bord supérieur le bord de
+            l'écran : les formes y sont accrochées, jamais posées dessous. C'est
+            la règle n°1 de SpaceNotch, et l'aperçu doit la montrer.
+        -->
+        <StackPanel Grid.Row="0" Background="#08080A" Spacing="10" Padding="0,0,0,14">
+
+            <!-- Repos : veille, compact, aperçu au survol. -->
+            <StackPanel
+                Orientation="Horizontal"
+                Spacing="14"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Top">
+
+                <Grid x:Name="PreviewIdleHost" VerticalAlignment="Top">
+                    <Path x:Name="PreviewIdle" />
+                </Grid>
+
+                <Grid x:Name="PreviewSignalHost" VerticalAlignment="Top">
+                    <Path x:Name="PreviewSignal" />
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="8"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center">
+                        <FontIcon Glyph="&#xE8D6;" FontSize="14" Foreground="#7FB3F0" VerticalAlignment="Center" />
+                        <TextBlock
+                            x:Name="PreviewSignalText"
+                            Text="Spotify"
+                            FontSize="11.5"
+                            FontWeight="SemiBold"
+                            Foreground="#F0FFFFFF"
+                            VerticalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+
+                <Grid x:Name="PreviewCardHost" VerticalAlignment="Top">
+                    <Path x:Name="PreviewCard" />
+                    <Grid x:Name="PreviewCardBody" Margin="22,10,22,10" ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- La vraie grille hypnotique, pour juger du mouvement. -->
+                        <Grid Width="20" Height="20" VerticalAlignment="Center">
+                            <FontIcon
+                                x:Name="PreviewCardGlyph"
+                                Glyph="&#xE916;"
+                                FontSize="20"
+                                Foreground="#E8A66B" />
+                            <Grid x:Name="PreviewHypnoticHost" IsHitTestVisible="False" />
+                        </Grid>
+
+                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                            <TextBlock
+                                x:Name="PreviewCardSubhead"
+                                Text="Read sidebar.tsx · 741 lines"
+                                FontSize="11"
+                                LineHeight="14"
+                                Foreground="#9EFFFFFF" />
+                            <TextBlock
+                                x:Name="PreviewCardHeadline"
+                                Text="Thinking"
+                                FontSize="13"
+                                FontWeight="SemiBold"
+                                LineHeight="16"
+                                Foreground="#F0FFFFFF"
+                                TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </StackPanel>
+
+            <!-- Trait d'écran : le bord supérieur de la seconde bande. -->
+            <Rectangle Height="1" Fill="#1FFFFFFF" Margin="0,4,0,0" />
+
+            <!-- Ouverte : c'est là que les congés se jugent vraiment. -->
+            <Grid x:Name="PreviewExpandedHost" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-10,0,0">
+                <Path x:Name="PreviewExpanded" />
+                <TextBlock
+                    x:Name="PreviewExpandedText"
+                    Text="Notch ouverte"
+                    FontSize="11"
+                    Foreground="#CCFFFFFF"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center" />
+            </Grid>
+        </StackPanel>
+
+        <ScrollViewer x:Name="SettingsScroll" Grid.Row="1" Padding="20,10,20,12">
+            <StackPanel Spacing="6">
+
+                <!-- Navigation : un saut vers chaque section. -->
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="-8,0,0,6">
+                    <HyperlinkButton Content="Apparence" Tag="Appearance" Click="OnSectionClicked" />
+                    <HyperlinkButton Content="Comportement" Tag="Behavior" Click="OnSectionClicked" />
+                    <HyperlinkButton Content="Activités" Tag="Activities" Click="OnSectionClicked" />
+                    <HyperlinkButton Content="Mouvement" Tag="Motion" Click="OnSectionClicked" />
+                    <HyperlinkButton Content="Écrans" Tag="Displays" Click="OnSectionClicked" />
+                    <HyperlinkButton Content="Avancé" Tag="Advanced" Click="OnSectionClicked" />
+                </StackPanel>
+
+                <!-- ================================================
+                     APPARENCE — à quoi la notch ressemble.
+                     ================================================ -->
+                <TextBlock x:Name="SectionAppearance" Text="APPARENCE" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,4,0,2" />
+                <ComboBox x:Name="AppearanceBox" Header="Thème" HorizontalAlignment="Stretch" SelectionChanged="OnAppearanceChanged" />
+                <ComboBox x:Name="BackdropBox" Header="Matière" HorizontalAlignment="Stretch" SelectionChanged="OnBackdropChanged" />
+
+                <!--
+                    La densité remplace les anciennes largeur et hauteur : trois
+                    densités déplacent les dimensions ensemble et gardent les
+                    proportions du langage visuel.
+                -->
+                <ComboBox x:Name="DensityBox" Header="Densité des cartes" HorizontalAlignment="Stretch" SelectionChanged="OnDensityChanged" />
+
+                <!--
+                    Maximum est toujours écrit AVANT Minimum. Un curseur dont le
+                    minimum dépasse le maximum par défaut — 100 pour un RangeBase —
+                    fait lever le constructeur XAML : la fenêtre ne s'ouvre alors
+                    pas du tout, avec un message qui ne dit pas quel contrôle est
+                    en cause.
+                -->
+                <Grid>
+                    <TextBlock Text="Arrondi compact" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="RadiusValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="RadiusSlider" Maximum="40" Minimum="8" StepFrequency="1" ValueChanged="OnRadiusChanged" />
+
+                <Grid>
+                    <TextBlock Text="Arrondi ouvert" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="ExpandedRadiusValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="ExpandedRadiusSlider" Maximum="48" Minimum="12" StepFrequency="1" ValueChanged="OnExpandedRadiusChanged" />
+
+                <!--
+                    Les épaules raccordent la notch au bord de l'écran. À zéro, le
+                    raccord est un angle droit : la notch reste collée au bord,
+                    mais le bord ne « coule » plus dans la forme.
+                -->
+                <Grid>
+                    <TextBlock Text="Épaules (raccord au bord de l'écran)" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="ShoulderValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="ShoulderSlider" Maximum="20" Minimum="0" StepFrequency="1" ValueChanged="OnShoulderChanged" />
+
+                <ToggleSwitch
+                    x:Name="SmoothingToggle"
+                    Header="Courbure continue (superellipse)"
+                    OnContent="Squircle"
+                    OffContent="Arc de cercle"
+                    Toggled="OnSmoothingToggled" />
+
+                <!--
+                    Style de la matière : teinte, transparence, contour, ombre,
+                    et les proportions de la languette, de la pastille et de la
+                    bulle (ADR-020).
+                -->
+                <ComboBox x:Name="SurfaceTintBox" Header="Couleur de la surface" HorizontalAlignment="Stretch" SelectionChanged="OnSurfaceTintChanged" />
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="CustomColorBox" Header="Couleur personnalisée" PlaceholderText="#14161C" MaxLength="7" TextChanged="OnCustomColorChanged" />
+                    <Border x:Name="CustomColorSwatch" Grid.Column="1" Width="32" Height="32" CornerRadius="8" VerticalAlignment="Bottom" BorderThickness="1" BorderBrush="#30FFFFFF" />
+                </Grid>
+                <Grid>
+                    <TextBlock Text="Opacité de la surface" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="OpacityValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="OpacitySlider" Maximum="100" Minimum="55" StepFrequency="1" ValueChanged="OnOpacityChanged" />
+                <Grid>
+                    <TextBlock Text="Épaules de la languette et de la bulle" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="SideShoulderValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="SideShoulderSlider" Maximum="16" Minimum="0" StepFrequency="1" ValueChanged="OnSideShoulderChanged" />
+                <Grid>
+                    <TextBlock Text="Arrondi de la pastille ouverte" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="FloatingRadiusValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="FloatingRadiusSlider" Maximum="48" Minimum="12" StepFrequency="1" ValueChanged="OnFloatingRadiusChanged" />
+                <Grid>
+                    <TextBlock Text="Ombre" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="ShadowValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="ShadowSlider" Maximum="60" Minimum="0" StepFrequency="1" ValueChanged="OnShadowChanged" />
+                <ToggleSwitch x:Name="OutlineToggle" Header="Contour fin (fonds d'écran sombres)" Toggled="OnOutlineToggled" />
+                <Grid>
+                    <TextBlock Text="Intensité du contour" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="OutlineValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="OutlineSlider" Maximum="50" Minimum="5" StepFrequency="1" ValueChanged="OnOutlineChanged" />
+                <ComboBox x:Name="BubbleSizeBox" Header="Taille de la bulle" HorizontalAlignment="Stretch" SelectionChanged="OnBubbleSizeChanged" />
+                <ComboBox x:Name="TabSizeBox" Header="Taille de la languette" HorizontalAlignment="Stretch" SelectionChanged="OnTabSizeChanged" />
+
+                <!-- ================================================
+                     COMPORTEMENT — comment la notch répond.
+                     ================================================ -->
+                <TextBlock x:Name="SectionBehavior" Text="COMPORTEMENT" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <TextBlock
+                    Text="Le survol prévisualise, le clic déploie, Échap ou un clic ailleurs referme. La molette et les flèches parcourent les activités."
+                    FontSize="11"
+                    Foreground="#80FFFFFF"
+                    TextWrapping="Wrap"
+                    Margin="0,0,0,4" />
+                <ToggleSwitch x:Name="HoverToggle" Header="Aperçu au survol" Toggled="OnHoverToggled" />
+                <ToggleSwitch x:Name="HoverExpandToggle" Header="Ouvrir après une seconde de survol" Toggled="OnHoverExpandToggled" />
+                <ComboBox x:Name="EdgeBox" Header="Bord d'accroche" HorizontalAlignment="Stretch" SelectionChanged="OnEdgeChanged" />
+                <ToggleSwitch x:Name="SideEdgesToggle" Header="Accrocher aussi à gauche et à droite" Toggled="OnSideEdgesToggled" />
+                <ToggleSwitch x:Name="DetachToggle" Header="Détacher en tirant (double-clic pour raccrocher)" Toggled="OnDetachToggled" />
+                <ToggleSwitch x:Name="BubbleToggle" Header="Bulle pour les activités importantes" Toggled="OnBubbleToggled" />
+                <ToggleSwitch x:Name="FullscreenToggle" Header="S'effacer devant le plein écran" Toggled="OnFullscreenToggled" />
+                <ToggleSwitch x:Name="StackToggle" Header="Indicateur de pile d'activités" Toggled="OnStackToggled" />
+                <ToggleSwitch x:Name="ClockToggle" Header="Heure au repos" Toggled="OnClockToggled" />
+                <ToggleSwitch x:Name="StartupToggle" Header="Démarrer avec Windows" Toggled="OnStartupToggled" />
+
+                <!-- ================================================
+                     ACTIVITÉS — ce qui a le droit de s'afficher.
+                     ================================================ -->
+                <TextBlock x:Name="SectionActivities" Text="ACTIVITÉS" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <TextBlock
+                    Text="Une activité désactivée libère ses écouteurs système : elle ne consomme plus rien."
+                    FontSize="11"
+                    Foreground="#80FFFFFF"
+                    TextWrapping="Wrap"
+                    Margin="0,0,0,4" />
+
+                <StackPanel x:Name="FeaturesHost" Spacing="2" />
+
+                <!-- ================================================
+                     MOUVEMENT — trois caractères, puis le réglage fin.
+                     ================================================ -->
+                <TextBlock x:Name="SectionMotion" Text="MOUVEMENT" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <ComboBox x:Name="MotionStyleBox" Header="Caractère" HorizontalAlignment="Stretch" SelectionChanged="OnMotionStyleChanged" />
+                <ToggleSwitch x:Name="BouncyToggle" Header="Rebond du ressort" OnContent="Autorisé" OffContent="Neutre" Toggled="OnBouncyToggled" />
+                <ToggleSwitch
+                    x:Name="HypnoticToggle"
+                    Header="Mouvement hypnotique"
+                    OnContent="Matière vivante pendant un travail"
+                    OffContent="Image fixe"
+                    Toggled="OnHypnoticToggled" />
+                <ToggleSwitch
+                    x:Name="RainToggle"
+                    Header="Pluie binaire pendant un traitement"
+                    Toggled="OnRainToggled" />
+
+                <!--
+                    Deux nombres au lieu de trois, et nommés pour ce qu'ils font.
+                    Les déplacer bascule le caractère sur « Personnalisé ».
+                -->
+                <Grid>
+                    <TextBlock Text="Vitesse (réglage fin)" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="ResponseValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="ResponseSlider" Maximum="0.8" Minimum="0.25" StepFrequency="0.01" ValueChanged="OnResponseChanged" />
+
+                <Grid>
+                    <TextBlock Text="Rebond (réglage fin)" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="BounceValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="BounceSlider" Maximum="1.1" Minimum="0.3" StepFrequency="0.01" ValueChanged="OnBounceChanged" />
+
+                <!-- Détachement : la pastille qu'on tient et qu'on lance (ADR-019). -->
+                <ComboBox x:Name="DetachFeelBox" Header="Sensation de la pastille en main" HorizontalAlignment="Stretch" SelectionChanged="OnDetachFeelChanged" />
+                <Grid>
+                    <TextBlock Text="Étirement en mouvement" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="StretchValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="StretchSlider" Maximum="10" Minimum="0" StepFrequency="1" ValueChanged="OnStretchChanged" />
+                <Grid>
+                    <TextBlock Text="Distance d'arrachement" FontSize="12" Foreground="#E0FFFFFF" />
+                    <TextBlock x:Name="TearValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
+                </Grid>
+                <Slider x:Name="TearSlider" Maximum="80" Minimum="20" StepFrequency="1" ValueChanged="OnTearChanged" />
+                <ToggleSwitch x:Name="MagnetsToggle" Header="Aimants aux coins" Toggled="OnMagnetsToggled" />
+                <ToggleSwitch x:Name="GooToggle" Header="Effet de goutte" OnContent="Goutte" OffContent="Simple pop" Toggled="OnGooToggled" />
+                <ToggleSwitch x:Name="MonitorResistanceToggle" Header="Résister au passage d'un écran à l'autre" Toggled="OnMonitorResistanceToggled" />
+
+                <!-- ================================================
+                     ÉCRANS — où la notch s'accroche.
+                     ================================================ -->
+                <TextBlock x:Name="SectionDisplays" Text="ÉCRANS" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <ComboBox x:Name="DisplayBox" Header="Écran" HorizontalAlignment="Stretch" SelectionChanged="OnDisplayModeChanged" />
+                <ComboBox x:Name="CutoutBox" Header="Découpe caméra" HorizontalAlignment="Stretch" SelectionChanged="OnCutoutChanged" />
+
+                <!-- ================================================
+                     AVANCÉ — ce qui n'a rien à faire dans l'interface
+                     principale : composition, diagnostics, fichiers.
+                     ================================================ -->
+                <TextBlock x:Name="SectionAdvanced" Text="AVANCÉ" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
+                <ToggleSwitch
+                    x:Name="CompositionToggle"
+                    Header="Dissolution par le compositeur"
+                    OnContent="Compositeur (référence)"
+                    OffContent="Dégradé XAML (repli)"
+                    Toggled="OnCompositionToggled" />
+                <ToggleSwitch x:Name="DiagnosticsToggle" Header="Diagnostics" Toggled="OnDiagnosticsToggled" />
+
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                    <Button Content="Ouvrir la configuration" Click="OnOpenConfigClicked" />
+                    <Button Content="Ouvrir les greffons" Click="OnOpenPluginsClicked" />
+                </StackPanel>
+
+                <TextBlock
+                    x:Name="PathText"
+                    FontSize="10"
+                    Foreground="#60FFFFFF"
+                    TextTrimming="CharacterEllipsis"
+                    Margin="0,4,0,0" />
+
+                <TextBlock
+                    x:Name="StatusText"
+                    FontSize="11"
+                    Foreground="#E0A030"
+                    TextWrapping="Wrap"
+                    Margin="0,10,0,0" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Grid Grid.Row="2" Padding="20,10,20,16" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button Grid.Column="0" Content="Rétablir les valeurs par défaut" Click="OnResetClicked" />
+            <Button Grid.Column="2" Content="Fermer" Click="OnCloseClicked" />
+        </Grid>
+    </Grid>
+</Window>

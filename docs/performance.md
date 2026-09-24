@@ -94,7 +94,7 @@ autres.
 
 ```bash
 dotnet build -c Release
-EXE="src/NotchFlow.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64/NotchFlow.App.exe"
+EXE="src/SpaceNotch.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64/SpaceNotch.App.exe"
 
 "$EXE" &            # ou lancer depuis l'Explorateur
 sleep 18            # stabilisation : le démarrage domine sinon la mesure

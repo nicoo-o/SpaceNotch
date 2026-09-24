@@ -1,131 +1,137 @@
-# NotchFlow
+<div align="center">
 
-Une Dynamic Island native pour Windows. Minimaliste, fluide, pratiquement invisible lorsqu'elle n'est
-pas utile — et un véritable centre d'interactions lorsqu'on l'ouvre.
+<img src="docs/assets/readme/hero.svg" alt="SpaceNotch — a notch that grows from the top of your screen, with a glowing pixel grid" width="100%">
 
-Ce n'est pas « une barre noire en haut de l'écran ». C'est un espace contextuel qui apparaît quand
-quelque chose mérite votre attention.
+<br>
 
-```
-    ╭──────────────────╮
-    │  ◉   Spotify  ▶  │        au repos : une pilule, presque rien
-    ╰──────────────────╯
+<a href="https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch.exe"><img src="https://img.shields.io/badge/Download_for_Windows-000000?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows" height="44"></a>
 
-    ╭────────────────────────╮
-    │ Spotify                │
-    │     ALBUM ART          │        ouverte : une surface de travail
-    │     ━━━━━━━━━          │
-    │   ◀     ▶     ▶        │
-    ╰────────────────────────╯
-          ░░░░░░░░                sans bord marqué : le bas se dissout
-       ░░░░░░░░░░░
-```
+<br><br>
 
-## Philosophie
+<a href="https://github.com/nicoo-o/SpaceNotch/releases/latest"><img src="https://img.shields.io/github/v/release/nicoo-o/SpaceNotch?style=flat-square&color=111111&label=release" alt="Latest release"></a>
+<img src="https://img.shields.io/badge/Windows-11-111111?style=flat-square" alt="Windows 11">
+<img src="https://img.shields.io/badge/license-MIT-111111?style=flat-square" alt="MIT license">
+<img src="https://img.shields.io/badge/telemetry-none-111111?style=flat-square" alt="No telemetry">
 
-> **Native first. Événementiel. Accéléré par le GPU. Invisible au repos.**
+<br>
 
-- **Aucun WebView, aucun Electron, aucun Tauri, aucun Python.** Une application dont le but est la
-  légèreté n'embarque pas un navigateur.
-- **Aucune scrutation.** Le flux est `Événement → État → Animation → Repos`, et le repos est mesuré.
-- **Aucun bord sous l'Island.** Le bas se dissout dans l'écran par un masque calculé par le
-  compositeur Windows, pas par un dégradé posé par-dessus.
-- **Aucune capture par défaut.** Le presse-papier n'est pas observé tant que vous ne l'avez pas
-  demandé.
+**English** · [Français](README.fr.md)
 
-## État
+</div>
 
-`v0.x` — socle et fonctionnalités de base en place. L'API de greffons existe et est testée, mais
-reste en version zéro : une rupture est possible, elle sera documentée.
+<br>
 
-| Mesure | Résultat |
-|---|---|
-| CPU au repos | **0,24 à 0,31 % d'un cœur** |
-| Journal pendant l'inactivité | **aucune ligne ajoutée** sur 15 s |
-| Tests | **98** (cœur et greffon, sans machine graphique) |
-| Construction Release | 0 erreur, **0 avertissement** |
-| Chemin de dissolution | **compositeur**, confirmé par sonde à l'exécution |
-| Greffon d'exemple | chargé par l'hôte réel : **1 fonctionnalité, 0 échec** |
+<p align="center">
+<em>A small piece of darkness at the top of your screen.<br>
+It stays out of the way — and comes alive when something deserves your attention.</em>
+</p>
 
-La cible mémoire de 30–60 MB n'est **pas** atteinte : 96–98 MB mesurés. Le plancher du runtime .NET
-et de WinUI 3 est réel. La mesure est publiée telle quelle — voir
-[performance.md](docs/performance.md).
+<br>
 
-## Fonctionnalités
+## Meet your notch
 
-Média (pochette, titre, artiste, transport, position, teinte d'ambiance dérivée de l'album) · HUD
-volume · HUD luminosité · notifications · Bluetooth · minuteur de focus · minuteur · lanceur
-d'application · étagère de fichiers · presse-papier avec historique (désactivé par défaut) · pile
-d'activités navigable · greffons externes.
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/readme/state-music.jpg" alt="Compact notch playing music"></td>
+    <td width="50%"><img src="docs/assets/readme/state-expanded.jpg" alt="Notch expanded into a music player"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/readme/state-download.jpg" alt="Notch showing a download with a glowing pixel grid"></td>
+    <td width="50%"><img src="docs/assets/readme/state-bubble.jpg" alt="Notch with a call bubble beside it"></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/readme/state-side.jpg" alt="Notch docked on the right edge as a slim tab"></td>
+    <td width="50%"><img src="docs/assets/readme/state-floating.jpg" alt="Notch pulled off the edge, floating and stretching"></td>
+  </tr>
+</table>
 
-Un **greffon d'exemple complet** — météo locale, source de données réelle, actions, tests — vit dans
-[`samples/`](samples/NotchFlow.SamplePlugin.Weather/README.md). Il est écrit sans modifier
-l'application et ne référence que `NotchFlow.Core` : c'est la démonstration que l'API est utilisable
-par un tiers. Voir [plugin-api.md](docs/plugin-api.md).
+<br>
 
-## Technologie
+## Alive, never busy
 
-| Élément | Choix |
-|---|---|
-| Langage | C# |
-| UI | WinUI 3 / Windows App SDK |
-| Rendu | Compositeur Windows (`Microsoft.UI.Composition`) |
-| Interop | Win32 / P/Invoke, uniquement où nécessaire |
-| Cible | Windows 11 23H2+ |
-| Tests | xUnit |
+<p align="center">
+<img src="docs/assets/readme/hypnotic.svg" alt="Eight glowing pixel-grid animations: read, think, search, process, sync, drop, complete, error" width="100%">
+</p>
 
-## Construire
+When something is working — a download, a search, a sync — a tiny grid of light breathes inside
+the notch. Each kind of work has its own rhythm and colour. When it's done, the light settles into
+a single calm pixel. When nothing is happening, nothing moves.
 
-```bash
-dotnet build -c Debug
-dotnet test
-```
+<br>
 
-```bash
-EXE="src/NotchFlow.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64/NotchFlow.App.exe"
-"$EXE"
-```
+## Pull it off the edge
 
-L'application démarre sans console. Pour l'observer : *Diagnostics* dans le menu de la zone de
-notification, ou `%LocalAppData%\NotchFlow\logs\notchflow.log`.
+<p align="center">
+<img src="docs/assets/readme/goo.jpg" alt="The notch being pulled down, stretching like a drop of ink, snapping free and becoming a floating pill" width="100%">
+</p>
 
-## Documentation
+Grab the notch and pull. It resists, stretches like a drop of ink, and snaps free. Throw it to a
+corner, park it on the side of your screen, carry it to your second monitor. Double-click, and it
+flows back home.
 
-- [Architecture](docs/architecture.md) — les couches et la direction des dépendances
-- [Machine à états](docs/state-machine.md) — états, transitions, arbitrage
-- [Système d'activités](docs/activity-system.md) — le modèle et son cycle de vie
-- [Système d'animation](docs/animation-system.md) — le ressort et la dissolution
-- [Performance](docs/performance.md) — les règles et les mesures
-- [API de greffons](docs/plugin-api.md) — écrire une fonctionnalité
-- [Intégration Windows](docs/windows-integration.md) — fenêtres, DPI, API système
-- [Décisions](docs/decisions/README.md) — pourquoi chaque choix structurant a été fait
-- [Développement](docs/development/building.md) — construire, tester, conventions
+<br>
 
-## Structure
+## Made to disappear
 
-```
-src/NotchFlow.Core               état, activités, bus, animation, contrats
-src/NotchFlow.Platform.Windows   interop Win32, média, audio, affichage, notifications
-src/NotchFlow.Features           les fonctionnalités concrètes
-src/NotchFlow.Infrastructure     configuration, journalisation, greffons
-src/NotchFlow.App                fenêtres, vues de scène, composition, réglages
-tests/                           tests du cœur, greffon de test, tests du greffon d'exemple
-samples/                         greffon d'exemple, écrit comme le ferait un tiers
-docs/                            documentation et décisions d'architecture
-```
+<table>
+  <tr>
+    <td width="33%" valign="top"><h3>Quiet</h3>Nothing runs when nothing happens. No polling, no background animation — just a still shape at the top of your screen.</td>
+    <td width="33%" valign="top"><h3>Respectful</h3>It steps aside when a game or a video goes fullscreen, and never pops open for a volume change.</td>
+    <td width="33%" valign="top"><h3>Private</h3>No account, no telemetry, no network calls. Everything stays on your PC.</td>
+  </tr>
+  <tr>
+    <td width="33%" valign="top"><h3>Deep black</h3>Pure OLED black with soft, concave shoulders, as if the screen itself had grown a little.</td>
+    <td width="33%" valign="top"><h3>Gentle</h3>Honours Windows' <em>reduced motion</em> setting and speaks to Narrator.</td>
+    <td width="33%" valign="top"><h3>Yours</h3>Colour, transparency, curves, edge, spring feel — tune it until it feels right.</td>
+  </tr>
+</table>
 
-## Sécurité et vie privée
+<br>
 
-Aucun compte, aucune télémétrie, aucun traçage. La configuration est locale
-(`%AppData%\NotchFlow\config.json`), les secrets iraient dans le gestionnaire d'identification
-Windows si le besoin apparaissait.
+## What it shows
 
-**L'application elle-même n'effectue aucun appel réseau.** Une précision nécessaire depuis
-l'existence des greffons : le greffon d'exemple, lui, interroge un service météo public — c'est le
-propre d'une météo. L'application ne fait aucun appel de sa part et ne charge que les greffons que
-vous déposez vous-même ; un greffon tiers fait ce que son auteur a écrit, et il est prudent de le
-considérer comme du code que vous choisissez d'exécuter.
+**Music** with artwork that grows into a player · **Volume & brightness** as a quiet overlay ·
+**Downloads** from any browser · **Calls & recordings** from your mic and camera ·
+**Notifications**, grouped by app · **Bluetooth** · **Timer & focus** · **A launcher** for your apps ·
+**A shelf** for dragging files in and out · **Clipboard history** (off by default, swipe to delete) ·
+**Plugins** for anything else.
 
-## Licence
+<br>
 
-Voir [LICENSE](LICENSE).
+## Get started
+
+1. **[Download SpaceNotch.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch.exe)** — one file, nothing to install.
+2. Run it. Windows may say it *protected your PC*: choose **More info › Run anyway** (the app isn't code-signed yet).
+3. Look up. Hover the notch to peek, click to open, right-click for the launcher.
+   Settings live in the tray icon.
+
+Want the full tour? Run `SpaceNotch.exe --demo`.
+
+<sub>Windows 11 (23H2 or later), x64. Prefer a folder? Grab <code>SpaceNotch-win-x64.zip</code> from the <a href="https://github.com/nicoo-o/SpaceNotch/releases/latest">latest release</a>.</sub>
+
+<br>
+
+## For the curious
+
+SpaceNotch is native C# on WinUI 3 and the Windows compositor — no browser engine inside.
+Every shape you see above is drawn by the app's own geometry code, and every design choice is
+written down.
+
+[Technical overview](docs/development/project-overview.md) ·
+[Design plan](docs/ux/spacenotch-2.0.md) ·
+[Decisions](docs/decisions/README.md) ·
+[Write a plugin](docs/plugin-api.md) ·
+[Build from source](docs/development/building.md)
+
+<br>
+
+<div align="center">
+
+<sub>Inspired by Apple's Dynamic Island and by Inspora's <a href="https://www.inspora.design/posts/hypnotizing-ui"><em>Hypnotizing UI</em></a>.<br>
+MIT licensed · made with care for people who like their desktop calm.</sub>
+
+<br><br>
+
+<sub>If SpaceNotch made your screen a little nicer, a ⭐ helps others find it.</sub>
+
+</div>

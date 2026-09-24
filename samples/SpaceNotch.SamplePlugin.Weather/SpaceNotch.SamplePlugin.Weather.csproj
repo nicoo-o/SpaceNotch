@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Greffon d'exemple.
+
+    Il ne référence QUE SpaceNotch.Core, et c'est le point important : c'est la
+    seule dépendance dont un greffon tiers a besoin. Aucune bibliothèque Windows,
+    aucune référence à l'application, aucune à ses fenêtres. Le contrat suffit.
+
+    Un greffon distribué hors de ce dépôt remplacerait la référence de projet par
+    une référence à l'assemblage SpaceNotch.Core.dll. Le ciblage, lui, ne change
+    pas : il doit être compatible avec celui de l'hôte.
+  -->
+  <PropertyGroup>
+    <RootNamespace>SpaceNotch.SamplePlugin.Weather</RootNamespace>
+    <AssemblyName>SpaceNotch.SamplePlugin.Weather</AssemblyName>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SpaceNotch.Core\SpaceNotch.Core.csproj" />
+  </ItemGroup>
+
+</Project>

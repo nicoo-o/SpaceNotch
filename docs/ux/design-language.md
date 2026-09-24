@@ -1,5 +1,22 @@
 # Langage visuel
 
+## Règle n°1 — TopAttached
+
+> **SpaceNotch est une notch attachée au bord supérieur de l'écran, jamais une capsule flottante.**
+
+```
+████████╭────────────╮████████      le bord de l'écran coule dans la notch (épaules)
+        │            │
+        │  CONTENU   │
+        ╰────────────╯              grands congés organiques en bas
+          ░░░░░░░░░░
+        ░░░░░░░░░░░░░░              l'atmosphère se dissout dessous
+```
+
+Le bord supérieur est à zéro sur toute la largeur, sans aucun décalage possible ; des épaules
+concaves raccordent l'écran à la forme ; les congés du bas sont grands et suivent la hauteur. Voir
+[ADR-017](../decisions/ADR-017-notch-attachee.md) et le plan [SpaceNotch 2.0](spacenotch-2.0.md).
+
 ## L'intention
 
 L'Island ne doit pas ressembler à une fenêtre posée sur le bureau. Elle doit sembler **intégrée à
@@ -47,8 +64,9 @@ plus loin.
 
 | Rôle | Valeur | Note |
 |---|---|---|
-| Base | `#0B0B0D` | Noir proche, **pas** `#000000` : le noir absolu ne laisse aucune place à la translucidité. |
-| Texte | blanc à ~94 % d'opacité | Sur fond clair, encre sombre à la place. |
+| Corps | `#000000` | Noir OLED pur : la notch se fond dans le bord de l'écran — et, sur OLED, se lit comme une découpe matérielle. Aucun reflet au bord. |
+| Verre / surfaces internes | `#08090C` | Le « noir relevé » : il laisse la place à la profondeur là où une surface doit se distinguer d'une autre. |
+| Texte | blanc à ~92 % d'opacité | Plafonné sous le blanc pur contre la halation sur OLED. Sur fond clair, encre sombre. |
 | Indicateur de pile | blanc à ~44 % | Doit se lire comme un indice, jamais comme un texte. |
 
 La teinte d'ambiance peut être influencée par la couleur dominante d'une pochette d'album, mais
@@ -57,15 +75,17 @@ saturé.
 
 ## Coins
 
-Très arrondis, et **configurables en direct** :
+Très arrondis, **interpolés continûment selon la hauteur**, et configurables en direct :
 
-| État | Défaut | Plage |
+| Élément | Défaut | Plage |
 |---|---|---|
-| Fermée | 26 px | 4–48 |
-| Ouverte | 34 px | 4–56 |
+| Congé compact | 26 DIP | 8–40 |
+| Congé ouvert | 34 DIP | 12–48 |
+| Épaules (raccord au bord de l'écran) | 12 DIP | 0–20 |
 
-Le cahier des charges recommande 24–32 px fermée et 28–36 px ouverte. Les valeurs par défaut se
-situent dans ces fourchettes.
+Le congé est borné par ce que la forme porte — `min((largeur − 2·épaule)/2, hauteur − épaule)` —
+et non par la moitié de la hauteur : la notch n'a qu'un bord libre. Une forme compacte de 36 DIP
+porte donc un congé de 24 sous des épaules de 12.
 
 ## Typographie
 
@@ -75,8 +95,9 @@ chasse fixe, sinon le texte « danse » à chaque incrément.
 
 ## Espacement
 
-L'Island fermée est **fine** — une pilule discrète, presque invisible, portant au plus une icône et
-un libellé court. L'ouverture révèle la structure : le contenu n'est jamais comprimé dans la forme
+Au repos sans activité, la notch est une **lèvre** de 80 × 18 au bord de l'écran ; avec une
+activité, une forme compacte de 36 DIP portant une icône — ou une pochette —, un libellé court
+et, à droite, une mesure (62 %, 12 Mo, ✓) ; sa largeur suit le texte. L'ouverture révèle la structure : le contenu n'est jamais comprimé dans la forme
 fermée.
 
 Les encombrements sont **déclarés** par le catalogue de scènes, jamais écrits en dur dans une vue.
@@ -91,6 +112,14 @@ sens — jamais comme jeu d'icônes d'interface.
 
 Aucune animation permanente. Aucun visualiseur continu. Le mouvement est une réponse à une
 transition, et il cesse.
+
+Une seule exception, et elle a un sens : le **mouvement hypnotique**, qui signale qu'un travail est
+en cours — lecture, recherche, traitement, synchronisation, dépôt. Il est rejoué par le compositeur
+sans travail par image, s'arrête avec le travail, et devient une image fixe si l'utilisateur le
+refuse ou si Windows demande la réduction des animations. Voir
+[ADR-018](../decisions/ADR-018-mouvement-hypnotique.md).
+
+Seule la géométrie rebondit : l'opacité, la couleur et le flou ne dépassent jamais leur cible.
 
 Les transitions suivent une physique de ressort : ouverture vive, léger dépassement, stabilisation.
 Voir [animation-system.md](../animation-system.md).

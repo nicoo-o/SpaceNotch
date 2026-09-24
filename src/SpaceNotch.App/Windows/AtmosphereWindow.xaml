@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="SpaceNotch_App.Windows.AtmosphereWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:winuiex="using:WinUIEx"
+    xmlns:controls="using:SpaceNotch_App.Controls"
+    Title="SpaceNotch Atmosphere"
+    mc:Ignorable="d">
+
+    <Window.SystemBackdrop>
+        <winuiex:TransparentTintBackdrop />
+    </Window.SystemBackdrop>
+
+    <!--
+        Couche purement décorative : halo, ombre et dissolution du bas.
+        Cette fenêtre porte WS_EX_TRANSPARENT (voir WindowChrome), donc elle ne
+        reçoit jamais le moindre clic. C'est ce qui permet à l'Island de se
+        dissoudre dans le bureau sans jamais se comporter comme une fenêtre posée
+        par-dessus — la contrainte centrale de la direction Moody.
+
+        Deux éléments s'y superposent, et c'est voulu :
+        — FadeHost porte une surface calculée par le compositeur : un masque
+          d'opacité GPU, sans arête, dont le fondu suit la géométrie réelle ;
+        — le halo, purement XAML, ajoute la respiration colorée par-dessus.
+
+        IsHitTestVisible est également désactivé côté XAML : défense en
+        profondeur, au cas où le style étendu serait réinitialisé par le système.
+    -->
+    <Grid x:Name="AtmosphereRoot" Background="Transparent" IsHitTestVisible="False">
+        <!--
+            L'ombre est déclarée en premier : elle doit passer sous la dissolution
+            et sous le halo, faute de quoi elle les assombrirait au lieu de les
+            accompagner.
+        -->
+        <Grid
+            x:Name="ShadowHost"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center"
+            Width="0"
+            Height="0" />
+
+        <Border
+            x:Name="FadeHost"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center"
+            Width="0"
+            Height="0"
+            Background="Transparent" />
+
+        <controls:AmbientGlowControl
+            x:Name="Glow"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center" />
+
+        <!-- Pluie binaire optionnelle, pendant un traitement : voir SetBinaryRain. -->
+        <Canvas
+            x:Name="RainHost"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center"
+            Width="120"
+            Height="48"
+            IsHitTestVisible="False"
+            Visibility="Collapsed" />
+    </Grid>
+</Window>

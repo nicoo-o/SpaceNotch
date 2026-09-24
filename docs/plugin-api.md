@@ -70,9 +70,9 @@ un échec mineur n'est pas un succès.
 ## Exemple complet et exécutable
 
 Un greffon entier — météo locale, source de données réelle, configuration, tests — vit dans
-[`samples/NotchFlow.SamplePlugin.Weather`](../samples/NotchFlow.SamplePlugin.Weather/README.md).
+[`samples/SpaceNotch.SamplePlugin.Weather`](../samples/SpaceNotch.SamplePlugin.Weather/README.md).
 
-Il est écrit sans modifier l'application et ne référence que `NotchFlow.Core`. Son README est le
+Il est écrit sans modifier l'application et ne référence que `SpaceNotch.Core`. Son README est le
 guide d'un auteur tiers : démarrage, publication d'une carte, actions, glyphes, pièges, limites.
 
 Le squelette minimal, pour situer :
@@ -104,6 +104,21 @@ Une activité publiée sous `IslandSceneCatalog.Card` rend quatre choses : `Titl
 | `IconKey` | Clé logique (`"Timer"`, `"Folder"`…) **ou** glyphe littéral (`"\uE753"`). |
 | `Actions` | Contrôles déclarés, rendus tels quels et renvoyés par identifiant. |
 | `Priority` | `Background` pour une information d'ambiance : elle ne doit pas supplanter un appel. |
+| `Eyebrow` | Facultatif. Ligne de contexte discrète au-dessus du titre : « Read app-sidebar.tsx · 219 lines ». |
+| `Progress` | Facultatif. Avancement de 0 à 1. |
+| `MotionState` | `Working` pendant un travail, `Completing` à sa fin, `Error` en cas d'échec, `Idle` sinon. |
+| `MotionPreset` | Nature du mouvement demandé : `Read`, `Think`, `Search`, `Process`, `Sync`, `Drop`. |
+| `Policy` | Facultatif. `Persistent`, `Passive`, `Temporary` ou `Interrupting` ; déduit sinon. |
+| `Metric` | Facultatif. Valeur courte à droite de la forme compacte : « 62 % », « 12 Mo », « ✓ ». Déduite de `Progress` sinon. |
+| `Artwork` | Facultatif. Image encodée (PNG, JPEG) montrée à la place du glyphe, qui grandit à l'ouverture. |
+| `ExpandedFootprint` | Facultatif. Taille ouverte propre au contenu, quand celle de la scène ne suffit pas. |
+| `Role` | Facultatif. `Download`, `Call` ou `Recording` : l'activité ne se cache jamais derrière une autre, elle prend une bulle à côté de la notch (ADR-019). |
+
+**Le mouvement se demande, il ne se dessine pas.** Un greffon qui travaille déclare
+`MotionState = Working` et un préréglage ; l'hôte rend la matière hypnotique, la synchronise avec
+l'atmosphère, la fige si l'utilisateur l'a demandé, et l'arrête au repos. Le greffon météo
+d'exemple publie `Sync` pendant chaque relevé. Voir
+[ADR-018](decisions/ADR-018-mouvement-hypnotique.md).
 
 Une clé de scène inconnue ne casse rien — l'Island retombe sur la pilule — mais elle est
 **signalée une fois au journal**, avec la liste des clés valides. Sans ce signal, un greffon mal
@@ -154,7 +169,7 @@ continuation asynchrone : la fenêtre rétablit le fil d'interface elle-même.
 
 ## Chargement
 
-`PluginLoader` parcourt `%AppData%\NotchFlow\plugins\`, charge chaque assembly et instancie les types
+`PluginLoader` parcourt `%AppData%\SpaceNotch\plugins\`, charge chaque assembly et instancie les types
 implémentant `IIslandPlugin`. Les échecs sont **isolés et rapportés** : un greffon mal formé, une
 dépendance manquante ou un constructeur fautif produit une ligne de journal, pas un arrêt de
 l'application.
@@ -165,7 +180,7 @@ d'actions que les fonctionnalités intégrées.
 
 ## Vérification
 
-`tests/NotchFlow.TestPlugin` est un greffon réel, compilé et chargé par les tests. Il contient
+`tests/SpaceNotch.TestPlugin` est un greffon réel, compilé et chargé par les tests. Il contient
 délibérément des cas dégradés :
 
 - une fabrique valide ;
@@ -179,6 +194,6 @@ charger. Une API de greffon qui n'est testée qu'avec un cas nominal est une API
 ## Stabilité
 
 L'API est en v0.x. Tant que la version majeure est zéro, une rupture est possible mais sera
-documentée dans un ADR et annoncée dans les notes de version. `NotchFlow.Core` est la seule
+documentée dans un ADR et annoncée dans les notes de version. `SpaceNotch.Core` est la seule
 dépendance qu'un greffon doit référencer — et cette dépendance ne tire aucune bibliothèque Windows,
 ce qui permet de compiler un greffon sans machine Windows graphique.

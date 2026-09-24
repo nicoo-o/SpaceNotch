@@ -17,6 +17,11 @@ pourquoi la première avait été retenue.
 | [ADR-009](ADR-009-plateforme.md) | Windows 11 23H2 minimum | Accepté |
 | [ADR-010](ADR-010-scene-tiers.md) | Le répertoire des scènes appartient à l'hôte | Accepté |
 | [ADR-011](ADR-011-fil-interface.md) | L'hôte rétablit le fil d'interface, pas la fonctionnalité | Accepté |
+| [ADR-017](ADR-017-notch-attachee.md) | Une notch attachée au bord supérieur, jamais une capsule flottante | Accepté |
+| [ADR-018](ADR-018-mouvement-hypnotique.md) | Mouvement hypnotique : langage du travail en cours, rejoué par le compositeur | Accepté |
+| [ADR-019](ADR-019-notch-detachable.md) | Notch détachable par glisser (goutte, ressort, aimants) et bulle pour les activités importantes | Accepté |
+| [ADR-020](ADR-020-bords-et-ecrans.md) | Trois bords (haut, gauche, droite), passage d'un écran à l'autre, double-clic, matière réglable | Accepté |
+| [ADR-021](ADR-021-transitions-et-distribution.md) | Transitions entre les états (voile de flou, respiration, bulle en goutte) et .exe produit par GitHub | Accepté |
 
 ## Format
 
@@ -33,9 +38,10 @@ inconvénient est une décision mal analysée.
 
 ## Où regarder d'abord
 
-- Pour comprendre la contrainte visuelle qui structure le rendu → **ADR-008**, puis **ADR-006**.
+- Pour comprendre la contrainte visuelle qui structure le rendu → **ADR-017**, puis **ADR-008** et
+  **ADR-006**. Le plan d'ensemble est dans [SpaceNotch 2.0](../ux/spacenotch-2.0.md).
 - Pour comprendre pourquoi le code est découpé ainsi → **ADR-004**, puis **ADR-007**.
 - Pour comprendre la cible et les dépendances de plateforme → **ADR-009**, puis **ADR-001** et
   **ADR-002**.
 - Pour écrire un greffon → **ADR-010**, puis [plugin-api.md](../plugin-api.md) et
-  [`samples/NotchFlow.SamplePlugin.Weather`](../../samples/NotchFlow.SamplePlugin.Weather/README.md).
+  [`samples/SpaceNotch.SamplePlugin.Weather`](../../samples/SpaceNotch.SamplePlugin.Weather/README.md).

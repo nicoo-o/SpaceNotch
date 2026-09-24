@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Interop Win32 : LibraryImport génère du code qui peut nécessiter du
+         code non vérifiable pour les structures de marshalling complexes. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\SpaceNotch.Core\SpaceNotch.Core.csproj" />
+  </ItemGroup>
+
+</Project>

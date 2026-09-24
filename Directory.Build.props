@@ -1,7 +1,7 @@
 <Project>
 
   <!--
-    Propriétés communes à tous les projets NotchFlow.
+    Propriétés communes à tous les projets SpaceNotch.
 
     Le plancher est Windows 11 23H2 (10.0.22631) : voir ADR-009. Le cahier des
     charges cible exclusivement Windows 11 pour bénéficier des capacités
@@ -15,8 +15,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 
-    <Company>NotchFlow</Company>
-    <Product>NotchFlow</Product>
+    <Company>SpaceNotch</Company>
+    <Product>SpaceNotch</Product>
     <NeutralLanguage>en-US</NeutralLanguage>
 
     <!-- Analyse statique active partout, mais bloquante uniquement en Release
