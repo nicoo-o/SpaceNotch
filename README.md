@@ -32,16 +32,16 @@ It stays out of the way — and comes alive when something deserves your attenti
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/state-music.jpg" alt="Compact notch playing music"></td>
-    <td width="50%"><img src="docs/assets/readme/state-expanded.jpg" alt="Notch expanded into a music player"></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-music.jpg" alt="Compact notch playing music"><br><sub><b>Now playing</b> — artwork, title and a live level, nothing more</sub></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-expanded.jpg" alt="Notch expanded into a music player"><br><sub><b>Click, and it grows</b> — the artwork morphs from the compact notch into the player</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/state-download.jpg" alt="Notch showing a download with a glowing pixel grid"></td>
-    <td width="50%"><img src="docs/assets/readme/state-bubble.jpg" alt="Notch with a call bubble beside it"></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-download.jpg" alt="Notch showing a download with a glowing pixel grid"><br><sub><b>Work you can feel</b> — a living pixel grid says something is happening</sub></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-bubble.jpg" alt="Notch with a call bubble beside it"><br><sub><b>It splits for what matters</b> — calls, recordings and downloads get their own bubble; tap to swap</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/assets/readme/state-side.jpg" alt="Notch docked on the right edge as a slim tab"></td>
-    <td width="50%"><img src="docs/assets/readme/state-floating.jpg" alt="Notch pulled off the edge, floating and stretching"></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-side.jpg" alt="Notch docked on the right edge as a slim tab"><br><sub><b>Any edge you like</b> — top, left or right, even on your second screen</sub></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-floating.jpg" alt="Notch pulled off the edge, floating and stretching"><br><sub><b>Pull it off the edge</b> — it stretches, throws to corners and snaps back with a drop</sub></td>
   </tr>
 </table>
 
@@ -111,6 +111,15 @@ Want the full tour? Run `SpaceNotch.exe --demo`.
 
 <br>
 
+## Inspirations
+
+The glowing pixel-grid animations — their shapes, colours and rhythms, and the falling binary
+rain — are inspired by **[Hypnotizing UI](https://www.inspora.design/posts/hypnotizing-ui)**, featured
+on Inspora. The original animation is not ours: SpaceNotch rebuilds the idea for Windows and
+applies it to downloads, searches, syncs and every other kind of work in progress.
+
+<br>
+
 ## For the curious
 
 SpaceNotch is native C# on WinUI 3 and the Windows compositor — no browser engine inside.
@@ -127,8 +136,8 @@ written down.
 
 <div align="center">
 
-<sub>Inspired by Apple's Dynamic Island and by Inspora's <a href="https://www.inspora.design/posts/hypnotizing-ui"><em>Hypnotizing UI</em></a>.<br>
-MIT licensed · made with care for people who like their desktop calm.</sub>
+<sub>MIT licensed · made with care for people who like their desktop calm.<br>
+The desktop wallpaper in the screenshots was generated for this page.</sub>
 
 <br><br>
 
