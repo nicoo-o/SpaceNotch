@@ -1,0 +1,172 @@
+name: Release
+
+# Produit SpaceNotch pour Windows, en deux formes :
+#   - SpaceNotch.exe, un exécutable unique et portable — double-cliquer, rien à installer ;
+#   - SpaceNotch-win-x64.zip, le dossier complet (démarrage un peu plus rapide).
+#
+# Deux déclencheurs :
+#   - le bouton « Run workflow » de l'onglet Actions : les fichiers arrivent dans les
+#     « Artifacts » de l'exécution ;
+#   - un tag de version (v1.0.0…) : une Release GitHub est créée avec les fichiers attachés.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Numéro de version inscrit dans l'exécutable (ex. 1.0.0)"
+        required: false
+        default: "1.0.0"
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  PROJECT: src/SpaceNotch.App/SpaceNotch.App.csproj
+
+jobs:
+  build:
+    name: Construire SpaceNotch (win-x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Installer le SDK .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      # La version vient du tag (v1.2.3 → 1.2.3) ou du champ du bouton manuel.
+      - name: Déterminer la version
+        id: version
+        shell: pwsh
+        run: |
+          if ("${{ github.ref_type }}" -eq "tag") {
+            $version = "${{ github.ref_name }}".TrimStart("v")
+          } else {
+            $version = "${{ github.event.inputs.version }}"
+            if ([string]::IsNullOrWhiteSpace($version)) { $version = "1.0.0" }
+          }
+          "value=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Version : $version"
+
+      # Les tests passent avant toute publication : un .exe qui sortirait d'un cœur
+      # cassé ne mérite pas d'être distribué.
+      - name: Tester
+        run: dotnet test tests/SpaceNotch.Core.Tests -c Release
+
+      # Exécutable unique. Les réglages viennent de Microsoft pour une application
+      # WinUI 3 non empaquetée :
+      #   - WindowsAppSDKSelfContained + SelfContained : aucun runtime à installer ;
+      #   - EnableMsixTooling=true : sans lui, le fichier de ressources n'est pas
+      #     renommé en resources.pri et l'application publiée plante au démarrage
+      #     (WindowsAppSDK#3718) — même pour une application non empaquetée ;
+      #   - IncludeAllContentForSelfExtract + IncludeNativeLibrariesForSelfExtract :
+      #     les ressources et les bibliothèques natives vont dans l'exécutable et sont
+      #     extraites au premier lancement.
+      - name: Publier l'exécutable unique
+        run: >
+          dotnet publish ${{ env.PROJECT }}
+          -c Release -p:Platform=x64 -r win-x64
+          --self-contained true
+          -p:WindowsPackageType=None
+          -p:WindowsAppSDKSelfContained=true
+          -p:EnableMsixTooling=true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:IncludeAllContentForSelfExtract=true
+          -p:PublishReadyToRun=true
+          -p:Version=${{ steps.version.outputs.value }}
+          --output "${{ runner.temp }}/single"
+
+      - name: Publier le dossier complet
+        run: >
+          dotnet publish ${{ env.PROJECT }}
+          -c Release -p:Platform=x64 -r win-x64
+          --self-contained true
+          -p:WindowsPackageType=None
+          -p:WindowsAppSDKSelfContained=true
+          -p:EnableMsixTooling=true
+          -p:PublishReadyToRun=true
+          -p:Version=${{ steps.version.outputs.value }}
+          --output "${{ runner.temp }}/folder"
+
+      - name: Rassembler les fichiers
+        shell: pwsh
+        run: |
+          $out = "${{ runner.temp }}/dist"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+
+          $exe = Get-ChildItem "${{ runner.temp }}/single" -Filter "*.exe" | Select-Object -First 1
+          if (-not $exe) { throw "Aucun exécutable produit par la publication unique." }
+          Copy-Item $exe.FullName "$out/SpaceNotch.exe"
+
+          Compress-Archive -Path "${{ runner.temp }}/folder/*" -DestinationPath "$out/SpaceNotch-win-x64.zip" -Force
+
+          Get-ChildItem $out | ForEach-Object { "{0,-28} {1,8:N1} Mo" -f $_.Name, ($_.Length / 1MB) }
+
+      # Essai de démarrage : l'exécutable unique est lancé en mode démonstration et doit
+      # encore tourner après quelques secondes. Un plantage au démarrage — ressources
+      # manquantes, runtime absent — se voit ici plutôt que chez l'utilisateur. Les
+      # agents GitHub ont une session de bureau, mais pas toujours d'accélération
+      # graphique : un échec est signalé sans bloquer la publication, journal joint.
+      - name: Essai de démarrage
+        id: smoke
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $process = Start-Process -FilePath "${{ runner.temp }}/dist/SpaceNotch.exe" -ArgumentList "--demo" -PassThru
+          Start-Sleep -Seconds 12
+          if ($process.HasExited) {
+            Write-Host "::warning::SpaceNotch.exe s'est arrêté au démarrage (code $($process.ExitCode)). Voir l'artefact journaux-demarrage."
+            exit 1
+          }
+          Write-Host "SpaceNotch.exe tourne toujours après 12 s."
+          Stop-Process -Id $process.Id -Force
+
+      - name: Conserver le journal de démarrage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: journaux-demarrage
+          path: ~/AppData/Local/SpaceNotch/logs
+          if-no-files-found: ignore
+
+      - name: Conserver SpaceNotch.exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpaceNotch-${{ steps.version.outputs.value }}-exe
+          path: ${{ runner.temp }}/dist/SpaceNotch.exe
+          if-no-files-found: error
+
+      - name: Conserver le dossier zippé
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpaceNotch-${{ steps.version.outputs.value }}-zip
+          path: ${{ runner.temp }}/dist/SpaceNotch-win-x64.zip
+          if-no-files-found: error
+
+      - name: Créer la Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: SpaceNotch ${{ github.ref_name }}
+          generate_release_notes: true
+          body: |
+            **Télécharger** : `SpaceNotch.exe` (un seul fichier, rien à installer) ou
+            `SpaceNotch-win-x64.zip` (dossier complet).
+
+            Windows 11 x64. L'application n'est pas signée : au premier lancement,
+            SmartScreen peut afficher « Windows a protégé votre ordinateur » —
+            *Informations complémentaires* › *Exécuter quand même*.
+
+            Démonstration : `SpaceNotch.exe --demo`.
+          files: |
+            ${{ runner.temp }}/dist/SpaceNotch.exe
+            ${{ runner.temp }}/dist/SpaceNotch-win-x64.zip

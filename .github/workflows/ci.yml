@@ -67,11 +67,15 @@ jobs:
           if-no-files-found: warn
 
       # Distribution portable : c'est la voie qui fonctionne sans certificat, et
-      # donc celle que la CI produit systématiquement.
+      # donc celle que la CI produit systématiquement. EnableMsixTooling nomme le
+      # fichier de ressources resources.pri, sans quoi l'application publiée
+      # plante au démarrage (WindowsAppSDK#3718) — même non empaquetée. Le .exe
+      # distribuable vient du workflow « Release ».
       - name: Publier l'exécutable portable
         run: >
           dotnet publish src/SpaceNotch.App/SpaceNotch.App.csproj
           -c Release -p:Platform=x64
+          -p:EnableMsixTooling=true
           --output "${{ runner.temp }}/spacenotch"
 
       - name: Conserver l'exécutable portable

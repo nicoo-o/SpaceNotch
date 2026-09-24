@@ -120,7 +120,7 @@ public sealed class AppSettings
     /// premier : le survol doit se lire comme le même objet effleuré, pas comme
     /// un objet réglé différemment.
     /// </summary>
-    private const double HoverResponseFactor = 0.86;
+    private const double HoverResponseFactor = 0.72;
 
     private const double HoverBounceFactor = 0.78;
 

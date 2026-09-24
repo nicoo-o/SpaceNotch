@@ -759,6 +759,16 @@ public sealed partial class IslandWindow : Window
 
         UpdateBubble();
 
+        // Ce qui a changé depuis le rendu précédent décide de la transition :
+        // une ouverture, une fermeture, une autre activité, l'entrée dans l'aperçu.
+        bool wasShowingScene = _visibleSceneRoot is not null;
+        bool changedActivity = activity is not null
+            && _lastPresentedId is not null
+            && !string.Equals(activity.Id, _lastPresentedId, StringComparison.Ordinal);
+        IslandState previousState = _lastRenderedState;
+        _lastPresentedId = activity?.Id;
+        _lastRenderedState = _controller.State;
+
         // Le palier au repos ne dépend jamais de l'ouverture : il est résolu à
         // chaque rendu et mémorisé, parce que la fermeture doit retrouver
         // exactement la forme quittée et que le survol doit savoir quoi annoncer.
@@ -840,7 +850,11 @@ public sealed partial class IslandWindow : Window
             if (!ReferenceEquals(_visibleSceneRoot, scene.Root))
             {
                 _visibleSceneRoot = scene.Root;
-                ContentTransition.Play(scene.Root, UseSpringAnimations());
+
+                // Une seule ligne de temps : la forme grandit, puis le contenu
+                // arrive, flou, et se précise.
+                ContentTransition.Play(scene.Root, UseSpringAnimations(), TimeSpan.FromMilliseconds(90));
+                PlayVeil(TimeSpan.FromMilliseconds(40));
 
                 if (morph is not null)
                 {
@@ -855,6 +869,32 @@ public sealed partial class IslandWindow : Window
         InfoSceneView.Rest();
 
         PresentResting(activity);
+
+        if (wasShowingScene)
+        {
+            // Fermeture : la scène est partie avec la forme, la forme compacte
+            // revient floue et se précise pendant que la notch se referme.
+            PlayVeil();
+
+            if (VisibleRestView() is { } rest)
+            {
+                ContentTransition.Play(rest, UseSpringAnimations(), TimeSpan.FromMilliseconds(60));
+            }
+        }
+        else if (changedActivity)
+        {
+            // Une activité en remplace une autre : la forme respire, le contenu
+            // change sous le voile.
+            Breathe();
+            PlayVeil();
+        }
+        else if (_controller.State == IslandState.Preview
+            && previousState == IslandState.Closed
+            && VisibleRestView() is { } previewed)
+        {
+            // L'aperçu : le contenu suit la forme qui s'avance.
+            SlideWithGrowth(previewed);
+        }
 
         // Le signalement ne concerne que la clé inconnue. Une Island fermée n'est
         // pas une anomalie : confondre les deux cas ferait douter d'une clé
@@ -898,7 +938,7 @@ public sealed partial class IslandWindow : Window
         if (shown == IslandPresentationTier.Signal)
         {
             SignalGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
-            SetText(SignalLabel, activity.Title, _signalWasVisible);
+            SetText(SignalLabel, activity.Title, _signalWasVisible, veil: true);
             SetText(SignalMetric, metric, _signalWasVisible);
             SignalMetric.Visibility = metricVisibility;
 
@@ -932,7 +972,7 @@ public sealed partial class IslandWindow : Window
         // la place de la légende calculée. Un texte qui change sur une carte
         // déjà visible se remplace sur place, par un fondu : la carte reste.
         SetText(CardSubhead, SubheadFor(activity), _cardWasVisible);
-        SetText(CardHeadline, activity.Title, _cardWasVisible);
+        SetText(CardHeadline, activity.Title, _cardWasVisible, veil: true);
         SetText(CardMetric, metric, _cardWasVisible);
         CardMetric.Visibility = metricVisibility;
         CardRestView.Visibility = Visibility.Visible;
@@ -1039,7 +1079,7 @@ public sealed partial class IslandWindow : Window
     /// Écrit un texte, et joue la transition de contenu s'il remplace un texte
     /// déjà visible.
     /// </summary>
-    private void SetText(TextBlock target, string? value, bool visible)
+    private void SetText(TextBlock target, string? value, bool visible, bool veil = false)
     {
         string next = value ?? string.Empty;
 
@@ -1053,6 +1093,13 @@ public sealed partial class IslandWindow : Window
         if (visible)
         {
             ContentTransition.Play(target, UseSpringAnimations());
+
+            // Un titre qui change se lit flou, puis net ; une mesure qui défile
+            // — une taille reçue, un pourcentage — change sans voile.
+            if (veil)
+            {
+                PlayVeil();
+            }
         }
     }
 
@@ -1251,6 +1298,7 @@ public sealed partial class IslandWindow : Window
         double shoulder = geometry.ShoulderFor(footprint);
 
         Geometry? silhouette = _shape.Build(footprint, radius, geometry.Smoothing, shoulder: shoulder);
+        RememberOutline(() => geometry.Silhouette(footprint));
 
         // Une géométrie nulle signifie « identique à la précédente » : le tracé
         // déjà posé est conservé, ce qui évite une reconstruction par image
@@ -1752,6 +1800,7 @@ public sealed partial class IslandWindow : Window
 
         // La goutte est la même matière que la notch ; la bulle aussi, dans sa
         // propre fenêtre — d'où des pinceaux à elle, de même teinte.
+        ApplyVeilBrush();
         GooFill.Fill = SurfaceFill.Fill;
         GooFill.Stroke = SurfaceFill.Stroke;
         GooFill.StrokeThickness = SurfaceFill.StrokeThickness;

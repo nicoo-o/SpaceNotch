@@ -56,6 +56,13 @@ La cible mémoire de 30–60 MB n'est **pas** atteinte : 96–98 MB mesurés. Le
 et de WinUI 3 est réel. La mesure est publiée telle quelle — voir
 [performance.md](docs/performance.md).
 
+## Télécharger
+
+Onglet **Releases** du dépôt : `SpaceNotch.exe` (un seul fichier, rien à installer) ou
+`SpaceNotch-win-x64.zip`. Pour une construction à la demande : onglet **Actions** › **Release** ›
+**Run workflow**, puis les fichiers dans les *Artifacts* de l'exécution. Pour publier une
+version : pousser un tag `v1.0.0` (ADR-021).
+
 ## Fonctionnalités
 
 Média (pochette qui grandit depuis la notch, transport, position, teinte d'ambiance) · volume et

@@ -886,7 +886,8 @@ public class SideEdgeTests
     public void OnASideTheBubbleFollowsBelowTheTab()
     {
         var tab = new ScreenRect(1892, 400, 28, 96);
-        IslandFootprint bubble = EdgeFrame.Oriented(SplitPresentation.AttachedBubbleOf(ElementSize.Normal), NotchEdge.Right, SplitPresentation.BubbleShoulder);
+        IslandFootprint bubble = SplitPresentation.SideBubbleOf(ElementSize.Normal, ElementSize.Normal, SideTab.DefaultShoulder);
+        Assert.Equal(SideTab.Depth(ElementSize.Normal), bubble.Width, 6);
         ScreenRect rect = SplitPresentation.AttachedBubbleRect(tab, Screen, NotchEdge.Right, bubble);
 
         Assert.Equal(tab.Bottom + SplitPresentation.Gap, rect.Y, 6);

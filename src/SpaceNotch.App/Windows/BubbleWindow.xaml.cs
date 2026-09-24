@@ -114,7 +114,11 @@ public sealed partial class BubbleWindow : Window
     /// <param name="activity">Activité à porter.</param>
     /// <param name="preset">Mouvement hypnotique de son travail, ou <c>None</c> pour son glyphe.</param>
     /// <param name="animateMotion">Faux pour figer le motif : réduction des animations ou apaisement.</param>
-    public void Show(IslandActivity activity, HypnoticPreset preset, bool animateMotion)
+    /// <param name="ownAnimation">
+    /// Faux quand l'Island joue elle-même l'apparition — la goutte qui sort de la
+    /// notch : la bulle ne rajoute alors ni pop ni creux.
+    /// </param>
+    public void Show(IslandActivity activity, HypnoticPreset preset, bool animateMotion, bool ownAnimation = true)
     {
         ArgumentNullException.ThrowIfNull(activity);
 
@@ -123,7 +127,7 @@ public sealed partial class BubbleWindow : Window
 
         _activityId = activity.Id;
 
-        if (swap && UseSpringAnimations)
+        if (swap && UseSpringAnimations && ownAnimation)
         {
             PlaySwap(() => ApplyContent(activity, preset, animateMotion));
         }
@@ -145,11 +149,12 @@ public sealed partial class BubbleWindow : Window
             _windowShown = true;
         }
 
-        PlayScale(from: UseSpringAnimations ? BirthScale : 1f, to: 1f, bouncy: true);
+        PlayScale(from: UseSpringAnimations && ownAnimation ? BirthScale : 1f, to: 1f, bouncy: true);
     }
 
     /// <summary>Retire la bulle : elle rentre dans le bord, puis sa fenêtre disparaît.</summary>
-    public void HideBubble()
+    /// <param name="immediate">Vrai quand la bulle est déjà rentrée dans la notch : la fenêtre disparaît sans animation.</param>
+    public void HideBubble(bool immediate = false)
     {
         if (!_shown)
         {
@@ -160,7 +165,7 @@ public sealed partial class BubbleWindow : Window
         _activityId = null;
         _hypnotic?.SetPreset(HypnoticPreset.None, animate: false);
 
-        if (!UseSpringAnimations || EnsureBodyVisual() is not { } visual)
+        if (immediate || !UseSpringAnimations || EnsureBodyVisual() is not { } visual)
         {
             HideWindow();
             return;
@@ -190,6 +195,10 @@ public sealed partial class BubbleWindow : Window
     /// tracé. Accrochée, la forme est une mini-notch à épaules, sur le même bord
     /// que la notch ; flottante, un disque.
     /// </summary>
+    /// <param name="bodyX">Position de la bulle dans la fenêtre, en DIPs : la fenêtre peut contenir aussi le fil.</param>
+    /// <param name="bodyY">Position de la bulle dans la fenêtre, en DIPs.</param>
+    /// <param name="bridge">Fil de matière qui la relie encore à la notch, dans le repère de la fenêtre.</param>
+    /// <param name="contentOpacity">Opacité de l'icône : elle apparaît à mesure que la bulle se forme.</param>
     public void Place(
         int x,
         int y,
@@ -198,8 +207,20 @@ public sealed partial class BubbleWindow : Window
         IslandFootprint footprint,
         bool floating,
         NotchEdge edge,
-        double sideShoulder)
+        double sideShoulder,
+        double bodyX = 0,
+        double bodyY = 0,
+        Geometry? bridge = null,
+        double contentOpacity = 1)
     {
+        BubbleBody.Margin = new Thickness(bodyX, bodyY, 0, 0);
+        BubbleContent.Opacity = Math.Clamp(contentOpacity, 0, 1);
+        BridgeFill.Fill = BubbleFill.Fill;
+        BridgeFill.Stroke = BubbleFill.Stroke;
+        BridgeFill.StrokeThickness = BubbleFill.StrokeThickness;
+        BridgeFill.Data = bridge;
+        BridgeFill.Visibility = bridge is null ? Visibility.Collapsed : Visibility.Visible;
+
         if (x != _lastX || y != _lastY || widthPx != _lastWidth || heightPx != _lastHeight)
         {
             _lastX = x;

@@ -406,6 +406,20 @@
                         HorizontalAlignment="Center" />
                 </StackPanel>
             </Grid>
+
+            <!--
+                Voile de flou : quand le contenu change, il se lit d'abord flou,
+                puis se précise, comme sur la Dynamic Island. C'est un pinceau
+                acrylique — le flou natif de Windows — tracé exactement dans la
+                silhouette, qui se dissipe par une animation du compositeur.
+                Invisible et sans coût le reste du temps. Voir ADR-021.
+            -->
+            <Path
+                x:Name="VeilFill"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                IsHitTestVisible="False"
+                Visibility="Collapsed" />
         </Grid>
     </Grid>
 </Window>

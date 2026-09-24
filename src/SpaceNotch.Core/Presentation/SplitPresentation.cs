@@ -56,6 +56,14 @@ public static class SplitPresentation
         return new IslandFootprint((BubbleBody * k) + (2 * BubbleShoulder), BubbleHeight * k);
     }
 
+    /// <summary>
+    /// Bulle accrochée à un côté, déjà orientée : exactement aussi profonde
+    /// que la languette — une bulle qui dépasserait la languette paraîtrait
+    /// plus importante qu'elle —, et aussi longue qu'une bulle du haut est large.
+    /// </summary>
+    public static IslandFootprint SideBubbleOf(ElementSize bubbleSize, ElementSize tabSize, double shoulder)
+        => new(SideTab.Depth(tabSize), (BubbleBody * ScaleOf(bubbleSize)) + (2 * Math.Max(0, shoulder)));
+
     /// <summary>Bulle flottante, à la taille réglée.</summary>
     public static IslandFootprint FloatingBubbleOf(ElementSize size)
     {

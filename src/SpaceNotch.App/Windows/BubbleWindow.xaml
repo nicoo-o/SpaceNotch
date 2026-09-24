@@ -29,6 +29,14 @@
         PointerEntered="OnBubblePointerEntered"
         PointerExited="OnBubblePointerExited">
 
+        <!-- Le fil de matière qui relie encore la bulle à la notch pendant qu'elle naît. -->
+        <Path
+            x:Name="BridgeFill"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            IsHitTestVisible="False"
+            Visibility="Collapsed" />
+
         <Grid
             x:Name="BubbleBody"
             HorizontalAlignment="Left"

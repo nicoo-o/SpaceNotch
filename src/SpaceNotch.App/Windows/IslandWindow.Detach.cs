@@ -866,6 +866,7 @@ public sealed partial class IslandWindow
         => _dragPhase != DragPhase.None
             || _gooRate != 0
             || !_pop.IsSettled
+            || _bubbleGooRate != 0
             || (UsesFloatingGeometry && _bubble.IsShown && !_bubbleSpring.IsSettled);
 
     private void OnDetachFrame(object? sender, object e)
@@ -944,6 +945,8 @@ public sealed partial class IslandWindow
         {
             StepFloating(dt);
         }
+
+        StepBubbleGoo(dt);
 
         ApplyGeometry(_controller.CurrentFootprint);
         HookDetachFrames();
@@ -1088,6 +1091,8 @@ public sealed partial class IslandWindow
             SurfaceFill.Data = silhouette;
         }
 
+        RememberOutline(() => outline);
+
         // Les épaules sont en haut et en bas de la languette : le contenu se
         // mesure entre elles.
         IslandFootprint local = LocalOf(_edge, drawn);
@@ -1214,10 +1219,14 @@ public sealed partial class IslandWindow
         NotchGeometry floating = geometry with { ExpandedRadius = _settings.FloatingRadius };
         double radius = floating.FloatingRadiusFor(drawnPill);
 
-        if (_shape.Build(drawnPill, radius, floating.FloatingSmoothingFor(drawnPill), floating: true) is { } silhouette)
+        double smoothing = floating.FloatingSmoothingFor(drawnPill);
+
+        if (_shape.Build(drawnPill, radius, smoothing, floating: true) is { } silhouette)
         {
             SurfaceFill.Data = silhouette;
         }
+
+        RememberOutline(() => IslandShape.Floating(drawnPill.Width, drawnPill.Height, radius, smoothing));
 
         if (goo is { Count: > 0 })
         {

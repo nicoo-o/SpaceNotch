@@ -174,7 +174,7 @@ public sealed class IslandSpringAnimator
 
         RenderedFrames++;
 
-        _onUpdate(new IslandFootprint(width, height));
+        _onUpdate(new IslandFootprint(width * Squash(height), height));
 
         bool settled = Math.Abs(width - _toWidth) < SettleThreshold
             && Math.Abs(height - _toHeight) < SettleThreshold
@@ -199,6 +199,23 @@ public sealed class IslandSpringAnimator
 
         _onUpdate(target);
         _onCompleted?.Invoke();
+    }
+
+    /// <summary>
+    /// Écrasement au rebond : quand la hauteur dépasse sa cible, la forme
+    /// s'amincit d'autant — et s'élargit quand elle retombe en dessous —, à
+    /// aire constante. C'est ce qui fait lire le rebond comme une matière
+    /// souple plutôt que comme un cadre qui tremble. Borné à 3 %.
+    /// </summary>
+    private double Squash(double height)
+    {
+        if (_toHeight <= 0 || Math.Abs(_toHeight - _fromHeight) < 1)
+        {
+            return 1;
+        }
+
+        double ratio = height / _toHeight;
+        return Math.Clamp(1 / Math.Sqrt(Math.Max(0.01, ratio)), 0.97, 1.03);
     }
 
     /// <summary>Détache immédiatement l'écouteur de rendu.</summary>

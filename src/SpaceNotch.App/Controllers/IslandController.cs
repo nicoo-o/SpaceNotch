@@ -266,6 +266,39 @@ public sealed class IslandController : IDisposable
         }
     }
 
+    /// <summary>
+    /// Premier temps de la respiration : la forme au repos se resserre un
+    /// instant, avec le ressort vif de l'effleurement.
+    /// </summary>
+    public void Pinch()
+    {
+        if (State is not (IslandState.Closed or IslandState.Preview) || _dragTarget is not null)
+        {
+            return;
+        }
+
+        IslandFootprint rest = FootprintForState();
+        _animator.UpdateParameters(_hoverParameters);
+        AnimateTo(new IslandFootprint(rest.Width * PinchWidth, rest.Height * PinchHeight));
+    }
+
+    /// <summary>Second temps : la forme s'élargit vers sa nouvelle place, avec le ressort de l'ouverture.</summary>
+    public void Unpinch()
+    {
+        if (State is not (IslandState.Closed or IslandState.Preview) || _dragTarget is not null)
+        {
+            return;
+        }
+
+        _animator.UpdateParameters(_motionParameters);
+        AnimateTo(FootprintForState());
+    }
+
+    /// <summary>Resserrement de la respiration : assez pour se voir, pas assez pour inquiéter.</summary>
+    private const double PinchWidth = 0.9;
+
+    private const double PinchHeight = 0.94;
+
     /// <summary>Réaction à un clic sur l'Island.</summary>
     public void ToggleFromUser()
     {
