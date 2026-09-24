@@ -15,6 +15,11 @@ on:
         description: "Numéro de version inscrit dans l'exécutable (ex. 1.0.0)"
         required: false
         default: "1.0.0"
+      publish:
+        description: "Publier une Release GitHub (crée le tag v<version> sur ce commit)"
+        type: boolean
+        required: false
+        default: false
   push:
     tags:
       - "v*"
@@ -152,11 +157,15 @@ jobs:
           path: ${{ runner.temp }}/dist/SpaceNotch-win-x64.zip
           if-no-files-found: error
 
+      # Deux chemins vers une Release : pousser un tag v*, ou cocher « publish » sur le
+      # bouton manuel — le tag v<version> est alors créé sur le commit construit.
       - name: Créer la Release
-        if: github.ref_type == 'tag'
+        if: github.ref_type == 'tag' || github.event.inputs.publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          name: SpaceNotch ${{ github.ref_name }}
+          tag_name: v${{ steps.version.outputs.value }}
+          target_commitish: ${{ github.sha }}
+          name: SpaceNotch v${{ steps.version.outputs.value }}
           generate_release_notes: true
           body: |
             **Télécharger** : `SpaceNotch.exe` (un seul fichier, rien à installer) ou
