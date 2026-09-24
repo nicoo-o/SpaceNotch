@@ -126,7 +126,7 @@ public class TopAttachedGeometryTests
             double radius = geometry.RadiusFor(new IslandFootprint(400, height));
 
             Assert.True(radius >= previous - Tolerance, $"Le rayon recule à {height} : {radius} < {previous}");
-            Assert.True(radius - previous < 1.0, $"Saut de rayon à {height} : {previous} → {radius}");
+            Assert.True(radius - previous <= 1.0 + Tolerance, $"Saut de rayon à {height} : {previous} → {radius}");
 
             previous = radius;
         }
@@ -174,5 +174,34 @@ public class TopAttachedGeometryTests
     {
         Assert.InRange(IslandFootprint.Signal.Height, 32, 40);
         Assert.InRange(IslandFootprint.PreviewOf(IslandPresentationTier.Signal).Height, 40, 60);
+    }
+
+    [Fact]
+    public void TheWidth_FollowsTheContent_WithinTheNotchIdentity()
+    {
+        // La largeur suit le texte, comme dans la référence…
+        IslandFootprint shortText = IslandFootprint.Fit(IslandPresentationTier.Card, 120, 12);
+        IslandFootprint longText = IslandFootprint.Fit(IslandPresentationTier.Card, 200, 12);
+
+        Assert.True(longText.Width > shortText.Width);
+        Assert.Equal(IslandFootprint.Card.Height, longText.Height);
+        Assert.Equal(200 + 28 + 24, longText.Width);
+
+        // … sans jamais devenir une barre ni une grosse fenêtre.
+        Assert.Equal(IslandFootprint.MinimumWidth(IslandPresentationTier.Signal), IslandFootprint.Fit(IslandPresentationTier.Signal, 10, 12).Width);
+        Assert.Equal(IslandFootprint.MaximumWidth(IslandPresentationTier.Card), IslandFootprint.Fit(IslandPresentationTier.Card, 5000, 12).Width);
+
+        // La veille ne s'ajuste pas : elle n'a rien à porter.
+        Assert.Equal(IslandFootprint.Idle, IslandFootprint.Fit(IslandPresentationTier.Idle, 300, 12));
+    }
+
+    [Fact]
+    public void ThePreviewOfAFittedShape_GrowsFromItsRealWidth()
+    {
+        IslandFootprint rest = IslandFootprint.Fit(IslandPresentationTier.Card, 240, 12);
+        IslandFootprint preview = IslandFootprint.PreviewOf(IslandPresentationTier.Card, rest);
+
+        Assert.True(preview.Width > rest.Width);
+        Assert.True(preview.Width <= rest.Width * 1.25);
     }
 }

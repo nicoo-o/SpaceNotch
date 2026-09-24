@@ -190,7 +190,6 @@ public sealed partial class SettingsWindow : Window
             HoverToggle.IsOn = settings.HoverToPreview;
             FullscreenToggle.IsOn = settings.HideOverFullscreen;
             StackToggle.IsOn = settings.ShowActivityStack;
-            SatelliteToggle.IsOn = settings.ShowSatellite;
             ClockToggle.IsOn = settings.ShowClockAtRest;
             DiagnosticsToggle.IsOn = settings.EnableDiagnostics;
             CompositionToggle.IsOn = settings.UseCompositionAtmosphere;
@@ -465,8 +464,6 @@ public sealed partial class SettingsWindow : Window
     private void OnBouncyToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.AllowBouncyAnimations = BouncyToggle.IsOn);
 
-    private void OnSatelliteToggled(object sender, RoutedEventArgs e)
-        => Apply(s => s.ShowSatellite = SatelliteToggle.IsOn);
 
     private void OnClockToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.ShowClockAtRest = ClockToggle.IsOn);

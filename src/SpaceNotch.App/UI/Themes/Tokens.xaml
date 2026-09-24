@@ -46,9 +46,11 @@
             <!-- Encre. Les opacités sont portées par le pinceau plutôt que par
                  UIElement.Opacity : un élément semi-transparent coûte une couche
                  de composition, un pinceau n'en coûte aucune. -->
-            <SolidColorBrush x:Key="NfTextPrimaryBrush" Color="#FFFFFF" Opacity="0.94" />
-            <SolidColorBrush x:Key="NfTextSecondaryBrush" Color="#FFFFFF" Opacity="0.62" />
-            <SolidColorBrush x:Key="NfTextTertiaryBrush" Color="#FFFFFF" Opacity="0.44" />
+            <!-- Encre plafonnée sous le blanc pur : sur un noir OLED, le blanc
+                 absolu bave (halation). 92 % reste éclatant sans vibrer. -->
+            <SolidColorBrush x:Key="NfTextPrimaryBrush" Color="#FFFFFF" Opacity="0.92" />
+            <SolidColorBrush x:Key="NfTextSecondaryBrush" Color="#FFFFFF" Opacity="0.60" />
+            <SolidColorBrush x:Key="NfTextTertiaryBrush" Color="#FFFFFF" Opacity="0.42" />
 
             <!-- Traits. Utilisés à l'intérieur de l'Island uniquement : jamais
                  sur son pourtour, qui doit rester sans arête. -->
@@ -92,7 +94,10 @@
                 <GradientStop Color="#FFFFFF" Offset="0.0" />
                 <GradientStop Color="#00FFFFFF" Offset="1.0" />
             </LinearGradientBrush>
-            <x:Double x:Key="NfSpecularOpacity">0.08</x:Double>
+            <!-- Nul en sombre : sur une notch attachée au bord, un reflet en haut
+                 se lirait comme un trait sur le bord de l'écran. Le noir OLED se
+                 suffit ; la lumière vient de la matière et de l'atmosphère. -->
+            <x:Double x:Key="NfSpecularOpacity">0.0</x:Double>
 
             <!-- Verre et élévation : pour les modes translucides et les surfaces
                  internes seulement. Le corps de la notch reste noir pur — c'est
@@ -258,11 +263,6 @@
     <x:Double x:Key="NfCardLineGap">2</x:Double>
     <Thickness x:Key="NfCardPadding">14,10,14,10</Thickness>
 
-    <!-- Satellite détaché : fenêtre distincte, cliquable. Son diamètre vaut
-         exactement deux fois le rayon des congés, de sorte que le cercle et les
-         congés de l'Island appartiennent au même système. -->
-    <x:Double x:Key="NfSatelliteDiameter">24</x:Double>
-    <x:Double x:Key="NfSatelliteGap">8</x:Double>
 
     <!-- Échelle d'espacement. Une seule progression, pas de valeur hors barème. -->
     <x:Double x:Key="NfSpace2">2</x:Double>

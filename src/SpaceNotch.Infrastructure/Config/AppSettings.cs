@@ -298,23 +298,6 @@ public sealed class AppSettings
     /// <summary>Regroupe les activités d'arrière-plan au-delà de la première.</summary>
     public bool ShowActivityStack { get; set; } = true;
 
-    /// <summary>
-    /// Affiche le satellite détaché lorsqu'une seconde activité attend.
-    ///
-    /// Il vit dans sa propre fenêtre, et c'est une contrainte et non un choix :
-    /// une fenêtre unique contenant deux lobes séparés ne peut pas laisser passer
-    /// les clics dans le vide qui les sépare, Windows ne faisant traverser
-    /// <c>HTTRANSPARENT</c> qu'entre fenêtres d'un même thread. Voir ADR-015.
-    ///
-    /// <para>
-    /// Désactivé par défaut depuis SpaceNotch 2.0 : un disque posé à côté de la
-    /// notch est un objet flottant, ce que la règle n°1 écarte pour l'UI
-    /// principale. La pile se signale d'abord par des points discrets dans la
-    /// notch elle-même ; le satellite reste disponible pour qui le préfère.
-    /// Voir ADR-017.
-    /// </para>
-    /// </summary>
-    public bool ShowSatellite { get; set; }
 
     /// <summary>
     /// Affiche l'heure dans la forme de veille. Désactivée par défaut : elle
@@ -476,7 +459,7 @@ public sealed class AppSettings
 
         CornerRadiusBottom = Clamp(CornerRadiusBottom, 8, 40, NotchGeometry.DefaultCompactRadius);
         CornerRadiusExpanded = Clamp(CornerRadiusExpanded, 12, 48, NotchGeometry.DefaultExpandedRadius);
-        ShoulderRadius = Clamp(ShoulderRadius, 0, 16, NotchGeometry.DefaultShoulder);
+        ShoulderRadius = Clamp(ShoulderRadius, 0, 20, NotchGeometry.DefaultShoulder);
 
         if (!Enum.IsDefined(MotionStyle))
         {

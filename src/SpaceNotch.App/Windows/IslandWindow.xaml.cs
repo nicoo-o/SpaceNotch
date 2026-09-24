@@ -37,6 +37,7 @@ using SpaceNotch.Platform.Windows.Notifications;
 using SpaceNotch.Platform.Windows.Shell;
 using SpaceNotch.Platform.Windows.System;
 using SpaceNotch.Platform.Windows.Windowing;
+using SpaceNotch_App.Animations;
 using SpaceNotch_App.Composition;
 using SpaceNotch_App.Controllers;
 using SpaceNotch_App.Diagnostics;
@@ -127,6 +128,24 @@ public sealed partial class IslandWindow : Window
     /// <summary>Palier de présentation présenté. Sert à savoir lequel annoncer au survol.</summary>
     private IslandPresentationTier _tier = IslandPresentationTier.Idle;
 
+    /// <summary>
+    /// Forme au repos ajustée au contenu présenté : la notch s'élargit ou se
+    /// resserre avec son texte, comme dans la référence.
+    /// </summary>
+    private IslandFootprint _restFootprint = IslandFootprint.Idle;
+
+    /// <summary>Visibilité des vues de repos avant le rendu en cours.</summary>
+    private bool _signalWasVisible;
+    private bool _cardWasVisible;
+
+    /// <summary>
+    /// Textes de mesure, hors de l'arbre visuel : ils portent les styles des
+    /// textes affichés et servent à connaître une largeur sans rien afficher.
+    /// </summary>
+    private readonly TextBlock _measureSignal = new();
+    private readonly TextBlock _measureSubhead = new();
+    private readonly TextBlock _measureHeadline = new();
+
     /// <summary>Épaule appliquée en dernier à la zone de contenu, pour ne la redisposer qu'au changement.</summary>
     private double _contentShoulder = double.NaN;
 
@@ -162,14 +181,6 @@ public sealed partial class IslandWindow : Window
 
     private SettingsWindow? _settingsWindow;
 
-    /// <summary>
-    /// Satellite détaché, créé à la demande.
-    ///
-    /// Il n'existe pas tant qu'une seconde activité n'est pas apparue : une
-    /// fenêtre supplémentaire au démarrage coûterait de la mémoire et un ordre de
-    /// superposition à défendre pour un cas qui ne se produit pas toujours.
-    /// </summary>
-    private SatelliteWindow? _satellite;
 
     private SystemVisualState _visualState = SystemVisualState.Permissive;
     private bool _isClosed;
@@ -306,6 +317,10 @@ public sealed partial class IslandWindow : Window
 
         RegisterScenes();
         AttachHypnoticSurfaces();
+
+        _measureSignal.Style = SignalLabel.Style;
+        _measureSubhead.Style = CardSubhead.Style;
+        _measureHeadline.Style = CardHeadline.Style;
         WireEvents();
         WireSceneActions();
         ApplyBackdropMode();
@@ -631,12 +646,18 @@ public sealed partial class IslandWindow : Window
         // chaque rendu et mémorisé, parce que la fermeture doit retrouver
         // exactement la forme quittée et que le survol doit savoir quoi annoncer.
         _tier = IslandPresentation.Resolve(activity);
-        _controller.UpdateCollapsedFootprint(IslandFootprint.For(_tier, _settings.Density));
+        _restFootprint = FitRest(activity, _tier);
+        _controller.UpdateCollapsedFootprint(_restFootprint);
 
         foreach (FrameworkElement root in _sceneRoots)
         {
             root.Visibility = Visibility.Collapsed;
         }
+
+        // Ce qui était visible avant ce rendu : un texte remplacé sur une vue qui
+        // reste affichée se transforme sur place, au lieu de réapparaître.
+        _signalWasVisible = SignalRestView.Visibility == Visibility.Visible;
+        _cardWasVisible = CardRestView.Visibility == Visibility.Visible;
 
         IdleRestView.Visibility = Visibility.Collapsed;
         SignalRestView.Visibility = Visibility.Collapsed;
@@ -645,7 +666,6 @@ public sealed partial class IslandWindow : Window
         UpdateStackIndicator();
         ApplyActivityTint(activity);
         ApplyStateTint(activity);
-        UpdateSatellite();
 
         if (activity is null)
         {
@@ -709,7 +729,7 @@ public sealed partial class IslandWindow : Window
         if (shown == IslandPresentationTier.Signal)
         {
             SignalGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
-            SignalLabel.Text = activity.Title;
+            SetText(SignalLabel, activity.Title, _signalWasVisible);
             SignalRestView.Visibility = Visibility.Visible;
 
             _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
@@ -733,12 +753,10 @@ public sealed partial class IslandWindow : Window
 
         // Le contexte d'abord, l'état ensuite : une activité qui déclare une
         // ligne de contexte — « Read app-sidebar.tsx · 219 lines » — la voit à
-        // la place de la légende calculée.
-        CardSubhead.Text = string.IsNullOrWhiteSpace(activity.Eyebrow)
-            ? BuildSubhead(activity)
-            : activity.Eyebrow;
-
-        CardHeadline.Text = activity.Title;
+        // la place de la légende calculée. Un texte qui change sur une carte
+        // déjà visible se remplace sur place, par un fondu : la carte reste.
+        SetText(CardSubhead, SubheadFor(activity), _cardWasVisible);
+        SetText(CardHeadline, activity.Title, _cardWasVisible);
         CardRestView.Visibility = Visibility.Visible;
 
         _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
@@ -746,83 +764,31 @@ public sealed partial class IslandWindow : Window
     }
 
     /// <summary>
+    /// Écrit un texte, et joue la transition de contenu s'il remplace un texte
+    /// déjà visible.
+    /// </summary>
+    private void SetText(TextBlock target, string? value, bool visible)
+    {
+        string next = value ?? string.Empty;
+
+        if (string.Equals(target.Text, next, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        target.Text = next;
+
+        if (visible)
+        {
+            ContentTransition.Play(target, UseSpringAnimations());
+        }
+    }
+
+    /// <summary>
     /// Hauteur des deux lignes d'une carte : légende 14, écart 2, titre 16. Voir
     /// <see cref="IslandFootprint.CardVerticalPadding"/>.
     /// </summary>
     private const double CardContentHeight = 14 + 2 + 16;
-
-    /// <summary>
-    /// Met le satellite à jour : il montre l'activité <em>suivante</em>.
-    ///
-    /// Résolu ici et non à chaque image : parcourir la pile d'activités est une
-    /// opération de tri, et la refaire à chaque centaine d'images d'un morphing
-    /// serait exactement le travail inutile que le projet s'interdit. Le
-    /// placement, lui, suit la géométrie, et se fait donc là où elle est connue.
-    /// </summary>
-    private void UpdateSatellite()
-    {
-
-        bool expanded = _controller.State is IslandState.Expanded or IslandState.Expanding;
-
-        // Ouverte, l'Island montre déjà sa pile par sa propre surface : un satellite
-        // en plus serait un second indicateur pour la même information.
-        IslandActivity? next = null;
-
-        if (_settings.ShowSatellite && !expanded)
-        {
-            IReadOnlyList<IslandActivity> stack = _activityManager.GetActiveActivities();
-
-            if (stack.Count > 1)
-            {
-                next = stack[1];
-            }
-        }
-
-        if (next is null)
-        {
-            _satellite?.Apply(null);
-            return;
-        }
-
-        _satellite ??= CreateSatellite();
-
-        _satellite.UseSpringAnimations = UseSpringAnimations();
-
-        // Placer avant d'afficher : sinon la fenêtre apparaîtrait une image à sa
-        // position précédente, ce qui se voit immédiatement lorsque le moniteur ou
-        // la densité viennent de changer.
-        _satellite.PlaceAround(_lastWindowX, _lastWindowY, _lastWindowWidth, _lastWindowHeight);
-        _satellite.Apply(next);
-    }
-
-    private SatelliteWindow CreateSatellite()
-    {
-        var satellite = new SatelliteWindow();
-        satellite.Clicked += OnSatelliteClicked;
-
-        // La couche décorative reste sous les surfaces interactives : l'ombre et la
-        // dissolution ne doivent jamais passer devant un objet cliquable.
-        _atmosphere.PlaceBehind(_hWnd);
-
-        MiniLogger.Log("Satellite détaché créé");
-
-        return satellite;
-    }
-
-    /// <summary>
-    /// Un clic sur le satellite présente l'activité suivante.
-    ///
-    /// Le chemin est exactement celui de la molette et des flèches : parcourir la
-    /// pile. Le satellite annonce qu'il y a une suite, et le clic va la chercher —
-    /// il n'invente pas un second arbitrage qui pourrait contredire le premier.
-    /// </summary>
-    private void OnSatelliteClicked(object? sender, EventArgs e)
-    {
-        if (_controller.CyclePresentation(1))
-        {
-            _diagnostics.CountEvent();
-        }
-    }
 
     /// <summary>
     /// Première ligne de la carte : le détail, puis l'état en mots.
@@ -874,15 +840,15 @@ public sealed partial class IslandWindow : Window
     /// L'indicateur n'apparaît qu'à partir de deux activités : afficher « 1 » en
     /// permanence ajouterait du bruit sans rien apprendre.
     /// </summary>
+    private bool StackIndicatorVisible() => _settings.ShowActivityStack && _activityManager.Count > 1;
+
     private void UpdateStackIndicator()
     {
         int count = _activityManager.Count;
 
-        // Le satellite est la façon normale de signaler une seconde activité ;
-        // le compteur n'est que son repli, lorsque l'utilisateur l'a éteint. Les
-        // deux ne s'affichent jamais ensemble : deux indicateurs pour une même
-        // information feraient douter qu'ils disent la même chose.
-        bool visible = _settings.ShowActivityStack && !_settings.ShowSatellite && count > 1;
+        // Une seule notch : la pile se signale dans la notch elle-même, jamais
+        // par un second objet posé à côté. Voir ADR-017.
+        bool visible = StackIndicatorVisible();
 
         // Des points plutôt qu'un nombre : la pile se constate, elle ne se lit
         // pas. Au-delà de quatre, un point de plus n'apprendrait rien.
@@ -1008,7 +974,49 @@ public sealed partial class IslandWindow : Window
     /// <see cref="IslandFootprint.PreviewOf"/>.
     /// </summary>
     private IslandFootprint ResolvePreviewFootprint()
-        => IslandFootprint.PreviewOf(_tier, _settings.Density);
+        => IslandFootprint.PreviewOf(_tier, _restFootprint);
+
+    /// <summary>Glyphe du palier signal, en DIPs (jeton NfSignalGlyphSize), et son écart au libellé.</summary>
+    private const double SignalGlyphSpan = 14 + 8;
+
+    /// <summary>Glyphe du palier carte, en DIPs (jeton NfCardGlyphSize), et son écart aux lignes.</summary>
+    private const double CardGlyphSpan = 20 + 10;
+
+    /// <summary>
+    /// Forme au repos ajustée à ce qu'elle porte. Les textes sont mesurés hors
+    /// de l'arbre visuel, avec les styles des textes affichés : la largeur est
+    /// connue avant d'afficher quoi que ce soit, et le ressort l'anime comme
+    /// n'importe quel autre changement de forme.
+    /// </summary>
+    private IslandFootprint FitRest(IslandActivity? activity, IslandPresentationTier tier)
+    {
+        if (activity is null || tier == IslandPresentationTier.Idle)
+        {
+            return IslandFootprint.For(tier, _settings.Density);
+        }
+
+        double stack = StackIndicatorVisible() ? 6 + (7 * Math.Min(_activityManager.Count, 4)) : 0;
+
+        double content = tier == IslandPresentationTier.Signal
+            ? SignalGlyphSpan + Measure(_measureSignal, activity.Title)
+            : CardGlyphSpan + Math.Max(
+                Measure(_measureSubhead, SubheadFor(activity)),
+                Measure(_measureHeadline, activity.Title));
+
+        return IslandFootprint.Fit(tier, content + stack, _settings.Geometry.Shoulder, _settings.Density);
+    }
+
+    private static double Measure(TextBlock text, string? value)
+    {
+        text.Text = value ?? string.Empty;
+        text.Measure(new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+
+        return text.DesiredSize.Width;
+    }
+
+    /// <summary>Ligne de contexte de la carte : celle que l'activité déclare, sinon celle qui se déduit.</summary>
+    private static string SubheadFor(IslandActivity activity)
+        => string.IsNullOrWhiteSpace(activity.Eyebrow) ? BuildSubhead(activity) : activity.Eyebrow;
 
     /// <summary>
     /// Hauteur de la bande de reflet, lue dans les jetons. Un jeton absent ne doit
@@ -1080,13 +1088,6 @@ public sealed partial class IslandWindow : Window
         IslandBody.Height = footprint.Height;
 
         ApplyShape(footprint);
-
-        // Le satellite suit la géométrie de l'Island, sans repasser par le
-        // parcours de la pile : seule sa position dépend de ce calcul.
-        if (_satellite is { IsShown: true })
-        {
-            _satellite.PlaceAround(x, y, widthPx, heightPx);
-        }
 
         // Défensif : la géométrie est aussi calculée pendant la construction de
         // la fenêtre, avant que la couche décorative existe.
@@ -1199,7 +1200,6 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        _satellite?.Apply(null);
         _atmosphere.SetVisible(false);
         _appWindow.Hide();
     }
@@ -2043,7 +2043,8 @@ public sealed partial class IslandWindow : Window
         // modifié laisserait la silhouette précédente à l'écran jusqu'à ce que la
         // taille change d'elle-même.
         _shape.Forget();
-        _controller.UpdateCollapsedFootprint(IslandFootprint.For(_tier, _settings.Density));
+        _restFootprint = FitRest(_controller.PresentedActivity, _tier);
+        _controller.UpdateCollapsedFootprint(_restFootprint);
         ApplyShape(_controller.CurrentFootprint);
 
         // Les bascules de fonctionnalités sont appliquées sans repasser par le

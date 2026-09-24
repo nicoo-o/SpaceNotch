@@ -56,13 +56,14 @@ public readonly record struct IslandFootprint(double Width, double Height)
 
     /// <summary>
     /// Signal — l'état <c>Compact</c> du plan : un glyphe, un libellé court, sur
-    /// une ligne. 34 de haut, dans la fourchette 32–40 : assez pour porter un
-    /// congé généreux sans que le texte touche la courbe.
+    /// une ligne. 36 de haut, dans la fourchette 32–40 et à la hauteur de la
+    /// Dynamic Island : assez pour porter un congé généreux sous des épaules de
+    /// 12 sans que le texte touche la courbe.
     ///
     /// La largeur comprend les deux épaules : c'est la forme entière, du bord de
     /// l'écran au bord de l'écran.
     /// </summary>
-    public static IslandFootprint Signal => new(148, 34);
+    public static IslandFootprint Signal => new(152, 36);
 
     /// <summary>
     /// Carte : glyphe, légende et titre. La hauteur est la somme de son contenu.
@@ -125,6 +126,64 @@ public readonly record struct IslandFootprint(double Width, double Height)
 
     public bool IsValid => Width > 0 && Height > 0;
 
+    /// <summary>Largeur minimale d'une forme ajustée, par palier.</summary>
+    public static double MinimumWidth(IslandPresentationTier tier) => tier switch
+    {
+        IslandPresentationTier.Signal => 120,
+        IslandPresentationTier.Card => 200,
+        _ => Idle.Width
+    };
+
+    /// <summary>
+    /// Largeur maximale d'une forme ajustée : au-delà, le texte est tronqué. La
+    /// notch garde son identité même très large — elle ne devient jamais une
+    /// grosse fenêtre.
+    /// </summary>
+    public static double MaximumWidth(IslandPresentationTier tier) => tier switch
+    {
+        IslandPresentationTier.Signal => 320,
+        IslandPresentationTier.Card => 380,
+        _ => Idle.Width
+    };
+
+    /// <summary>
+    /// Forme au repos ajustée à son contenu.
+    ///
+    /// <para>
+    /// La largeur n'est plus fixée par palier : elle suit ce qu'elle porte, comme
+    /// dans la référence où la notch s'élargit ou se resserre avec son texte. Le
+    /// ressort anime ce changement comme n'importe quel autre, si bien que la
+    /// forme « respire » avec l'information au lieu de la tronquer ou de l'entourer
+    /// de vide.
+    /// </para>
+    /// </summary>
+    /// <param name="tier">Palier au repos.</param>
+    /// <param name="contentWidth">
+    /// Largeur du contenu, en DIPs : le texte le plus large et les éléments qui
+    /// l'accompagnent (glyphe, écarts, indicateur de pile) — hors marges et
+    /// hors épaules.
+    /// </param>
+    /// <param name="shoulder">Épaule de la géométrie, ajoutée de chaque côté.</param>
+    /// <param name="density">Densité, qui ne gouverne que la hauteur de la carte.</param>
+    public static IslandFootprint Fit(
+        IslandPresentationTier tier,
+        double contentWidth,
+        double shoulder,
+        IslandContentDensity density = IslandContentDensity.Comfortable)
+    {
+        IslandFootprint reference = For(tier, density);
+
+        if (tier == IslandPresentationTier.Idle || double.IsNaN(contentWidth) || contentWidth <= 0)
+        {
+            return reference;
+        }
+
+        double padding = tier == IslandPresentationTier.Signal ? 2 * 12 : 2 * 14;
+        double width = Math.Ceiling(contentWidth + padding + (2 * Math.Max(0, shoulder)));
+
+        return new IslandFootprint(Math.Clamp(width, MinimumWidth(tier), MaximumWidth(tier)), reference.Height);
+    }
+
     /// <summary>
     /// Encombrement de l'aperçu au survol — l'état <c>Preview</c> du plan.
     ///
@@ -148,9 +207,14 @@ public readonly record struct IslandFootprint(double Width, double Height)
     public static IslandFootprint PreviewOf(
         IslandPresentationTier tier,
         IslandContentDensity density = IslandContentDensity.Comfortable)
-    {
-        IslandFootprint rest = For(tier, density);
+        => PreviewOf(tier, For(tier, density));
 
+    /// <summary>
+    /// Aperçu d'une forme au repos déjà ajustée à son contenu : même règle, à
+    /// partir de la largeur réellement occupée.
+    /// </summary>
+    public static IslandFootprint PreviewOf(IslandPresentationTier tier, IslandFootprint rest)
+    {
         return tier switch
         {
             IslandPresentationTier.Signal => new IslandFootprint(Math.Round(rest.Width * 1.2), 48),

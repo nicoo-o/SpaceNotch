@@ -55,10 +55,11 @@ public readonly record struct NotchGeometry(
     public const double DefaultExpandedRadius = 34;
 
     /// <summary>
-    /// Épaule de référence. Assez pour que le bord de l'écran « coule » dans la
-    /// notch, assez peu pour ne pas dessiner un entonnoir.
+    /// Épaule de référence. Mesurée sur la vidéo de référence : l'épaule y vaut
+    /// environ les deux tiers du congé du bas. Assez pour que le bord de l'écran
+    /// « coule » dans la notch, assez peu pour ne pas dessiner un entonnoir.
     /// </summary>
-    public const double DefaultShoulder = 8;
+    public const double DefaultShoulder = 12;
 
     /// <summary>Hauteur à partir de laquelle le rayon quitte sa valeur compacte, en DIPs.</summary>
     public const double RadiusOnsetHeight = 34;

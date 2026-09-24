@@ -151,7 +151,7 @@
                     <TextBlock Text="Épaules (raccord au bord de l'écran)" FontSize="12" Foreground="#E0FFFFFF" />
                     <TextBlock x:Name="ShoulderValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
                 </Grid>
-                <Slider x:Name="ShoulderSlider" Maximum="16" Minimum="0" StepFrequency="1" ValueChanged="OnShoulderChanged" />
+                <Slider x:Name="ShoulderSlider" Maximum="20" Minimum="0" StepFrequency="1" ValueChanged="OnShoulderChanged" />
 
                 <ToggleSwitch
                     x:Name="SmoothingToggle"
@@ -173,7 +173,6 @@
                 <ToggleSwitch x:Name="HoverToggle" Header="Aperçu au survol" Toggled="OnHoverToggled" />
                 <ToggleSwitch x:Name="FullscreenToggle" Header="S'effacer devant le plein écran" Toggled="OnFullscreenToggled" />
                 <ToggleSwitch x:Name="StackToggle" Header="Indicateur de pile d'activités" Toggled="OnStackToggled" />
-                <ToggleSwitch x:Name="SatelliteToggle" Header="Satellite détaché" Toggled="OnSatelliteToggled" />
                 <ToggleSwitch x:Name="ClockToggle" Header="Heure au repos" Toggled="OnClockToggled" />
                 <ToggleSwitch x:Name="StartupToggle" Header="Démarrer avec Windows" Toggled="OnStartupToggled" />
 
