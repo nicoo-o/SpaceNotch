@@ -60,13 +60,13 @@ public sealed class NotificationGroups
             items.RemoveRange(Capacity, items.Count - Capacity);
         }
 
-        return Build(featureId, app, items);
+        return Build(featureId, app, items, now);
     }
 
     /// <summary>Oublie le groupe d'une application — après lecture, par exemple.</summary>
     public void Clear(string appName) => _groups.Remove(appName.Trim());
 
-    private static IslandActivity Build(string featureId, string app, List<NotificationItem> items)
+    private static IslandActivity Build(string featureId, string app, List<NotificationItem> items, DateTimeOffset now)
     {
         NotificationItem latest = items[0];
         int count = items.Count;
@@ -87,6 +87,7 @@ public sealed class NotificationGroups
             State = IslandActivityState.Notification,
             Priority = ActivityPriority.Normal,
             Policy = ActivityPresentationPolicy.Temporary,
+            CreatedAt = now,
             Duration = Lifetime,
 
             // La hauteur ouverte suit le groupe : une ligne de plus par

@@ -68,6 +68,11 @@ public partial class App : Application
             {
                 island.ShowSettings();
             }
+
+            if (options.RunDemo)
+            {
+                island.StartDemo();
+            }
         }
         catch (Exception ex)
         {

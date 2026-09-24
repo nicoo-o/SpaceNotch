@@ -21,6 +21,7 @@ using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
 using SpaceNotch.Features.Bluetooth;
 using SpaceNotch.Features.Clipboard;
+using SpaceNotch.Features.Demo;
 using SpaceNotch.Features.Downloads;
 using SpaceNotch.Features.FileShelf;
 using SpaceNotch.Features.Launcher;
@@ -2113,7 +2114,11 @@ public sealed partial class IslandWindow : Window
             RevealPresented();
         };
 
+        var demoItem = new MenuFlyoutItem { Text = "Démonstration" };
+        demoItem.Click += (_, _) => StartDemo();
+
         menu.Items.Add(launcherItem);
+        menu.Items.Add(demoItem);
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(timerItem);
         menu.Items.Add(stopwatchItem);
@@ -2329,6 +2334,61 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     public void ShowSettings() => OpenSettingsWindow();
 
+    /// <summary>
+    /// Rejoue le scénario de démonstration dans la vraie notch : chaque étape est
+    /// publiée dans le vrai gestionnaire d'activités, à son heure, par un unique
+    /// minuteur à usage unique réarmé d'étape en étape.
+    /// </summary>
+    public void StartDemo()
+    {
+        _demoSteps = DemoScenario.Steps();
+        _demoIndex = 0;
+        _demoStart = DateTimeOffset.UtcNow;
+
+        MiniLogger.Log($"[DEMO] scénario lancé : {_demoSteps.Count} étapes");
+
+        ScheduleNextDemoStep();
+    }
+
+    private IReadOnlyList<DemoStep> _demoSteps = [];
+    private int _demoIndex;
+    private DateTimeOffset _demoStart;
+    private DispatcherQueueTimer? _demoTimer;
+
+    private void ScheduleNextDemoStep()
+    {
+        if (_demoIndex >= _demoSteps.Count)
+        {
+            MiniLogger.Log("[DEMO] scénario terminé");
+            return;
+        }
+
+        TimeSpan due = _demoSteps[_demoIndex].At - (DateTimeOffset.UtcNow - _demoStart);
+
+        _demoTimer ??= CreateOneShotTimer(TimeSpan.FromMilliseconds(50), PlayDemoStep);
+        _demoTimer.Interval = due > TimeSpan.FromMilliseconds(10) ? due : TimeSpan.FromMilliseconds(10);
+        _demoTimer.Stop();
+        _demoTimer.Start();
+    }
+
+    private void PlayDemoStep()
+    {
+        DemoStep step = _demoSteps[_demoIndex++];
+
+        if (step.Post?.Invoke(DateTimeOffset.UtcNow) is { } activity)
+        {
+            _activityManager.PostActivity(activity);
+        }
+
+        if (step.RemoveId is { } id)
+        {
+            _activityManager.RemoveActivity(id);
+        }
+
+        RearmExpirationTimer();
+        ScheduleNextDemoStep();
+    }
+
     private void OpenSettingsWindow()
     {
         _dispatcherQueue.TryEnqueue(() =>
@@ -2368,6 +2428,7 @@ public sealed partial class IslandWindow : Window
         _previewEnterTimer?.Stop();
         _previewExitTimer?.Stop();
         _attenuationTimer?.Stop();
+        _demoTimer?.Stop();
 
         try
         {

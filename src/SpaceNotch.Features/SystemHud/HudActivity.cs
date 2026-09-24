@@ -35,7 +35,8 @@ public static class HudActivity
         string iconKey,
         string source,
         TimeSpan lifetime,
-        bool muted = false)
+        bool muted = false,
+        DateTimeOffset? createdAt = null)
     {
         double max = maximum <= 0 ? 100 : maximum;
         double clamped = Math.Clamp(value, 0, max);
@@ -56,6 +57,7 @@ public static class HudActivity
             Priority = ActivityPriority.Normal,
             Presentation = IslandPresentationTier.Signal,
             Policy = ActivityPresentationPolicy.Temporary,
+            CreatedAt = createdAt ?? DateTimeOffset.UtcNow,
             Duration = lifetime,
             Metric = valueText,
             Progress = muted ? 0 : clamped / max,

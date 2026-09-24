@@ -17,7 +17,12 @@ namespace SpaceNotch_App.Startup;
 /// fait différemment pour autant : l'Island doit se comporter de façon identique,
 /// sinon un défaut de démarrage ne serait jamais reproductible à la main.
 /// </param>
-internal sealed record CommandLineOptions(bool OpenSettings, bool StartedByWindows)
+/// <param name="RunDemo">
+/// Rejoue le scénario de démonstration : musique, volume, messages groupés,
+/// téléchargement, casque, et la référence vidéo « Thinking ». C'est le test de
+/// torture du plan, à juger à l'œil.
+/// </param>
+internal sealed record CommandLineOptions(bool OpenSettings, bool StartedByWindows, bool RunDemo = false)
 {
     public static CommandLineOptions Parse(IReadOnlyList<string> arguments)
     {
@@ -25,6 +30,7 @@ internal sealed record CommandLineOptions(bool OpenSettings, bool StartedByWindo
 
         bool openSettings = false;
         bool startedByWindows = false;
+        bool runDemo = false;
 
         foreach (string argument in arguments)
         {
@@ -36,9 +42,13 @@ internal sealed record CommandLineOptions(bool OpenSettings, bool StartedByWindo
             {
                 startedByWindows = true;
             }
+            else if (Matches(argument, "--demo"))
+            {
+                runDemo = true;
+            }
         }
 
-        return new CommandLineOptions(openSettings, startedByWindows);
+        return new CommandLineOptions(openSettings, startedByWindows, runDemo);
     }
 
     /// <summary>
