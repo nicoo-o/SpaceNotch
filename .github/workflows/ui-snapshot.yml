@@ -86,7 +86,10 @@ jobs:
           # La notch elle-même.
           Shoot (Join-Path $env:LOCALAPPDATA "Programs\SpaceNotch\SpaceNotch.exe") @("--demo") "avant-notch" 8000 3
           Copy-Item $built.FullName "${{ runner.temp }}/built/SpaceNotch.exe" -Force
-          Shoot "${{ runner.temp }}/built/SpaceNotch.exe" @("--demo") "apres-notch" 8000 3
+          $log = Join-Path $env:LOCALAPPDATA "SpaceNotch\logs\spacenotch.log"
+          Remove-Item $log -ErrorAction SilentlyContinue
+          Shoot "${{ runner.temp }}/built/SpaceNotch.exe" @("--demo") "apres-notch" 8000 4
+          if (Test-Path $log) { Copy-Item $log (Join-Path $shots "apres-notch.log"); Get-Content $log | Select-Object -Last 60 }
 
       - uses: actions/upload-artifact@v4
         with:
