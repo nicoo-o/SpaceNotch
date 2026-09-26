@@ -110,6 +110,7 @@ public sealed partial class IslandWindow : Window
     private readonly TimerFeature _timerFeature;
     private readonly LauncherFeature _launcherFeature;
     private readonly QuickMenuFeature _quickMenuFeature;
+    private readonly ClipboardFeature _clipboardFeature;
     private readonly MediaFeature _mediaFeature;
     private readonly IslandFeatureRegistry _featureRegistry;
     private readonly PluginLoader _pluginLoader;
@@ -285,6 +286,13 @@ public sealed partial class IslandWindow : Window
 
         _quickMenuFeature = new QuickMenuFeature(_activityManager, _eventBus);
 
+        _clipboardFeature = new ClipboardFeature(
+            _activityManager, _eventBus, _clipboardMonitor, _hWnd,
+            _settings.IsFeatureEnabled(ClipboardFeature.FeatureKey))
+        {
+            IgnoreSecrets = _settings.ClipboardIgnoreSecrets
+        };
+
         _mediaFeature = new MediaFeature(
             _activityManager, _eventBus, _mediaSessionManager, _settings.IsFeatureEnabled(MediaFeature.FeatureKey));
 
@@ -316,9 +324,7 @@ public sealed partial class IslandWindow : Window
             new PrivacyFeature(
                 _activityManager, _eventBus, new CapabilityUsageWatcher(),
                 _settings.IsFeatureEnabled(PrivacyFeature.FeatureKey)),
-            new ClipboardFeature(
-                _activityManager, _eventBus, _clipboardMonitor, _hWnd,
-                _settings.IsFeatureEnabled(ClipboardFeature.FeatureKey))
+            _clipboardFeature
         };
 
         // Les greffons sont chargés avant la création du registre : ils en font
@@ -2526,7 +2532,7 @@ public sealed partial class IslandWindow : Window
         flyout.Items.Add(new MenuFlyoutSeparator());
 
         var exitItem = new MenuFlyoutItem { Text = "Quitter SpaceNotch" };
-        exitItem.Click += (_, _) => Application.Current.Exit();
+        exitItem.Click += (_, _) => QuitApplication();
         flyout.Items.Add(exitItem);
 
         return flyout;
@@ -2758,6 +2764,7 @@ public sealed partial class IslandWindow : Window
             || settings.CustomDisplayHandle != _settings.CustomDisplayHandle;
 
         _settings = settings;
+        _clipboardFeature.IgnoreSecrets = settings.ClipboardIgnoreSecrets;
 
         // Le détachement retiré, ou l'écran cible changé : la notch revient au
         // bord de l'écran qui est désormais le sien.
@@ -2936,7 +2943,21 @@ public sealed partial class IslandWindow : Window
     // Arrêt
     // ------------------------------------------------------------------
 
-    private async void OnWindowClosed(object sender, WindowEventArgs args)
+    private async void OnWindowClosed(object sender, WindowEventArgs args) => await ShutdownAsync();
+
+    /// <summary>
+    /// « Quitter » : l'arrêt est mené jusqu'au bout — fonctionnalités arrêtées,
+    /// raccourci rendu à Windows, journal vidé — <em>puis</em> l'application
+    /// sort. <c>Application.Exit()</c> seul coupait le processus pendant que
+    /// l'arrêt attendait encore, et laissait le raccourci global enregistré.
+    /// </summary>
+    private async void QuitApplication()
+    {
+        await ShutdownAsync();
+        Application.Current.Exit();
+    }
+
+    private async Task ShutdownAsync()
     {
         if (_isClosed)
         {

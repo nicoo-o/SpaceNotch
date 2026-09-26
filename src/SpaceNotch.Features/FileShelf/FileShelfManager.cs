@@ -24,6 +24,12 @@ public sealed class FileShelfManager : IslandFeatureBase
 
     public const string ShelfActivityId = "feature.fileshelf.current";
 
+    /// <summary>Retire un fichier de l'étagère (valeur : son identifiant). Le fichier lui-même n'est jamais touché.</summary>
+    public const string RemoveAction = "shelf.remove";
+
+    /// <summary>Vide l'étagère. Les fichiers restent là où ils sont sur le disque.</summary>
+    public const string ClearAction = "shelf.clear";
+
     private readonly List<ShelfItem> _items = [];
     private readonly object _lock = new();
 
@@ -85,6 +91,37 @@ public sealed class FileShelfManager : IslandFeatureBase
 
         UpdateActivity();
         ShelfUpdated?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Vide l'étagère — seulement la liste, jamais les fichiers.</summary>
+    public void Clear()
+    {
+        lock (_lock)
+        {
+            _items.Clear();
+        }
+
+        UpdateActivity();
+        ShelfUpdated?.Invoke(this, EventArgs.Empty);
+    }
+
+    public override Task<bool> HandleActionAsync(IslandActionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        switch (request.ActionId)
+        {
+            case RemoveAction when request.Value is { Length: > 0 } id:
+                RemoveFile(id);
+                return Task.FromResult(true);
+
+            case ClearAction:
+                Clear();
+                return Task.FromResult(true);
+
+            default:
+                return Task.FromResult(false);
+        }
     }
 
     public IReadOnlyList<ShelfItem> GetItems()
