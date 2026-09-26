@@ -120,3 +120,15 @@ public sealed record BluetoothPayload(string Name, bool IsConnected, int? Batter
 
     public bool IsBatteryLow => BatteryPercent is int level && level < LowBattery;
 }
+
+/// <summary>Charge utile de la présentation du premier lancement.</summary>
+/// <param name="Step">Carte affichée, de 0 à <paramref name="Count"/> − 1.</param>
+/// <param name="Count">Nombre de cartes.</param>
+/// <param name="NotificationAccess">
+/// « unavailable » (exécutable portable), « notasked », « denied » ou « allowed » :
+/// la dernière carte s'adapte.
+/// </param>
+public sealed record WelcomePayload(int Step, int Count, string NotificationAccess)
+{
+    public bool IsLast => Step >= Count - 1;
+}

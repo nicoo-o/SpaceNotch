@@ -159,7 +159,16 @@ public sealed class FileShelfManager : IslandFeatureBase
             Source = "FileShelf",
             IconKey = "Folder",
             State = IslandActivityState.Idle,
-            Priority = ActivityPriority.Normal
+            Priority = ActivityPriority.Normal,
+
+            // La notch prend la hauteur de la liste : en-tête 30, lignes de 40,
+            // quatre au plus avant de défiler.
+            ExpandedFootprint = new IslandFootprint(ShelfWidth, ShelfChrome + (Math.Min(count, ShelfVisibleRows) * ShelfRow))
         });
     }
+
+    private const double ShelfWidth = 380;
+    private const double ShelfChrome = 12 + 30 + 14;
+    private const double ShelfRow = 40;
+    private const int ShelfVisibleRows = 4;
 }

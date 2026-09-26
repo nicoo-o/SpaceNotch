@@ -8,66 +8,47 @@
     mc:Ignorable="d">
 
     <!--
-        L'étagère : une rangée de fichiers posés dans la notch, qu'on dépose en
-        les glissant dessus et qu'on reprend en les glissant dehors — vers le
-        bureau, un courriel, une autre application. C'est une étagère, pas une
-        liste de logiciel.
+        L'étagère : les fichiers posés sur la notch, prêts à être repris en les
+        glissant dehors. En-tête (nombre, « Tout vider »), puis une ligne de
+        40 DIP par fichier : vraie icône, nom, taille, ✕ au survol. La liste ne
+        touche jamais aux fichiers eux-mêmes. Voir w3-indicateurs.
     -->
-    <Grid Padding="14,8,14,12" RowSpacing="6">
+    <Grid Padding="12,12,12,14">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
+            <RowDefinition Height="30" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="6">
+        <Grid Grid.Row="0" Padding="4,0,0,6">
             <TextBlock
-                Text="Étagère"
-                Style="{StaticResource NfCaptionTextStyle}"
-                Foreground="{ThemeResource NfTextTertiaryBrush}" />
-            <TextBlock
-                x:Name="CountText"
-                Text="0"
-                Style="{StaticResource NfMetricTextStyle}" />
-        </StackPanel>
+                x:Name="HeaderText"
+                FontSize="13.5"
+                FontWeight="SemiBold"
+                Foreground="{ThemeResource NfTextPrimaryBrush}"
+                VerticalAlignment="Center" />
+            <Button
+                x:Name="ClearButton"
+                HorizontalAlignment="Right"
+                Style="{StaticResource NfChipButtonStyle}"
+                Content="Tout vider"
+                AutomationProperties.Name="Vider l'étagère"
+                Click="OnClearClicked" />
+        </Grid>
 
-        <ListView
-            x:Name="FilesListView"
+        <ScrollViewer
             Grid.Row="1"
-            SelectionMode="None"
-            CanDragItems="True"
-            DragItemsStarting="OnDragItemsStarting"
-            ScrollViewer.HorizontalScrollMode="Enabled"
-            ScrollViewer.HorizontalScrollBarVisibility="Hidden"
-            ScrollViewer.VerticalScrollMode="Disabled">
-            <ListView.ItemsPanel>
-                <ItemsPanelTemplate>
-                    <ItemsStackPanel Orientation="Horizontal" />
-                </ItemsPanelTemplate>
-            </ListView.ItemsPanel>
-            <ListView.ItemTemplate>
-                <DataTemplate>
-                    <StackPanel Width="68" Spacing="4" Padding="0,4,0,0">
-                        <FontIcon
-                            Glyph="&#xE8A5;"
-                            FontSize="22"
-                            Foreground="{ThemeResource NfTextSecondaryBrush}"
-                            HorizontalAlignment="Center" />
-                        <TextBlock
-                            Text="{Binding FileName}"
-                            Style="{StaticResource NfMicroTextStyle}"
-                            Foreground="{ThemeResource NfTextPrimaryBrush}"
-                            TextAlignment="Center"
-                            HorizontalAlignment="Center" />
-                    </StackPanel>
-                </DataTemplate>
-            </ListView.ItemTemplate>
-        </ListView>
+            HorizontalScrollMode="Disabled"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="RowsPanel" />
+        </ScrollViewer>
 
         <TextBlock
             x:Name="EmptyText"
             Grid.Row="1"
-            Text="Glissez un fichier sur la notch"
-            Style="{StaticResource NfCaptionTextStyle}"
+            Text="Glisse un fichier sur la notch"
+            FontSize="12.5"
+            Foreground="{ThemeResource NfTextTertiaryBrush}"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
             Visibility="Collapsed" />

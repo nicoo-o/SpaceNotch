@@ -368,6 +368,7 @@
                 <scenes:LauncherScene x:Name="LauncherSceneView" Visibility="Collapsed" />
                 <scenes:QuickMenuScene x:Name="QuickMenuSceneView" Visibility="Collapsed" />
                 <scenes:BluetoothScene x:Name="BluetoothSceneView" Visibility="Collapsed" />
+                <scenes:WelcomeScene x:Name="WelcomeSceneView" Visibility="Collapsed" />
                 <scenes:InfoScene x:Name="InfoSceneView" Visibility="Collapsed" />
 
                 <!--

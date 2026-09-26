@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using SpaceNotch.Core.Productivity;
 using Xunit;
 
@@ -62,4 +63,28 @@ public sealed class BluetoothPayloadTests
     [InlineData(null, false)]
     public void Battery_is_low_under_fifteen_percent(int? level, bool low)
         => Assert.Equal(low, new SpaceNotch.Core.Activities.BluetoothPayload("Casque", true, level, "audio").IsBatteryLow);
+}
+
+public sealed class WelcomeFeatureTests
+{
+    [Fact]
+    public async Task Next_walks_the_five_cards_then_completes()
+    {
+        var activities = new SpaceNotch.Core.Activities.ActivityManager();
+        var feature = new SpaceNotch.Features.Menu.WelcomeFeature(activities, new SpaceNotch.Core.Events.EventBus());
+        bool completed = false;
+        feature.Completed += (_, _) => completed = true;
+
+        feature.Show("notasked");
+
+        for (int i = 0; i < SpaceNotch.Features.Menu.WelcomeFeature.StepCount; i++)
+        {
+            Assert.False(completed);
+            await feature.HandleActionAsync(new SpaceNotch.Core.Activities.IslandActionRequest(
+                SpaceNotch.Features.Menu.WelcomeFeature.ActivityId, SpaceNotch.Features.Menu.WelcomeFeature.NextAction, null));
+        }
+
+        Assert.True(completed);
+        Assert.False(feature.IsShown);
+    }
 }

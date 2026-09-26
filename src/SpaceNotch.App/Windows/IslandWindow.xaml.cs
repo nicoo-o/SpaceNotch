@@ -112,6 +112,7 @@ public sealed partial class IslandWindow : Window
     private readonly QuickMenuFeature _quickMenuFeature;
     private readonly ClipboardFeature _clipboardFeature;
     private readonly NotificationFeature _notificationFeature;
+    private readonly WelcomeFeature _welcomeFeature;
     private readonly MediaFeature _mediaFeature;
     private readonly IslandFeatureRegistry _featureRegistry;
     private readonly PluginLoader _pluginLoader;
@@ -286,6 +287,8 @@ public sealed partial class IslandWindow : Window
             store: new SpaceNotch_App.Launcher.SettingsLauncherHistoryStore(_settingsService));
 
         _quickMenuFeature = new QuickMenuFeature(_activityManager, _eventBus);
+        _welcomeFeature = new WelcomeFeature(_activityManager, _eventBus);
+        _welcomeFeature.Completed += (_, _) => OnWelcomeCompleted();
 
         _notificationListener.Log = message => MiniLogger.Log(message);
         _notificationFeature = new NotificationFeature(
@@ -325,6 +328,7 @@ public sealed partial class IslandWindow : Window
             _timerFeature,
             _launcherFeature,
             _quickMenuFeature,
+            _welcomeFeature,
             new DownloadsFeature(
                 _activityManager, _eventBus, KnownFolders.Downloads,
                 _settings.IsFeatureEnabled(DownloadsFeature.FeatureKey)),
@@ -555,6 +559,7 @@ public sealed partial class IslandWindow : Window
         _scenes[IslandSceneCatalog.Launcher] = LauncherSceneView;
         _scenes[IslandSceneCatalog.QuickMenu] = QuickMenuSceneView;
         _scenes[IslandSceneCatalog.Bluetooth] = BluetoothSceneView;
+        _scenes[IslandSceneCatalog.Welcome] = WelcomeSceneView;
 
         // Luminosité et volume partagent la même vue : leur charge utile est
         // identique, seule la clé d'icône les distingue.
@@ -603,7 +608,7 @@ public sealed partial class IslandWindow : Window
 
             // Les commandes du menu rapide touchent la fenêtre : elles sont
             // exécutées ici, pas par une fonctionnalité.
-            if (HandleQuickMenuAction(request))
+            if (HandleQuickMenuAction(request) || await HandleWelcomeActionAsync(request))
             {
                 return;
             }
@@ -661,6 +666,12 @@ public sealed partial class IslandWindow : Window
                 && _controller.PresentedActivity?.SceneKey == IslandSceneCatalog.Launcher)
             {
                 _launcherFeature.Dismiss();
+            }
+
+            // Refermer la notch pendant la présentation, c'est la passer.
+            if (state == IslandState.Closed && _welcomeFeature.IsShown)
+            {
+                _welcomeFeature.Finish();
             }
 
             // Le menu rapide aussi : refermé, il ne reste pas en tête de pile.
@@ -936,6 +947,12 @@ public sealed partial class IslandWindow : Window
                 {
                     CaptureKeyboardForTyping();
                     DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, launcher.FocusSearch);
+                }
+                else if (scene is WelcomeScene welcome)
+                {
+                    // Entrée avance, Échap passe : la présentation se suit au clavier.
+                    CaptureKeyboardForTyping();
+                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, welcome.FocusPrimary);
                 }
                 else if (scene is QuickMenuScene menu)
                 {

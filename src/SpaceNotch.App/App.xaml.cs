@@ -115,6 +115,11 @@ public partial class App : Application
             {
                 island.StartDemo();
             }
+            else
+            {
+                // Premier lancement : la notch se présente d'elle-même.
+                island.OfferWelcome();
+            }
         }
         catch (Exception ex)
         {
