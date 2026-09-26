@@ -144,6 +144,34 @@ jobs:
           Write-Host "SpaceNotch.exe tourne toujours après 12 s."
           Stop-Process -Id $process.Id -Force
 
+      # Essai de l'installeur avec sa fenêtre : c'est ce que lance un double-clic.
+      # La fenêtre doit encore être là après quelques secondes, sans avoir rien
+      # installé (personne ne clique). En cas d'échec : journal de l'application
+      # et erreurs .NET du journal d'événements de Windows.
+      - name: Essai de l'installeur (fenêtre)
+        shell: pwsh
+        run: |
+          $setup = "${{ runner.temp }}/dist/SpaceNotch-Setup.exe"
+          $log = Join-Path $env:LOCALAPPDATA "SpaceNotch\logs\spacenotch.log"
+          $process = Start-Process -FilePath $setup -PassThru
+          Start-Sleep -Seconds 12
+          $alive = -not $process.HasExited
+          if ($alive) { Stop-Process -Id $process.Id -Force }
+
+          if (Test-Path $log) {
+            Write-Host "----- journal -----"
+            Get-Content $log -Tail 60
+          }
+
+          if (-not $alive) {
+            Write-Host "----- journal d'événements -----"
+            Get-WinEvent -FilterHashtable @{ LogName = "Application"; StartTime = (Get-Date).AddMinutes(-3) } -ErrorAction SilentlyContinue |
+              Where-Object { $_.ProviderName -in @(".NET Runtime", "Application Error", "Windows Error Reporting") } |
+              ForEach-Object { $_.Message } | Select-Object -First 6
+            throw "L'installeur s'est fermé au démarrage (code $($process.ExitCode))."
+          }
+          Write-Host "La fenêtre de l'installeur est toujours ouverte après 12 s."
+
       # Essai de l'installeur, de bout en bout, en mode silencieux : installer pour
       # l'utilisateur, vérifier fichier, raccourcis et entrée de Paramètres ›
       # Applications, lancer la notch installée, puis désinstaller et vérifier que
