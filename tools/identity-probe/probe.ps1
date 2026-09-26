@@ -1,71 +1,58 @@
-# Sonde : quels éditeurs l'élément <msix> accepte-t-il, et un paquet non signé
-# donne-t-il vraiment une identité à un exécutable ? Voir ADR-023.
-$ErrorActionPreference = "Continue"
-$oid = "OID.2.25.311729368913984317654407730594956997722=1"
-$variants = [ordered]@{
-  "virgule-espace" = "CN=SpaceNotch, $oid"
-  "virgule"        = "CN=SpaceNotch,$oid"
-  "oid-seul"       = $oid
-  "cn-seul"        = "CN=SpaceNotch"
+# Sonde (ADR-023) : un paquet d'identité signé par un certificat éphémère — créé
+# pour l'occasion, clé privée jetée après signature, certificat public approuvé
+# pour l'utilisateur seulement — donne-t-il une identité à un exécutable, et
+# l'écoute des notifications est-elle alors possible ?
+$ErrorActionPreference = "Stop"
+$publisher = "CN=SpaceNotch"
+$root = $env:RUNNER_TEMP
+$app = Join-Path $root "probe-app"
+$pkg = Join-Path $root "probe-pkg"
+
+# 1. L'exécutable, avec l'élément <msix>.
+(Get-Content tools/identity-probe/app.manifest.template -Raw).Replace("__PUBLISHER__", $publisher) | Set-Content tools/identity-probe/app.manifest -Encoding utf8
+dotnet publish tools/identity-probe/Probe.csproj -c Release -r win-x64 --self-contained false -o $app -nologo -v q
+if ($LASTEXITCODE -ne 0) { throw "Publication de la sonde impossible." }
+Write-Host "--- sans paquet ---"
+& "$app\Probe.exe"
+
+# 2. Le paquet.
+New-Item -ItemType Directory -Force "$pkg\Assets" | Out-Null
+Copy-Item packaging/identity/Assets/* "$pkg\Assets"
+(Get-Content tools/identity-probe/AppxManifest.template.xml -Raw).Replace("__PUBLISHER__", $publisher) | Set-Content "$pkg\AppxManifest.xml" -Encoding utf8
+$sdk = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64" -Directory | Sort-Object FullName -Descending | Select-Object -First 1
+& "$($sdk.FullName)\makeappx.exe" pack /d $pkg /p "$pkg.msix" /nv /o | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "MakeAppx a échoué." }
+
+# 3. Certificat éphémère : créé, utilisé, exporté en public, clé privée détruite.
+$cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject $publisher -KeyUsage DigitalSignature `
+  -FriendlyName "SpaceNotch (paquet d'identité)" -CertStoreLocation Cert:\CurrentUser\My `
+  -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+$password = ConvertTo-SecureString -String ([guid]::NewGuid().ToString()) -Force -AsPlainText
+$pfx = Join-Path $root "probe.pfx"
+Export-PfxCertificate -Cert $cert -FilePath $pfx -Password $password | Out-Null
+$plain = [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($password))
+& "$($sdk.FullName)\signtool.exe" sign /fd SHA256 /f $pfx /p $plain "$pkg.msix"
+if ($LASTEXITCODE -ne 0) { throw "Signature impossible." }
+$cer = Join-Path $root "probe.cer"
+Export-Certificate -Cert $cert -FilePath $cer | Out-Null
+Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)" -DeleteKey
+Remove-Item $pfx
+Write-Host "Certificat $($cert.Thumbprint) : clé privée détruite, seul le public reste."
+
+# 4. Confiance pour l'utilisateur seulement (sans administrateur), puis enregistrement.
+Import-Certificate -FilePath $cer -CertStoreLocation Cert:\CurrentUser\TrustedPeople | Out-Null
+try {
+  Add-AppxPackage -Path "$pkg.msix" -ExternalLocation $app
+  Write-Host "ENREGISTREMENT (confiance utilisateur): réussi"
+} catch {
+  Write-Host "ENREGISTREMENT (confiance utilisateur): refusé — $($_.Exception.Message)"
+  Import-Certificate -FilePath $cer -CertStoreLocation Cert:\LocalMachine\TrustedPeople | Out-Null
+  Add-AppxPackage -Path "$pkg.msix" -ExternalLocation $app
+  Write-Host "ENREGISTREMENT (confiance machine): réussi"
 }
 
-Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public static class ActCtx {
-  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-  public struct ACTCTX { public int cbSize; public uint dwFlags; public string lpSource; public ushort wProcessorArchitecture; public ushort wLangId; public string lpAssemblyDirectory; public string lpResourceName; public string lpApplicationName; public IntPtr hModule; }
-  [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)] public static extern IntPtr CreateActCtxW(ref ACTCTX ctx);
-  [DllImport("kernel32.dll")] public static extern void ReleaseActCtx(IntPtr h);
-  public static int Test(string path) {
-    var c = new ACTCTX(); c.cbSize = Marshal.SizeOf(typeof(ACTCTX)); c.lpSource = path;
-    IntPtr h = CreateActCtxW(ref c);
-    if (h == new IntPtr(-1)) return Marshal.GetLastWin32Error();
-    ReleaseActCtx(h); return 0;
-  }
-}
-"@
+Write-Host "--- avec paquet ---"
+& "$app\Probe.exe"
 
-$accepted = @()
-foreach ($name in $variants.Keys) {
-  $pub = $variants[$name]
-  $file = Join-Path $env:RUNNER_TEMP "probe-$name.manifest"
-  @"
-<?xml version="1.0" encoding="utf-8"?>
-<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
-  <assemblyIdentity version="1.0.0.0" name="Probe"/>
-  <msix xmlns="urn:schemas-microsoft-com:msix.v1" publisher="$pub" packageName="SpaceNotch.Probe" applicationId="Probe"/>
-</assembly>
-"@ | Set-Content $file -Encoding utf8
-  $code = [ActCtx]::Test($file)
-  Write-Host ("MANIFESTE {0,-15} [{1}] -> {2}" -f $name, $pub, $(if ($code -eq 0) { "ACCEPTÉ" } else { "REFUSÉ ($code)" }))
-  if ($code -eq 0) { $accepted += $name }
-}
-
-# Essai de bout en bout avec l'éditeur non signé, s'il passe le manifeste.
-foreach ($name in @("virgule-espace", "virgule")) {
-  if ($accepted -notcontains $name) { continue }
-  $pub = $variants[$name]
-  Write-Host "===== Essai complet : $name ====="
-  $dir = Join-Path $env:RUNNER_TEMP "probe-app-$name"
-  Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue
-  New-Item -ItemType Directory -Force $dir | Out-Null
-  (Get-Content tools/identity-probe/app.manifest.template -Raw).Replace("__PUBLISHER__", $pub) | Set-Content tools/identity-probe/app.manifest -Encoding utf8
-  dotnet publish tools/identity-probe/Probe.csproj -c Release -r win-x64 --self-contained false -o $dir -nologo -v q | Out-Null
-  & "$dir\Probe.exe"
-
-  $pkg = Join-Path $env:RUNNER_TEMP "probe-pkg-$name"
-  New-Item -ItemType Directory -Force "$pkg\Assets" | Out-Null
-  Copy-Item packaging/identity/Assets/* "$pkg\Assets"
-  (Get-Content tools/identity-probe/AppxManifest.template.xml -Raw).Replace("__PUBLISHER__", $pub) | Set-Content "$pkg\AppxManifest.xml" -Encoding utf8
-  $makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\makeappx.exe" | Sort-Object FullName -Descending | Select-Object -First 1
-  & $makeappx.FullName pack /d $pkg /p "$pkg.msix" /nv /o | Out-Null
-  try {
-    Add-AppxPackage -Path "$pkg.msix" -ExternalLocation $dir -AllowUnsigned -ErrorAction Stop
-    Write-Host "ENREGISTREMENT: réussi"
-    & "$dir\Probe.exe"
-    Get-AppxPackage -Name SpaceNotch.Probe | Remove-AppxPackage
-  } catch {
-    Write-Host "ENREGISTREMENT: refusé — $($_.Exception.Message)"
-  }
-}
+Get-AppxPackage -Name SpaceNotch.Probe | Remove-AppxPackage
+Write-Host "Paquet retiré."
