@@ -5,6 +5,13 @@ name: Sonde d'identité
 # exécutable, et ce paquet donne-t-il vraiment une identité au lancement ?
 on:
   workflow_dispatch:
+  # Un workflow manuel n'est lançable qu'une fois sur main : la sonde part aussi
+  # d'un envoi qui la touche, sur une branche de travail.
+  push:
+    branches: ["claude/**"]
+    paths:
+      - "tools/identity-probe/**"
+      - ".github/workflows/identity-probe.yml"
 
 jobs:
   probe:
