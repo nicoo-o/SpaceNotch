@@ -76,28 +76,15 @@ public sealed record ClipboardEntry(
 /// <summary>Charge utile de la scène presse-papier.</summary>
 public sealed record ClipboardPayload(IReadOnlyList<ClipboardEntry> Entries);
 
-/// <summary>
-/// Application proposée par le lanceur.
-/// </summary>
-/// <param name="Id">Identifiant stable, utilisé comme valeur d'action.</param>
-/// <param name="Name">Nom affiché.</param>
-/// <param name="Target">Chemin du raccourci à ouvrir.</param>
-/// <param name="IsRecent">
-/// Vrai si l'application a été lancée depuis l'Island pendant la session.
-///
-/// Windows n'expose aucun horodatage des applications récemment utilisées : ce
-/// qui est affiché ici est donc un historique de session, et il est nommé comme
-/// tel plutôt que présenté comme l'historique du système.
-/// </param>
-public sealed record LauncherEntry(
-    string Id,
-    string Name,
-    string Target,
-    bool IsRecent = false);
-
-/// <summary>Charge utile du lanceur d'applications.</summary>
-/// <param name="Entries">Applications correspondant à la recherche en cours.</param>
+/// <summary>Charge utile de la recherche (lanceur).</summary>
+/// <param name="Sections">Résultats groupés, dans l'ordre d'affichage.</param>
 /// <param name="Query">Recherche en cours, vide si aucune.</param>
+/// <param name="IsLoading">Vrai pendant la première lecture du catalogue.</param>
+/// <param name="Hotkey">Raccourci global retenu, affiché dans le pied (« Alt+Espace »).</param>
+/// <param name="Favorites">Identifiants épinglés : le panneau d'actions dit « Désépingler ».</param>
 public sealed record LauncherPayload(
-    IReadOnlyList<LauncherEntry> Entries,
-    string Query);
+    IReadOnlyList<SpaceNotch.Core.Launcher.LauncherSection> Sections,
+    string Query,
+    bool IsLoading = false,
+    string? Hotkey = null,
+    IReadOnlyCollection<string>? Favorites = null);

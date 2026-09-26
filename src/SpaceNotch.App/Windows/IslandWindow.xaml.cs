@@ -276,7 +276,10 @@ public sealed partial class IslandWindow : Window
             _activityManager, _eventBus, _settings.IsFeatureEnabled(PomodoroFeature.FeatureKey));
 
         _timerFeature = new TimerFeature(_activityManager, _eventBus);
-        _launcherFeature = new LauncherFeature(_activityManager, _eventBus);
+        _launcherFeature = new LauncherFeature(
+            _activityManager,
+            _eventBus,
+            store: new SpaceNotch_App.Launcher.SettingsLauncherHistoryStore(_settingsService));
 
         _mediaFeature = new MediaFeature(
             _activityManager, _eventBus, _mediaSessionManager, _settings.IsFeatureEnabled(MediaFeature.FeatureKey));
@@ -657,6 +660,11 @@ public sealed partial class IslandWindow : Window
 
         _messageMonitor = new WindowMessageMonitor(_hWnd);
         _messageMonitor.WindowMessageReceived += OnWindowMessageReceived;
+
+        // Le raccourci global ouvre la recherche de n'importe où : Alt+Espace,
+        // ou Win+Maj+Espace si une autre application tient déjà le premier.
+        _launcherFeature.Hotkey = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.RegisterLauncher(_hWnd);
+        MiniLogger.Log($"Raccourci de recherche : {_launcherFeature.Hotkey ?? "aucun (les deux sont pris)"}");
 
         _shelfManager.ShelfUpdated += (_, _) =>
             OnUiThread(() => FileShelfSceneView.UpdateItems(_shelfManager.GetItems()));
@@ -1597,6 +1605,14 @@ public sealed partial class IslandWindow : Window
 
     private void OnWindowMessageReceived(object? sender, WindowMessageEventArgs e)
     {
+        if (e.Message.MessageId == SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.WmHotkey
+            && (int)e.Message.WParam == SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.LauncherId)
+        {
+            ToggleLauncherFromHotkey();
+            e.Handled = true;
+            return;
+        }
+
         // Les notifications système diffusées par message sont routées vers les
         // fonctionnalités concernées — le presse-papier en est l'exemple. Aucune
         // scrutation n'est nécessaire pour les recevoir.
@@ -1690,6 +1706,7 @@ public sealed partial class IslandWindow : Window
         ForceAttach();
 
         SystemVisualState updated = SystemVisualState.Read();
+        SpaceNotch_App.UI.MotionSettings.Invalidate();
 
         if (updated != _visualState)
         {
@@ -2124,6 +2141,27 @@ public sealed partial class IslandWindow : Window
         }
 
         _controller.ToggleFromUser();
+    }
+
+    /// <summary>
+    /// Le raccourci global : ouvre la recherche, ou la referme si elle est
+    /// déjà devant — le même geste dans les deux sens, comme Spotlight.
+    /// </summary>
+    private void ToggleLauncherFromHotkey()
+    {
+        if (_isClosed)
+        {
+            return;
+        }
+
+        if (_controller.State != IslandState.Closed
+            && _controller.PresentedActivity?.SceneKey == IslandSceneCatalog.Launcher)
+        {
+            _controller.RequestCollapse();
+            return;
+        }
+
+        OpenLauncher();
     }
 
     /// <summary>Ouvre la grille de fonctions et la montre.</summary>
@@ -2925,6 +2963,7 @@ public sealed partial class IslandWindow : Window
             _controller.Dispose();
             _diagnostics.Dispose();
             _screenWatcher.Dispose();
+            SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Unregister(_hWnd);
             _messageMonitor?.Dispose();
         }
         catch (Exception ex)

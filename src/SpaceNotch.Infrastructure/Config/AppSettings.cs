@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using SpaceNotch.Core.Animation;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Motion;
@@ -485,6 +486,15 @@ public sealed class AppSettings
 
     public bool EnableDiagnostics { get; set; } = true;
 
+    /// <summary>Recherche : cibles épinglées en favoris, dans l'ordre d'épinglage.</summary>
+    public List<string> LauncherFavorites { get; set; } = [];
+
+    /// <summary>Recherche : dernières cibles ouvertes, la plus récente d'abord.</summary>
+    public List<string> LauncherRecents { get; set; } = [];
+
+    /// <summary>Recherche : nombre d'ouvertures par cible, pour départager les résultats.</summary>
+    public Dictionary<string, int> LauncherLaunches { get; set; } = [];
+
     /// <summary>
     /// Profondeur d'historique du presse-papier. Zéro désactive la capture, ce
     /// qui garantit qu'aucune donnée n'est conservée par défaut.
@@ -641,6 +651,10 @@ public sealed class AppSettings
     /// </summary>
     public void Sanitize()
     {
+        LauncherFavorites ??= [];
+        LauncherRecents ??= [];
+        LauncherLaunches ??= [];
+
         if (!Enum.IsDefined(Density))
         {
             Density = IslandContentDensity.Comfortable;

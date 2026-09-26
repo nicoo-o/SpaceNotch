@@ -227,3 +227,31 @@ public class LauncherSearchTests
         Assert.Equal(WindowsSettingsCatalog.All.Count, WindowsSettingsCatalog.All.Select(s => s.Uri).Distinct().Count());
     }
 }
+
+public class LauncherLayoutTests
+{
+    [Fact]
+    public void Height_follows_the_results_and_is_capped()
+    {
+        LauncherResult Row(string id) => new(id, LauncherResultKind.Application, id, "", id, []);
+
+        double one = LauncherLayout.HeightFor([new LauncherSection("A", [Row("a")])]);
+        double two = LauncherLayout.HeightFor([new LauncherSection("A", [Row("a"), Row("b")])]);
+        double many = LauncherLayout.HeightFor([new LauncherSection("A", Enumerable.Range(0, 40).Select(i => Row("r" + i)).ToList())]);
+
+        Assert.Equal(LauncherLayout.Row, two - one);
+        Assert.Equal(LauncherLayout.MaxHeight, many);
+        Assert.Equal(LauncherLayout.EmptyHeight, LauncherLayout.HeightFor([]));
+        Assert.Equal(LauncherLayout.Width, LauncherLayout.FootprintFor([]).Width);
+    }
+
+    [Fact]
+    public void Actions_panel_makes_room_for_itself()
+    {
+        LauncherResult row = new("a", LauncherResultKind.Application, "a", "", "a", []);
+        IReadOnlyList<LauncherSection> one = [new LauncherSection("A", [row])];
+
+        Assert.True(LauncherLayout.FootprintFor(one).Height < LauncherLayout.ActionsPanelMinHeight);
+        Assert.Equal(LauncherLayout.ActionsPanelMinHeight, LauncherLayout.FootprintFor(one, actionsOpen: true).Height);
+    }
+}
