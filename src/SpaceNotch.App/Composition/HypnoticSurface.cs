@@ -10,8 +10,8 @@ using Windows.UI;
 namespace SpaceNotch_App.Composition;
 
 /// <summary>
-/// Rendu de la grille hypnotique : neuf pixels lumineux et leur halo, confiés
-/// au compositeur.
+/// Rendu de la grille hypnotique : neuf pixels lumineux, confiés au
+/// compositeur.
 ///
 /// <para>
 /// <b>Aucune image n'est calculée ici.</b> La grille est décrite dans le cœur
@@ -22,10 +22,11 @@ namespace SpaceNotch_App.Composition;
 /// </para>
 ///
 /// <para>
-/// <b>Le halo est une ombre.</b> Les pixels vivent dans un <c>LayerVisual</c>
-/// portant une ombre sans décalage, de la couleur des pixels : le compositeur
-/// floute la forme exacte des pixels allumés, image par image. C'est le « bloom »
-/// de la référence, sans shader et sans rendu supplémentaire.
+/// <b>Des pixels nets, sans halo.</b> Le halo était une ombre portée par un
+/// <c>LayerVisual</c> : sur un vrai Windows, le compositeur la dessinait comme
+/// un carré flou de la taille de la grille, qui couvrait les pixels et figeait
+/// l'animation à l'œil (captures de la CI, v1.3.0). La grille vit maintenant
+/// dans un simple conteneur : neuf carrés, leurs écarts, leur lumière.
 /// </para>
 ///
 /// <para>
@@ -43,23 +44,9 @@ public sealed class HypnoticSurface : IDisposable
     /// </summary>
     private const float GapRatio = 0.10f;
 
-    /// <summary>
-    /// Rayon du halo, relatif au côté d'un pixel de la grille : un halo discret
-    /// autour de pixels nets. À 0,55 du côté de la grille, il noyait les pixels
-    /// dans leur propre lumière.
-    /// </summary>
-    private const float BloomRatio = 0.5f;
-
-    /// <summary>Halo maximal pour les petites grilles (notch compacte, bulle) : la forme d'abord.</summary>
-    private const float SmallGridBloom = 2.5f;
-
-    /// <summary>Intensité du halo : une fraction de celle que décrit le champ.</summary>
-    private const float BloomIntensity = 0.45f;
-
     private readonly Compositor _compositor;
     private readonly FrameworkElement _host;
-    private readonly LayerVisual _layer;
-    private readonly DropShadow _bloom;
+    private readonly ContainerVisual _layer;
     private readonly CompositionColorBrush _ink;
     private readonly SpriteVisual[] _cells = new SpriteVisual[HypnoticField.CellCount];
     private readonly CompositionEasingFunction _linear;
@@ -78,14 +65,8 @@ public sealed class HypnoticSurface : IDisposable
         HypnoticColor warm = HypnoticField.WarmLight;
         _ink = compositor.CreateColorBrush(Color.FromArgb(0xFF, warm.R, warm.G, warm.B));
 
-        _layer = compositor.CreateLayerVisual();
+        _layer = compositor.CreateContainerVisual();
         _layer.IsVisible = false;
-
-        _bloom = compositor.CreateDropShadow();
-        _bloom.Offset = Vector3.Zero;
-        _bloom.Color = _ink.Color;
-        _bloom.Opacity = 0f;
-        _layer.Shadow = _bloom;
 
         for (int i = 0; i < _cells.Length; i++)
         {
@@ -232,9 +213,6 @@ public sealed class HypnoticSurface : IDisposable
             MathF.Round(((host.Y * scale) - gridPx) / 2) * px,
             0);
 
-        float bloom = cell * BloomRatio;
-        _bloom.BlurRadius = side <= 24 ? MathF.Min(bloom, SmallGridBloom) : bloom;
-
         for (int i = 0; i < _cells.Length; i++)
         {
             int column = i % HypnoticField.GridSize;
@@ -251,8 +229,6 @@ public sealed class HypnoticSurface : IDisposable
         Color color = ToColor(frame.Color);
 
         _ink.Color = color;
-        _bloom.Color = color;
-        _bloom.Opacity = (float)frame.Bloom * BloomIntensity;
 
         Vector3 offset = _layer.Offset;
         _layer.Offset = new Vector3(offset.X + ((float)frame.ShakeX * side), offset.Y, 0);
@@ -277,7 +253,6 @@ public sealed class HypnoticSurface : IDisposable
         CompositionScopedBatch? batch = loop ? null : _compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
 
         ColorKeyFrameAnimation colors = _compositor.CreateColorKeyFrameAnimation();
-        ScalarKeyFrameAnimation bloom = _compositor.CreateScalarKeyFrameAnimation();
         var cells = new ScalarKeyFrameAnimation[_cells.Length];
 
         for (int i = 0; i < cells.Length; i++)
@@ -305,7 +280,6 @@ public sealed class HypnoticSurface : IDisposable
             float key = (float)Math.Clamp(progress, 0, 1);
 
             colors.InsertKeyFrame(key, ToColor(frame.Color), _linear);
-            bloom.InsertKeyFrame(key, (float)frame.Bloom * BloomIntensity, _linear);
 
             for (int i = 0; i < cells.Length; i++)
             {
@@ -316,11 +290,8 @@ public sealed class HypnoticSurface : IDisposable
         }
 
         Configure(colors, duration, loop);
-        Configure(bloom, duration, loop);
 
         _ink.StartAnimation("Color", colors);
-        _bloom.StartAnimation("Color", colors);
-        _bloom.StartAnimation("Opacity", bloom);
 
         for (int i = 0; i < cells.Length; i++)
         {
@@ -375,8 +346,6 @@ public sealed class HypnoticSurface : IDisposable
         _batch = null;
 
         _ink.StopAnimation("Color");
-        _bloom.StopAnimation("Color");
-        _bloom.StopAnimation("Opacity");
         _layer.StopAnimation("Offset");
 
         foreach (SpriteVisual cell in _cells)
@@ -401,7 +370,6 @@ public sealed class HypnoticSurface : IDisposable
         try
         {
             StopAll();
-            _layer.Shadow = null;
             _layer.Children.RemoveAll();
 
             foreach (SpriteVisual cell in _cells)
@@ -409,7 +377,6 @@ public sealed class HypnoticSurface : IDisposable
                 cell.Dispose();
             }
 
-            _bloom.Dispose();
             _ink.Dispose();
             _linear.Dispose();
             _layer.Dispose();

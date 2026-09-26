@@ -61,7 +61,7 @@ jobs:
           Copy-Item $built.FullName "${{ runner.temp }}/built/SpaceNotch-Setup.exe"
           $builtSetup = "${{ runner.temp }}/built/SpaceNotch-Setup.exe"
 
-          function Shoot($exe, $arguments, $name, $wait = 1500, $count = 4) {
+          function Shoot($exe, $arguments, $name, $wait = 5000, $count = 3) {
             $p = if ($arguments) { Start-Process -FilePath $exe -ArgumentList $arguments -PassThru } else { Start-Process -FilePath $exe -PassThru }
             Start-Sleep -Milliseconds $wait
             & $capture -OutDir $shots -Name $name -Count $count
@@ -83,9 +83,9 @@ jobs:
           Shoot $builtSetup $null "apres-mise-a-jour"
 
           # La notch elle-même.
-          Shoot (Join-Path $env:LOCALAPPDATA "Programs\SpaceNotch\SpaceNotch.exe") @("--demo") "avant-notch" 6000 3
+          Shoot (Join-Path $env:LOCALAPPDATA "Programs\SpaceNotch\SpaceNotch.exe") @("--demo") "avant-notch" 8000 3
           Copy-Item $built.FullName "${{ runner.temp }}/built/SpaceNotch.exe" -Force
-          Shoot "${{ runner.temp }}/built/SpaceNotch.exe" @("--demo") "apres-notch" 6000 3
+          Shoot "${{ runner.temp }}/built/SpaceNotch.exe" @("--demo") "apres-notch" 8000 3
 
       - uses: actions/upload-artifact@v4
         with:
