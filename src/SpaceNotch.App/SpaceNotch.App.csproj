@@ -94,4 +94,27 @@
     -->
     <PublishTrimmed>False</PublishTrimmed>
   </PropertyGroup>
+
+  <!--
+    Le fichier de ressources dans la publication.
+
+    Toutes les interfaces XAML compilées (.xbf) vivent dans resources.pri. Pour
+    une application non empaquetée, dotnet publish le produit à la construction
+    mais l'oublie dans la sortie publiée (WindowsAppSDK#6720) : l'exécutable
+    démarre, puis chaque fenêtre échoue en XamlParseException — la notch comme
+    l'installeur, sans rien afficher. On l'ajoute ici, sous le nom que le
+    chargeur de ressources attend, avant que la liste des fichiers publiés —
+    et donc le contenu de l'exécutable unique — ne soit arrêtée.
+  -->
+  <Target Name="SpaceNotchPublishResourcesPri" BeforeTargets="ComputeResolvedFilesToPublishList" Condition="'$(WindowsPackageType)' == 'None'">
+    <ItemGroup>
+      <_SpaceNotchPri Include="$(ProjectPriFullPath)" Condition="'$(ProjectPriFullPath)' != '' and Exists('$(ProjectPriFullPath)')" />
+      <_SpaceNotchPri Include="$(OutDir)resources.pri" Condition="'@(_SpaceNotchPri)' == '' and Exists('$(OutDir)resources.pri')" />
+      <_SpaceNotchPri Include="$(OutDir)$(TargetName).pri" Condition="'@(_SpaceNotchPri)' == '' and Exists('$(OutDir)$(TargetName).pri')" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.pri'" />
+      <ResolvedFileToPublish Include="@(_SpaceNotchPri)" RelativePath="resources.pri" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+    <Warning Condition="'@(_SpaceNotchPri)' == ''" Text="resources.pri introuvable : l'application publiée ne pourra pas charger ses fenêtres XAML." />
+    <Message Importance="high" Text="resources.pri publié depuis @(_SpaceNotchPri)" Condition="'@(_SpaceNotchPri)' != ''" />
+  </Target>
 </Project>

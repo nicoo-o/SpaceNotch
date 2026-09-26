@@ -125,24 +125,34 @@ jobs:
 
           Get-ChildItem $out | ForEach-Object { "{0,-28} {1,8:N1} Mo" -f $_.Name, ($_.Length / 1MB) }
 
-      # Essai de démarrage : l'exécutable unique est lancé en mode démonstration et doit
-      # encore tourner après quelques secondes. Un plantage au démarrage — ressources
-      # manquantes, runtime absent — se voit ici plutôt que chez l'utilisateur. Les
-      # agents GitHub ont une session de bureau, mais pas toujours d'accélération
-      # graphique : un échec est signalé sans bloquer la publication, journal joint.
+          # Sans resources.pri, aucune fenêtre XAML ne se charge (WindowsAppSDK#6720).
+          if (-not (Test-Path "${{ runner.temp }}/folder/resources.pri")) { throw "resources.pri absent de la publication." }
+
+      # Essai de démarrage : l'exécutable unique est lancé en mode démonstration ; la
+      # notch doit s'être réellement ouverte et tourner encore après quelques secondes.
+      # « Le processus tourne » ne suffit pas : la v1.0.0 tournait sans aucune fenêtre,
+      # chaque XAML échouant faute de resources.pri. Bloquant : une version qui
+      # n'affiche rien ne doit jamais être publiée.
       - name: Essai de démarrage
         id: smoke
-        continue-on-error: true
         shell: pwsh
         run: |
+          $log = Join-Path $env:LOCALAPPDATA "SpaceNotch\\logs\\spacenotch.log"
+          Remove-Item $log -ErrorAction SilentlyContinue
           $process = Start-Process -FilePath "${{ runner.temp }}/dist/SpaceNotch.exe" -ArgumentList "--demo" -PassThru
           Start-Sleep -Seconds 12
-          if ($process.HasExited) {
-            Write-Host "::warning::SpaceNotch.exe s'est arrêté au démarrage (code $($process.ExitCode)). Voir l'artefact journaux-demarrage."
-            exit 1
+          $alive = -not $process.HasExited
+          if ($alive) { Stop-Process -Id $process.Id -Force }
+          Start-Sleep -Seconds 1
+          $journal = if (Test-Path $log) { Get-Content $log -Raw } else { "" }
+
+          # Un processus vivant ne suffit pas : l'Island doit s'être ouverte.
+          # Une fenêtre qui échoue au chargement laisse un [FATAL] au journal.
+          if (-not $alive -or $journal -match "\[FATAL\]" -or $journal -notmatch "window activated") {
+            Write-Host $journal
+            throw "La notch ne s'est pas ouverte au démarrage."
           }
-          Write-Host "SpaceNotch.exe tourne toujours après 12 s."
-          Stop-Process -Id $process.Id -Force
+          Write-Host "La notch s'est ouverte et tourne toujours après 12 s."
 
       # Essai de l'installeur avec sa fenêtre : c'est ce que lance un double-clic.
       # La fenêtre doit encore être là après quelques secondes, sans avoir rien
@@ -153,17 +163,17 @@ jobs:
         run: |
           $setup = "${{ runner.temp }}/dist/SpaceNotch-Setup.exe"
           $log = Join-Path $env:LOCALAPPDATA "SpaceNotch\logs\spacenotch.log"
+          Remove-Item $log -ErrorAction SilentlyContinue
           $process = Start-Process -FilePath $setup -PassThru
           Start-Sleep -Seconds 12
           $alive = -not $process.HasExited
           if ($alive) { Stop-Process -Id $process.Id -Force }
+          Start-Sleep -Seconds 1
+          $journal = if (Test-Path $log) { Get-Content $log -Raw } else { "" }
+          Write-Host "----- journal -----"
+          Write-Host $journal
 
-          if (Test-Path $log) {
-            Write-Host "----- journal -----"
-            Get-Content $log -Tail 60
-          }
-
-          if (-not $alive) {
+          if (-not $alive -or $journal -match "\[FATAL\]") {
             Write-Host "----- journal d'événements -----"
             Get-WinEvent -FilterHashtable @{ LogName = "Application"; StartTime = (Get-Date).AddMinutes(-3) } -ErrorAction SilentlyContinue |
               Where-Object { $_.ProviderName -in @(".NET Runtime", "Application Error", "Windows Error Reporting") } |
