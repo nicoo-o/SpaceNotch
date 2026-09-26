@@ -32,7 +32,8 @@ public static class MiniLogger
 
     private static readonly BlockingCollection<string> Queue = new(MaxQueuedEntries);
     private static readonly string LogDirectory;
-    private static readonly string LogPath;
+    /// <summary>Fichier du journal, montré à l'utilisateur quand l'installeur échoue.</summary>
+    public static readonly string LogPath;
     private static readonly Thread WriterThread;
 
     private static bool _started;
