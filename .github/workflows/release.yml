@@ -173,7 +173,7 @@ jobs:
           Write-Host "----- journal -----"
           Write-Host $journal
 
-          if (-not $alive -or $journal -match "\[FATAL\]") {
+          if (-not $alive -or $journal -match "\[FATAL\]" -or $journal -notmatch "Installeur ouvert") {
             Write-Host "----- journal d'événements -----"
             Get-WinEvent -FilterHashtable @{ LogName = "Application"; StartTime = (Get-Date).AddMinutes(-3) } -ErrorAction SilentlyContinue |
               Where-Object { $_.ProviderName -in @(".NET Runtime", "Application Error", "Windows Error Reporting") } |

@@ -117,6 +117,7 @@ public partial class App : Application
         {
             _window = new SetupWindow(setup, version);
             _window.Activate();
+            MiniLogger.Log($"Installeur ouvert : {SetupWindow.Describe(setup)}");
         }
         catch (Exception ex)
         {
