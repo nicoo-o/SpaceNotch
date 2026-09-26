@@ -547,6 +547,7 @@ public sealed partial class IslandWindow : Window
         _scenes[IslandSceneCatalog.Clipboard] = ClipboardSceneView;
         _scenes[IslandSceneCatalog.Launcher] = LauncherSceneView;
         _scenes[IslandSceneCatalog.QuickMenu] = QuickMenuSceneView;
+        _scenes[IslandSceneCatalog.Bluetooth] = BluetoothSceneView;
 
         // Luminosité et volume partagent la même vue : leur charge utile est
         // identique, seule la clé d'icône les distingue.
@@ -558,7 +559,6 @@ public sealed partial class IslandWindow : Window
         // que la fenêtre ait à le connaître.
         foreach (string fallbackKey in new[]
                  {
-                     IslandSceneCatalog.Bluetooth,
                      IslandSceneCatalog.DropZone,
                      IslandSceneCatalog.Card
                  })

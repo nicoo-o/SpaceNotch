@@ -107,3 +107,16 @@ public sealed record QuickMenuPayload(
     bool HasClipboard,
     bool HasShelf,
     bool TimerRunning);
+
+/// <summary>Charge utile d'un appareil Bluetooth qui se connecte ou se déconnecte.</summary>
+/// <param name="Name">Nom de l'appareil.</param>
+/// <param name="IsConnected">Nouvel état.</param>
+/// <param name="BatteryPercent">Batterie, si Windows la connaît.</param>
+/// <param name="Kind">« audio », « keyboard », « mouse », « phone », « gamepad » ou « other ».</param>
+public sealed record BluetoothPayload(string Name, bool IsConnected, int? BatteryPercent, string Kind)
+{
+    /// <summary>Sous ce seuil, la batterie s'affiche en ambre.</summary>
+    public const int LowBattery = 15;
+
+    public bool IsBatteryLow => BatteryPercent is int level && level < LowBattery;
+}

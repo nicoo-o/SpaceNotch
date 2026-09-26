@@ -11,13 +11,17 @@ using SpaceNotch.Platform.Windows.Bluetooth;
 namespace SpaceNotch.Features.Bluetooth;
 
 /// <summary>
-/// Connexion et déconnexion de périphériques Bluetooth.
+/// Connexion et déconnexion réelles de périphériques Bluetooth, avec leur
+/// batterie quand Windows la connaît.
 /// </summary>
 public sealed class BluetoothFeature : IslandFeatureBase
 {
     public const string FeatureKey = FeatureKeys.Bluetooth;
 
-    private static readonly TimeSpan NotificationLifetime = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan ConnectedLifetime = TimeSpan.FromSeconds(3);
+
+    /// <summary>Une déconnexion se lit en un coup d'œil : elle part plus vite.</summary>
+    private static readonly TimeSpan DisconnectedLifetime = TimeSpan.FromSeconds(2);
 
     private readonly BluetoothWatcher _watcher;
 
@@ -33,7 +37,7 @@ public sealed class BluetoothFeature : IslandFeatureBase
 
     protected override Task OnStartAsync(CancellationToken cancellationToken)
     {
-        _watcher.DeviceStatusChanged += OnDeviceStatusChanged;
+        _watcher.DeviceChanged += OnDeviceChanged;
         _watcher.Start();
 
         return Task.CompletedTask;
@@ -41,38 +45,49 @@ public sealed class BluetoothFeature : IslandFeatureBase
 
     protected override Task OnStopAsync()
     {
-        _watcher.DeviceStatusChanged -= OnDeviceStatusChanged;
+        _watcher.DeviceChanged -= OnDeviceChanged;
         _watcher.Stop();
 
         return Task.CompletedTask;
     }
 
-    private void OnDeviceStatusChanged(string deviceName, bool isConnected, int? batteryPercent)
+    private void OnDeviceChanged(BluetoothDeviceChange change)
     {
-        string subtitle = isConnected
-            ? batteryPercent.HasValue
-                ? $"Connecté · Batterie {batteryPercent}%"
-                : "Connecté"
-            : "Déconnecté";
+        var payload = new BluetoothPayload(change.Name, change.IsConnected, change.BatteryPercent, KindKey(change.Kind));
 
-        // Identifiant dérivé du nom du périphérique : rebrancher le même casque
-        // remplace l'activité précédente au lieu d'en créer une nouvelle à chaque
-        // fois. La durée de vie garantit sa disparition.
-        var activity = new IslandActivity
+        string subtitle = !change.IsConnected
+            ? "Déconnecté"
+            : payload.IsBatteryLow
+                ? $"Batterie faible · {change.BatteryPercent} %"
+                : "Connecté";
+
+        // Identifiant dérivé de l'appareil : rebrancher le même casque remplace
+        // l'activité précédente au lieu d'en empiler une nouvelle.
+        PublishActivity(new IslandActivity
         {
-            Id = $"bluetooth.{deviceName}",
+            Id = $"bluetooth.{change.Id}",
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Bluetooth,
-            Title = deviceName,
+            Title = change.Name,
             Subtitle = subtitle,
             Source = "Bluetooth",
             IconKey = "Bluetooth",
             State = IslandActivityState.DeviceActive,
             Priority = ActivityPriority.Normal,
-            Duration = NotificationLifetime
-        };
+            Duration = change.IsConnected ? ConnectedLifetime : DisconnectedLifetime,
+            Payload = payload
+        });
 
-        PublishActivity(activity);
-        PublishEvent(new BluetoothDeviceChangedEvent(deviceName, isConnected, batteryPercent));
+        PublishEvent(new BluetoothDeviceChangedEvent(change.Name, change.IsConnected, change.BatteryPercent));
     }
+
+    private static string KindKey(BluetoothDeviceKind kind) => kind switch
+    {
+        BluetoothDeviceKind.Audio => "audio",
+        BluetoothDeviceKind.Keyboard => "keyboard",
+        BluetoothDeviceKind.Mouse => "mouse",
+        BluetoothDeviceKind.Phone => "phone",
+        BluetoothDeviceKind.Gamepad => "gamepad",
+        _ => "other"
+    };
 }

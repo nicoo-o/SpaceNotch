@@ -38,9 +38,8 @@ public sealed class BrightnessHudFeature : IslandFeatureBase
     }
 
     /// <summary>
-    /// Vrai lorsque l'écran expose une luminosité réglable et que le crochet
-    /// clavier est posé. Faux sur un poste à écran externe, où la fonctionnalité
-    /// n'a rien à observer.
+    /// Vrai lorsque l'écran intégré publie sa luminosité à Windows. Faux sur un
+    /// poste à écran externe, où la fonctionnalité n'a rien à observer.
     /// </summary>
     public bool IsAvailable => _brightness.IsAvailable;
 
@@ -56,8 +55,7 @@ public sealed class BrightnessHudFeature : IslandFeatureBase
     {
         _brightness.BrightnessChanged -= OnBrightnessChanged;
 
-        // Retire le crochet clavier : une fonctionnalité désactivée ne doit
-        // intercepter aucune touche.
+        // Cesse d'écouter WMI : une fonctionnalité désactivée ne consomme rien.
         _brightness.Stop();
         RemoveActivity(ActivityId);
 
@@ -70,11 +68,11 @@ public sealed class BrightnessHudFeature : IslandFeatureBase
             ActivityId,
             FeatureKey,
             IslandSceneCatalog.BrightnessHud,
-            "Luminosité",
+            info.DisplayName,
             info.Percent,
             100,
             "Brightness",
-            "Écran principal",
+            "Luminosité",
             HudLifetime));
     }
 }

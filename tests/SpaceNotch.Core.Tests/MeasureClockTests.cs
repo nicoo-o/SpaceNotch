@@ -53,3 +53,13 @@ public sealed class MeasureClockTests
         Assert.Equal(TimeSpan.FromSeconds(35), clock.Value);
     }
 }
+
+public sealed class BluetoothPayloadTests
+{
+    [Theory]
+    [InlineData(14, true)]
+    [InlineData(15, false)]
+    [InlineData(null, false)]
+    public void Battery_is_low_under_fifteen_percent(int? level, bool low)
+        => Assert.Equal(low, new SpaceNotch.Core.Activities.BluetoothPayload("Casque", true, level, "audio").IsBatteryLow);
+}
