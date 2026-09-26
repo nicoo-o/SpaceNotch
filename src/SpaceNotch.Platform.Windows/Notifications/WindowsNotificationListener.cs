@@ -1,69 +1,230 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using SpaceNotch.Platform.Windows.Setup;
 using Windows.UI.Notifications;
 using Windows.UI.Notifications.Management;
 
 namespace SpaceNotch.Platform.Windows.Notifications;
 
+/// <summary>Où en est l'accès aux notifications Windows.</summary>
+public enum NotificationAccess
+{
+    /// <summary>Pas d'identité de paquet (exécutable portable) : Windows refuse l'écoute.</summary>
+    Unavailable = 0,
+
+    /// <summary>Jamais demandé : la présentation ou les réglages le demanderont.</summary>
+    NotAsked,
+
+    /// <summary>Refusé dans les paramètres de confidentialité de Windows.</summary>
+    Denied,
+
+    Allowed
+}
+
 /// <summary>
 /// Écouteur de notifications Windows (UserNotificationListener).
-/// 100% événementiel, capture les toasts entrants pour affichage dans l'Island.
+///
+/// <para>
+/// L'accès n'est plus demandé au démarrage — une fenêtre système surgissait
+/// sans explication — mais depuis la présentation du premier lancement ou les
+/// réglages, là où l'on dit à quoi il sert. Au démarrage, on n'écoute que si
+/// l'accès est déjà accordé.
+/// </para>
+///
+/// <para>
+/// L'événement <c>NotificationChanged</c> n'est pas garanti hors d'une
+/// application UWP (« Élément introuvable ») : s'il est refusé, la liste est
+/// relue toutes les deux secondes et seules les nouvelles notifications sont
+/// annoncées.
+/// </para>
 /// </summary>
-public sealed class WindowsNotificationListener
+public sealed class WindowsNotificationListener : IDisposable
 {
+    private static readonly TimeSpan PollInterval = TimeSpan.FromSeconds(2);
+
+    private readonly HashSet<uint> _seen = [];
+    private readonly Lock _gate = new();
+
     private UserNotificationListener? _listener;
+    private Timer? _poll;
+    private int _polling;
 
     public event Action<string, string, string>? NotificationReceived;
+
+    /// <summary>Diagnostic.</summary>
+    public Action<string>? Log { get; set; }
 
     /// <summary>Vrai tant que les notifications système sont écoutées.</summary>
     public bool IsListening { get; private set; }
 
-    public async Task StartAsync()
+    /// <summary>État de l'accès, sans rien demander.</summary>
+    public static NotificationAccess GetAccess()
     {
-        if (IsListening)
+        if (!IdentityPackage.HasIdentity)
         {
-            return;
+            return NotificationAccess.Unavailable;
         }
 
         try
         {
-            _listener = UserNotificationListener.Current;
-            var access = await _listener.RequestAccessAsync();
-
-            if (access == UserNotificationListenerAccessStatus.Allowed)
+            return UserNotificationListener.Current.GetAccessStatus() switch
             {
-                _listener.NotificationChanged += OnNotificationChanged;
-                IsListening = true;
-            }
+                UserNotificationListenerAccessStatus.Allowed => NotificationAccess.Allowed,
+                UserNotificationListenerAccessStatus.Denied => NotificationAccess.Denied,
+                _ => NotificationAccess.NotAsked
+            };
         }
-        catch
+        catch (Exception)
         {
-            // Tolérance selon les permissions utilisateur / stratégies de groupe
+            return NotificationAccess.Unavailable;
         }
     }
 
     /// <summary>
-    /// Cesse d'écouter les notifications. Le consentement utilisateur déjà accordé
-    /// reste acquis : une réactivation n'a pas à le redemander.
+    /// Demande l'accès à l'utilisateur (fenêtre de Windows). À appeler depuis le
+    /// fil de l'interface, en réponse à un geste. Écoute aussitôt si c'est accordé.
+    /// </summary>
+    public async Task<NotificationAccess> RequestAccessAsync()
+    {
+        if (!IdentityPackage.HasIdentity)
+        {
+            return NotificationAccess.Unavailable;
+        }
+
+        try
+        {
+            UserNotificationListenerAccessStatus status = await UserNotificationListener.Current.RequestAccessAsync();
+
+            if (status == UserNotificationListenerAccessStatus.Allowed)
+            {
+                await StartAsync().ConfigureAwait(false);
+                return NotificationAccess.Allowed;
+            }
+
+            return status == UserNotificationListenerAccessStatus.Denied ? NotificationAccess.Denied : NotificationAccess.NotAsked;
+        }
+        catch (Exception ex)
+        {
+            Log?.Invoke($"[NOTIFICATIONS] Demande d'accès impossible : {ex.Message}");
+            return NotificationAccess.Unavailable;
+        }
+    }
+
+    /// <summary>Écoute si l'accès est déjà accordé ; ne demande jamais rien.</summary>
+    public async Task StartAsync()
+    {
+        if (IsListening || GetAccess() != NotificationAccess.Allowed)
+        {
+            return;
+        }
+
+        _listener = UserNotificationListener.Current;
+
+        // Ce qui est déjà dans le centre de notifications n'est pas nouveau.
+        await RememberExistingAsync().ConfigureAwait(false);
+
+        try
+        {
+            _listener.NotificationChanged += OnNotificationChanged;
+            Log?.Invoke("[NOTIFICATIONS] Écoute par événement.");
+        }
+        catch (Exception ex)
+        {
+            Log?.Invoke($"[NOTIFICATIONS] Événement refusé ({ex.Message}) : relecture toutes les 2 s.");
+            _poll = new Timer(_ => _ = PollAsync(), null, PollInterval, PollInterval);
+        }
+
+        IsListening = true;
+    }
+
+    /// <summary>
+    /// Cesse d'écouter. Le consentement déjà accordé reste acquis : une
+    /// réactivation n'a pas à le redemander.
     /// </summary>
     public void Stop()
     {
-        if (!IsListening || _listener is null)
+        if (!IsListening)
+        {
+            return;
+        }
+
+        _poll?.Dispose();
+        _poll = null;
+
+        try
+        {
+            if (_listener is not null)
+            {
+                _listener.NotificationChanged -= OnNotificationChanged;
+            }
+        }
+        catch
+        {
+            // Abonnement jamais accepté : rien à retirer.
+        }
+
+        IsListening = false;
+    }
+
+    public void Dispose() => Stop();
+
+    private async Task RememberExistingAsync()
+    {
+        try
+        {
+            IReadOnlyList<UserNotification> existing = await _listener!.GetNotificationsAsync(NotificationKinds.Toast);
+
+            lock (_gate)
+            {
+                foreach (UserNotification notification in existing)
+                {
+                    _seen.Add(notification.Id);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log?.Invoke($"[NOTIFICATIONS] Lecture initiale impossible : {ex.Message}");
+        }
+    }
+
+    private async Task PollAsync()
+    {
+        if (_listener is null || Interlocked.Exchange(ref _polling, 1) == 1)
         {
             return;
         }
 
         try
         {
-            _listener.NotificationChanged -= OnNotificationChanged;
-        }
-        catch
-        {
-            // Tolérance.
-        }
+            IReadOnlyList<UserNotification> current = await _listener.GetNotificationsAsync(NotificationKinds.Toast);
+            List<UserNotification> fresh;
 
-        IsListening = false;
+            lock (_gate)
+            {
+                fresh = current.Where(n => _seen.Add(n.Id)).ToList();
+
+                // Oublier ce qui a quitté le centre de notifications : l'ensemble
+                // ne grossit pas sans fin.
+                _seen.IntersectWith(current.Select(n => n.Id));
+            }
+
+            foreach (UserNotification notification in fresh)
+            {
+                Announce(notification);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log?.Invoke($"[NOTIFICATIONS] Relecture impossible : {ex.Message}");
+        }
+        finally
+        {
+            Volatile.Write(ref _polling, 0);
+        }
     }
 
     private void OnNotificationChanged(UserNotificationListener sender, UserNotificationChangedEventArgs args)
@@ -73,24 +234,48 @@ public sealed class WindowsNotificationListener
             return;
         }
 
+        lock (_gate)
+        {
+            if (!_seen.Add(args.UserNotificationId))
+            {
+                return;
+            }
+        }
+
         try
         {
-            var notif = sender.GetNotification(args.UserNotificationId);
-            if (notif == null) return;
+            if (sender.GetNotification(args.UserNotificationId) is { } notification)
+            {
+                Announce(notification);
+            }
+        }
+        catch
+        {
+            // Notification déjà expirée.
+        }
+    }
 
-            var binding = notif.Notification.Visual.GetBinding(KnownNotificationBindings.ToastGeneric);
-            if (binding == null) return;
+    private void Announce(UserNotification notification)
+    {
+        try
+        {
+            NotificationBinding? binding = notification.Notification.Visual.GetBinding(KnownNotificationBindings.ToastGeneric);
 
-            var textElements = binding.GetTextElements().ToList();
-            string title = textElements.Count > 0 ? textElements[0].Text : "Notification";
-            string body = textElements.Count > 1 ? textElements[1].Text : string.Empty;
-            string appName = notif.AppInfo?.DisplayInfo?.DisplayName ?? "Windows";
+            if (binding is null)
+            {
+                return;
+            }
+
+            List<AdaptiveNotificationText> texts = binding.GetTextElements().ToList();
+            string title = texts.Count > 0 ? texts[0].Text : "Notification";
+            string body = texts.Count > 1 ? texts[1].Text : string.Empty;
+            string appName = notification.AppInfo?.DisplayInfo?.DisplayName ?? "Windows";
 
             NotificationReceived?.Invoke(appName, title, body);
         }
         catch
         {
-            // Tolérance en cas de notification expirée
+            // Notification au format inattendu : ignorée.
         }
     }
 }

@@ -41,6 +41,18 @@ internal static class SetupRunner
                     return Succeeded;
                 }
 
+                case SetupMode.TrustIdentityWorker:
+                {
+                    // Le seul fichier lu est celui du dossier SpaceNotch de la
+                    // portée — jamais un chemin reçu en argument —, et le
+                    // certificat doit porter l'empreinte inscrite dans cet
+                    // exécutable : un .cer remplacé est refusé.
+                    InstallLayout layout = InstallLayout.For(command.Options.Scope, WindowsSetup.Folders());
+                    string certificate = System.IO.Path.Combine(layout.Directory, IdentityPackage.CertificateFileName);
+
+                    return IdentityPackage.TrustCertificate(certificate, Log) ? Succeeded : Failed;
+                }
+
                 case SetupMode.UninstallWorker:
                 {
                     // La portée demandée, et elle seule : lire d'abord la ruche de
@@ -50,6 +62,10 @@ internal static class SetupRunner
                     if (product is not null)
                     {
                         await Task.Run(() => WindowsSetup.RemoveFiles(product, command.RemoveSettings, Log, command.CallerProcessId)).ConfigureAwait(false);
+
+                        // Déjà élevé : le certificat SpaceNotch quitte aussi le magasin
+                        // de l'ordinateur (clé privée détruite, il reste inoffensif sinon).
+                        IdentityPackage.RemoveCertificates(Log);
                     }
 
                     return Succeeded;

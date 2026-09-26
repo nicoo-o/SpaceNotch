@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -60,6 +61,25 @@ public sealed partial class SettingsWindow : Window
     /// </summary>
     private bool _loading = true;
 
+    /// <summary>« Revoir la présentation » : la notch la rejoue (fourni par la fenêtre de la notch).</summary>
+    public Action? ReplayWelcome { get; set; }
+
+    /// <summary>Demande l'accès aux notifications Windows (fenêtre de consentement du système).</summary>
+    public Func<Task<SpaceNotch.Platform.Windows.Notifications.NotificationAccess>>? RequestNotificationAccess { get; set; }
+
+    /// <summary>Raccourci global de la recherche, pour l'afficher (« Alt+Espace »).</summary>
+    public string? SearchHotkey
+    {
+        get => _searchHotkey;
+        set
+        {
+            _searchHotkey = value;
+            ShowHotkey();
+        }
+    }
+
+    private string? _searchHotkey;
+
     public SettingsWindow(SettingsService settings, IslandFeatureRegistry features)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -71,9 +91,18 @@ public sealed partial class SettingsWindow : Window
         InitializeComponent();
 
         ConfigureWindow();
+        BuildLogos();
         BuildFeatureToggles();
         BuildComboItems();
         LoadFromSettings();
+        SelectPage(PageGeneral, NavGeneral);
+        ShowPendingPlugins();
+        ShowHotkey();
+        UpdateNotificationCard();
+
+        string version = typeof(SettingsWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : string.Empty;
+        VersionText.Text = $"Version {version}";
+        NavVersionText.Text = $"SpaceNotch {version}";
 
         // Minuteur à usage unique : il se désarme après l'écriture. Aucune
         // vérification périodique n'existe donc, même fenêtre ouverte.
@@ -110,7 +139,26 @@ public sealed partial class SettingsWindow : Window
             presenter.IsMaximizable = false;
         }
 
-        appWindow.Resize(new SizeInt32(560, 820));
+        // 920 × 660 DIP : le menu latéral et une colonne de cartes lisible, à
+        // toutes les échelles d'affichage (AppWindow parle en pixels physiques).
+        double scale = GetDpiForWindow(handle) / 96.0;
+        appWindow.Resize(new SizeInt32((int)(920 * scale), (int)(660 * scale)));
+
+        // Barre de titre noire, comme la fenêtre : la barre blanche par défaut
+        // coupait l'OLED en deux.
+        if (AppWindowTitleBar.IsCustomizationSupported())
+        {
+            Color black = Color.FromArgb(0xFF, 0x05, 0x05, 0x06);
+            Color ink = Color.FromArgb(0xFF, 0xE8, 0xE8, 0xEA);
+            appWindow.TitleBar.BackgroundColor = black;
+            appWindow.TitleBar.InactiveBackgroundColor = black;
+            appWindow.TitleBar.ForegroundColor = ink;
+            appWindow.TitleBar.ButtonBackgroundColor = black;
+            appWindow.TitleBar.ButtonInactiveBackgroundColor = black;
+            appWindow.TitleBar.ButtonForegroundColor = ink;
+            appWindow.TitleBar.ButtonHoverBackgroundColor = Color.FromArgb(0xFF, 0x1A, 0x1B, 0x1F);
+            appWindow.TitleBar.ButtonHoverForegroundColor = ink;
+        }
 
         // La fenêtre de réglages se place au centre de l'écran principal : les
         // réglages se lisent, ils ne doivent pas aller chercher l'utilisateur.
@@ -120,31 +168,90 @@ public sealed partial class SettingsWindow : Window
             area.Y + ((area.Height - appWindow.Size.Height) / 2)));
     }
 
+    /// <summary>
+    /// Une carte par activité réglable. Les fonctionnalités internes — menu
+    /// rapide, présentation, recherche — n'ont pas de préférence à retenir : elles
+    /// n'apparaissent pas, plutôt qu'en interrupteur inerte « sans préférence ».
+    /// </summary>
     private void BuildFeatureToggles()
     {
         foreach (IIslandFeature feature in _features.Features)
         {
-            // Une fonctionnalité sans préférence persistée ne peut pas être
-            // mémorisée : mieux vaut la présenter inerte que laisser croire à une
-            // bascule qui oublierait son état au redémarrage.
-            bool persisted = AppSettings.HasFeaturePreference(feature.Id);
+            if (!AppSettings.HasFeaturePreference(feature.Id))
+            {
+                continue;
+            }
+
+            (string glyph, string title, string description) = DescribeFeature(feature);
 
             var toggle = new ToggleSwitch
             {
-                Header = persisted ? feature.DisplayName : $"{feature.DisplayName} (sans préférence)",
-                OnContent = "Active",
-                OffContent = "Inactive",
-                IsEnabled = persisted,
-                IsOn = feature.IsEnabled
+                OnContent = string.Empty,
+                OffContent = string.Empty,
+                MinWidth = 0,
+                IsOn = feature.IsEnabled,
+                VerticalAlignment = VerticalAlignment.Center
             };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(toggle, title);
 
             IIslandFeature captured = feature;
-
             toggle.Toggled += async (_, _) => await OnFeatureToggledAsync(captured, toggle);
 
             _featureToggles[feature.Id] = toggle;
-            FeaturesHost.Children.Add(toggle);
+            FeaturesHost.Children.Add(SettingsCard(glyph, title, description, toggle));
         }
+    }
+
+    private static (string Glyph, string Title, string Description) DescribeFeature(IIslandFeature feature) => feature.Id switch
+    {
+        FeatureKeys.Media => ("\uE8D6", "Musique et vidéos", "Pochette, titre, lecture — Spotify, navigateur, Apple Music…"),
+        FeatureKeys.Notifications => ("\uE715", "Notifications", "Un aperçu dans la notch, puis elles se rangent."),
+        FeatureKeys.Clipboard => ("\uE77F", "Presse-papier", "Les derniers éléments copiés, épinglables."),
+        FeatureKeys.Bluetooth => ("\uE702", "Bluetooth", "Connexion, déconnexion et batterie de tes appareils."),
+        FeatureKeys.VolumeHud => ("\uE767", "Volume", "Remplace l'indicateur de volume de Windows."),
+        FeatureKeys.Pomodoro => ("\uE916", "Focus", "Des sessions de 25 minutes, puis une pause."),
+        FeatureKeys.FileShelf => ("\uE7B8", "Étagère", "Dépose des fichiers sur la notch, reprends-les plus tard."),
+        FeatureKeys.Downloads => ("\uE896", "Téléchargements", "La progression de ce que tu télécharges."),
+        FeatureKeys.Privacy => ("\uE72E", "Caméra et micro", "Un point quand une application les utilise."),
+        _ => ("\uE71D", feature.DisplayName, string.Empty)
+    };
+
+    /// <summary>Carte OLED construite en code, identique à celles du XAML.</summary>
+    private static Border SettingsCard(string glyph, string title, string description, FrameworkElement control)
+    {
+        var grid = new Grid { ColumnSpacing = 14 };
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+        grid.Children.Add(new FontIcon
+        {
+            Glyph = glyph,
+            FontSize = 16,
+            Foreground = new SolidColorBrush(Color.FromArgb(0xB8, 0xFF, 0xFF, 0xFF)),
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+        texts.Children.Add(new TextBlock { Text = title, Style = (Style)Application.Current.Resources["NfSettingsTitleStyle"] });
+
+        if (description.Length > 0)
+        {
+            texts.Children.Add(new TextBlock { Text = description, Style = (Style)Application.Current.Resources["NfSettingsDescriptionStyle"] });
+        }
+
+        Grid.SetColumn(texts, 1);
+        grid.Children.Add(texts);
+
+        Grid.SetColumn(control, 2);
+        grid.Children.Add(control);
+
+        return new Border
+        {
+            Style = (Style)Application.Current.Resources["NfSettingsCardStyle"],
+            Tag = $"{title} {description}",
+            Child = grid
+        };
     }
 
     private void BuildComboItems()
@@ -162,6 +269,9 @@ public sealed partial class SettingsWindow : Window
 
         // L'ordre suit l'énumération MotionStyle : l'index sélectionné en est la valeur.
         MotionStyleBox.ItemsSource = new[] { "Calme", "Naturel", "Dynamique", "Personnalisé" };
+
+        WebSearchBox.ItemsSource = WebEngines.Select(e => e.Label).ToArray();
+        ClipboardSizeBox.ItemsSource = ClipboardSizes.Select(n => $"{n} éléments").ToArray();
     }
 
     /// <summary>
@@ -221,6 +331,13 @@ public sealed partial class SettingsWindow : Window
             ClockToggle.IsOn = settings.ShowClockAtRest;
             DiagnosticsToggle.IsOn = settings.EnableDiagnostics;
             CompositionToggle.IsOn = settings.UseCompositionAtmosphere;
+            ClipboardSecretsToggle.IsOn = settings.ClipboardIgnoreSecrets;
+            WebSearchBox.SelectedIndex = Math.Max(0, Array.FindIndex(WebEngines, e => e.Key == settings.WebSearchEngine));
+
+            int size = Array.FindIndex(ClipboardSizes, n => n >= settings.ClipboardHistoryLimit);
+            ClipboardSizeBox.SelectedIndex = size < 0 ? ClipboardSizes.Length - 1 : size;
+
+            ShowIgnoredApps(settings.IgnoredNotificationApps);
 
             string executable = Environment.ProcessPath ?? string.Empty;
             StartupToggle.IsOn = executable.Length > 0
@@ -253,6 +370,7 @@ public sealed partial class SettingsWindow : Window
         SyncMotionStyle(settings);
         UpdateValueLabels();
         UpdatePreview();
+        ShowIgnoredApps(settings.IgnoredNotificationApps);
     }
 
     private void UpdateValueLabels()
@@ -711,26 +829,402 @@ public sealed partial class SettingsWindow : Window
 
     private void OnCloseClicked(object sender, RoutedEventArgs e) => Close();
 
-    /// <summary>Saut vers une section : son titre vient en haut de la zone de défilement.</summary>
-    private void OnSectionClicked(object sender, RoutedEventArgs e)
-    {
-        FrameworkElement? header = (sender as FrameworkElement)?.Tag switch
-        {
-            "Appearance" => SectionAppearance,
-            "Behavior" => SectionBehavior,
-            "Activities" => SectionActivities,
-            "Motion" => SectionMotion,
-            "Displays" => SectionDisplays,
-            "Advanced" => SectionAdvanced,
-            _ => null
-        };
+    // ------------------------------------------------------------------
+    // Pages et recherche
+    // ------------------------------------------------------------------
 
-        header?.StartBringIntoView(new BringIntoViewOptions
+    private static readonly (string Key, string Label)[] WebEngines =
+    [
+        ("bing", "Bing"),
+        ("google", "Google"),
+        ("duckduckgo", "DuckDuckGo")
+    ];
+
+    private static readonly int[] ClipboardSizes = [20, 50, 100];
+
+    private StackPanel[] Pages => [PageGeneral, PageNotch, PageAppearance, PageActivities, PageMotion, PageDisplays, PageAbout];
+
+    private Button[] NavButtons => [NavGeneral, NavNotch, NavAppearance, NavActivities, NavMotion, NavDisplays, NavAbout];
+
+    private StackPanel _currentPage = null!;
+
+    private void OnNavClicked(object sender, RoutedEventArgs e)
+    {
+        int index = Array.IndexOf(NavButtons, sender as Button);
+
+        if (index >= 0)
         {
-            VerticalAlignmentRatio = 0,
-            AnimationDesired = true
-        });
+            SearchSettingsBox.Text = string.Empty;
+            SelectPage(Pages[index], NavButtons[index]);
+        }
     }
+
+    /// <summary>Une page à la fois ; l'entrée du menu reçoit le fond de sélection et la barre cyan.</summary>
+    private void SelectPage(StackPanel page, Button nav)
+    {
+        _currentPage = page;
+
+        foreach (StackPanel candidate in Pages)
+        {
+            candidate.Visibility = ReferenceEquals(candidate, page) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        foreach (Button button in NavButtons)
+        {
+            bool on = ReferenceEquals(button, nav);
+            button.Background = on
+                ? (Brush)Application.Current.Resources["NfSelectionBrush"]
+                : new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+
+            if (button.Content is Grid { Children.Count: > 0 } content && content.Children[0] is Border bar)
+            {
+                bar.Opacity = on ? 1 : 0;
+            }
+        }
+
+        SettingsScroll.ChangeView(null, 0, null, disableAnimation: true);
+    }
+
+    /// <summary>
+    /// Recherche : toutes les pages à la fois, seules les cartes dont le titre ou
+    /// la phrase contient le texte ; titres de groupe masqués le temps de chercher.
+    /// </summary>
+    private void OnSearchSettingsChanged(object sender, TextChangedEventArgs e)
+    {
+        string query = SearchSettingsBox.Text.Trim();
+
+        if (query.Length == 0)
+        {
+            SearchHeader.Visibility = Visibility.Collapsed;
+            SetCardsVisible(all: true, query);
+            SelectPage(_currentPage, NavButtons[Array.IndexOf(Pages, _currentPage)]);
+            return;
+        }
+
+        int found = SetCardsVisible(all: false, query);
+        SearchHeader.Text = found == 0 ? $"Aucun réglage pour « {query} »" : $"Résultats pour « {query} »";
+        SearchHeader.Visibility = Visibility.Visible;
+    }
+
+    private int SetCardsVisible(bool all, string query)
+    {
+        int found = 0;
+
+        foreach (StackPanel page in Pages)
+        {
+            int inPage = 0;
+
+            foreach (UIElement child in AllChildren(page))
+            {
+                switch (child)
+                {
+                    case Border { Tag: string text } card:
+                        bool match = all || text.Contains(query, StringComparison.CurrentCultureIgnoreCase);
+                        card.Visibility = match ? Visibility.Visible : Visibility.Collapsed;
+                        inPage += match ? 1 : 0;
+                        break;
+
+                    case TextBlock label:
+                        // Titre de page, phrase d'introduction, titres de groupe.
+                        label.Visibility = all ? Visibility.Visible : Visibility.Collapsed;
+                        break;
+
+                    case Border preview when !all:
+                        preview.Visibility = Visibility.Collapsed;
+                        break;
+
+                    case Border preview:
+                        preview.Visibility = Visibility.Visible;
+                        break;
+                }
+            }
+
+            found += inPage;
+
+            if (!all)
+            {
+                page.Visibility = inPage > 0 ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        return found;
+    }
+
+    /// <summary>Les enfants directs d'une page, et ceux de la liste des activités.</summary>
+    private static IEnumerable<UIElement> AllChildren(StackPanel page)
+    {
+        foreach (UIElement child in page.Children)
+        {
+            if (child is StackPanel nested)
+            {
+                foreach (UIElement inner in nested.Children)
+                {
+                    yield return inner;
+                }
+            }
+            else
+            {
+                yield return child;
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Général : présentation, raccourci, moteur web, notifications
+    // ------------------------------------------------------------------
+
+    private void OnReplayWelcomeClicked(object sender, RoutedEventArgs e)
+    {
+        ReplayWelcome?.Invoke();
+        Close();
+    }
+
+    private void ShowHotkey()
+    {
+        HotkeyCaps.Children.Clear();
+
+        if (string.IsNullOrWhiteSpace(_searchHotkey))
+        {
+            HotkeyCaps.Children.Add(new TextBlock
+            {
+                Text = "Aucun (Alt+Espace et Win+Maj+Espace sont pris)",
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF)),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            return;
+        }
+
+        foreach (string key in _searchHotkey.Split('+'))
+        {
+            HotkeyCaps.Children.Add(new Border
+            {
+                Style = (Style)Application.Current.Resources["NfKeyCapStyle"],
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = new TextBlock { Text = key, Style = (Style)Application.Current.Resources["NfKeyCapTextStyle"] }
+            });
+        }
+    }
+
+    private void OnWebSearchChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (WebSearchBox.SelectedIndex is int index and >= 0)
+        {
+            Apply(s => s.WebSearchEngine = WebEngines[index].Key);
+        }
+    }
+
+    private void UpdateNotificationCard()
+    {
+        var access = SpaceNotch.Platform.Windows.Notifications.WindowsNotificationListener.GetAccess();
+        var green = new SolidColorBrush(Color.FromArgb(0xFF, 0x8F, 0xF0, 0xA4));
+        var dim = new SolidColorBrush(Color.FromArgb(0x99, 0xFF, 0xFF, 0xFF));
+
+        (string Status, Brush Brush, string? Button) card = access switch
+        {
+            SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Allowed => ("● Autorisé", green, null),
+            SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Denied => ("Bloqué par Windows", dim, "Ouvrir les paramètres"),
+            SpaceNotch.Platform.Windows.Notifications.NotificationAccess.NotAsked => (string.Empty, dim, "Autoriser"),
+            _ => ("Demande SpaceNotch installé", dim, null)
+        };
+        (string status, Brush brush, string? button) = card;
+
+        NotificationStatusText.Text = status;
+        NotificationStatusText.Foreground = brush;
+        NotificationButton.Content = button;
+        NotificationButton.Visibility = button is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private async void OnNotificationButtonClicked(object sender, RoutedEventArgs e)
+    {
+        var access = SpaceNotch.Platform.Windows.Notifications.WindowsNotificationListener.GetAccess();
+
+        if (access == SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Denied)
+        {
+            // Le refus se lève dans Paramètres › Confidentialité › Notifications.
+            _ = await global::Windows.System.Launcher.LaunchUriAsync(new Uri("ms-settings:privacy-notifications"));
+            return;
+        }
+
+        if (RequestNotificationAccess is not null)
+        {
+            await RequestNotificationAccess();
+        }
+
+        UpdateNotificationCard();
+    }
+
+    private void ShowIgnoredApps(List<string> apps)
+    {
+        IgnoredAppsHost.Children.Clear();
+        IgnoredAppsHost.Visibility = apps.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+
+        foreach (string app in apps)
+        {
+            var chip = new Button
+            {
+                Style = (Style)Application.Current.Resources["NfChipButtonStyle"],
+                Content = $"{app}  ✕"
+            };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(chip, $"Ne plus ignorer {app}");
+
+            string captured = app;
+            chip.Click += (_, _) => Apply(s => s.IgnoredNotificationApps.RemoveAll(a => string.Equals(a, captured, StringComparison.OrdinalIgnoreCase)));
+            IgnoredAppsHost.Children.Add(chip);
+        }
+    }
+
+    private void OnIgnoredAppKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (e.Key != global::Windows.System.VirtualKey.Enter)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        string app = IgnoredAppBox.Text.Trim();
+
+        if (app.Length == 0)
+        {
+            return;
+        }
+
+        Apply(s =>
+        {
+            if (!s.IgnoredNotificationApps.Contains(app, StringComparer.OrdinalIgnoreCase))
+            {
+                s.IgnoredNotificationApps.Add(app);
+            }
+        });
+
+        IgnoredAppBox.Text = string.Empty;
+    }
+
+    private void OnClipboardSecretsToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.ClipboardIgnoreSecrets = ClipboardSecretsToggle.IsOn);
+
+    private void OnClipboardSizeChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (ClipboardSizeBox.SelectedIndex is int index and >= 0)
+        {
+            Apply(s => s.ClipboardHistoryLimit = ClipboardSizes[index]);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Greffons en attente d'approbation
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// Les greffons présents mais non approuvés — ou modifiés depuis — : un
+    /// bouton par greffon, qui l'approuve tel qu'il est (nom et empreinte).
+    /// </summary>
+    private void ShowPendingPlugins()
+    {
+        PendingPluginsHost.Children.Clear();
+
+        IReadOnlyList<string> pending = PluginLoader.FindPending(
+            PluginLoader.ResolveDefaultDirectory(),
+            new PluginAllowlist(_settings.Current.ApprovedPlugins));
+
+        if (pending.Count == 0)
+        {
+            PendingPluginsHost.Children.Add(new TextBlock
+            {
+                Text = "Aucun greffon en attente.",
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF))
+            });
+            return;
+        }
+
+        foreach (string path in pending)
+        {
+            string name = Path.GetFileName(path);
+            var row = new Grid { ColumnSpacing = 10 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            row.Children.Add(new TextBlock
+            {
+                Text = name,
+                FontSize = 12.5,
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            });
+
+            var approve = new Button
+            {
+                Style = (Style)Application.Current.Resources["NfSecondaryButtonStyle"],
+                Content = "Autoriser"
+            };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(approve, $"Autoriser le greffon {name}");
+            approve.Click += (_, _) =>
+            {
+                if (PluginAllowlist.Hash(path) is not { } hash)
+                {
+                    StatusText.Text = $"{name} : fichier illisible.";
+                    return;
+                }
+
+                Apply(s => s.ApprovedPlugins[name] = hash);
+                StatusText.Text = $"{name} sera chargé au prochain démarrage de SpaceNotch.";
+                ShowPendingPlugins();
+            };
+            Grid.SetColumn(approve, 1);
+            row.Children.Add(approve);
+
+            PendingPluginsHost.Children.Add(row);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Logo : la grille 3×3, cyan, pixel central blanc
+    // ------------------------------------------------------------------
+
+    private void BuildLogos()
+    {
+        FillLogo(BrandLogo, 4, 1);
+        FillLogo(AboutLogo, 8, 2);
+    }
+
+    private static void FillLogo(Grid host, double pixel, double gap)
+    {
+        host.Children.Clear();
+        host.RowDefinitions.Clear();
+        host.ColumnDefinitions.Clear();
+
+        for (int i = 0; i < 3; i++)
+        {
+            host.RowDefinitions.Add(new RowDefinition());
+            host.ColumnDefinitions.Add(new ColumnDefinition());
+        }
+
+        for (int row = 0; row < 3; row++)
+        {
+            for (int column = 0; column < 3; column++)
+            {
+                bool center = row == 1 && column == 1;
+                var dot = new Border
+                {
+                    Width = pixel,
+                    Height = pixel,
+                    Margin = new Thickness(gap / 2),
+                    CornerRadius = new CornerRadius(pixel / 4),
+                    Background = center
+                        ? new SolidColorBrush(Microsoft.UI.Colors.White)
+                        : new SolidColorBrush(Color.FromArgb(0xFF, 0x7F, 0xE6, 0xFF))
+                };
+                Grid.SetRow(dot, row);
+                Grid.SetColumn(dot, column);
+                host.Children.Add(dot);
+            }
+        }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern uint GetDpiForWindow(IntPtr window);
 
     /// <summary>
     /// Grille hypnotique de l'aperçu : la vraie, jouée si le mouvement est

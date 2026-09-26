@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
+using SpaceNotch.Core.Productivity;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
 
@@ -14,7 +15,8 @@ namespace SpaceNotch.Features.Productivity;
 /// Session de travail minutée.
 ///
 /// Exception documentée à la règle « aucune boucle » : un compte à rebours doit
-/// avancer, donc il bat à 1 Hz. Quatre garde-fous le maintiennent dans un budget
+/// avancer, donc il bat (quatre fois par seconde, pour changer de seconde à
+/// l'heure juste ; la valeur, elle, vient d'une échéance et ne dérive pas). Quatre garde-fous le maintiennent dans un budget
 /// borné et honnête : le minuteur n'existe que pendant une session active (il est
 /// suspendu en pause, à la remise à zéro, à la désactivation de la fonctionnalité
 /// et à la fermeture de l'application) ; l'activité est mise à jour sous un
@@ -32,22 +34,28 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
     private readonly Timer _tickTimer;
 
-    private TimeSpan _remaining = DefaultSessionLength;
-    private bool _sessionRunning;
+    private readonly MeasureClock _clock;
+    private TimeSpan? _published;
 
     public PomodoroFeature(
         IActivityManager activities,
         IEventBus events,
-        bool isEnabled = true)
+        bool isEnabled = true,
+        Func<DateTimeOffset>? now = null)
         : base(FeatureKey, "Minuteur de focus", activities, events, isEnabled)
     {
+        // La valeur vient d'une échéance : juste après une mise en veille, sans
+        // dérive d'un battement en retard.
+        _clock = new MeasureClock(now);
+        _clock.Set(DefaultSessionLength, countsDown: true);
+
         // Créé suspendu : une fonctionnalité au repos ne consomme rien.
         _tickTimer = new Timer(OnTick, null, Timeout.Infinite, Timeout.Infinite);
     }
 
-    public bool IsSessionRunning => _sessionRunning;
+    public bool IsSessionRunning => _clock.IsRunning;
 
-    public TimeSpan Remaining => _remaining;
+    public TimeSpan Remaining => _clock.Value;
 
     public void Start(TimeSpan? duration = null)
     {
@@ -58,36 +66,41 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
         if (duration.HasValue)
         {
-            _remaining = duration.Value;
+            bool wasRunning = _clock.IsRunning;
+            _clock.Set(duration.Value, countsDown: true);
+
+            if (wasRunning)
+            {
+                _clock.Start();
+            }
         }
 
-        if (_sessionRunning)
+        if (_clock.IsRunning)
         {
             return;
         }
 
-        _sessionRunning = true;
-        _tickTimer.Change(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        _clock.Start();
+        _tickTimer.Change(TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
         PublishSessionActivity("Focus en cours");
     }
 
     public void Pause()
     {
-        if (!_sessionRunning)
+        if (!_clock.IsRunning)
         {
             return;
         }
 
-        _sessionRunning = false;
+        _clock.Pause();
         StopTimer();
         PublishSessionActivity("En pause");
     }
 
     public void Reset(TimeSpan? duration = null)
     {
-        _sessionRunning = false;
         StopTimer();
-        _remaining = duration ?? DefaultSessionLength;
+        _clock.Set(duration ?? DefaultSessionLength, countsDown: true);
         RemoveActivity(ActivityId);
     }
 
@@ -97,9 +110,8 @@ public sealed class PomodoroFeature : IslandFeatureBase
     {
         // Désactiver la fonctionnalité interrompt la session : le minuteur ne doit
         // pas continuer à battre pour une fonctionnalité éteinte.
-        _sessionRunning = false;
         StopTimer();
-        _remaining = DefaultSessionLength;
+        _clock.Set(DefaultSessionLength, countsDown: true);
 
         return Task.CompletedTask;
     }
@@ -108,22 +120,25 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
     private void OnTick(object? state)
     {
-        if (!_sessionRunning)
+        if (!_clock.IsRunning)
         {
             return;
         }
 
-        if (_remaining > TimeSpan.Zero)
+        if (!_clock.IsFinished)
         {
-            _remaining -= TimeSpan.FromSeconds(1);
+            // Même identifiant : l'activité est remplacée, pas empilée — et
+            // seulement quand la seconde affichée change.
+            if (_clock.Value != _published)
+            {
+                PublishSessionActivity("Focus en cours");
+            }
 
-            // Même identifiant : l'activité est remplacée, pas empilée.
-            PublishSessionActivity("Focus en cours");
             return;
         }
 
-        _sessionRunning = false;
         StopTimer();
+        _clock.Set(DefaultSessionLength, countsDown: true);
 
         PublishActivity(new IslandActivity
         {
@@ -144,12 +159,14 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
     private void PublishSessionActivity(string subtitle)
     {
+        _published = _clock.Value;
+
         PublishActivity(new IslandActivity
         {
             Id = ActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Pomodoro,
-            Title = _remaining.ToString(@"mm\:ss", CultureInfo.InvariantCulture),
+            Title = _clock.Value.ToString(@"mm\:ss", CultureInfo.InvariantCulture),
             Subtitle = subtitle,
             Source = "Pomodoro",
             IconKey = "Timer",

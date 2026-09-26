@@ -110,6 +110,9 @@ public sealed partial class IslandWindow : Window
     private readonly TimerFeature _timerFeature;
     private readonly LauncherFeature _launcherFeature;
     private readonly QuickMenuFeature _quickMenuFeature;
+    private readonly ClipboardFeature _clipboardFeature;
+    private readonly NotificationFeature _notificationFeature;
+    private readonly WelcomeFeature _welcomeFeature;
     private readonly MediaFeature _mediaFeature;
     private readonly IslandFeatureRegistry _featureRegistry;
     private readonly PluginLoader _pluginLoader;
@@ -281,9 +284,29 @@ public sealed partial class IslandWindow : Window
         _launcherFeature = new LauncherFeature(
             _activityManager,
             _eventBus,
-            store: new SpaceNotch_App.Launcher.SettingsLauncherHistoryStore(_settingsService));
+            store: new SpaceNotch_App.Launcher.SettingsLauncherHistoryStore(_settingsService))
+        {
+            WebSearchEngine = _settings.WebSearchEngine
+        };
 
         _quickMenuFeature = new QuickMenuFeature(_activityManager, _eventBus);
+        _welcomeFeature = new WelcomeFeature(_activityManager, _eventBus);
+        _welcomeFeature.Completed += (_, _) => OnWelcomeCompleted();
+
+        _notificationListener.Log = message => MiniLogger.Log(message);
+        _notificationFeature = new NotificationFeature(
+            _activityManager, _eventBus, _notificationListener,
+            _settings.IsFeatureEnabled(NotificationFeature.FeatureKey))
+        {
+            IgnoredApps = _settings.IgnoredNotificationApps
+        };
+
+        _clipboardFeature = new ClipboardFeature(
+            _activityManager, _eventBus, _clipboardMonitor, _hWnd,
+            _settings.IsFeatureEnabled(ClipboardFeature.FeatureKey))
+        {
+            IgnoreSecrets = _settings.ClipboardIgnoreSecrets
+        };
 
         _mediaFeature = new MediaFeature(
             _activityManager, _eventBus, _mediaSessionManager, _settings.IsFeatureEnabled(MediaFeature.FeatureKey));
@@ -296,9 +319,7 @@ public sealed partial class IslandWindow : Window
             new SystemHudFeature(
                 _activityManager, _eventBus, _volumeListener,
                 _settings.IsFeatureEnabled(SystemHudFeature.FeatureKey)),
-            new NotificationFeature(
-                _activityManager, _eventBus, _notificationListener,
-                _settings.IsFeatureEnabled(NotificationFeature.FeatureKey)),
+            _notificationFeature,
             new BluetoothFeature(
                 _activityManager, _eventBus, _bluetoothWatcher,
                 _settings.IsFeatureEnabled(BluetoothFeature.FeatureKey)),
@@ -310,15 +331,14 @@ public sealed partial class IslandWindow : Window
             _timerFeature,
             _launcherFeature,
             _quickMenuFeature,
+            _welcomeFeature,
             new DownloadsFeature(
                 _activityManager, _eventBus, KnownFolders.Downloads,
                 _settings.IsFeatureEnabled(DownloadsFeature.FeatureKey)),
             new PrivacyFeature(
                 _activityManager, _eventBus, new CapabilityUsageWatcher(),
                 _settings.IsFeatureEnabled(PrivacyFeature.FeatureKey)),
-            new ClipboardFeature(
-                _activityManager, _eventBus, _clipboardMonitor, _hWnd,
-                _settings.IsFeatureEnabled(ClipboardFeature.FeatureKey))
+            _clipboardFeature
         };
 
         // Les greffons sont chargés avant la création du registre : ils en font
@@ -327,8 +347,16 @@ public sealed partial class IslandWindow : Window
         // fonctionnalités intégrées.
         _pluginLoader = new PluginLoader();
 
+        // Seuls les greffons approuvés (nom et empreinte) sont chargés ; les
+        // autres attendent dans Réglages › À propos.
         PluginLoadResult plugins = _pluginLoader.LoadAll(
-            new IslandFeatureContext(_activityManager, _eventBus));
+            new IslandFeatureContext(_activityManager, _eventBus),
+            new PluginAllowlist(_settings.ApprovedPlugins));
+
+        foreach (string pending in plugins.Pending ?? [])
+        {
+            MiniLogger.Log($"[PLUGIN] En attente d'approbation : {System.IO.Path.GetFileName(pending)}");
+        }
 
         features.AddRange(plugins.Features);
 
@@ -541,6 +569,8 @@ public sealed partial class IslandWindow : Window
         _scenes[IslandSceneCatalog.Clipboard] = ClipboardSceneView;
         _scenes[IslandSceneCatalog.Launcher] = LauncherSceneView;
         _scenes[IslandSceneCatalog.QuickMenu] = QuickMenuSceneView;
+        _scenes[IslandSceneCatalog.Bluetooth] = BluetoothSceneView;
+        _scenes[IslandSceneCatalog.Welcome] = WelcomeSceneView;
 
         // Luminosité et volume partagent la même vue : leur charge utile est
         // identique, seule la clé d'icône les distingue.
@@ -552,7 +582,6 @@ public sealed partial class IslandWindow : Window
         // que la fenêtre ait à le connaître.
         foreach (string fallbackKey in new[]
                  {
-                     IslandSceneCatalog.Bluetooth,
                      IslandSceneCatalog.DropZone,
                      IslandSceneCatalog.Card
                  })
@@ -590,7 +619,7 @@ public sealed partial class IslandWindow : Window
 
             // Les commandes du menu rapide touchent la fenêtre : elles sont
             // exécutées ici, pas par une fonctionnalité.
-            if (HandleQuickMenuAction(request))
+            if (HandleQuickMenuAction(request) || await HandleWelcomeActionAsync(request))
             {
                 return;
             }
@@ -648,6 +677,12 @@ public sealed partial class IslandWindow : Window
                 && _controller.PresentedActivity?.SceneKey == IslandSceneCatalog.Launcher)
             {
                 _launcherFeature.Dismiss();
+            }
+
+            // Refermer la notch pendant la présentation, c'est la passer.
+            if (state == IslandState.Closed && _welcomeFeature.IsShown)
+            {
+                _welcomeFeature.Finish();
             }
 
             // Le menu rapide aussi : refermé, il ne reste pas en tête de pile.
@@ -923,6 +958,12 @@ public sealed partial class IslandWindow : Window
                 {
                     CaptureKeyboardForTyping();
                     DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, launcher.FocusSearch);
+                }
+                else if (scene is WelcomeScene welcome)
+                {
+                    // Entrée avance, Échap passe : la présentation se suit au clavier.
+                    CaptureKeyboardForTyping();
+                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, welcome.FocusPrimary);
                 }
                 else if (scene is QuickMenuScene menu)
                 {
@@ -2526,7 +2567,7 @@ public sealed partial class IslandWindow : Window
         flyout.Items.Add(new MenuFlyoutSeparator());
 
         var exitItem = new MenuFlyoutItem { Text = "Quitter SpaceNotch" };
-        exitItem.Click += (_, _) => Application.Current.Exit();
+        exitItem.Click += (_, _) => QuitApplication();
         flyout.Items.Add(exitItem);
 
         return flyout;
@@ -2758,6 +2799,9 @@ public sealed partial class IslandWindow : Window
             || settings.CustomDisplayHandle != _settings.CustomDisplayHandle;
 
         _settings = settings;
+        _clipboardFeature.IgnoreSecrets = settings.ClipboardIgnoreSecrets;
+        _notificationFeature.IgnoredApps = settings.IgnoredNotificationApps;
+        _launcherFeature.WebSearchEngine = settings.WebSearchEngine;
 
         // Le détachement retiré, ou l'écran cible changé : la notch revient au
         // bord de l'écran qui est désormais le sien.
@@ -2919,7 +2963,12 @@ public sealed partial class IslandWindow : Window
             {
                 if (_settingsWindow is null)
                 {
-                    _settingsWindow = new SettingsWindow(_settingsService, _featureRegistry);
+                    _settingsWindow = new SettingsWindow(_settingsService, _featureRegistry)
+                    {
+                        ReplayWelcome = ShowWelcome,
+                        RequestNotificationAccess = _notificationFeature.RequestAccessAsync,
+                        SearchHotkey = _launcherFeature.Hotkey
+                    };
                     _settingsWindow.Closed += (_, _) => _settingsWindow = null;
                 }
 
@@ -2936,7 +2985,21 @@ public sealed partial class IslandWindow : Window
     // Arrêt
     // ------------------------------------------------------------------
 
-    private async void OnWindowClosed(object sender, WindowEventArgs args)
+    private async void OnWindowClosed(object sender, WindowEventArgs args) => await ShutdownAsync();
+
+    /// <summary>
+    /// « Quitter » : l'arrêt est mené jusqu'au bout — fonctionnalités arrêtées,
+    /// raccourci rendu à Windows, journal vidé — <em>puis</em> l'application
+    /// sort. <c>Application.Exit()</c> seul coupait le processus pendant que
+    /// l'arrêt attendait encore, et laissait le raccourci global enregistré.
+    /// </summary>
+    private async void QuitApplication()
+    {
+        await ShutdownAsync();
+        Application.Current.Exit();
+    }
+
+    private async Task ShutdownAsync()
     {
         if (_isClosed)
         {
@@ -2989,6 +3052,7 @@ public sealed partial class IslandWindow : Window
             _controller.Dispose();
             _diagnostics.Dispose();
             _screenWatcher.Dispose();
+            _notificationListener.Dispose();
             SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Unregister(_hWnd);
             _messageMonitor?.Dispose();
         }

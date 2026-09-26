@@ -1,0 +1,26 @@
+name: Sonde d'identité
+
+# Répond à une seule question avant d'aller plus loin (ADR-023) : Windows
+# accepte-t-il l'éditeur des paquets non signés dans le manifeste d'un
+# exécutable, et ce paquet donne-t-il vraiment une identité au lancement ?
+on:
+  workflow_dispatch:
+  # Un workflow manuel n'est lançable qu'une fois sur main : la sonde part aussi
+  # d'un envoi qui la touche, sur une branche de travail.
+  push:
+    branches: ["claude/**"]
+    paths:
+      - "tools/identity-probe/**"
+      - ".github/workflows/identity-probe.yml"
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Sonde
+        shell: pwsh
+        run: ./tools/identity-probe/probe.ps1

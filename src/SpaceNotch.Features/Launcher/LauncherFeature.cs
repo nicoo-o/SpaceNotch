@@ -89,6 +89,9 @@ public sealed class LauncherFeature : IslandFeatureBase
             .ToList();
     }
 
+    /// <summary>Moteur de la recherche web de repli (« bing », « google », « duckduckgo »).</summary>
+    public string WebSearchEngine { get; set; } = "bing";
+
     /// <summary>Raccourci global retenu, affiché dans le pied de la recherche.</summary>
     public string? Hotkey { get; set; }
 
@@ -264,7 +267,7 @@ public sealed class LauncherFeature : IslandFeatureBase
         candidates.AddRange(_settings);
         candidates.AddRange(_files);
 
-        IReadOnlyList<LauncherSection> sections = LauncherSearch.Build(_query, candidates, _history, _text, CultureInfo.CurrentCulture);
+        IReadOnlyList<LauncherSection> sections = LauncherSearch.Build(_query, candidates, _history, _text, CultureInfo.CurrentCulture, WebSearchEngine);
         _lastSections = sections;
 
         bool loading = Volatile.Read(ref _loading) == 1 && _apps.Count == 0;

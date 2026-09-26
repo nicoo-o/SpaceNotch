@@ -64,6 +64,17 @@ public class SetupCommandTests
     }
 
     [Fact]
+    public void Trust_identity_worker_round_trips_and_is_a_worker()
+    {
+        var original = new SetupCommand(SetupMode.TrustIdentityWorker, InstallOptions.Default, Quiet: true);
+
+        SetupCommand parsed = SetupCommand.Parse(original.ToArguments(), null);
+
+        Assert.Equal(original, parsed);
+        Assert.True(parsed.IsWorker);
+    }
+
+    [Fact]
     public void Unknown_and_blank_arguments_are_ignored()
     {
         SetupCommand command = SetupCommand.Parse(["", "  ", "--what", "--scope=machine", "--install"], null);
@@ -308,6 +319,18 @@ public class SelfDeleteTests
         Assert.StartsWith("/d /c ping -n 3 127.0.0.1 > nul", arguments, StringComparison.Ordinal);
         Assert.Contains("rd /s /q \"C:\\Users\\ana\\AppData\\Local\\Programs\\SpaceNotch\"", arguments, StringComparison.Ordinal);
         Assert.Contains("rd /s /q \"C:\\Program Files\\SpaceNotch\"", arguments, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Commands_after_exit_run_before_the_folder_is_removed()
+    {
+        string arguments = SelfDelete.Arguments([@"C:\Users\ana\AppData\Local\Programs\SpaceNotch"], ["retirer-identite"]);
+
+        int wait = arguments.IndexOf("ping", StringComparison.Ordinal);
+        int identity = arguments.IndexOf("retirer-identite", StringComparison.Ordinal);
+        int removal = arguments.IndexOf("rd /s /q", StringComparison.Ordinal);
+
+        Assert.True(wait < identity && identity < removal);
     }
 
     [Theory]

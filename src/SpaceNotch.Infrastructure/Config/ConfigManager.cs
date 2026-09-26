@@ -84,7 +84,7 @@ public sealed class ConfigManager
             if (settings is null)
             {
                 ReadFailed?.Invoke(_configFilePath, new InvalidDataException("Configuration vide."));
-                return new AppSettings();
+                return LoadBackupOrDefaults();
             }
 
             settings.Sanitize();
@@ -93,12 +93,62 @@ public sealed class ConfigManager
         catch (Exception ex)
         {
             // Un fichier corrompu ou inaccessible ne doit jamais empêcher
-            // l'application de démarrer : on repart des valeurs par défaut.
+            // l'application de démarrer : la copie de la dernière écriture
+            // réussie d'abord, les valeurs par défaut sinon.
             ReadFailed?.Invoke(_configFilePath, ex);
+            return LoadBackupOrDefaults();
+        }
+    }
 
-            var fallback = new AppSettings();
-            fallback.Sanitize();
-            return fallback;
+    /// <summary>Copie laissée par la dernière écriture réussie (<see cref="File.Replace(string, string, string?)"/>).</summary>
+    private string BackupPath => _configFilePath + ".bak";
+
+    private AppSettings LoadBackupOrDefaults()
+    {
+        try
+        {
+            if (File.Exists(BackupPath)
+                && JsonSerializer.Deserialize(File.ReadAllText(BackupPath), AppSettingsJsonContext.Default.AppSettings) is { } backup)
+            {
+                backup.Sanitize();
+                return backup;
+            }
+        }
+        catch (Exception ex)
+        {
+            ReadFailed?.Invoke(BackupPath, ex);
+        }
+
+        var fallback = new AppSettings();
+        fallback.Sanitize();
+        return fallback;
+    }
+
+    /// <summary>
+    /// Écriture atomique : le fichier est écrit à côté, vidé sur le disque, puis
+    /// substitué d'un coup à l'ancien, qui devient la copie de secours. Une
+    /// coupure pendant l'écriture laisse l'ancien fichier intact — l'écriture
+    /// directe laissait un JSON tronqué, et toutes les préférences perdues.
+    /// </summary>
+    internal static void WriteAtomically(string path, string contents, string? backupPath)
+    {
+        string temporary = path + ".tmp";
+
+        using (var stream = new FileStream(temporary, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.WriteThrough))
+        using (var writer = new StreamWriter(stream, new System.Text.UTF8Encoding(false)))
+        {
+            writer.Write(contents);
+            writer.Flush();
+            stream.Flush(flushToDisk: true);
+        }
+
+        if (File.Exists(path))
+        {
+            File.Replace(temporary, path, backupPath, ignoreMetadataErrors: true);
+        }
+        else
+        {
+            File.Move(temporary, path);
         }
     }
 
@@ -110,9 +160,10 @@ public sealed class ConfigManager
         try
         {
             settings.Sanitize();
-            File.WriteAllText(
+            WriteAtomically(
                 _configFilePath,
-                JsonSerializer.Serialize(settings, AppSettingsJsonContext.Default.AppSettings));
+                JsonSerializer.Serialize(settings, AppSettingsJsonContext.Default.AppSettings),
+                BackupPath);
         }
         catch (Exception ex)
         {

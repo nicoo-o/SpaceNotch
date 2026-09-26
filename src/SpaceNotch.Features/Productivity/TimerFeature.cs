@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
+using SpaceNotch.Core.Productivity;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
 
@@ -45,12 +46,16 @@ public sealed class TimerFeature : IslandFeatureBase
 
     private readonly Timer _tick;
 
-    private TimeSpan _value = DefaultCountdown;
-    private bool _running;
+    private readonly MeasureClock _clock;
 
-    public TimerFeature(IActivityManager activities, IEventBus events, bool isEnabled = true)
+    private TimeSpan? _published;
+
+
+    public TimerFeature(IActivityManager activities, IEventBus events, bool isEnabled = true, Func<DateTimeOffset>? now = null)
         : base(FeatureKey, "Minuteur", activities, events, isEnabled)
     {
+        _clock = new MeasureClock(now);
+        _clock.Set(DefaultCountdown, countsDown: true);
         _tick = new Timer(OnTick, null, Timeout.Infinite, Timeout.Infinite);
     }
 
@@ -64,7 +69,7 @@ public sealed class TimerFeature : IslandFeatureBase
     /// confondre reviendrait à croire qu'un minuteur arrêté est une fonctionnalité
     /// éteinte.
     /// </summary>
-    public bool IsMeasuring => _running;
+    public bool IsMeasuring => _clock.IsRunning;
 
     /// <summary>Démarre une mesure, ou la suspend si elle est déjà en cours.</summary>
     public void Toggle()
@@ -74,15 +79,15 @@ public sealed class TimerFeature : IslandFeatureBase
             return;
         }
 
-        if (_running)
+        if (_clock.IsRunning)
         {
-            _running = false;
+            _clock.Pause();
             StopTick();
         }
         else
         {
-            _running = true;
-            _tick.Change(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+            _clock.Start();
+            StartTick();
         }
 
         Publish();
@@ -97,9 +102,9 @@ public sealed class TimerFeature : IslandFeatureBase
         }
 
         Mode = TimerMode.Countdown;
-        _value = duration;
-        _running = true;
-        _tick.Change(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        _clock.Set(duration, countsDown: true);
+        _clock.Start();
+        StartTick();
 
         Publish();
     }
@@ -107,10 +112,8 @@ public sealed class TimerFeature : IslandFeatureBase
     /// <summary>Remet la mesure à zéro et l'arrête.</summary>
     public void Reset()
     {
-        _running = false;
         StopTick();
-
-        _value = Mode == TimerMode.Countdown ? DefaultCountdown : TimeSpan.Zero;
+        _clock.Set(Mode == TimerMode.Countdown ? DefaultCountdown : TimeSpan.Zero, Mode == TimerMode.Countdown);
 
         Publish();
     }
@@ -132,10 +135,8 @@ public sealed class TimerFeature : IslandFeatureBase
         // Désactiver la fonctionnalité arrête la mesure : un compteur qui
         // continuerait de battre pour une fonctionnalité éteinte serait exactement
         // le travail inutile que le projet s'interdit.
-        _running = false;
         StopTick();
-
-        _value = Mode == TimerMode.Countdown ? DefaultCountdown : TimeSpan.Zero;
+        _clock.Set(Mode == TimerMode.Countdown ? DefaultCountdown : TimeSpan.Zero, Mode == TimerMode.Countdown);
 
         return Task.CompletedTask;
     }
@@ -163,29 +164,27 @@ public sealed class TimerFeature : IslandFeatureBase
 
     private void OnTick(object? state)
     {
-        if (!_running)
+        if (!_clock.IsRunning)
         {
             return;
         }
 
-        if (Mode == TimerMode.Stopwatch)
+        // Le battement ne compte rien : il redessine. La valeur vient de
+        // l'échéance, juste même après une mise en veille.
+        if (!_clock.IsFinished)
         {
-            _value += TimeSpan.FromSeconds(1);
-            Publish();
+            // Même identifiant : l'activité est remplacée, jamais empilée —
+            // et seulement quand la seconde affichée change.
+            if (_clock.Value != _published)
+            {
+                Publish();
+            }
+
             return;
         }
 
-        if (_value > TimeSpan.Zero)
-        {
-            _value -= TimeSpan.FromSeconds(1);
-
-            // Même identifiant : l'activité est remplacée, jamais empilée.
-            Publish();
-            return;
-        }
-
-        _running = false;
         StopTick();
+        _clock.Set(TimeSpan.Zero, countsDown: true);
 
         PublishActivity(new IslandActivity
         {
@@ -207,6 +206,8 @@ public sealed class TimerFeature : IslandFeatureBase
 
     private void Publish()
     {
+        _published = _clock.Value;
+
         string mode = Mode switch
         {
             TimerMode.Stopwatch => "Chronomètre",
@@ -218,13 +219,13 @@ public sealed class TimerFeature : IslandFeatureBase
             Id = ActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Timer,
-            Title = Format(_value),
+            Title = Format(_clock.Value),
             Subtitle = mode,
             Source = "Timer",
             IconKey = "Timer",
             State = IslandActivityState.TimerActive,
             Priority = ActivityPriority.Normal,
-            Payload = new TimerPayload(_value, _running, mode)
+            Payload = new TimerPayload(_clock.Value, _clock.IsRunning, mode)
         });
     }
 
@@ -234,4 +235,7 @@ public sealed class TimerFeature : IslandFeatureBase
             : value.ToString(@"mm\:ss", System.Globalization.CultureInfo.InvariantCulture);
 
     private void StopTick() => _tick.Change(Timeout.Infinite, Timeout.Infinite);
+
+    /// <summary>Un battement toutes les 250 ms : l'affichage change de seconde à l'heure juste, sans saut.</summary>
+    private void StartTick() => _tick.Change(TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
 }

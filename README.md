@@ -94,9 +94,10 @@ flows back home.
 
 **Music** with artwork that grows into a player · **Volume & brightness** as a quiet overlay ·
 **Downloads** from any browser · **Calls & recordings** from your mic and camera ·
-**Notifications**, grouped by app · **Bluetooth** · **Timer & focus** · **A launcher** for your apps ·
-**A shelf** for dragging files in and out · **Clipboard history** (off by default, swipe to delete) ·
-**Plugins** for anything else.
+**Notifications** from your other apps, grouped by app · **Bluetooth** with battery · **Timer & focus** ·
+**Search** for apps, Windows settings, files and quick maths (<kbd>Alt</kbd>+<kbd>Space</kbd>) ·
+**A shelf** for dragging files in and out · **Clipboard history** that skips passwords (off by default) ·
+**Plugins** for anything else — loaded only once you approve them.
 
 <br>
 
@@ -106,9 +107,11 @@ flows back home.
 2. Run it. Windows may say it *protected your PC*: choose **More info › Run anyway** (the app isn't code-signed yet).
 3. The installer is the notch itself: it drops from the top of your screen and opens on a few
    choices — just you or everyone, start with Windows, a desktop shortcut. Press **Install**, and it
-   folds back into your notch.
-4. Look up. Hover the notch to peek, click to open, right-click for the launcher.
-   Settings live in the tray icon.
+   folds back into your notch. Windows asks once for administrator approval: it lets SpaceNotch read
+   your notifications (decline, and everything else still works).
+4. Look up. The notch introduces itself in five short cards. Hover to peek, click to open,
+   right-click for the quick menu, <kbd>Alt</kbd>+<kbd>Space</kbd> to search.
+   Settings live in the quick menu and the tray icon.
 
 Want the full tour? Run `SpaceNotch.exe --demo`.
 

@@ -10,4 +10,9 @@
     <ProjectReference Include="..\SpaceNotch.Core\SpaceNotch.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- WMI : luminosité de l'écran intégré (événement WmiMonitorBrightnessEvent). -->
+    <PackageReference Include="System.Management" />
+  </ItemGroup>
+
 </Project>

@@ -109,7 +109,7 @@ public sealed partial class IslandWindow
                 return true;
 
             case QuickMenuFeature.QuitAction:
-                Application.Current.Exit();
+                QuitApplication();
                 return true;
 
             default:

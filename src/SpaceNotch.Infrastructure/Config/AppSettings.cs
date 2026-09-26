@@ -502,6 +502,25 @@ public sealed class AppSettings
     public int ClipboardHistoryLimit { get; set; }
 
     /// <summary>
+    /// Ignorer ce que les gestionnaires de mots de passe marquent « ne pas
+    /// enregistrer ». Activé par défaut : un mot de passe n'a rien à faire dans
+    /// un historique.
+    /// </summary>
+    public bool ClipboardIgnoreSecrets { get; set; } = true;
+
+    /// <summary>Vrai une fois la présentation du premier lancement vue (ou passée).</summary>
+    public bool WelcomeCompleted { get; set; }
+
+    /// <summary>Moteur de la recherche web de repli : « bing », « google », « duckduckgo ».</summary>
+    public string WebSearchEngine { get; set; } = "bing";
+
+    /// <summary>Greffons approuvés : nom de fichier → empreinte SHA-256. Voir <c>PluginAllowlist</c>.</summary>
+    public Dictionary<string, string> ApprovedPlugins { get; set; } = [];
+
+    /// <summary>Applications dont les notifications restent dans le coin de l'écran.</summary>
+    public List<string> IgnoredNotificationApps { get; set; } = [];
+
+    /// <summary>
     /// Profondeur appliquée lorsqu'on active la surveillance sans en choisir une.
     ///
     /// Assez pour retrouver ce qu'on vient de copier, assez peu pour que
@@ -652,6 +671,9 @@ public sealed class AppSettings
     public void Sanitize()
     {
         LauncherFavorites ??= [];
+        IgnoredNotificationApps ??= [];
+        ApprovedPlugins ??= [];
+        WebSearchEngine = WebSearchEngine is "bing" or "google" or "duckduckgo" ? WebSearchEngine : "bing";
         LauncherRecents ??= [];
         LauncherLaunches ??= [];
 

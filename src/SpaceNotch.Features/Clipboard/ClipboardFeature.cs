@@ -139,9 +139,32 @@ public sealed class ClipboardFeature : IslandFeatureBase
         }
     }
 
+    /// <summary>
+    /// Vrai (par défaut) : ce que les gestionnaires de mots de passe marquent
+    /// « ne pas enregistrer » reste hors de l'historique. Réglages › Activités.
+    /// </summary>
+    public bool IgnoreSecrets { get; set; } = true;
+
+    /// <summary>Vide l'historique, épinglés compris (l'historique ne vit qu'en mémoire).</summary>
+    public void ClearAll()
+    {
+        lock (_lock)
+        {
+            _entries.Clear();
+        }
+
+        RemoveActivity(ActivityId);
+    }
+
     private void OnClipboardUpdated()
     {
-        if (!ClipboardAccess.TryReadText(out string text) || string.IsNullOrWhiteSpace(text))
+        // Un mot de passe copié depuis un gestionnaire porte une marque « ne pas
+        // enregistrer » : il n'entre jamais dans l'historique (réglable).
+        bool read = IgnoreSecrets
+            ? ClipboardAccess.TryReadTextForHistory(out string text, out _)
+            : ClipboardAccess.TryReadText(out text);
+
+        if (!read || string.IsNullOrWhiteSpace(text))
         {
             return;
         }

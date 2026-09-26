@@ -73,7 +73,9 @@ public sealed class SystemHudFeature : IslandFeatureBase
             VolumeActivityId,
             FeatureKey,
             IslandSceneCatalog.VolumeHud,
-            "Volume",
+            // La sortie qu'on règle vraiment — « AirPods Pro » plutôt que
+            // « Volume » — : elle suit les changements de sortie de Windows.
+            string.IsNullOrWhiteSpace(_volumeListener.DeviceName) ? "Volume" : _volumeListener.DeviceName,
             volume,
             100,
             isMuted ? "VolumeMute" : GlyphKeyFor(volume),

@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
 using Windows.Media.Control;
@@ -68,7 +69,7 @@ public sealed class WindowsMediaSessionManager
             _currentSession.PlaybackInfoChanged += OnPlaybackInfoChanged;
             _currentSession.TimelinePropertiesChanged += OnTimelinePropertiesChanged;
 
-            _ = RefreshMediaInfoAsync();
+            RequestRefresh();
         }
         else
         {
@@ -78,7 +79,7 @@ public sealed class WindowsMediaSessionManager
 
     private void OnMediaPropertiesChanged(GlobalSystemMediaTransportControlsSession sender, MediaPropertiesChangedEventArgs args)
     {
-        _ = RefreshMediaInfoAsync();
+        RequestRefresh();
     }
 
     private void OnPlaybackInfoChanged(GlobalSystemMediaTransportControlsSession sender, PlaybackInfoChangedEventArgs args)
@@ -86,17 +87,62 @@ public sealed class WindowsMediaSessionManager
         var info = sender.GetPlaybackInfo();
         bool isPlaying = info?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
         PlaybackStateChanged?.Invoke(this, isPlaying);
-        _ = RefreshMediaInfoAsync();
+        RequestRefresh();
     }
 
     private void OnTimelinePropertiesChanged(GlobalSystemMediaTransportControlsSession sender, TimelinePropertiesChangedEventArgs args)
     {
-        _ = RefreshMediaInfoAsync();
+        RequestRefresh();
+    }
+
+    private int _refreshing;
+    private int _refreshAgain;
+
+    /// <summary>
+    /// Demande une relecture. Les événements du lecteur arrivent en rafale — la
+    /// progression notifie sans cesse — et chacun lançait sa propre lecture : elles
+    /// se chevauchaient, et la plus lente, donc la plus ancienne, pouvait écraser la
+    /// plus récente. Ici, une seule lecture à la fois ; celles demandées pendant
+    /// qu'elle tourne se fondent en une seule, faite juste après.
+    /// </summary>
+    private void RequestRefresh()
+    {
+        Interlocked.Exchange(ref _refreshAgain, 1);
+
+        if (Interlocked.CompareExchange(ref _refreshing, 1, 0) != 0)
+        {
+            return;
+        }
+
+        _ = RunRefreshesAsync();
+    }
+
+    private async Task RunRefreshesAsync()
+    {
+        try
+        {
+            while (Interlocked.Exchange(ref _refreshAgain, 0) == 1)
+            {
+                await RefreshMediaInfoAsync().ConfigureAwait(false);
+            }
+        }
+        finally
+        {
+            Volatile.Write(ref _refreshing, 0);
+
+            // Une demande arrivée entre la fin de la boucle et la libération.
+            if (Volatile.Read(ref _refreshAgain) == 1)
+            {
+                RequestRefresh();
+            }
+        }
     }
 
     public async Task<MediaTrackInfo?> RefreshMediaInfoAsync()
     {
-        if (_currentSession == null)
+        GlobalSystemMediaTransportControlsSession? session = _currentSession;
+
+        if (session == null)
         {
             TrackChanged?.Invoke(this, null);
             return null;
@@ -104,9 +150,17 @@ public sealed class WindowsMediaSessionManager
 
         try
         {
-            var mediaProps = await _currentSession.TryGetMediaPropertiesAsync();
-            var playbackInfo = _currentSession.GetPlaybackInfo();
-            var timeline = _currentSession.GetTimelineProperties();
+            var mediaProps = await session.TryGetMediaPropertiesAsync();
+
+            // Le lecteur a changé pendant la lecture : ce résultat décrit
+            // l'ancien, la relecture du nouveau suit déjà.
+            if (!ReferenceEquals(session, _currentSession))
+            {
+                return null;
+            }
+
+            var playbackInfo = session.GetPlaybackInfo();
+            var timeline = session.GetTimelineProperties();
 
             if (mediaProps == null)
             {
@@ -117,15 +171,20 @@ public sealed class WindowsMediaSessionManager
             bool isPlaying = playbackInfo?.PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing;
 
             string title = string.IsNullOrWhiteSpace(mediaProps.Title) ? "Lecture en cours" : mediaProps.Title;
-            string artist = string.IsNullOrWhiteSpace(mediaProps.Artist) ? _currentSession.SourceAppUserModelId : mediaProps.Artist;
+            string artist = string.IsNullOrWhiteSpace(mediaProps.Artist) ? session.SourceAppUserModelId : mediaProps.Artist;
 
             await EnsureArtworkAsync(title, artist, mediaProps).ConfigureAwait(false);
+
+            if (!ReferenceEquals(session, _currentSession))
+            {
+                return null;
+            }
 
             var trackInfo = new MediaTrackInfo(
                 Title: title,
                 Artist: artist,
                 AlbumTitle: mediaProps.AlbumTitle ?? string.Empty,
-                AppId: _currentSession.SourceAppUserModelId,
+                AppId: session.SourceAppUserModelId,
                 IsPlaying: isPlaying,
 
                 // Position relative à l'instant où elle a été lue : le rendu n'a

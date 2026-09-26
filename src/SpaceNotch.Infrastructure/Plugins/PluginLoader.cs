@@ -19,9 +19,14 @@ namespace SpaceNotch.Infrastructure.Plugins;
 /// disparaître sans laisser de trace : l'utilisateur doit pouvoir savoir lequel
 /// n'a pas été chargé, et pourquoi.
 /// </param>
+/// <param name="Pending">
+/// Greffons présents mais pas (ou plus) approuvés : non chargés, proposés à
+/// l'approbation dans Réglages › À propos.
+/// </param>
 public sealed record PluginLoadResult(
     IReadOnlyList<IIslandFeature> Features,
-    IReadOnlyList<string> Failures);
+    IReadOnlyList<string> Failures,
+    IReadOnlyList<string>? Pending = null);
 
 /// <summary>
 /// Charge les greffons déposés dans un dossier.
@@ -95,20 +100,32 @@ public sealed class PluginLoader : IDisposable
     /// L'opération est synchrone et n'a lieu qu'au démarrage : un greffon est un
     /// assemblage local, il n'y a rien à attendre d'un réseau.
     /// </summary>
-    public PluginLoadResult LoadAll(IslandFeatureContext context)
+    /// <param name="context">Contexte donné aux greffons.</param>
+    /// <param name="allowlist">
+    /// Greffons approuvés. <c>null</c> charge tout : réservé aux tests ; l'application
+    /// passe toujours sa liste.
+    /// </param>
+    public PluginLoadResult LoadAll(IslandFeatureContext context, PluginAllowlist? allowlist = null)
     {
         ArgumentNullException.ThrowIfNull(context);
 
         var features = new List<IIslandFeature>();
         var failures = new List<string>();
+        var pending = new List<string>();
 
         if (_disposed)
         {
-            return new PluginLoadResult(features, failures);
+            return new PluginLoadResult(features, failures, pending);
         }
 
         foreach (string assemblyPath in EnumerateCandidates())
         {
+            if (allowlist is not null && !allowlist.IsAllowed(assemblyPath))
+            {
+                pending.Add(assemblyPath);
+                continue;
+            }
+
             try
             {
                 LoadFromPath(assemblyPath, context, features, failures);
@@ -119,7 +136,7 @@ public sealed class PluginLoader : IDisposable
             }
         }
 
-        return new PluginLoadResult(features, failures);
+        return new PluginLoadResult(features, failures, pending);
     }
 
     /// <summary>
@@ -156,6 +173,24 @@ public sealed class PluginLoader : IDisposable
     /// un ordre stable. Le tri rend le chargement reproductible, ce qui importe
     /// lorsque deux greffons publient la même activité.
     /// </summary>
+    /// <summary>Greffons du dossier qui attendent une approbation, sans rien charger.</summary>
+    public static IReadOnlyList<string> FindPending(string directory, PluginAllowlist allowlist)
+    {
+        ArgumentNullException.ThrowIfNull(allowlist);
+
+        try
+        {
+            return Directory.EnumerateFiles(directory, "*.dll", SearchOption.TopDirectoryOnly)
+                .Where(path => !allowlist.IsAllowed(path))
+                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch (Exception)
+        {
+            return [];
+        }
+    }
+
     private List<string> EnumerateCandidates()
     {
         try
