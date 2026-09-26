@@ -36,11 +36,25 @@ namespace SpaceNotch_App.Composition;
 /// </summary>
 public sealed class HypnoticSurface : IDisposable
 {
-    /// <summary>Écart entre pixels, relatif au côté de la grille : les pixels se touchent presque.</summary>
-    private const float GapRatio = 0.04f;
+    /// <summary>
+    /// Écart entre pixels, relatif au côté de la grille, jamais moins d'un pixel
+    /// de l'écran : à 0,04 les écarts tombaient sous le pixel et la grille se
+    /// lisait comme une seule tache.
+    /// </summary>
+    private const float GapRatio = 0.10f;
 
-    /// <summary>Rayon du halo, relatif au côté de la grille.</summary>
-    private const float BloomRatio = 0.55f;
+    /// <summary>
+    /// Rayon du halo, relatif au côté d'un pixel de la grille : un halo discret
+    /// autour de pixels nets. À 0,55 du côté de la grille, il noyait les pixels
+    /// dans leur propre lumière.
+    /// </summary>
+    private const float BloomRatio = 0.5f;
+
+    /// <summary>Halo maximal pour les petites grilles (notch compacte, bulle) : la forme d'abord.</summary>
+    private const float SmallGridBloom = 2.5f;
+
+    /// <summary>Intensité du halo : une fraction de celle que décrit le champ.</summary>
+    private const float BloomIntensity = 0.45f;
 
     private readonly Compositor _compositor;
     private readonly FrameworkElement _host;
@@ -192,15 +206,34 @@ public sealed class HypnoticSurface : IDisposable
         Animate(side);
     }
 
-    /// <summary>Dispose la grille au centre de l'hôte.</summary>
+    /// <summary>
+    /// Dispose la grille au centre de l'hôte, calée sur les pixels de l'écran :
+    /// chaque pixel de la grille couvre un nombre entier de pixels physiques, et
+    /// ses bords tombent entre deux pixels, jamais au milieu — sinon, à 125 ou
+    /// 150 %, chaque bord gagnait un liseré flou.
+    /// </summary>
     private void Layout(float side, Vector2 host)
     {
-        float gap = side * GapRatio;
-        float cell = (side - (2 * gap)) / HypnoticField.GridSize;
+        float scale = (float)(_host.XamlRoot?.RasterizationScale ?? 1.0);
+        float px = 1 / scale;
 
-        _layer.Size = new Vector2(side, side);
-        _layer.Offset = new Vector3((host.X - side) / 2, (host.Y - side) / 2, 0);
-        _bloom.BlurRadius = side * BloomRatio;
+        int sidePx = Math.Max(3, (int)MathF.Floor(side * scale));
+        int gapPx = Math.Max(1, (int)MathF.Round(sidePx * GapRatio));
+        int cellPx = Math.Max(1, (sidePx - (2 * gapPx)) / HypnoticField.GridSize);
+        int gridPx = (HypnoticField.GridSize * cellPx) + (2 * gapPx);
+
+        float grid = gridPx * px;
+        float cell = cellPx * px;
+        float step = (cellPx + gapPx) * px;
+
+        _layer.Size = new Vector2(grid, grid);
+        _layer.Offset = new Vector3(
+            MathF.Round(((host.X * scale) - gridPx) / 2) * px,
+            MathF.Round(((host.Y * scale) - gridPx) / 2) * px,
+            0);
+
+        float bloom = cell * BloomRatio;
+        _bloom.BlurRadius = side <= 24 ? MathF.Min(bloom, SmallGridBloom) : bloom;
 
         for (int i = 0; i < _cells.Length; i++)
         {
@@ -208,7 +241,7 @@ public sealed class HypnoticSurface : IDisposable
             int row = i / HypnoticField.GridSize;
 
             _cells[i].Size = new Vector2(cell, cell);
-            _cells[i].Offset = new Vector3(column * (cell + gap), row * (cell + gap), 0);
+            _cells[i].Offset = new Vector3(column * step, row * step, 0);
         }
     }
 
@@ -219,7 +252,7 @@ public sealed class HypnoticSurface : IDisposable
 
         _ink.Color = color;
         _bloom.Color = color;
-        _bloom.Opacity = (float)frame.Bloom;
+        _bloom.Opacity = (float)frame.Bloom * BloomIntensity;
 
         Vector3 offset = _layer.Offset;
         _layer.Offset = new Vector3(offset.X + ((float)frame.ShakeX * side), offset.Y, 0);
@@ -272,7 +305,7 @@ public sealed class HypnoticSurface : IDisposable
             float key = (float)Math.Clamp(progress, 0, 1);
 
             colors.InsertKeyFrame(key, ToColor(frame.Color), _linear);
-            bloom.InsertKeyFrame(key, (float)frame.Bloom, _linear);
+            bloom.InsertKeyFrame(key, (float)frame.Bloom * BloomIntensity, _linear);
 
             for (int i = 0; i < cells.Length; i++)
             {

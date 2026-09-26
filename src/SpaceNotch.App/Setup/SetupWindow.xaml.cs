@@ -174,20 +174,43 @@ public sealed partial class SetupWindow : Window
 
     private void PlaceAtTopOfPrimaryScreen()
     {
-        double scale = Math.Max(1, NativeMethods.GetDpiForWindow(_hWnd)) / 96.0;
-        int width = (int)Math.Ceiling(PanelWidth * scale);
-        int height = (int)Math.Ceiling(WindowHeight * scale);
-
         // Les limites de l'écran, pas sa zone de travail : la notch est collée
-        // au bord physique, comme l'Island.
+        // au bord physique, comme l'Island. La fenêtre est d'abord posée sur
+        // l'écran principal, puis mesurée à son échelle à lui.
         RectInt32 bounds = DisplayArea.Primary.OuterBounds;
+        _appWindow.Move(new PointInt32(bounds.X + (bounds.Width / 2), bounds.Y));
 
-        _appWindow.MoveAndResize(new RectInt32(
-            bounds.X + ((bounds.Width - width) / 2),
-            bounds.Y,
-            width,
-            height));
+        _scale = Math.Max(96, NativeMethods.GetDpiForWindow(_hWnd)) / 96.0;
+        _windowX = bounds.X + ((bounds.Width - (int)Math.Ceiling(PanelWidth * _scale)) / 2);
+        _windowY = bounds.Y;
+
+        ResizeWindow(IslandFootprint.Idle.Height);
     }
+
+    /// <summary>
+    /// La fenêtre épouse la forme, au lieu d'un rectangle fixe de 460 DIP dont
+    /// toute la partie vide, sous la notch, avalait les clics sur le bureau.
+    /// Elle s'agrandit avant que la forme grandisse, et se resserre une fois la
+    /// forme posée.
+    /// </summary>
+    private void ResizeWindow(double heightDip)
+    {
+        int width = (int)Math.Ceiling(PanelWidth * _scale);
+        int height = (int)Math.Ceiling(Math.Clamp(heightDip, 1, WindowHeight) * _scale);
+
+        if (height == _windowHeight)
+        {
+            return;
+        }
+
+        _windowHeight = height;
+        _appWindow.MoveAndResize(new RectInt32(_windowX, _windowY, width, height));
+    }
+
+    private double _scale = 1;
+    private int _windowX;
+    private int _windowY;
+    private int _windowHeight;
 
     /// <summary>Hauteur de ce qui est à dire : la notch s'y ajuste, avec son ressort.</summary>
     private void FitToContent()
@@ -201,6 +224,10 @@ public sealed partial class SetupWindow : Window
     private void AnimateTo(IslandFootprint target)
     {
         _target = target;
+
+        // Place pour le rebond du ressort, qui dépasse un peu la cible.
+        double current = _spring.Current.Height;
+        ResizeWindow(Math.Max(current, target.Height) * 1.08 + 4);
 
         if (_animate)
         {
@@ -236,6 +263,7 @@ public sealed partial class SetupWindow : Window
     {
         if (_phase != Phase.Closing)
         {
+            ResizeWindow(_target.Height + 2);
             return;
         }
 
@@ -413,23 +441,20 @@ public sealed partial class SetupWindow : Window
         StyleChoice(ForEveryoneButton, _scope == InstallScope.AllUsers);
     }
 
+    /// <summary>
+    /// Le choix se lit à son cadre, porté par une bordure autour du bouton et
+    /// non par le bouton : les états de survol et d'appui du bouton ne peuvent
+    /// donc plus l'effacer — ni le faire clignoter.
+    /// </summary>
     private void StyleChoice(Button button, bool chosen)
     {
+        Border frame = ReferenceEquals(button, ForMeButton) ? ForMeFrame : ForEveryoneFrame;
         Brush? stroke = chosen ? ChosenSwatch.Stroke : ChoiceSwatch.Stroke;
 
-        if (stroke is null || ChoiceSwatch.Fill is null)
+        if (stroke is not null)
         {
-            // Pas encore résolus : Loaded rappellera.
-            return;
+            frame.BorderBrush = stroke;
         }
-
-        button.Background = ChoiceSwatch.Fill;
-        button.BorderBrush = stroke;
-
-        // Le contour du choix reste sous le pointeur : sans cela, le survol le
-        // remplacerait par le gris de Fluent et le choix ne se lirait plus.
-        button.Resources["ButtonBorderBrushPointerOver"] = stroke;
-        button.Resources["ButtonBorderBrushPressed"] = stroke;
 
         AutomationProperties.SetItemStatus(button, chosen ? "✓" : string.Empty);
     }

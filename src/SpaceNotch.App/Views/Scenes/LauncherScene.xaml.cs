@@ -25,6 +25,10 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
     private List<LauncherItem> _items = [];
 
+    private bool _searchFocused;
+
+    private string _query = string.Empty;
+
     public LauncherScene()
     {
         InitializeComponent();
@@ -45,20 +49,36 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
         // Le champ de recherche n'est réécrit que s'il a divergé, et jamais
         // pendant la frappe : le réécrire replacerait le curseur et ferait sauter
-        // la saisie en cours.
-        bool editing = SearchBox.FocusState != FocusState.Unfocused;
-
-        if (!editing && !string.Equals(SearchBox.Text, payload.Query, StringComparison.Ordinal))
+        // la saisie en cours. Le focus est celui de la zone de texte interne,
+        // suivi par GotFocus/LostFocus — FocusState de l'AutoSuggestBox, lui,
+        // reste « sans focus » quand c'est sa zone de texte qui l'a.
+        if (!_searchFocused && !string.Equals(SearchBox.Text, payload.Query, StringComparison.Ordinal))
         {
             SearchBox.Text = payload.Query;
         }
 
+        _query = payload.Query ?? string.Empty;
+
         List<LauncherItem> items = payload.Entries.Select(LauncherItem.From).ToList();
 
-        // La liste est reconstruite à chaque publication : elle reste donc
-        // exactement le reflet du catalogue de la fonctionnalité.
-        AppsList.ItemsSource = items;
-        _items = items;
+        // La liste n'est remplacée que si elle a changé : la remplacer à chaque
+        // publication réinitialisait la sélection et déplaçait le focus.
+        if (!items.SequenceEqual(_items))
+        {
+            AppsList.ItemsSource = items;
+            _items = items;
+        }
+
+        // Avec une requête, le premier résultat est présélectionné : c'est lui
+        // qu'Entrée lancera. Sans requête, rien n'est présélectionné.
+        if (_items.Count > 0 && _query.Length > 0 && AppsList.SelectedIndex < 0)
+        {
+            AppsList.SelectedIndex = 0;
+        }
+        else if (_query.Length == 0)
+        {
+            AppsList.SelectedIndex = -1;
+        }
 
         bool empty = items.Count == 0;
 
@@ -81,13 +101,76 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
         Raise(SearchAction, sender.Text);
     }
 
-    /// <summary>Entrée dans le champ : le premier résultat est lancé.</summary>
+    /// <summary>Met le focus dans le champ : on ouvre le lanceur pour taper.</summary>
+    public void FocusSearch()
+    {
+        SearchBox.Focus(FocusState.Programmatic);
+    }
+
+    /// <summary>Vrai tant que l'utilisateur tape dans le champ.</summary>
+    public bool IsEditing => _searchFocused;
+
+    private void OnSearchGotFocus(object sender, RoutedEventArgs e) => _searchFocused = true;
+
+    private void OnSearchLostFocus(object sender, RoutedEventArgs e) => _searchFocused = false;
+
+    /// <summary>
+    /// Entrée lance la ligne sélectionnée. Sans sélection et sans requête, rien
+    /// n'est lancé : Entrée dans un champ vide lançait la première application
+    /// de la liste alphabétique — un outil de maintenance d'AutoCAD, par exemple.
+    /// </summary>
     private void OnQuerySubmitted(AutoSuggestBox sender, AutoSuggestBoxQuerySubmittedEventArgs args)
     {
-        if (_items.Count > 0)
+        if (AppsList.SelectedItem is LauncherItem selected)
+        {
+            Raise(LaunchAction, selected.Target);
+        }
+        else if (_query.Length > 0 && _items.Count > 0)
         {
             Raise(LaunchAction, _items[0].Target);
         }
+    }
+
+    /// <summary>
+    /// Clavier du champ : ↑/↓ (et Tab) parcourent la liste sans quitter le
+    /// champ, Échap vide la requête avant de refermer. Les touches traitées ici
+    /// ne remontent pas jusqu'à la notch, qui les prendrait pour les siennes.
+    /// </summary>
+    private void OnSearchPreviewKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        switch (e.Key)
+        {
+            case global::Windows.System.VirtualKey.Down:
+                Move(1);
+                e.Handled = true;
+                break;
+
+            case global::Windows.System.VirtualKey.Up:
+                Move(-1);
+                e.Handled = true;
+                break;
+
+            case global::Windows.System.VirtualKey.Escape when SearchBox.Text.Length > 0:
+                SearchBox.Text = string.Empty;
+                Raise(SearchAction, string.Empty);
+                e.Handled = true;
+                break;
+        }
+    }
+
+    private void Move(int delta)
+    {
+        if (_items.Count == 0)
+        {
+            return;
+        }
+
+        int index = AppsList.SelectedIndex < 0
+            ? (delta > 0 ? 0 : _items.Count - 1)
+            : Math.Clamp(AppsList.SelectedIndex + delta, 0, _items.Count - 1);
+
+        AppsList.SelectedIndex = index;
+        AppsList.ScrollIntoView(_items[index]);
     }
 
     /// <summary>Entrée sur un élément de la liste : il est lancé.</summary>

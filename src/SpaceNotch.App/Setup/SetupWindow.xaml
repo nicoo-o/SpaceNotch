@@ -25,6 +25,19 @@
         RequestedTheme="Dark"
         KeyDown="OnRootKeyDown">
 
+        <!-- Cases à cocher au cyan du logo, pas à l'accent de Windows. -->
+        <Grid.Resources>
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillChecked" ResourceKey="NfSetupChosenStrokeBrush" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" ResourceKey="NfSetupChosenStrokeBrush" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundFillCheckedPressed" ResourceKey="NfSetupChosenStrokeBrush" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeChecked" ResourceKey="NfSetupChosenStrokeBrush" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" ResourceKey="NfSetupChosenStrokeBrush" />
+            <StaticResource x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" ResourceKey="NfSetupChosenStrokeBrush" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundChecked" ResourceKey="NfSetupPrimaryTextBrush" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" ResourceKey="NfSetupPrimaryTextBrush" />
+            <StaticResource x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" ResourceKey="NfSetupPrimaryTextBrush" />
+        </Grid.Resources>
+
         <!-- Pinceaux du choix, résolus dans le thème de la notch (sombre), pas
              dans celui de l'application : le code les reprend d'ici. -->
         <Rectangle
@@ -96,13 +109,19 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
 
+                        <Border
+                            x:Name="ForMeFrame"
+                            CornerRadius="14"
+                            BorderThickness="1.5"
+                            BorderBrush="{ThemeResource NfSetupChoiceStrokeBrush}">
                         <Button
                             x:Name="ForMeButton"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left"
                             Padding="14,10"
-                            CornerRadius="14"
-                            BorderThickness="1.5"
+                            CornerRadius="12.5"
+                            BorderThickness="0"
+                            Background="{ThemeResource NfSetupChoiceBrush}"
                             Click="OnForMeClick">
                             <StackPanel Spacing="1">
                                 <TextBlock x:Name="ForMeTitle" Style="{StaticResource NfBodyStrongStyle}" />
@@ -111,16 +130,27 @@
                                     Style="{StaticResource NfCaptionTextStyle}"
                                     Foreground="{ThemeResource NfTextSecondaryBrush}" />
                             </StackPanel>
+                            <Button.Resources>
+                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="NfSetupChoiceHoverBrush" />
+                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="NfSetupChoiceBrush" />
+                            </Button.Resources>
                         </Button>
+                        </Border>
 
+                        <Border
+                            x:Name="ForEveryoneFrame"
+                            Grid.Column="1"
+                            CornerRadius="14"
+                            BorderThickness="1.5"
+                            BorderBrush="{ThemeResource NfSetupChoiceStrokeBrush}">
                         <Button
                             x:Name="ForEveryoneButton"
-                            Grid.Column="1"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left"
                             Padding="14,10"
-                            CornerRadius="14"
-                            BorderThickness="1.5"
+                            CornerRadius="12.5"
+                            BorderThickness="0"
+                            Background="{ThemeResource NfSetupChoiceBrush}"
                             Click="OnForEveryoneClick">
                             <StackPanel Spacing="1">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
@@ -136,7 +166,12 @@
                                     Style="{StaticResource NfCaptionTextStyle}"
                                     Foreground="{ThemeResource NfTextSecondaryBrush}" />
                             </StackPanel>
+                            <Button.Resources>
+                                <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="NfSetupChoiceHoverBrush" />
+                                <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="NfSetupChoiceBrush" />
+                            </Button.Resources>
                         </Button>
+                        </Border>
                     </Grid>
 
                     <StackPanel Spacing="0">
@@ -218,8 +253,8 @@
                         <!-- Le bouton reste blanc sous le pointeur : le gris par défaut
                              de Fluent ferait un bouton gris à texte noir. -->
                         <Button.Resources>
-                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="NfSetupPrimaryBrush" />
-                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="NfSetupPrimaryBrush" />
+                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="NfSetupPrimaryHoverBrush" />
+                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="NfSetupPrimaryPressedBrush" />
                             <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="NfSetupPrimaryTextBrush" />
                             <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="NfSetupPrimaryTextBrush" />
                         </Button.Resources>

@@ -381,7 +381,9 @@ public sealed partial class IslandWindow : Window
         ApplyLayout();
         ApplyGeometry(_controller.CurrentFootprint);
 
-        _appWindow.Show();
+        // Sans activation : l'Island ne prend jamais le premier plan à
+        // l'application de l'utilisateur en apparaissant.
+        _appWindow.Show(activateWindow: false);
         _atmosphere.PlaceBehind(_hWnd);
         _atmosphere.UseSpringAnimations = UseSpringAnimations();
 
@@ -587,8 +589,13 @@ public sealed partial class IslandWindow : Window
 
             // Une action qui a modifié l'affichage doit être reprojetée : la
             // fonctionnalité a pu republier son activité, mais elle a aussi pu se
-            // contenter d'agir — le rendu est alors rafraîchi sans attendre.
-            Render();
+            // contenter d'agir — le rendu est alors rafraîchi sans attendre. La
+            // recherche, elle, republie toujours : un second rendu par lettre
+            // était du travail pour rien.
+            if (request.ActionId != LauncherScene.SearchAction)
+            {
+                Render();
+            }
         }
         catch (Exception ex)
         {
@@ -611,7 +618,24 @@ public sealed partial class IslandWindow : Window
         // difficile à lire que rien ne la désigne.
         _controller.PresentedActivityChanged += (_, _) => RequestRender();
         _controller.AnimationCompleted += (_, _) => RequestRender();
-        _controller.StateChanged += (_, _) => RequestRender();
+        _controller.StateChanged += (_, state) =>
+        {
+            // Refermée, la notch rend le clavier à l'application de l'utilisateur.
+            if (state == IslandState.Closed && _typingCapture)
+            {
+                _typingCapture = false;
+                WindowChrome.SetKeyboardCapture(_hWnd, enabled: false);
+            }
+
+            // Le lanceur ne vit que tant qu'il est ouvert.
+            if (state == IslandState.Closed
+                && _controller.PresentedActivity?.SceneKey == IslandSceneCatalog.Launcher)
+            {
+                _launcherFeature.Dismiss();
+            }
+
+            RequestRender();
+        };
 
         _activityManager.ActiveActivityChanged += (_, _) => OnUiThread(RearmExpirationTimer);
         _activityManager.ActivityRemoved += (_, _) => OnUiThread(RearmExpirationTimer);
@@ -777,9 +801,22 @@ public sealed partial class IslandWindow : Window
         _restFootprint = FitRest(activity, _tier);
         _controller.UpdateCollapsedFootprint(_restFootprint);
 
+        // Seules les scènes qui ne sont pas la cible sont repliées. Replier puis
+        // réafficher la scène visible faisait perdre le focus à ce qu'elle
+        // contient : chaque lettre tapée dans la recherche du lanceur la vidait
+        // de son focus.
+        FrameworkElement? targetRoot = expanded
+            && activity is not null
+            && _scenes.TryGetValue(activity.SceneKey, out IIslandSceneView? targetScene)
+            ? targetScene.Root
+            : null;
+
         foreach (FrameworkElement root in _sceneRoots)
         {
-            root.Visibility = Visibility.Collapsed;
+            if (!ReferenceEquals(root, targetRoot))
+            {
+                root.Visibility = Visibility.Collapsed;
+            }
         }
 
         // Ce qui était visible avant ce rendu : un texte remplacé sur une vue qui
@@ -851,6 +888,14 @@ public sealed partial class IslandWindow : Window
             if (!ReferenceEquals(_visibleSceneRoot, scene.Root))
             {
                 _visibleSceneRoot = scene.Root;
+
+                // Le lanceur s'ouvre pour qu'on tape : la fenêtre prend le
+                // clavier et le champ le focus, sans attendre un survol.
+                if (scene is LauncherScene launcher)
+                {
+                    CaptureKeyboardForTyping();
+                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, launcher.FocusSearch);
+                }
 
                 // Une seule ligne de temps : la forme grandit, puis le contenu
                 // arrive, flou, et se précise.
@@ -940,7 +985,7 @@ public sealed partial class IslandWindow : Window
         {
             SignalGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
             SetText(SignalLabel, activity.Title, _signalWasVisible, veil: true);
-            SetText(SignalMetric, metric, _signalWasVisible);
+            SetText(SignalMetric, metric, _signalWasVisible, metric: true);
             SignalMetric.Visibility = metricVisibility;
 
             SignalLevel.Visibility = activity.Progress is null ? Visibility.Collapsed : Visibility.Visible;
@@ -974,7 +1019,7 @@ public sealed partial class IslandWindow : Window
         // déjà visible se remplace sur place, par un fondu : la carte reste.
         SetText(CardSubhead, SubheadFor(activity), _cardWasVisible);
         SetText(CardHeadline, activity.Title, _cardWasVisible, veil: true);
-        SetText(CardMetric, metric, _cardWasVisible);
+        SetText(CardMetric, metric, _cardWasVisible, metric: true);
         CardMetric.Visibility = metricVisibility;
         CardRestView.Visibility = Visibility.Visible;
 
@@ -1080,7 +1125,7 @@ public sealed partial class IslandWindow : Window
     /// Écrit un texte, et joue la transition de contenu s'il remplace un texte
     /// déjà visible.
     /// </summary>
-    private void SetText(TextBlock target, string? value, bool visible, bool veil = false)
+    private void SetText(TextBlock target, string? value, bool visible, bool veil = false, bool metric = false)
     {
         string next = value ?? string.Empty;
 
@@ -1091,7 +1136,10 @@ public sealed partial class IslandWindow : Window
 
         target.Text = next;
 
-        if (visible)
+        // Une mesure qui défile — un pourcentage publié plusieurs fois par
+        // seconde — change sur place : la faire réapparaître en fondu à chaque
+        // valeur la faisait clignoter sans arrêt.
+        if (visible && !metric)
         {
             ContentTransition.Play(target, UseSpringAnimations());
 
@@ -1601,7 +1649,7 @@ public sealed partial class IslandWindow : Window
             ApplyGeometry(_controller.CurrentFootprint);
             _atmosphere.SetVisible(true);
             _atmosphere.PlaceBehind(_hWnd);
-            _appWindow.Show();
+            _appWindow.Show(activateWindow: false);
             UpdateBubble();
             return;
         }
@@ -1913,8 +1961,33 @@ public sealed partial class IslandWindow : Window
         // géométrie change, et journaliser chaque passage noierait le journal sous
         // un bruit sans information.
         WindowChrome.SetKeyboardCapture(_hWnd, enabled: true);
-        IslandBody.Focus(FocusState.Programmatic);
+
+        // Le focus n'est pris que s'il n'est pas déjà dans la notch : le
+        // pointeur entre et sort en rafale, et chaque entrée arrachait le focus
+        // au champ de recherche.
+        if (!IsTyping())
+        {
+            IslandBody.Focus(FocusState.Programmatic);
+        }
     }
+
+    /// <summary>Vrai quand une zone de texte de la notch a le focus : on y tape.</summary>
+    private bool IsTyping()
+        => Content?.XamlRoot is { } root
+            && FocusManager.GetFocusedElement(root) is TextBox;
+
+    /// <summary>
+    /// La fenêtre devient activable et prend le premier plan, le temps de
+    /// taper. Elle redevient inactivable quand la notch se referme.
+    /// </summary>
+    private void CaptureKeyboardForTyping()
+    {
+        WindowChrome.SetKeyboardCapture(_hWnd, enabled: true);
+        WindowChrome.BringToForeground(_hWnd);
+        _typingCapture = true;
+    }
+
+    private bool _typingCapture;
 
     /// <summary>
     /// Sortie du pointeur : l'aperçu se retire après un délai de grâce.
@@ -1942,7 +2015,12 @@ public sealed partial class IslandWindow : Window
         _previewExitTimer.Stop();
         _previewExitTimer.Start();
 
-        WindowChrome.SetKeyboardCapture(_hWnd, enabled: false);
+        // Pendant la frappe, le clavier reste à la notch même si la souris
+        // s'en va : il ne lui est rendu qu'à la fermeture.
+        if (!_typingCapture && !IsTyping())
+        {
+            WindowChrome.SetKeyboardCapture(_hWnd, enabled: false);
+        }
     }
 
     private void OnPreviewExitTick()
@@ -2109,6 +2187,14 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private async void OnIslandKeyDown(object sender, KeyRoutedEventArgs e)
     {
+        // Une touche tapée dans un champ lui appartient : les flèches changeaient
+        // d'activité, Espace lançait l'action principale. Seul Échap, que le
+        // champ n'a pas traité, referme la notch.
+        if (e.OriginalSource is TextBox && e.Key != global::Windows.System.VirtualKey.Escape)
+        {
+            return;
+        }
+
         switch (e.Key)
         {
             case global::Windows.System.VirtualKey.Escape:
@@ -2127,8 +2213,12 @@ public sealed partial class IslandWindow : Window
 
             case global::Windows.System.VirtualKey.Enter:
             case global::Windows.System.VirtualKey.Space:
+                // Marqué traité avant d'attendre : après un await, il serait
+                // trop tard pour arrêter la remontée de la touche.
+                e.Handled = true;
+                _diagnostics.CountEvent();
                 await InvokePrimaryActionAsync();
-                break;
+                return;
 
             default:
                 return;
@@ -2280,6 +2370,13 @@ public sealed partial class IslandWindow : Window
         try
         {
             var windowManager = WindowManager.Get(this);
+
+            // WinUIEx impose par défaut une taille minimale de 136 × 39 DIP. La
+            // notch au repos en fait 80 × 18 : Windows élargissait la fenêtre
+            // au-delà du rectangle calculé, et la notch se retrouvait décentrée
+            // par rapport à son halo, dans une fenêtre qui avalait les clics.
+            windowManager.MinWidth = 0;
+            windowManager.MinHeight = 0;
             windowManager.IsVisibleInTray = true;
             windowManager.TrayIconSelected += (_, _) => _controller.ToggleFromUser();
 
@@ -2675,6 +2772,25 @@ public sealed partial class IslandWindow : Window
     /// connaître le menu de la zone de notification.
     /// </summary>
     public void ShowSettings() => OpenSettingsWindow();
+
+    /// <summary>
+    /// Un second lancement — raccourci, menu Démarrer, installeur — ne crée pas
+    /// une seconde notch : il réveille celle-ci, qui se montre et s'ouvre.
+    /// </summary>
+    public void RevealFromSecondLaunch()
+    {
+        MiniLogger.Log("Second lancement : la notch en cours se montre.");
+
+        if (!_islandShown)
+        {
+            SetIslandVisible(true);
+        }
+
+        if (_controller.State is not (IslandState.Expanded or IslandState.Expanding))
+        {
+            _controller.ToggleFromUser();
+        }
+    }
 
     /// <summary>
     /// Rejoue le scénario de démonstration dans la vraie notch : chaque étape est

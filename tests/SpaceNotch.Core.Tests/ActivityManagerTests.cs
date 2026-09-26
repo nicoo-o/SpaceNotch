@@ -43,6 +43,51 @@ public class ActivityManagerTests
     }
 
     [Fact]
+    public void A_more_important_activity_lifts_the_pin()
+    {
+        var manager = new ActivityManager();
+
+        manager.PostActivity(Activity("music", ActivityPriority.Background));
+        manager.PostActivity(Activity("clipboard", ActivityPriority.Normal));
+        manager.PinPresentation("music");
+        Assert.Equal("music", manager.CurrentActivity?.Id);
+
+        // Une activité de même rang n'enlève pas l'épingle…
+        manager.PostActivity(Activity("shelf", ActivityPriority.Normal));
+        Assert.Equal("music", manager.CurrentActivity?.Id);
+
+        // … mais le volume, plus important, reprend la main.
+        manager.PostActivity(Activity("volume", ActivityPriority.High));
+        Assert.Equal("volume", manager.CurrentActivity?.Id);
+    }
+
+    [Fact]
+    public void Republishing_the_pinned_activity_keeps_the_pin()
+    {
+        var manager = new ActivityManager();
+
+        manager.PostActivity(Activity("music", ActivityPriority.Background));
+        manager.PostActivity(Activity("download", ActivityPriority.Normal));
+        manager.PinPresentation("music");
+
+        manager.PostActivity(Activity("music", ActivityPriority.Background));
+        Assert.Equal("music", manager.CurrentActivity?.Id);
+    }
+
+    [Fact]
+    public void Cycling_updates_the_current_activity()
+    {
+        var manager = new ActivityManager();
+
+        manager.PostActivity(Activity("a", ActivityPriority.Normal, createdAt: DateTimeOffset.UtcNow.AddSeconds(-2)));
+        manager.PostActivity(Activity("b", ActivityPriority.Normal, createdAt: DateTimeOffset.UtcNow.AddSeconds(-1)));
+        string? before = manager.CurrentActivity?.Id;
+
+        Assert.True(manager.CyclePresentation(1));
+        Assert.NotEqual(before, manager.CurrentActivity?.Id);
+    }
+
+    [Fact]
     public void ActivityManager_RepostingSameId_ReplacesInsteadOfAccumulating()
     {
         // C'est la garantie anti-fuite : cinquante changements de volume ne

@@ -43,11 +43,13 @@ internal static class SetupRunner
 
                 case SetupMode.UninstallWorker:
                 {
-                    InstalledProduct? product = WindowsSetup.FindInstalled();
+                    // La portée demandée, et elle seule : lire d'abord la ruche de
+                    // l'utilisateur ferait désinstaller la mauvaise installation.
+                    InstalledProduct? product = WindowsSetup.FindInstalled(command.Options.Scope);
 
                     if (product is not null)
                     {
-                        await Task.Run(() => WindowsSetup.RemoveFiles(product, command.RemoveSettings, Log)).ConfigureAwait(false);
+                        await Task.Run(() => WindowsSetup.RemoveFiles(product, command.RemoveSettings, Log, command.CallerProcessId)).ConfigureAwait(false);
                     }
 
                     return Succeeded;

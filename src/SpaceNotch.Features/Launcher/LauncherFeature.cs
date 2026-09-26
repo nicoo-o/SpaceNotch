@@ -126,6 +126,17 @@ public sealed class LauncherFeature : IslandFeatureBase
         }
     }
 
+    /// <summary>
+    /// Retire le lanceur. Appelé quand la notch se referme : sans cela, il
+    /// restait l'activité présentée — devant la musique — jusqu'au prochain
+    /// lancement d'application.
+    /// </summary>
+    public void Dismiss()
+    {
+        _query = string.Empty;
+        RemoveActivity(ActivityId);
+    }
+
     private bool Launch(string? target)
     {
         if (string.IsNullOrWhiteSpace(target) || !File.Exists(target))

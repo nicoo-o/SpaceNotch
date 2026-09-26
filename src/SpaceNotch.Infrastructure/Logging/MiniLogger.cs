@@ -88,8 +88,22 @@ public static class MiniLogger
             CultureInfo.InvariantCulture,
             $"[{DateTime.Now:HH:mm:ss.fff}] {message}");
 
-        // TryAdd : on abandonne silencieusement si la file est saturée.
-        Queue.TryAdd(line);
+        // TryAdd : on abandonne silencieusement si la file est saturée — ou
+        // fermée : après Flush, à la sortie du processus, une dernière ligne
+        // levait InvalidOperationException.
+        if (Queue.IsAddingCompleted)
+        {
+            return;
+        }
+
+        try
+        {
+            Queue.TryAdd(line);
+        }
+        catch (InvalidOperationException)
+        {
+            // Fermée entre le test et l'ajout : la ligne est perdue, pas le processus.
+        }
     }
 
     public static void Log(string message, Exception exception)

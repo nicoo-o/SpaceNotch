@@ -48,14 +48,14 @@
                  de composition, un pinceau n'en coûte aucune. -->
             <!-- Encre plafonnée sous le blanc pur : sur un noir OLED, le blanc
                  absolu bave (halation). 92 % reste éclatant sans vibrer. -->
-            <SolidColorBrush x:Key="NfTextPrimaryBrush" Color="#FFFFFF" Opacity="0.92" />
-            <SolidColorBrush x:Key="NfTextSecondaryBrush" Color="#FFFFFF" Opacity="0.60" />
-            <SolidColorBrush x:Key="NfTextTertiaryBrush" Color="#FFFFFF" Opacity="0.42" />
+            <SolidColorBrush x:Key="NfTextPrimaryBrush" Color="#EBFFFFFF" />
+            <SolidColorBrush x:Key="NfTextSecondaryBrush" Color="#99FFFFFF" />
+            <SolidColorBrush x:Key="NfTextTertiaryBrush" Color="#6BFFFFFF" />
 
             <!-- Traits. Utilisés à l'intérieur de l'Island uniquement : jamais
                  sur son pourtour, qui doit rester sans arête. -->
-            <SolidColorBrush x:Key="NfStrokeSubtleBrush" Color="#FFFFFF" Opacity="0.07" />
-            <SolidColorBrush x:Key="NfStrokeStrongBrush" Color="#FFFFFF" Opacity="0.14" />
+            <SolidColorBrush x:Key="NfStrokeSubtleBrush" Color="#12FFFFFF" />
+            <SolidColorBrush x:Key="NfStrokeStrongBrush" Color="#24FFFFFF" />
 
             <!-- Accent et états sémantiques. -->
             <Color x:Key="NfAccentColor">#4EA1FF</Color>
@@ -75,7 +75,7 @@
                  la couleur — illisible en contraste élevé, pour une partie des
                  daltonismes, et pour quiconque ne distingue pas deux teintes
                  voisines. Voir ADR-014. -->
-            <SolidColorBrush x:Key="NfStateNeutralBrush" Color="#FFFFFF" Opacity="0.72" />
+            <SolidColorBrush x:Key="NfStateNeutralBrush" Color="#B8FFFFFF" />
             <SolidColorBrush x:Key="NfStateWorkingBrush" Color="#E8A66B" />
             <SolidColorBrush x:Key="NfStateInfoBrush" Color="#7FB3F0" />
             <SolidColorBrush x:Key="NfStateSuccessBrush" Color="#5FD08A" />
@@ -106,8 +106,8 @@
                  « noir relevé » du plan SpaceNotch 2.0 : il laisse la place à la
                  profondeur là où une surface doit se distinguer d'une autre. -->
             <Color x:Key="NfSurfaceGlassColor">#EB08090C</Color>
-            <SolidColorBrush x:Key="NfSurfaceGlassBrush" Color="#08090C" Opacity="0.92" />
-            <SolidColorBrush x:Key="NfSurfaceElevatedBrush" Color="#FFFFFF" Opacity="0.06" />
+            <SolidColorBrush x:Key="NfSurfaceGlassBrush" Color="#EB08090C" />
+            <SolidColorBrush x:Key="NfSurfaceElevatedBrush" Color="#0FFFFFFF" />
 
             <!-- Matière hypnotique : une lumière chaude, comme la référence
                  Inspora. Elle est teintée par l'état lorsqu'il en porte un. -->
@@ -115,14 +115,17 @@
 
             <!-- Installeur : la notch qui s'ouvre sur ses choix. Le cyan est celui
                  du logo — la grille au repos. Voir ADR-022. -->
-            <SolidColorBrush x:Key="NfSetupChoiceBrush" Color="#FFFFFF" Opacity="0.06" />
-            <SolidColorBrush x:Key="NfSetupChoiceStrokeBrush" Color="#FFFFFF" Opacity="0.10" />
+            <SolidColorBrush x:Key="NfSetupChoiceBrush" Color="#0FFFFFFF" />
+            <SolidColorBrush x:Key="NfSetupChoiceStrokeBrush" Color="#1AFFFFFF" />
             <SolidColorBrush x:Key="NfSetupChosenStrokeBrush" Color="#7FE6FF" />
             <SolidColorBrush x:Key="NfSetupProgressBrush" Color="#7FE6FF" />
-            <SolidColorBrush x:Key="NfSetupTrackBrush" Color="#FFFFFF" Opacity="0.10" />
+            <SolidColorBrush x:Key="NfSetupTrackBrush" Color="#1AFFFFFF" />
             <SolidColorBrush x:Key="NfSetupPrimaryBrush" Color="#FFFFFF" />
             <SolidColorBrush x:Key="NfSetupPrimaryTextBrush" Color="#000000" />
-            <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="#FFFFFF" Opacity="0.12" />
+            <SolidColorBrush x:Key="NfSetupPrimaryHoverBrush" Color="#E6FFFFFF" />
+            <SolidColorBrush x:Key="NfSetupPrimaryPressedBrush" Color="#C7FFFFFF" />
+            <SolidColorBrush x:Key="NfSetupChoiceHoverBrush" Color="#1AFFFFFF" />
+            <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="#1FFFFFFF" />
 
         </ResourceDictionary>
 
@@ -136,15 +139,15 @@
             <Color x:Key="NfSurfaceSunkenColor">#E4E6EC</Color>
 
             <SolidColorBrush x:Key="NfSurfaceBaseBrush" Color="#F2F3F6" />
-            <SolidColorBrush x:Key="NfSurfaceRaisedBrush" Color="#FFFFFF" Opacity="0.72" />
-            <SolidColorBrush x:Key="NfSurfaceSunkenBrush" Color="#E4E6EC" Opacity="0.55" />
+            <SolidColorBrush x:Key="NfSurfaceRaisedBrush" Color="#B8FFFFFF" />
+            <SolidColorBrush x:Key="NfSurfaceSunkenBrush" Color="#8CE4E6EC" />
 
-            <SolidColorBrush x:Key="NfTextPrimaryBrush" Color="#101014" Opacity="0.94" />
-            <SolidColorBrush x:Key="NfTextSecondaryBrush" Color="#101014" Opacity="0.64" />
-            <SolidColorBrush x:Key="NfTextTertiaryBrush" Color="#101014" Opacity="0.46" />
+            <SolidColorBrush x:Key="NfTextPrimaryBrush" Color="#F0101014" />
+            <SolidColorBrush x:Key="NfTextSecondaryBrush" Color="#A3101014" />
+            <SolidColorBrush x:Key="NfTextTertiaryBrush" Color="#75101014" />
 
-            <SolidColorBrush x:Key="NfStrokeSubtleBrush" Color="#101014" Opacity="0.08" />
-            <SolidColorBrush x:Key="NfStrokeStrongBrush" Color="#101014" Opacity="0.16" />
+            <SolidColorBrush x:Key="NfStrokeSubtleBrush" Color="#14101014" />
+            <SolidColorBrush x:Key="NfStrokeStrongBrush" Color="#29101014" />
 
             <Color x:Key="NfAccentColor">#0E6DD4</Color>
             <SolidColorBrush x:Key="NfAccentBrush" Color="#0E6DD4" />
@@ -154,7 +157,7 @@
 
             <!-- Même grammaire d'état, encre inversée : la teinte doit rester
                  lisible sur une surface claire, donc nettement plus sombre. -->
-            <SolidColorBrush x:Key="NfStateNeutralBrush" Color="#101014" Opacity="0.72" />
+            <SolidColorBrush x:Key="NfStateNeutralBrush" Color="#B8101014" />
             <SolidColorBrush x:Key="NfStateWorkingBrush" Color="#8A5217" />
             <SolidColorBrush x:Key="NfStateInfoBrush" Color="#1E5FA8" />
             <SolidColorBrush x:Key="NfStateSuccessBrush" Color="#15803D" />
@@ -167,19 +170,22 @@
             <x:Double x:Key="NfSpecularOpacity">0.35</x:Double>
 
             <Color x:Key="NfSurfaceGlassColor">#EBF2F3F6</Color>
-            <SolidColorBrush x:Key="NfSurfaceGlassBrush" Color="#F2F3F6" Opacity="0.92" />
-            <SolidColorBrush x:Key="NfSurfaceElevatedBrush" Color="#101014" Opacity="0.05" />
+            <SolidColorBrush x:Key="NfSurfaceGlassBrush" Color="#EBF2F3F6" />
+            <SolidColorBrush x:Key="NfSurfaceElevatedBrush" Color="#0D101014" />
 
             <Color x:Key="NfHypnoticWarmColor">#D9822B</Color>
 
-            <SolidColorBrush x:Key="NfSetupChoiceBrush" Color="#101014" Opacity="0.05" />
-            <SolidColorBrush x:Key="NfSetupChoiceStrokeBrush" Color="#101014" Opacity="0.12" />
+            <SolidColorBrush x:Key="NfSetupChoiceBrush" Color="#0D101014" />
+            <SolidColorBrush x:Key="NfSetupChoiceStrokeBrush" Color="#1F101014" />
             <SolidColorBrush x:Key="NfSetupChosenStrokeBrush" Color="#0E8FB0" />
             <SolidColorBrush x:Key="NfSetupProgressBrush" Color="#0E8FB0" />
-            <SolidColorBrush x:Key="NfSetupTrackBrush" Color="#101014" Opacity="0.12" />
+            <SolidColorBrush x:Key="NfSetupTrackBrush" Color="#1F101014" />
             <SolidColorBrush x:Key="NfSetupPrimaryBrush" Color="#101014" />
             <SolidColorBrush x:Key="NfSetupPrimaryTextBrush" Color="#FFFFFF" />
-            <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="#101014" Opacity="0.12" />
+            <SolidColorBrush x:Key="NfSetupPrimaryHoverBrush" Color="#E6101014" />
+            <SolidColorBrush x:Key="NfSetupPrimaryPressedBrush" Color="#C7101014" />
+            <SolidColorBrush x:Key="NfSetupChoiceHoverBrush" Color="#1A101014" />
+            <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="#1F101014" />
 
         </ResourceDictionary>
 
@@ -238,6 +244,9 @@
             <SolidColorBrush x:Key="NfSetupTrackBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="NfSetupPrimaryBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
             <SolidColorBrush x:Key="NfSetupPrimaryTextBrush" Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="NfSetupPrimaryHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfSetupPrimaryPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfSetupChoiceHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
 
         </ResourceDictionary>

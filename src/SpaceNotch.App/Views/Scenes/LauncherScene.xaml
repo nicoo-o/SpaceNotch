@@ -31,7 +31,10 @@
             FontSize="12"
             AutomationProperties.Name="Rechercher une application"
             TextChanged="OnSearchTextChanged"
-            QuerySubmitted="OnQuerySubmitted" />
+            QuerySubmitted="OnQuerySubmitted"
+            GotFocus="OnSearchGotFocus"
+            LostFocus="OnSearchLostFocus"
+            PreviewKeyDown="OnSearchPreviewKeyDown" />
 
         <TextBlock
             x:Name="SectionText"
