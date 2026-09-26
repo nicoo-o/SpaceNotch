@@ -27,6 +27,7 @@ using SpaceNotch.Features.Downloads;
 using SpaceNotch.Features.FileShelf;
 using SpaceNotch.Features.Launcher;
 using SpaceNotch.Features.Media;
+using SpaceNotch.Features.Menu;
 using SpaceNotch.Features.Notifications;
 using SpaceNotch.Features.Privacy;
 using SpaceNotch.Features.Productivity;
@@ -108,6 +109,7 @@ public sealed partial class IslandWindow : Window
     private readonly PomodoroFeature _pomodoroFeature;
     private readonly TimerFeature _timerFeature;
     private readonly LauncherFeature _launcherFeature;
+    private readonly QuickMenuFeature _quickMenuFeature;
     private readonly MediaFeature _mediaFeature;
     private readonly IslandFeatureRegistry _featureRegistry;
     private readonly PluginLoader _pluginLoader;
@@ -281,6 +283,8 @@ public sealed partial class IslandWindow : Window
             _eventBus,
             store: new SpaceNotch_App.Launcher.SettingsLauncherHistoryStore(_settingsService));
 
+        _quickMenuFeature = new QuickMenuFeature(_activityManager, _eventBus);
+
         _mediaFeature = new MediaFeature(
             _activityManager, _eventBus, _mediaSessionManager, _settings.IsFeatureEnabled(MediaFeature.FeatureKey));
 
@@ -305,6 +309,7 @@ public sealed partial class IslandWindow : Window
                 _settings.IsFeatureEnabled(BrightnessHudFeature.FeatureKey)),
             _timerFeature,
             _launcherFeature,
+            _quickMenuFeature,
             new DownloadsFeature(
                 _activityManager, _eventBus, KnownFolders.Downloads,
                 _settings.IsFeatureEnabled(DownloadsFeature.FeatureKey)),
@@ -535,6 +540,7 @@ public sealed partial class IslandWindow : Window
         _scenes[IslandSceneCatalog.Pomodoro] = TimerSceneView;
         _scenes[IslandSceneCatalog.Clipboard] = ClipboardSceneView;
         _scenes[IslandSceneCatalog.Launcher] = LauncherSceneView;
+        _scenes[IslandSceneCatalog.QuickMenu] = QuickMenuSceneView;
 
         // Luminosité et volume partagent la même vue : leur charge utile est
         // identique, seule la clé d'icône les distingue.
@@ -581,6 +587,13 @@ public sealed partial class IslandWindow : Window
         try
         {
             _diagnostics.CountEvent();
+
+            // Les commandes du menu rapide touchent la fenêtre : elles sont
+            // exécutées ici, pas par une fonctionnalité.
+            if (HandleQuickMenuAction(request))
+            {
+                return;
+            }
 
             bool handled = await _featureRegistry.HandleActionAsync(request);
 
@@ -635,6 +648,13 @@ public sealed partial class IslandWindow : Window
                 && _controller.PresentedActivity?.SceneKey == IslandSceneCatalog.Launcher)
             {
                 _launcherFeature.Dismiss();
+            }
+
+            // Le menu rapide aussi : refermé, il ne reste pas en tête de pile.
+            if (state == IslandState.Closed && _quickMenuFeature.IsShown)
+            {
+                _quickMenuFeature.Dismiss();
+                _activityManager.PinPresentation(null);
             }
 
             RequestRender();
@@ -903,6 +923,12 @@ public sealed partial class IslandWindow : Window
                 {
                     CaptureKeyboardForTyping();
                     DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, launcher.FocusSearch);
+                }
+                else if (scene is QuickMenuScene menu)
+                {
+                    // Le menu se parcourt aussi au clavier : ↑↓, Entrée, Échap.
+                    CaptureKeyboardForTyping();
+                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, menu.FocusFirst);
                 }
 
                 // Une seule ligne de temps : la forme grandit, puis le contenu
@@ -2104,7 +2130,7 @@ public sealed partial class IslandWindow : Window
         if (properties.IsRightButtonPressed)
         {
             e.Handled = true;
-            OpenLauncher();
+            ToggleQuickMenu();
             return;
         }
 
@@ -2515,7 +2541,7 @@ public sealed partial class IslandWindow : Window
             Icon = new FontIcon { Glyph = "\uE768" }
         };
 
-        var launcherItem = new MenuFlyoutItem { Text = "Applications…" };
+        var launcherItem = new MenuFlyoutItem { Text = "Rechercher…" };
         launcherItem.Click += (_, _) =>
         {
             _launcherFeature.Show();

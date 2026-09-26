@@ -38,7 +38,7 @@ public sealed class ClipboardFeature : IslandFeatureBase
 
     public const string RemoveAction = "clipboard.remove";
 
-    private const string ActivityId = "feature.clipboard.current";
+    public const string ActivityId = "feature.clipboard.current";
 
     /// <summary>Longueur maximale d'une prévisualisation, en caractères.</summary>
     private const int PreviewLength = 120;

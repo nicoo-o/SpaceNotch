@@ -255,3 +255,16 @@ public class LauncherLayoutTests
         Assert.Equal(LauncherLayout.ActionsPanelMinHeight, LauncherLayout.FootprintFor(one, actionsOpen: true).Height);
     }
 }
+
+public sealed class QuickMenuLayoutTests
+{
+    [Fact]
+    public void Dock_choices_add_one_row_of_height()
+    {
+        Assert.Equal(SpaceNotch.Core.Menu.QuickMenuLayout.Height, SpaceNotch.Core.Menu.QuickMenuLayout.HeightFor(false));
+        Assert.Equal(
+            SpaceNotch.Core.Menu.QuickMenuLayout.DockChoices,
+            SpaceNotch.Core.Menu.QuickMenuLayout.HeightFor(true) - SpaceNotch.Core.Menu.QuickMenuLayout.HeightFor(false));
+        Assert.True(SpaceNotch.Core.Scenes.IslandSceneCatalog.IsKnown(SpaceNotch.Core.Scenes.IslandSceneCatalog.QuickMenu));
+    }
+}

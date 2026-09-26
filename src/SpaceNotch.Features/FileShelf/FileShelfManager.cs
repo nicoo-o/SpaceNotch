@@ -22,7 +22,7 @@ public sealed class FileShelfManager : IslandFeatureBase
 {
     public const string FeatureKey = FeatureKeys.FileShelf;
 
-    private const string ShelfActivityId = "feature.fileshelf.current";
+    public const string ShelfActivityId = "feature.fileshelf.current";
 
     private readonly List<ShelfItem> _items = [];
     private readonly object _lock = new();

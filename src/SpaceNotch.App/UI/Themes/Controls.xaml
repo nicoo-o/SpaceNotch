@@ -185,6 +185,20 @@
         <Setter Property="FontSize" Value="11.5" />
     </Style>
 
+    <!-- Pastille choisie par défaut : blanche, texte noir (15 min). -->
+    <Style x:Key="NfPrimaryChipButtonStyle" TargetType="Button" BasedOn="{StaticResource NfChipButtonStyle}">
+        <Setter Property="Background" Value="{ThemeResource NfPrimaryFillBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource NfOnPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Tag" Value="{ThemeResource NfPrimaryFillHoverBrush}" />
+    </Style>
+
+    <!-- Pastille de l'état actuel : contour et texte cyan (le bord où la notch est). -->
+    <Style x:Key="NfActiveChipButtonStyle" TargetType="Button" BasedOn="{StaticResource NfChipButtonStyle}">
+        <Setter Property="BorderBrush" Value="{ThemeResource NfActiveBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource NfActiveBrush}" />
+    </Style>
+
     <!-- Ligne de menu : pleine largeur, alignée à gauche, rond de 8. -->
     <Style x:Key="NfMenuRowButtonStyle" TargetType="Button" BasedOn="{StaticResource NfGhostButtonStyle}">
         <Setter Property="HorizontalAlignment" Value="Stretch" />

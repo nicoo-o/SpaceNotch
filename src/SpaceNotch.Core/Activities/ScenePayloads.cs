@@ -88,3 +88,22 @@ public sealed record LauncherPayload(
     bool IsLoading = false,
     string? Hotkey = null,
     IReadOnlyCollection<string>? Favorites = null);
+
+/// <summary>Charge utile du menu rapide (clic droit sur la notch).</summary>
+/// <param name="Hotkey">Raccourci de la recherche, affiché en face de « Rechercher ».</param>
+/// <param name="DockExpanded">Vrai quand « Accrocher à… » est déplié sur ses trois bords.</param>
+/// <param name="Edge">Bord où la notch est accrochée : celui-là est en cyan.</param>
+/// <param name="IsFloating">Vrai si la notch est détachée : « Détacher » n'a plus lieu d'être.</param>
+/// <param name="SideEdgesAllowed">Faux si les réglages limitent la notch au haut de l'écran.</param>
+/// <param name="HasClipboard">Vrai si l'historique du presse-papier a quelque chose à montrer.</param>
+/// <param name="HasShelf">Vrai si l'étagère contient des fichiers.</param>
+/// <param name="TimerRunning">Vrai si un minuteur tourne : la ligne propose de l'arrêter.</param>
+public sealed record QuickMenuPayload(
+    string? Hotkey,
+    bool DockExpanded,
+    SpaceNotch.Core.Presentation.NotchEdge Edge,
+    bool IsFloating,
+    bool SideEdgesAllowed,
+    bool HasClipboard,
+    bool HasShelf,
+    bool TimerRunning);

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="SpaceNotch_App.Views.Scenes.QuickMenuScene"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!--
+        Menu rapide : la notch elle-même s'ouvre en menu. Hauteurs de
+        QuickMenuLayout (cœur) : marge 4, en-tête 40, lignes 36, filets 9,
+        rangée des bords 38, marge basse 10. Les lignes sont construites en code.
+    -->
+    <Grid x:Name="RootGrid" Padding="10,4,10,10" KeyDown="OnMenuKeyDown">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="40" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Padding="10,0,10,0" ColumnSpacing="10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <Grid x:Name="LogoGrid" Grid.Column="0" Width="14" Height="14" VerticalAlignment="Center" />
+            <TextBlock
+                Grid.Column="1"
+                Text="SpaceNotch"
+                FontSize="13"
+                FontWeight="SemiBold"
+                Foreground="{ThemeResource NfTextSecondaryBrush}"
+                VerticalAlignment="Center" />
+            <TextBlock
+                x:Name="ClockText"
+                Grid.Column="2"
+                FontSize="12"
+                Foreground="{ThemeResource NfTextTertiaryBrush}"
+                VerticalAlignment="Center" />
+        </Grid>
+
+        <StackPanel x:Name="RowsPanel" Grid.Row="1" XYFocusKeyboardNavigation="Enabled" TabFocusNavigation="Cycle" />
+    </Grid>
+</UserControl>
