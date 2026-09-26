@@ -96,6 +96,7 @@ public sealed partial class SettingsWindow : Window
         BuildComboItems();
         LoadFromSettings();
         SelectPage(PageGeneral, NavGeneral);
+        ShowPendingPlugins();
         ShowHotkey();
         UpdateNotificationCard();
 
@@ -1107,6 +1108,74 @@ public sealed partial class SettingsWindow : Window
         if (ClipboardSizeBox.SelectedIndex is int index and >= 0)
         {
             Apply(s => s.ClipboardHistoryLimit = ClipboardSizes[index]);
+        }
+    }
+
+    // ------------------------------------------------------------------
+    // Greffons en attente d'approbation
+    // ------------------------------------------------------------------
+
+    /// <summary>
+    /// Les greffons présents mais non approuvés — ou modifiés depuis — : un
+    /// bouton par greffon, qui l'approuve tel qu'il est (nom et empreinte).
+    /// </summary>
+    private void ShowPendingPlugins()
+    {
+        PendingPluginsHost.Children.Clear();
+
+        IReadOnlyList<string> pending = PluginLoader.FindPending(
+            PluginLoader.ResolveDefaultDirectory(),
+            new PluginAllowlist(_settings.Current.ApprovedPlugins));
+
+        if (pending.Count == 0)
+        {
+            PendingPluginsHost.Children.Add(new TextBlock
+            {
+                Text = "Aucun greffon en attente.",
+                FontSize = 12,
+                Foreground = new SolidColorBrush(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF))
+            });
+            return;
+        }
+
+        foreach (string path in pending)
+        {
+            string name = Path.GetFileName(path);
+            var row = new Grid { ColumnSpacing = 10 };
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            row.Children.Add(new TextBlock
+            {
+                Text = name,
+                FontSize = 12.5,
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                VerticalAlignment = VerticalAlignment.Center,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            });
+
+            var approve = new Button
+            {
+                Style = (Style)Application.Current.Resources["NfSecondaryButtonStyle"],
+                Content = "Autoriser"
+            };
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(approve, $"Autoriser le greffon {name}");
+            approve.Click += (_, _) =>
+            {
+                if (PluginAllowlist.Hash(path) is not { } hash)
+                {
+                    StatusText.Text = $"{name} : fichier illisible.";
+                    return;
+                }
+
+                Apply(s => s.ApprovedPlugins[name] = hash);
+                StatusText.Text = $"{name} sera chargé au prochain démarrage de SpaceNotch.";
+                ShowPendingPlugins();
+            };
+            Grid.SetColumn(approve, 1);
+            row.Children.Add(approve);
+
+            PendingPluginsHost.Children.Add(row);
         }
     }
 

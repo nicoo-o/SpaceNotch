@@ -1240,6 +1240,26 @@
                             <TextBlock x:Name="PathText" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" FontSize="10.5" Foreground="#60FFFFFF" TextTrimming="CharacterEllipsis" Margin="0,4,0,0" />
                         </Grid>
                     </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Greffons en attente Un greffon exécute du code : il n&#x27;est chargé qu&#x27;une fois approuvé ici. Effet au prochain démarrage.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE8B7;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Greffons en attente" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Un greffon exécute du code : il n&#x27;est chargé qu&#x27;une fois approuvé ici. Effet au prochain démarrage." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            
+                            <StackPanel x:Name="PendingPluginsHost" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Spacing="6" Margin="0,6,0,0" />
+                        </Grid>
+                    </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Rétablir les valeurs par défaut Apparence, mouvement et comportement reviennent à leur réglage d&#x27;origine.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>

@@ -514,6 +514,9 @@ public sealed class AppSettings
     /// <summary>Moteur de la recherche web de repli : « bing », « google », « duckduckgo ».</summary>
     public string WebSearchEngine { get; set; } = "bing";
 
+    /// <summary>Greffons approuvés : nom de fichier → empreinte SHA-256. Voir <c>PluginAllowlist</c>.</summary>
+    public Dictionary<string, string> ApprovedPlugins { get; set; } = [];
+
     /// <summary>Applications dont les notifications restent dans le coin de l'écran.</summary>
     public List<string> IgnoredNotificationApps { get; set; } = [];
 
@@ -669,6 +672,7 @@ public sealed class AppSettings
     {
         LauncherFavorites ??= [];
         IgnoredNotificationApps ??= [];
+        ApprovedPlugins ??= [];
         WebSearchEngine = WebSearchEngine is "bing" or "google" or "duckduckgo" ? WebSearchEngine : "bing";
         LauncherRecents ??= [];
         LauncherLaunches ??= [];

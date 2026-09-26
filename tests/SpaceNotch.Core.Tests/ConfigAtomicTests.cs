@@ -52,3 +52,44 @@ public sealed class ConfigAtomicTests : IDisposable
         }
     }
 }
+
+public sealed class PluginAllowlistTests : IDisposable
+{
+    private readonly string _folder = Path.Combine(Path.GetTempPath(), "spacenotch-plugins-" + Guid.NewGuid().ToString("N"));
+
+    [Fact]
+    public void A_plugin_is_allowed_only_as_it_was_approved()
+    {
+        Directory.CreateDirectory(_folder);
+        string plugin = Path.Combine(_folder, "Meteo.dll");
+        File.WriteAllText(plugin, "version 1");
+
+        var approved = new System.Collections.Generic.Dictionary<string, string>
+        {
+            ["Meteo.dll"] = SpaceNotch.Infrastructure.Plugins.PluginAllowlist.Hash(plugin)!
+        };
+        var allowlist = new SpaceNotch.Infrastructure.Plugins.PluginAllowlist(approved);
+
+        Assert.True(allowlist.IsAllowed(plugin));
+
+        // Remplacé ou modifié : redevient « en attente ».
+        File.WriteAllText(plugin, "version 2, autre code");
+        Assert.False(allowlist.IsAllowed(plugin));
+        Assert.Single(SpaceNotch.Infrastructure.Plugins.PluginLoader.FindPending(_folder, allowlist));
+
+        // Jamais approuvé.
+        File.WriteAllText(Path.Combine(_folder, "Inconnu.dll"), "x");
+        Assert.Equal(2, SpaceNotch.Infrastructure.Plugins.PluginLoader.FindPending(_folder, allowlist).Count);
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            Directory.Delete(_folder, recursive: true);
+        }
+        catch (IOException)
+        {
+        }
+    }
+}

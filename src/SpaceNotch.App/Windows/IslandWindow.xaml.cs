@@ -347,8 +347,16 @@ public sealed partial class IslandWindow : Window
         // fonctionnalités intégrées.
         _pluginLoader = new PluginLoader();
 
+        // Seuls les greffons approuvés (nom et empreinte) sont chargés ; les
+        // autres attendent dans Réglages › À propos.
         PluginLoadResult plugins = _pluginLoader.LoadAll(
-            new IslandFeatureContext(_activityManager, _eventBus));
+            new IslandFeatureContext(_activityManager, _eventBus),
+            new PluginAllowlist(_settings.ApprovedPlugins));
+
+        foreach (string pending in plugins.Pending ?? [])
+        {
+            MiniLogger.Log($"[PLUGIN] En attente d'approbation : {System.IO.Path.GetFileName(pending)}");
+        }
 
         features.AddRange(plugins.Features);
 
