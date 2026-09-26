@@ -45,6 +45,15 @@ public static partial class NativeMethods
         public IntPtr lpszDefaultScheme;
     }
 
+    // ---- Boîte de message ------------------------------------------------
+
+    /// <summary>
+    /// Boîte de message de Windows : le dernier recours de l'installeur quand
+    /// sa propre fenêtre ne peut pas s'ouvrir — mieux qu'un lancement muet.
+    /// </summary>
+    [LibraryImport("user32.dll", EntryPoint = "MessageBoxW", StringMarshalling = StringMarshalling.Utf16)]
+    public static partial int MessageBox(IntPtr hWnd, string text, string caption, uint type);
+
     // ---- Positionnement / visibilité --------------------------------------
 
     /// <summary>Dossier connu de l'utilisateur — ici, Téléchargements.</summary>

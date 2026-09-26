@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using SpaceNotch.Core.Setup;
 using SpaceNotch.Infrastructure.Logging;
+using SpaceNotch.Platform.Windows.Win32;
 using SpaceNotch_App.Setup;
 using SpaceNotch_App.Startup;
 using SpaceNotch_App.Windows;
@@ -104,6 +105,14 @@ public partial class App : Application
             return;
         }
 
+        // Une erreur de l'installeur ne doit jamais finir en lancement muet :
+        // l'utilisateur voit au moins pourquoi, et le journal garde le détail.
+        UnhandledException += (_, args) =>
+        {
+            args.Handled = true;
+            FailSetup(args.Exception);
+        };
+
         try
         {
             _window = new SetupWindow(setup, version);
@@ -111,9 +120,19 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            MiniLogger.Log($"[FATAL] Installeur : {ex}");
-            Exit();
+            FailSetup(ex);
         }
+    }
+
+    private static void FailSetup(Exception ex)
+    {
+        MiniLogger.Log($"[FATAL] Installeur : {ex}");
+
+        const uint IconError = 0x10;
+        SetupText text = SetupText.Current;
+        NativeMethods.MessageBox(IntPtr.Zero, $"{text.Failed}\n\n{ex.Message}\n\n{MiniLogger.LogPath}", SetupIdentity.ProductName, IconError);
+
+        Environment.Exit(SetupRunner.Failed);
     }
 
     private static async Task RunHeadlessAsync(SetupCommand setup, string version)
