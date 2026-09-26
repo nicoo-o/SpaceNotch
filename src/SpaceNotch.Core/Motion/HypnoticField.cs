@@ -150,7 +150,9 @@ public static class HypnoticField
     /// <summary>
     /// Image fixe représentative, pour la réduction des animations : un motif
     /// allumé et sa couleur, sans le mouvement. Un préréglage ponctuel se fige
-    /// sur son état final.
+    /// sur son état final ; une boucle, sur son image la plus pleine — la
+    /// première n'était souvent qu'un curseur d'un pixel, et la grille se lisait
+    /// comme un point perdu dans le coin.
     /// </summary>
     public static HypnoticFrame StaticFrame(HypnoticPreset preset)
     {
@@ -159,7 +161,32 @@ public static class HypnoticField
             return Rest;
         }
 
-        return Evaluate(preset, IsLooping(preset) ? 0 : PeriodSeconds(preset));
+        if (!IsLooping(preset))
+        {
+            return Evaluate(preset, PeriodSeconds(preset));
+        }
+
+        const int Samples = 240;
+        double period = PeriodSeconds(preset);
+        HypnoticFrame best = Evaluate(preset, 0);
+        (int Lit, double Sum) bestScore = Score(best);
+
+        for (int i = 1; i < Samples; i++)
+        {
+            HypnoticFrame frame = Evaluate(preset, period * i / Samples);
+            (int Lit, double Sum) score = Score(frame);
+
+            if (score.Lit > bestScore.Lit || (score.Lit == bestScore.Lit && score.Sum > bestScore.Sum + 1e-9))
+            {
+                best = frame;
+                bestScore = score;
+            }
+        }
+
+        return best;
+
+        static (int Lit, double Sum) Score(HypnoticFrame frame)
+            => (frame.Cells.Count(c => c > 0.4), frame.Cells.Sum());
     }
 
     /// <summary>
