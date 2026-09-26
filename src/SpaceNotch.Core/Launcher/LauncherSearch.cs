@@ -62,7 +62,8 @@ public static class LauncherSearch
         IReadOnlyList<LauncherCandidate> candidates,
         LauncherHistory history,
         LauncherText text,
-        CultureInfo culture)
+        CultureInfo culture,
+        string webSearchEngine = "bing")
     {
         ArgumentNullException.ThrowIfNull(candidates);
         ArgumentNullException.ThrowIfNull(history);
@@ -73,7 +74,7 @@ public static class LauncherSearch
 
         return q.Length == 0
             ? BuildRest(candidates, history, text)
-            : BuildResults(q, candidates, history, text, culture);
+            : BuildResults(q, candidates, history, text, culture, webSearchEngine);
     }
 
     private static List<LauncherSection> BuildRest(
@@ -139,7 +140,8 @@ public static class LauncherSearch
         IReadOnlyList<LauncherCandidate> candidates,
         LauncherHistory history,
         LauncherText text,
-        CultureInfo culture)
+        CultureInfo culture,
+        string webSearchEngine)
     {
         var groups = new List<(int Best, LauncherSection Section)>();
 
@@ -165,7 +167,7 @@ public static class LauncherSearch
         sections.Add(new LauncherSection(text.Web,
         [
             new LauncherResult("web:" + q, LauncherResultKind.Web, web, text.DefaultBrowser,
-                "https://www.bing.com/search?q=" + Uri.EscapeDataString(q), [], Glyph: "◎")
+                WebSearchUrl(webSearchEngine) + Uri.EscapeDataString(q), [], Glyph: "◎")
         ]));
 
         return sections;
@@ -218,4 +220,12 @@ public static class LauncherSearch
 
     private static LauncherResult ToResult(LauncherCandidate candidate, IReadOnlyList<TextMatch> matches)
         => new(candidate.Id, candidate.Kind, candidate.Title, candidate.Subtitle, candidate.Target, matches, candidate.IconPath);
+
+    /// <summary>Adresse de recherche du moteur choisi dans Réglages › Général ; Bing par défaut.</summary>
+    public static string WebSearchUrl(string engine) => engine switch
+    {
+        "google" => "https://www.google.com/search?q=",
+        "duckduckgo" => "https://duckduckgo.com/?q=",
+        _ => "https://www.bing.com/search?q="
+    };
 }

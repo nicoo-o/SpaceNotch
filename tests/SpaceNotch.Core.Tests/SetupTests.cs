@@ -64,6 +64,17 @@ public class SetupCommandTests
     }
 
     [Fact]
+    public void Trust_identity_worker_round_trips_and_is_a_worker()
+    {
+        var original = new SetupCommand(SetupMode.TrustIdentityWorker, InstallOptions.Default, Quiet: true);
+
+        SetupCommand parsed = SetupCommand.Parse(original.ToArguments(), null);
+
+        Assert.Equal(original, parsed);
+        Assert.True(parsed.IsWorker);
+    }
+
+    [Fact]
     public void Unknown_and_blank_arguments_are_ignored()
     {
         SetupCommand command = SetupCommand.Parse(["", "  ", "--what", "--scope=machine", "--install"], null);

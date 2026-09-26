@@ -284,7 +284,10 @@ public sealed partial class IslandWindow : Window
         _launcherFeature = new LauncherFeature(
             _activityManager,
             _eventBus,
-            store: new SpaceNotch_App.Launcher.SettingsLauncherHistoryStore(_settingsService));
+            store: new SpaceNotch_App.Launcher.SettingsLauncherHistoryStore(_settingsService))
+        {
+            WebSearchEngine = _settings.WebSearchEngine
+        };
 
         _quickMenuFeature = new QuickMenuFeature(_activityManager, _eventBus);
         _welcomeFeature = new WelcomeFeature(_activityManager, _eventBus);
@@ -2790,6 +2793,7 @@ public sealed partial class IslandWindow : Window
         _settings = settings;
         _clipboardFeature.IgnoreSecrets = settings.ClipboardIgnoreSecrets;
         _notificationFeature.IgnoredApps = settings.IgnoredNotificationApps;
+        _launcherFeature.WebSearchEngine = settings.WebSearchEngine;
 
         // Le détachement retiré, ou l'écran cible changé : la notch revient au
         // bord de l'écran qui est désormais le sien.
@@ -2951,7 +2955,12 @@ public sealed partial class IslandWindow : Window
             {
                 if (_settingsWindow is null)
                 {
-                    _settingsWindow = new SettingsWindow(_settingsService, _featureRegistry);
+                    _settingsWindow = new SettingsWindow(_settingsService, _featureRegistry)
+                    {
+                        ReplayWelcome = ShowWelcome,
+                        RequestNotificationAccess = _notificationFeature.RequestAccessAsync,
+                        SearchHotkey = _launcherFeature.Hotkey
+                    };
                     _settingsWindow.Closed += (_, _) => _settingsWindow = null;
                 }
 

@@ -9,352 +9,1267 @@
     mc:Ignorable="d">
 
     <!--
-        Thème sombre imposé : la fenêtre est dessinée en noir, et des contrôles
-        Fluent qui suivraient un Windows en thème clair y apparaîtraient en
-        pastilles blanches illisibles.
+        Réglages (vague 3, visuel w3-reglages validé) : noir OLED comme la notch,
+        menu latéral de sept pages, cartes de 62 DIP — icône, titre, une phrase
+        simple, contrôle à droite. La recherche filtre les cartes de toutes les
+        pages. Les noms des contrôles et leurs gestionnaires sont ceux d'avant :
+        la logique de SettingsWindow.xaml.cs n'a pas changé de sens.
+
+        Thème sombre imposé : des contrôles Fluent qui suivraient un Windows en
+        thème clair apparaîtraient en pastilles blanches illisibles.
     -->
-    <Grid x:Name="RootLayout" Background="#0F0F12" RequestedTheme="Dark">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <Grid x:Name="RootLayout" Background="#FF050506" RequestedTheme="Dark">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="236" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
 
-        <!--
-            Aperçu en direct, tracé avec la vraie géométrie de la notch — les
-            mêmes épaules, les mêmes congés interpolés, la même superellipse.
-            Il est mis à jour par le même signal que la notch elle-même : il ne
-            peut donc pas montrer autre chose que ce que l'utilisateur obtient.
+        <!-- Menu latéral. -->
+        <Grid Grid.Column="0" Padding="10,14,10,14" BorderBrush="#0FFFFFFF" BorderThickness="0,0,1,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
 
-            Chaque bande sombre figure un écran, et son bord supérieur le bord de
-            l'écran : les formes y sont accrochées, jamais posées dessous. C'est
-            la règle n°1 de SpaceNotch, et l'aperçu doit la montrer.
-        -->
-        <StackPanel Grid.Row="0" Background="#08080A" Spacing="10" Padding="0,0,0,14">
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="10" Padding="10,6,10,14">
+                <Grid x:Name="BrandLogo" Width="14" Height="14" VerticalAlignment="Center" />
+                <TextBlock Text="Réglages" FontSize="14" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" />
+            </StackPanel>
 
-            <!-- Repos : veille, compact, aperçu au survol. -->
-            <StackPanel
-                Orientation="Horizontal"
-                Spacing="14"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Top">
+            <TextBox
+                x:Name="SearchSettingsBox"
+                Grid.Row="1"
+                Margin="4,0,4,10"
+                PlaceholderText="Rechercher un réglage"
+                AutomationProperties.Name="Rechercher un réglage"
+                TextChanged="OnSearchSettingsChanged" />
 
-                <Grid x:Name="PreviewIdleHost" VerticalAlignment="Top">
-                    <Path x:Name="PreviewIdle" />
-                </Grid>
-
-                <Grid x:Name="PreviewSignalHost" VerticalAlignment="Top">
-                    <Path x:Name="PreviewSignal" />
-                    <StackPanel
-                        Orientation="Horizontal"
-                        Spacing="8"
-                        HorizontalAlignment="Center"
-                        VerticalAlignment="Center">
-                        <FontIcon Glyph="&#xE8D6;" FontSize="14" Foreground="#7FB3F0" VerticalAlignment="Center" />
-                        <TextBlock
-                            x:Name="PreviewSignalText"
-                            Text="Spotify"
-                            FontSize="11.5"
-                            FontWeight="SemiBold"
-                            Foreground="#F0FFFFFF"
-                            VerticalAlignment="Center" />
-                    </StackPanel>
-                </Grid>
-
-                <Grid x:Name="PreviewCardHost" VerticalAlignment="Top">
-                    <Path x:Name="PreviewCard" />
-                    <Grid x:Name="PreviewCardBody" Margin="22,10,22,10" ColumnSpacing="10">
+            <StackPanel x:Name="NavPanel" Grid.Row="2" Spacing="2">
+                <Button x:Name="NavGeneral" Style="{StaticResource NfNavButtonStyle}" Click="OnNavClicked" AutomationProperties.Name="Général">
+                    <Grid ColumnSpacing="12">
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="3" />
+                            <ColumnDefinition Width="16" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
+                        <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
+                        <FontIcon Grid.Column="1" Glyph="&#xE80F;" FontSize="14" Foreground="#99FFFFFF" />
+                        <TextBlock Grid.Column="2" Text="Général" VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+                <Button x:Name="NavNotch" Style="{StaticResource NfNavButtonStyle}" Click="OnNavClicked" AutomationProperties.Name="Notch">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
+                        <FontIcon Grid.Column="1" Glyph="&#xE7F8;" FontSize="14" Foreground="#99FFFFFF" />
+                        <TextBlock Grid.Column="2" Text="Notch" VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+                <Button x:Name="NavAppearance" Style="{StaticResource NfNavButtonStyle}" Click="OnNavClicked" AutomationProperties.Name="Apparence">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
+                        <FontIcon Grid.Column="1" Glyph="&#xE790;" FontSize="14" Foreground="#99FFFFFF" />
+                        <TextBlock Grid.Column="2" Text="Apparence" VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+                <Button x:Name="NavActivities" Style="{StaticResource NfNavButtonStyle}" Click="OnNavClicked" AutomationProperties.Name="Activités">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
+                        <FontIcon Grid.Column="1" Glyph="&#xE71D;" FontSize="14" Foreground="#99FFFFFF" />
+                        <TextBlock Grid.Column="2" Text="Activités" VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+                <Button x:Name="NavMotion" Style="{StaticResource NfNavButtonStyle}" Click="OnNavClicked" AutomationProperties.Name="Mouvement">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
+                        <FontIcon Grid.Column="1" Glyph="&#xE945;" FontSize="14" Foreground="#99FFFFFF" />
+                        <TextBlock Grid.Column="2" Text="Mouvement" VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+                <Button x:Name="NavDisplays" Style="{StaticResource NfNavButtonStyle}" Click="OnNavClicked" AutomationProperties.Name="Écrans">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
+                        <FontIcon Grid.Column="1" Glyph="&#xE7F4;" FontSize="14" Foreground="#99FFFFFF" />
+                        <TextBlock Grid.Column="2" Text="Écrans" VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+                <Button x:Name="NavAbout" Style="{StaticResource NfNavButtonStyle}" Click="OnNavClicked" AutomationProperties.Name="À propos">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="3" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
+                        <FontIcon Grid.Column="1" Glyph="&#xE946;" FontSize="14" Foreground="#99FFFFFF" />
+                        <TextBlock Grid.Column="2" Text="À propos" VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+            </StackPanel>
 
-                        <!-- La vraie grille hypnotique, pour juger du mouvement. -->
-                        <Grid Width="20" Height="20" VerticalAlignment="Center">
-                            <FontIcon
-                                x:Name="PreviewCardGlyph"
-                                Glyph="&#xE916;"
-                                FontSize="20"
-                                Foreground="#E8A66B" />
-                            <Grid x:Name="PreviewHypnoticHost" IsHitTestVisible="False" />
+            <TextBlock x:Name="NavVersionText" Grid.Row="3" FontSize="11.5" Foreground="#66FFFFFF" Margin="12,0,0,0" />
+        </Grid>
+
+        <!-- Pages. -->
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <ScrollViewer x:Name="SettingsScroll" Padding="26,22,26,16">
+                <StackPanel x:Name="PagesHost" MaxWidth="780" HorizontalAlignment="Stretch">
+                    <TextBlock x:Name="SearchHeader" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,10" Visibility="Collapsed" />
+                <StackPanel x:Name="PageGeneral">
+                    <TextBlock Text="Général" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
+                    <TextBlock Text="Ce qui concerne SpaceNotch tout entier." FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <TextBlock Text="DÉMARRAGE" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Démarrer avec Windows La notch est là dès l&#x27;ouverture de session.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE7E8;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Démarrer avec Windows" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="La notch est là dès l&#x27;ouverture de session." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="StartupToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnStartupToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Revoir la présentation Les cinq gestes de la notch, en trente secondes.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE734;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Revoir la présentation" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Les cinq gestes de la notch, en trente secondes." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <Button x:Name="ReplayWelcomeButton" Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource NfSecondaryButtonStyle}" Content="Revoir" Click="OnReplayWelcomeClicked" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="RECHERCHE" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Raccourci de la recherche Ouvre et referme la recherche depuis n&#x27;importe quelle application.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE721;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Raccourci de la recherche" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Ouvre et referme la recherche depuis n&#x27;importe quelle application." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <StackPanel x:Name="HotkeyCaps" Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Moteur de recherche web Utilisé quand aucune application ne correspond.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE774;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Moteur de recherche web" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Utilisé quand aucune application ne correspond." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="WebSearchBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnWebSearchChanged" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="NOTIFICATIONS WINDOWS" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Afficher mes notifications dans la notch Messages, Discord, Teams… Windows demande ton accord une seule fois.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE715;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Afficher mes notifications dans la notch" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Messages, Discord, Teams… Windows demande ton accord une seule fois." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="10"><TextBlock x:Name="NotificationStatusText" FontSize="12" VerticalAlignment="Center" /><Button x:Name="NotificationButton" Style="{StaticResource NfSecondaryButtonStyle}" Click="OnNotificationButtonClicked" /></StackPanel>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Applications ignorées Leurs notifications restent dans le coin de l&#x27;écran. Tape un nom puis Entrée.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE733;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Applications ignorées" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Leurs notifications restent dans le coin de l&#x27;écran. Tape un nom puis Entrée." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <TextBox x:Name="IgnoredAppBox" Grid.Column="2" VerticalAlignment="Center" Width="180" PlaceholderText="Nom de l'application" KeyDown="OnIgnoredAppKeyDown" />
+                            <StackPanel x:Name="IgnoredAppsHost" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="6" Margin="0,6,0,0" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+                <StackPanel x:Name="PageNotch" Visibility="Collapsed">
+                    <TextBlock Text="Notch" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
+                    <TextBlock Text="Comment la notch répond, et où elle se tient." FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <TextBlock Text="SURVOL ET OUVERTURE" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Aperçu au survol Survoler la notch montre un aperçu de ce qui se passe.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE7C9;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Aperçu au survol" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Survoler la notch montre un aperçu de ce qui se passe." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="HoverToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnHoverToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Ouvrir après une seconde de survol Sans cliquer : un survol prolongé ouvre la notch.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE823;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Ouvrir après une seconde de survol" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Sans cliquer : un survol prolongé ouvre la notch." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="HoverExpandToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnHoverExpandToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="S&#x27;effacer devant le plein écran Jeux, vidéos, présentations : la notch se retire.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE740;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="S&#x27;effacer devant le plein écran" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Jeux, vidéos, présentations : la notch se retire." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="FullscreenToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnFullscreenToggled" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="POSITION" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Bord d&#x27;accroche Où la notch s&#x27;accroche à l&#x27;écran.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE8AB;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Bord d&#x27;accroche" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Où la notch s&#x27;accroche à l&#x27;écran." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="EdgeBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnEdgeChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Accrocher aussi à gauche et à droite En languette verticale sur les côtés.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE89F;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Accrocher aussi à gauche et à droite" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="En languette verticale sur les côtés." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="SideEdgesToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnSideEdgesToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Détacher en tirant Tire la notch pour en faire une pastille ; double-clic pour la raccrocher.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE896;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Détacher en tirant" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Tire la notch pour en faire une pastille ; double-clic pour la raccrocher." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="DetachToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnDetachToggled" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="AU REPOS" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Bulle pour les activités importantes Appel, minuteur terminé : une bulle à côté de la notch.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE8BD;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Bulle pour les activités importantes" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Appel, minuteur terminé : une bulle à côté de la notch." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="BubbleToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnBubbleToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Indicateur de pile Des points indiquent qu&#x27;il y a d&#x27;autres activités derrière.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE8FD;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Indicateur de pile" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Des points indiquent qu&#x27;il y a d&#x27;autres activités derrière." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="StackToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnStackToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Heure au repos L&#x27;heure dans la notch quand rien ne se passe.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE823;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Heure au repos" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="L&#x27;heure dans la notch quand rien ne se passe." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="ClockToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnClockToggled" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+                <StackPanel x:Name="PageAppearance" Visibility="Collapsed">
+                    <TextBlock Text="Apparence" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
+                    <TextBlock Text="À quoi ressemble la notch. L&#x27;aperçu suit chaque réglage." FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <Border CornerRadius="10" Background="#08080A" BorderBrush="#12FFFFFF" BorderThickness="1" Margin="0,0,0,8" Padding="0,0,0,0">
+                <StackPanel Spacing="10" Padding="0,0,0,14">
+
+                    <!-- Repos : veille, compact, aperçu au survol. -->
+                    <StackPanel
+                        Orientation="Horizontal"
+                        Spacing="14"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Top">
+
+                        <Grid x:Name="PreviewIdleHost" VerticalAlignment="Top">
+                            <Path x:Name="PreviewIdle" />
                         </Grid>
 
-                        <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
-                            <TextBlock
-                                x:Name="PreviewCardSubhead"
-                                Text="Read sidebar.tsx · 741 lines"
-                                FontSize="11"
-                                LineHeight="14"
-                                Foreground="#9EFFFFFF" />
-                            <TextBlock
-                                x:Name="PreviewCardHeadline"
-                                Text="Thinking"
-                                FontSize="13"
-                                FontWeight="SemiBold"
-                                LineHeight="16"
-                                Foreground="#F0FFFFFF"
-                                TextTrimming="CharacterEllipsis" />
-                        </StackPanel>
+                        <Grid x:Name="PreviewSignalHost" VerticalAlignment="Top">
+                            <Path x:Name="PreviewSignal" />
+                            <StackPanel
+                                Orientation="Horizontal"
+                                Spacing="8"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center">
+                                <FontIcon Glyph="&#xE8D6;" FontSize="14" Foreground="#7FB3F0" VerticalAlignment="Center" />
+                                <TextBlock
+                                    x:Name="PreviewSignalText"
+                                    Text="Spotify"
+                                    FontSize="11.5"
+                                    FontWeight="SemiBold"
+                                    Foreground="#F0FFFFFF"
+                                    VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid x:Name="PreviewCardHost" VerticalAlignment="Top">
+                            <Path x:Name="PreviewCard" />
+                            <Grid x:Name="PreviewCardBody" Margin="22,10,22,10" ColumnSpacing="10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- La vraie grille hypnotique, pour juger du mouvement. -->
+                                <Grid Width="20" Height="20" VerticalAlignment="Center">
+                                    <FontIcon
+                                        x:Name="PreviewCardGlyph"
+                                        Glyph="&#xE916;"
+                                        FontSize="20"
+                                        Foreground="#E8A66B" />
+                                    <Grid x:Name="PreviewHypnoticHost" IsHitTestVisible="False" />
+                                </Grid>
+
+                                <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                    <TextBlock
+                                        x:Name="PreviewCardSubhead"
+                                        Text="Read sidebar.tsx · 741 lines"
+                                        FontSize="11"
+                                        LineHeight="14"
+                                        Foreground="#9EFFFFFF" />
+                                    <TextBlock
+                                        x:Name="PreviewCardHeadline"
+                                        Text="Thinking"
+                                        FontSize="13"
+                                        FontWeight="SemiBold"
+                                        LineHeight="16"
+                                        Foreground="#F0FFFFFF"
+                                        TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Grid>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Trait d'écran : le bord supérieur de la seconde bande. -->
+                    <Rectangle Height="1" Fill="#1FFFFFFF" Margin="0,4,0,0" />
+
+                    <!-- Ouverte : c'est là que les congés se jugent vraiment. -->
+                    <Grid x:Name="PreviewExpandedHost" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-10,0,0">
+                        <Path x:Name="PreviewExpanded" />
+                        <TextBlock
+                            x:Name="PreviewExpandedText"
+                            Text="Notch ouverte"
+                            FontSize="11"
+                            Foreground="#CCFFFFFF"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center" />
                     </Grid>
-                </Grid>
-            </StackPanel>
-
-            <!-- Trait d'écran : le bord supérieur de la seconde bande. -->
-            <Rectangle Height="1" Fill="#1FFFFFFF" Margin="0,4,0,0" />
-
-            <!-- Ouverte : c'est là que les congés se jugent vraiment. -->
-            <Grid x:Name="PreviewExpandedHost" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,-10,0,0">
-                <Path x:Name="PreviewExpanded" />
-                <TextBlock
-                    x:Name="PreviewExpandedText"
-                    Text="Notch ouverte"
-                    FontSize="11"
-                    Foreground="#CCFFFFFF"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center" />
-            </Grid>
-        </StackPanel>
-
-        <ScrollViewer x:Name="SettingsScroll" Grid.Row="1" Padding="20,10,20,12">
-            <StackPanel Spacing="6">
-
-                <!-- Navigation : un saut vers chaque section. -->
-                <StackPanel Orientation="Horizontal" Spacing="4" Margin="-8,0,0,6">
-                    <HyperlinkButton Content="Apparence" Tag="Appearance" Click="OnSectionClicked" />
-                    <HyperlinkButton Content="Comportement" Tag="Behavior" Click="OnSectionClicked" />
-                    <HyperlinkButton Content="Activités" Tag="Activities" Click="OnSectionClicked" />
-                    <HyperlinkButton Content="Mouvement" Tag="Motion" Click="OnSectionClicked" />
-                    <HyperlinkButton Content="Écrans" Tag="Displays" Click="OnSectionClicked" />
-                    <HyperlinkButton Content="Avancé" Tag="Advanced" Click="OnSectionClicked" />
                 </StackPanel>
-
-                <!-- ================================================
-                     APPARENCE — à quoi la notch ressemble.
-                     ================================================ -->
-                <TextBlock x:Name="SectionAppearance" Text="APPARENCE" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,4,0,2" />
-                <ComboBox x:Name="AppearanceBox" Header="Thème" HorizontalAlignment="Stretch" SelectionChanged="OnAppearanceChanged" />
-                <ComboBox x:Name="BackdropBox" Header="Matière" HorizontalAlignment="Stretch" SelectionChanged="OnBackdropChanged" />
-
-                <!--
-                    La densité remplace les anciennes largeur et hauteur : trois
-                    densités déplacent les dimensions ensemble et gardent les
-                    proportions du langage visuel.
-                -->
-                <ComboBox x:Name="DensityBox" Header="Densité des cartes" HorizontalAlignment="Stretch" SelectionChanged="OnDensityChanged" />
-
-                <!--
-                    Maximum est toujours écrit AVANT Minimum. Un curseur dont le
-                    minimum dépasse le maximum par défaut — 100 pour un RangeBase —
-                    fait lever le constructeur XAML : la fenêtre ne s'ouvre alors
-                    pas du tout, avec un message qui ne dit pas quel contrôle est
-                    en cause.
-                -->
-                <Grid>
-                    <TextBlock Text="Arrondi compact" FontSize="12" Foreground="#E0FFFFFF" />
-                    <TextBlock x:Name="RadiusValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="RadiusSlider" Maximum="40" Minimum="8" StepFrequency="1" ValueChanged="OnRadiusChanged" />
-
-                <Grid>
-                    <TextBlock Text="Arrondi ouvert" FontSize="12" Foreground="#E0FFFFFF" />
-                    <TextBlock x:Name="ExpandedRadiusValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="ExpandedRadiusSlider" Maximum="48" Minimum="12" StepFrequency="1" ValueChanged="OnExpandedRadiusChanged" />
-
-                <!--
-                    Les épaules raccordent la notch au bord de l'écran. À zéro, le
-                    raccord est un angle droit : la notch reste collée au bord,
-                    mais le bord ne « coule » plus dans la forme.
-                -->
-                <Grid>
-                    <TextBlock Text="Épaules (raccord au bord de l'écran)" FontSize="12" Foreground="#E0FFFFFF" />
-                    <TextBlock x:Name="ShoulderValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="ShoulderSlider" Maximum="20" Minimum="0" StepFrequency="1" ValueChanged="OnShoulderChanged" />
-
-                <ToggleSwitch
-                    x:Name="SmoothingToggle"
-                    Header="Courbure continue (superellipse)"
-                    OnContent="Squircle"
-                    OffContent="Arc de cercle"
-                    Toggled="OnSmoothingToggled" />
-
-                <!--
-                    Style de la matière : teinte, transparence, contour, ombre,
-                    et les proportions de la languette, de la pastille et de la
-                    bulle (ADR-020).
-                -->
-                <ComboBox x:Name="SurfaceTintBox" Header="Couleur de la surface" HorizontalAlignment="Stretch" SelectionChanged="OnSurfaceTintChanged" />
-                <Grid ColumnSpacing="8">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="Auto" />
-                    </Grid.ColumnDefinitions>
-                    <TextBox x:Name="CustomColorBox" Header="Couleur personnalisée" PlaceholderText="#14161C" MaxLength="7" TextChanged="OnCustomColorChanged" />
-                    <Border x:Name="CustomColorSwatch" Grid.Column="1" Width="32" Height="32" CornerRadius="8" VerticalAlignment="Bottom" BorderThickness="1" BorderBrush="#30FFFFFF" />
-                </Grid>
-                <Grid>
-                    <TextBlock Text="Opacité de la surface" FontSize="12" Foreground="#E0FFFFFF" />
-                    <TextBlock x:Name="OpacityValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="OpacitySlider" Maximum="100" Minimum="55" StepFrequency="1" ValueChanged="OnOpacityChanged" />
-                <Grid>
-                    <TextBlock Text="Épaules de la languette et de la bulle" FontSize="12" Foreground="#E0FFFFFF" />
-                    <TextBlock x:Name="SideShoulderValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="SideShoulderSlider" Maximum="16" Minimum="0" StepFrequency="1" ValueChanged="OnSideShoulderChanged" />
-                <Grid>
-                    <TextBlock Text="Arrondi de la pastille ouverte" FontSize="12" Foreground="#E0FFFFFF" />
-                    <TextBlock x:Name="FloatingRadiusValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="FloatingRadiusSlider" Maximum="48" Minimum="12" StepFrequency="1" ValueChanged="OnFloatingRadiusChanged" />
-                <Grid>
-                    <TextBlock Text="Ombre" FontSize="12" Foreground="#E0FFFFFF" />
-                    <TextBlock x:Name="ShadowValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="ShadowSlider" Maximum="60" Minimum="0" StepFrequency="1" ValueChanged="OnShadowChanged" />
-                <ToggleSwitch x:Name="OutlineToggle" Header="Contour fin (fonds d'écran sombres)" Toggled="OnOutlineToggled" />
-                <Grid>
-                    <TextBlock Text="Intensité du contour" FontSize="12" Foreground="#E0FFFFFF" />
-                    <TextBlock x:Name="OutlineValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="OutlineSlider" Maximum="50" Minimum="5" StepFrequency="1" ValueChanged="OnOutlineChanged" />
-                <ComboBox x:Name="BubbleSizeBox" Header="Taille de la bulle" HorizontalAlignment="Stretch" SelectionChanged="OnBubbleSizeChanged" />
-                <ComboBox x:Name="TabSizeBox" Header="Taille de la languette" HorizontalAlignment="Stretch" SelectionChanged="OnTabSizeChanged" />
-
-                <!-- ================================================
-                     COMPORTEMENT — comment la notch répond.
-                     ================================================ -->
-                <TextBlock x:Name="SectionBehavior" Text="COMPORTEMENT" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
-                <TextBlock
-                    Text="Le survol prévisualise, le clic déploie, Échap ou un clic ailleurs referme. La molette et les flèches parcourent les activités."
-                    FontSize="11"
-                    Foreground="#80FFFFFF"
-                    TextWrapping="Wrap"
-                    Margin="0,0,0,4" />
-                <ToggleSwitch x:Name="HoverToggle" Header="Aperçu au survol" Toggled="OnHoverToggled" />
-                <ToggleSwitch x:Name="HoverExpandToggle" Header="Ouvrir après une seconde de survol" Toggled="OnHoverExpandToggled" />
-                <ComboBox x:Name="EdgeBox" Header="Bord d'accroche" HorizontalAlignment="Stretch" SelectionChanged="OnEdgeChanged" />
-                <ToggleSwitch x:Name="SideEdgesToggle" Header="Accrocher aussi à gauche et à droite" Toggled="OnSideEdgesToggled" />
-                <ToggleSwitch x:Name="DetachToggle" Header="Détacher en tirant (double-clic pour raccrocher)" Toggled="OnDetachToggled" />
-                <ToggleSwitch x:Name="BubbleToggle" Header="Bulle pour les activités importantes" Toggled="OnBubbleToggled" />
-                <ToggleSwitch x:Name="FullscreenToggle" Header="S'effacer devant le plein écran" Toggled="OnFullscreenToggled" />
-                <ToggleSwitch x:Name="StackToggle" Header="Indicateur de pile d'activités" Toggled="OnStackToggled" />
-                <ToggleSwitch x:Name="ClockToggle" Header="Heure au repos" Toggled="OnClockToggled" />
-                <ToggleSwitch x:Name="StartupToggle" Header="Démarrer avec Windows" Toggled="OnStartupToggled" />
-
-                <!-- ================================================
-                     ACTIVITÉS — ce qui a le droit de s'afficher.
-                     ================================================ -->
-                <TextBlock x:Name="SectionActivities" Text="ACTIVITÉS" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
-                <TextBlock
-                    Text="Une activité désactivée libère ses écouteurs système : elle ne consomme plus rien."
-                    FontSize="11"
-                    Foreground="#80FFFFFF"
-                    TextWrapping="Wrap"
-                    Margin="0,0,0,4" />
-
-                <StackPanel x:Name="FeaturesHost" Spacing="2" />
-
-                <!-- ================================================
-                     MOUVEMENT — trois caractères, puis le réglage fin.
-                     ================================================ -->
-                <TextBlock x:Name="SectionMotion" Text="MOUVEMENT" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
-                <ComboBox x:Name="MotionStyleBox" Header="Caractère" HorizontalAlignment="Stretch" SelectionChanged="OnMotionStyleChanged" />
-                <ToggleSwitch x:Name="BouncyToggle" Header="Rebond du ressort" OnContent="Autorisé" OffContent="Neutre" Toggled="OnBouncyToggled" />
-                <ToggleSwitch
-                    x:Name="HypnoticToggle"
-                    Header="Mouvement hypnotique"
-                    OnContent="Matière vivante pendant un travail"
-                    OffContent="Image fixe"
-                    Toggled="OnHypnoticToggled" />
-                <ToggleSwitch
-                    x:Name="RainToggle"
-                    Header="Pluie binaire pendant un traitement"
-                    Toggled="OnRainToggled" />
-
-                <!--
-                    Deux nombres au lieu de trois, et nommés pour ce qu'ils font.
-                    Les déplacer bascule le caractère sur « Personnalisé ».
-                -->
-                <Grid>
-                    <TextBlock Text="Vitesse (réglage fin)" FontSize="12" Foreground="#E0FFFFFF" />
-                    <TextBlock x:Name="ResponseValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="ResponseSlider" Maximum="0.8" Minimum="0.25" StepFrequency="0.01" ValueChanged="OnResponseChanged" />
-
-                <Grid>
-                    <TextBlock Text="Rebond (réglage fin)" FontSize="12" Foreground="#E0FFFFFF" />
-                    <TextBlock x:Name="BounceValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="BounceSlider" Maximum="1.1" Minimum="0.3" StepFrequency="0.01" ValueChanged="OnBounceChanged" />
-
-                <!-- Détachement : la pastille qu'on tient et qu'on lance (ADR-019). -->
-                <ComboBox x:Name="DetachFeelBox" Header="Sensation de la pastille en main" HorizontalAlignment="Stretch" SelectionChanged="OnDetachFeelChanged" />
-                <Grid>
-                    <TextBlock Text="Étirement en mouvement" FontSize="12" Foreground="#E0FFFFFF" />
-                    <TextBlock x:Name="StretchValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="StretchSlider" Maximum="10" Minimum="0" StepFrequency="1" ValueChanged="OnStretchChanged" />
-                <Grid>
-                    <TextBlock Text="Distance d'arrachement" FontSize="12" Foreground="#E0FFFFFF" />
-                    <TextBlock x:Name="TearValue" FontSize="12" Foreground="#4EA1FF" HorizontalAlignment="Right" />
-                </Grid>
-                <Slider x:Name="TearSlider" Maximum="80" Minimum="20" StepFrequency="1" ValueChanged="OnTearChanged" />
-                <ToggleSwitch x:Name="MagnetsToggle" Header="Aimants aux coins" Toggled="OnMagnetsToggled" />
-                <ToggleSwitch x:Name="GooToggle" Header="Effet de goutte" OnContent="Goutte" OffContent="Simple pop" Toggled="OnGooToggled" />
-                <ToggleSwitch x:Name="MonitorResistanceToggle" Header="Résister au passage d'un écran à l'autre" Toggled="OnMonitorResistanceToggled" />
-
-                <!-- ================================================
-                     ÉCRANS — où la notch s'accroche.
-                     ================================================ -->
-                <TextBlock x:Name="SectionDisplays" Text="ÉCRANS" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
-                <ComboBox x:Name="DisplayBox" Header="Écran" HorizontalAlignment="Stretch" SelectionChanged="OnDisplayModeChanged" />
-                <ComboBox x:Name="CutoutBox" Header="Découpe caméra" HorizontalAlignment="Stretch" SelectionChanged="OnCutoutChanged" />
-
-                <!-- ================================================
-                     AVANCÉ — ce qui n'a rien à faire dans l'interface
-                     principale : composition, diagnostics, fichiers.
-                     ================================================ -->
-                <TextBlock x:Name="SectionAdvanced" Text="AVANCÉ" FontSize="10.5" FontWeight="Bold" CharacterSpacing="120" Foreground="#70FFFFFF" Margin="0,14,0,2" />
-                <ToggleSwitch
-                    x:Name="CompositionToggle"
-                    Header="Dissolution par le compositeur"
-                    OnContent="Compositeur (référence)"
-                    OffContent="Dégradé XAML (repli)"
-                    Toggled="OnCompositionToggled" />
-                <ToggleSwitch x:Name="DiagnosticsToggle" Header="Diagnostics" Toggled="OnDiagnosticsToggled" />
-
-                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                    <Button Style="{StaticResource NfSecondaryButtonStyle}" Content="Ouvrir la configuration" Click="OnOpenConfigClicked" />
-                    <Button Style="{StaticResource NfSecondaryButtonStyle}" Content="Ouvrir les greffons" Click="OnOpenPluginsClicked" />
+                    </Border>
+                    <TextBlock Text="COULEURS ET MATIÈRE" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Thème Sombre, clair ou comme Windows.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE790;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Thème" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Sombre, clair ou comme Windows." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="AppearanceBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnAppearanceChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Fond de la notch Opaque, transparent ou flouté.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE771;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Fond de la notch" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Opaque, transparent ou flouté." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="BackdropBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnBackdropChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Couleur de la surface Noir OLED, graphite ou ta couleur.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE2B1;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Couleur de la surface" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Noir OLED, graphite ou ta couleur." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="SurfaceTintBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnSurfaceTintChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Couleur personnalisée Un code hexadécimal, par exemple #14161C.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE2B1;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Couleur personnalisée" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Un code hexadécimal, par exemple #14161C." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><TextBox x:Name="CustomColorBox" Width="110" PlaceholderText="#14161C" MaxLength="7" TextChanged="OnCustomColorChanged" /><Border x:Name="CustomColorSwatch" Width="30" Height="30" CornerRadius="8" BorderThickness="1" BorderBrush="#30FFFFFF" /></StackPanel>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Opacité de la surface ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE7B3;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Opacité de la surface" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <TextBlock x:Name="OpacityValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="OpacitySlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="100" Minimum="55" StepFrequency="1" ValueChanged="OnOpacityChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Ombre ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE81E;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Ombre" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <TextBlock x:Name="ShadowValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="ShadowSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="60" Minimum="0" StepFrequency="1" ValueChanged="OnShadowChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Contour fin Aide à voir la notch sur un fond d&#x27;écran sombre.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE8B3;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Contour fin" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Aide à voir la notch sur un fond d&#x27;écran sombre." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="OutlineToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnOutlineToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Intensité du contour ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE8B3;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Intensité du contour" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <TextBlock x:Name="OutlineValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="OutlineSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="50" Minimum="5" StepFrequency="1" ValueChanged="OnOutlineChanged" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="FORMES" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Densité des cartes Compacte, confortable ou aérée.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE8A9;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Densité des cartes" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Compacte, confortable ou aérée." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="DensityBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnDensityChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Arrondi au repos ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE91F;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Arrondi au repos" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <TextBlock x:Name="RadiusValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="RadiusSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="40" Minimum="8" StepFrequency="1" ValueChanged="OnRadiusChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Arrondi ouverte ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE91F;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Arrondi ouverte" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <TextBlock x:Name="ExpandedRadiusValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="ExpandedRadiusSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="48" Minimum="12" StepFrequency="1" ValueChanged="OnExpandedRadiusChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Raccord au bord de l&#x27;écran À zéro, un angle droit ; plus haut, le bord « coule » dans la notch.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE879;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Raccord au bord de l&#x27;écran" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="À zéro, un angle droit ; plus haut, le bord « coule » dans la notch." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <TextBlock x:Name="ShoulderValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="ShoulderSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="20" Minimum="0" StepFrequency="1" ValueChanged="OnShoulderChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Coins arrondis doux Une courbe continue, comme les icônes de Windows 11.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE879;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Coins arrondis doux" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Une courbe continue, comme les icônes de Windows 11." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="SmoothingToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnSmoothingToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Raccord de la languette et de la bulle ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE879;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Raccord de la languette et de la bulle" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <TextBlock x:Name="SideShoulderValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="SideShoulderSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="16" Minimum="0" StepFrequency="1" ValueChanged="OnSideShoulderChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Arrondi de la pastille ouverte ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE91F;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Arrondi de la pastille ouverte" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <TextBlock x:Name="FloatingRadiusValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="FloatingRadiusSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="48" Minimum="12" StepFrequency="1" ValueChanged="OnFloatingRadiusChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Taille de la bulle ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE740;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Taille de la bulle" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="BubbleSizeBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnBubbleSizeChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Taille de la languette ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE740;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Taille de la languette" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="TabSizeBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnTabSizeChanged" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
+                <StackPanel x:Name="PageActivities" Visibility="Collapsed">
+                    <TextBlock Text="Activités" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
+                    <TextBlock Text="Ce que la notch a le droit d&#x27;afficher. Une activité coupée ne consomme plus rien." FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <StackPanel x:Name="FeaturesHost" />
+                    <TextBlock Text="PRESSE-PAPIER" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Ignorer les mots de passe Rien de ce que copient Bitwarden, 1Password ou KeePass n&#x27;est gardé.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE72E;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Ignorer les mots de passe" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Rien de ce que copient Bitwarden, 1Password ou KeePass n&#x27;est gardé." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="ClipboardSecretsToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnClipboardSecretsToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Taille de l&#x27;historique Les éléments copiés les plus anciens partent en premier.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE8FD;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Taille de l&#x27;historique" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Les éléments copiés les plus anciens partent en premier." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="ClipboardSizeBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="120" SelectionChanged="OnClipboardSizeChanged" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+                <StackPanel x:Name="PageMotion" Visibility="Collapsed">
+                    <TextBlock Text="Mouvement" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
+                    <TextBlock Text="Comment la notch bouge." FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <TextBlock Text="CARACTÈRE" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Caractère du mouvement Calme, naturel ou dynamique.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE945;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Caractère du mouvement" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Calme, naturel ou dynamique." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="MotionStyleBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnMotionStyleChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Rebond Un léger dépassement à l&#x27;ouverture.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE8B1;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Rebond" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Un léger dépassement à l&#x27;ouverture." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="BouncyToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnBouncyToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Grille animée pendant un travail La grille du logo bouge quand une activité travaille.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE80A;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Grille animée pendant un travail" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="La grille du logo bouge quand une activité travaille." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="HypnoticToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnHypnoticToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Pluie de chiffres pendant un traitement ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE9CA;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Pluie de chiffres pendant un traitement" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="RainToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnRainToggled" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="RÉGLAGE FIN" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Vitesse Plus bas, plus vif.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xEC4A;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Vitesse" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Plus bas, plus vif." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <TextBlock x:Name="ResponseValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="ResponseSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="0.8" Minimum="0.25" StepFrequency="0.01" ValueChanged="OnResponseChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Amortissement Plus bas, plus de rebond.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE8B1;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Amortissement" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Plus bas, plus de rebond." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <TextBlock x:Name="BounceValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="BounceSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="1.1" Minimum="0.3" StepFrequency="0.01" ValueChanged="OnBounceChanged" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="PASTILLE DÉTACHÉE" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Sensation en main Souple, naturelle ou ferme.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE7C9;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Sensation en main" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Souple, naturelle ou ferme." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="DetachFeelBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnDetachFeelChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Étirement en mouvement ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE7C9;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Étirement en mouvement" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <TextBlock x:Name="StretchValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="StretchSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="10" Minimum="0" StepFrequency="1" ValueChanged="OnStretchChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Distance d&#x27;arrachement Combien tirer avant que la notch se détache.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE896;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Distance d&#x27;arrachement" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Combien tirer avant que la notch se détache." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <TextBlock x:Name="TearValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="TearSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="80" Minimum="20" StepFrequency="1" ValueChanged="OnTearChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Aimants aux coins La pastille se colle aux coins de l&#x27;écran.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE7B7;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Aimants aux coins" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="La pastille se colle aux coins de l&#x27;écran." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="MagnetsToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnMagnetsToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Effet de goutte La notch s&#x27;étire comme une goutte en se détachant.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE81D;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Effet de goutte" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="La notch s&#x27;étire comme une goutte en se détachant." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="GooToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnGooToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Résister au passage d&#x27;un écran à l&#x27;autre ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE7F4;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Résister au passage d&#x27;un écran à l&#x27;autre" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="MonitorResistanceToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnMonitorResistanceToggled" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+                <StackPanel x:Name="PageDisplays" Visibility="Collapsed">
+                    <TextBlock Text="Écrans" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
+                    <TextBlock Text="Où la notch s&#x27;affiche quand il y a plusieurs écrans." FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Écran Sur quel écran la notch s&#x27;affiche.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE7F4;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Écran" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Sur quel écran la notch s&#x27;affiche." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="DisplayBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="200" SelectionChanged="OnDisplayModeChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Encoche de la caméra Réserve la place de la caméra des portables à encoche.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE722;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Encoche de la caméra" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Réserve la place de la caméra des portables à encoche." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="CutoutBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="200" SelectionChanged="OnCutoutChanged" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+                <StackPanel x:Name="PageAbout" Visibility="Collapsed">
+                    <TextBlock Text="À propos" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
+                    <TextBlock Text="Version, fichiers et réglages avancés." FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Padding="16,14,16,14">
+                        <StackPanel Orientation="Horizontal" Spacing="14">
+                            <Grid x:Name="AboutLogo" Width="30" Height="30" VerticalAlignment="Center" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="SpaceNotch" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" />
+                                <TextBlock x:Name="VersionText" FontSize="12" Foreground="#80FFFFFF" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                    <TextBlock Text="AVANCÉ" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Fondu des bords Précis par défaut ; « compatible » si les bords scintillent.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE8BC;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Fondu des bords" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Précis par défaut ; « compatible » si les bords scintillent." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="CompositionToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnCompositionToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Diagnostics Mesures de performance dans le journal.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xEBE8;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Diagnostics" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Mesures de performance dans le journal." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="DiagnosticsToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnDiagnosticsToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Fichiers de SpaceNotch ">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE8B7;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Fichiers de SpaceNotch" Style="{StaticResource NfSettingsTitleStyle}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><Button Style="{StaticResource NfSecondaryButtonStyle}" Content="Configuration" Click="OnOpenConfigClicked" /><Button Style="{StaticResource NfSecondaryButtonStyle}" Content="Greffons" Click="OnOpenPluginsClicked" /></StackPanel>
+                            <TextBlock x:Name="PathText" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" FontSize="10.5" Foreground="#60FFFFFF" TextTrimming="CharacterEllipsis" Margin="0,4,0,0" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Rétablir les valeurs par défaut Apparence, mouvement et comportement reviennent à leur réglage d&#x27;origine.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <FontIcon Glyph="&#xE72C;" FontSize="16" Foreground="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Rétablir les valeurs par défaut" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="Apparence, mouvement et comportement reviennent à leur réglage d&#x27;origine." Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <Button Grid.Column="2" VerticalAlignment="Center" Style="{StaticResource NfDangerButtonStyle}" Content="Rétablir" Click="OnResetClicked" />
+                        </Grid>
+                    </Border>
+                </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
 
-                <TextBlock
-                    x:Name="PathText"
-                    FontSize="10"
-                    Foreground="#60FFFFFF"
-                    TextTrimming="CharacterEllipsis"
-                    Margin="0,4,0,0" />
-
-                <TextBlock
-                    x:Name="StatusText"
-                    FontSize="11"
-                    Foreground="#E0A030"
-                    TextWrapping="Wrap"
-                    Margin="0,10,0,0" />
-            </StackPanel>
-        </ScrollViewer>
-
-        <Grid Grid.Row="2" Padding="20,10,20,16" ColumnSpacing="8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-
-            <Button Grid.Column="0" Style="{StaticResource NfGhostButtonStyle}" Content="Rétablir les valeurs par défaut" Click="OnResetClicked" />
-            <Button Grid.Column="2" Style="{StaticResource NfPrimaryButtonStyle}" Content="Fermer" Click="OnCloseClicked" />
+            <TextBlock
+                x:Name="StatusText"
+                Grid.Row="1"
+                FontSize="11.5"
+                Foreground="#E0A030"
+                TextWrapping="Wrap"
+                Margin="28,0,28,12" />
         </Grid>
     </Grid>
 </Window>

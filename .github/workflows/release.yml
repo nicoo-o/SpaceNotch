@@ -82,14 +82,16 @@ jobs:
       #     qui pèse bien moins lourd à télécharger. Il est de toute façon extrait au
       #     premier lancement : la décompression ne coûte qu'une fois.
       # Paquet d'identité (ADR-023) : le manifeste de packaging/identity, à la version
-      # publiée, empaqueté par MakeAppx sans signature (l'éditeur porte l'OID des
-      # paquets non signés). Le projet l'embarque s'il existe dans artifacts/identity.
+      # publiée, empaqueté par MakeAppx puis signé par un certificat éphémère créé ici.
+      # La clé privée est détruite aussitôt après la signature et ne quitte jamais
+      # cette machine : seul le certificat public (.cer) voyage avec l'installeur.
       - name: Paquet d'identité
         shell: pwsh
         run: |
-          $makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\makeappx.exe" |
+          $sdk = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64" -Directory |
+            Where-Object { Test-Path (Join-Path $_.FullName "makeappx.exe") } |
             Sort-Object FullName -Descending | Select-Object -First 1
-          if (-not $makeappx) { throw "MakeAppx introuvable (Windows SDK)." }
+          if (-not $sdk) { throw "MakeAppx introuvable (Windows SDK)." }
 
           $work = "${{ runner.temp }}/identity"
           New-Item -ItemType Directory -Force -Path $work | Out-Null
@@ -97,10 +99,32 @@ jobs:
           $manifest = Join-Path $work "AppxManifest.xml"
           (Get-Content $manifest -Raw).Replace("__VERSION__", "${{ steps.version.outputs.value }}.0") | Set-Content $manifest -Encoding utf8
 
-          New-Item -ItemType Directory -Force -Path artifacts/identity | Out-Null
-          & $makeappx.FullName pack /d $work /p artifacts/identity/SpaceNotch.Identity.msix /nv /o
+          $out = "artifacts/identity"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          & "$($sdk.FullName)\makeappx.exe" pack /d $work /p "$out/SpaceNotch.Identity.msix" /nv /o
           if ($LASTEXITCODE -ne 0) { throw "MakeAppx a échoué ($LASTEXITCODE)." }
-          Get-Item artifacts/identity/SpaceNotch.Identity.msix | ForEach-Object { "{0} {1:N0} octets" -f $_.Name, $_.Length }
+
+          $cert = New-SelfSignedCertificate -Type CodeSigningCert -Subject "CN=SpaceNotch" -KeyUsage DigitalSignature `
+            -FriendlyName "SpaceNotch (paquet d'identité)" -CertStoreLocation Cert:\CurrentUser\My `
+            -NotAfter (Get-Date).AddYears(5) -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3", "2.5.29.19={text}")
+          $secret = [guid]::NewGuid().ToString()
+          $pfx = "${{ runner.temp }}/identity.pfx"
+          Export-PfxCertificate -Cert $cert -FilePath $pfx -Password (ConvertTo-SecureString $secret -AsPlainText -Force) | Out-Null
+          & "$($sdk.FullName)\signtool.exe" sign /fd SHA256 /f $pfx /p $secret "$out/SpaceNotch.Identity.msix"
+          $signed = $LASTEXITCODE
+          Export-Certificate -Cert $cert -FilePath "$out/SpaceNotch.Identity.cer" | Out-Null
+
+          # La clé privée disparaît : le fichier .pfx et le certificat du magasin.
+          Remove-Item $pfx -Force
+          Remove-Item "Cert:\CurrentUser\My\$($cert.Thumbprint)" -DeleteKey
+          if ($signed -ne 0) { throw "Signature du paquet d'identité impossible ($signed)." }
+
+          Get-ChildItem $out | ForEach-Object { "{0} {1:N0} octets" -f $_.Name, $_.Length }
+          Write-Host "Certificat éphémère : $($cert.Thumbprint) (clé privée détruite)"
+
+          # L'empreinte est inscrite dans l'exécutable : l'installeur élevé n'approuve
+          # que ce certificat.
+          "IDENTITY_THUMBPRINT=$($cert.Thumbprint)" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       - name: Publier l'exécutable unique
         run: >
@@ -116,6 +140,7 @@ jobs:
           -p:EnableCompressionInSingleFile=true
           -p:PublishReadyToRun=true
           -p:Version=${{ steps.version.outputs.value }}
+          -p:IdentityThumbprint=${{ env.IDENTITY_THUMBPRINT }}
           --output "${{ runner.temp }}/single"
 
       - name: Publier le dossier complet
@@ -128,6 +153,7 @@ jobs:
           -p:EnableMsixTooling=true
           -p:PublishReadyToRun=true
           -p:Version=${{ steps.version.outputs.value }}
+          -p:IdentityThumbprint=${{ env.IDENTITY_THUMBPRINT }}
           --output "${{ runner.temp }}/folder"
 
       - name: Rassembler les fichiers

@@ -7,9 +7,11 @@
   Il donne à SpaceNotch.exe une identité de paquet, sans laquelle Windows
   refuse l'écoute des notifications (UserNotificationListener).
 
-  Non signé : l'éditeur porte l'OID réservé aux paquets non signés, que
-  Windows 11 accepte avec AddPackageOptions.AllowUnsigned. Aucun certificat,
-  aucune clé privée à protéger.
+  Signé par le workflow Release avec un certificat éphémère (CN=SpaceNotch) : créé
+  pour la version, sa clé privée est détruite après la signature. L'installeur fait
+  confiance au certificat public livré à côté du paquet. (Un paquet non signé est
+  impossible ici : Windows refuse l'éditeur des paquets non signés dans le
+  manifeste d'un exécutable — vérifié par tools/identity-probe.)
 
   __VERSION__ est remplacé par la version publiée (x.y.z.0) au moment du
   paquetage, dans le workflow Release.
@@ -24,7 +26,7 @@
 
   <Identity
     Name="SpaceNotch.Identity"
-    Publisher="CN=SpaceNotch, OID.2.25.311729368913984317654407730594956997722=1"
+    Publisher="CN=SpaceNotch"
     Version="__VERSION__"
     ProcessorArchitecture="x64" />
 

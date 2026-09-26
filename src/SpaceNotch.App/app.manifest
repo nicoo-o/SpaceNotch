@@ -2,11 +2,11 @@
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
   <assemblyIdentity version="1.0.0.0" name="SpaceNotch.App.app"/>
 
-  <!-- Identité de paquet (ADR-023) : relie SpaceNotch.exe au paquet non signé
+  <!-- Identité de paquet (ADR-023) : relie SpaceNotch.exe au paquet signé
        « SpaceNotch.Identity » qu'enregistre l'installeur. Sans paquet enregistré
        — l'exécutable portable —, cet élément est simplement ignoré. -->
   <msix xmlns="urn:schemas-microsoft-com:msix.v1"
-        publisher="CN=SpaceNotch, OID.2.25.311729368913984317654407730594956997722=1"
+        publisher="CN=SpaceNotch"
         packageName="SpaceNotch.Identity"
         applicationId="SpaceNotch" />
 

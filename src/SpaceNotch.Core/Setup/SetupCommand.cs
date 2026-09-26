@@ -22,7 +22,14 @@ public enum SetupMode
     InstallWorker,
 
     /// <summary>La désinstallation pour tous, sans interface, dans un processus élevé.</summary>
-    UninstallWorker
+    UninstallWorker,
+
+    /// <summary>
+    /// Approuver, pour l'ordinateur, le certificat qui a signé le paquet
+    /// d'identité (ADR-023) : la seule chose qui exige les droits
+    /// d'administrateur dans une installation personnelle.
+    /// </summary>
+    TrustIdentityWorker
 }
 
 /// <summary>Pour qui SpaceNotch est installée.</summary>
@@ -72,7 +79,7 @@ public sealed record SetupCommand(
     int? CallerProcessId = null)
 {
     /// <summary>Vrai pour les processus élevés, sans interface, qui font le travail d'administrateur.</summary>
-    public bool IsWorker => Mode is SetupMode.InstallWorker or SetupMode.UninstallWorker;
+    public bool IsWorker => Mode is SetupMode.InstallWorker or SetupMode.UninstallWorker or SetupMode.TrustIdentityWorker;
 
     /// <summary>Lancement ordinaire.</summary>
     public static SetupCommand None { get; } = new(SetupMode.None, InstallOptions.Default);
@@ -118,6 +125,9 @@ public sealed record SetupCommand(
                     break;
                 case "--UNINSTALL-WORKER":
                     mode = SetupMode.UninstallWorker;
+                    break;
+                case "--TRUST-IDENTITY-WORKER":
+                    mode = SetupMode.TrustIdentityWorker;
                     break;
                 case "--QUIET":
                     quiet = true;
@@ -193,6 +203,9 @@ public sealed record SetupCommand(
                 break;
             case SetupMode.UninstallWorker:
                 arguments.Add("--uninstall-worker");
+                break;
+            case SetupMode.TrustIdentityWorker:
+                arguments.Add("--trust-identity-worker");
                 break;
         }
 

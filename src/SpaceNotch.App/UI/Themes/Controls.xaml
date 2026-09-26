@@ -274,4 +274,47 @@
         <Setter Property="TextLineBounds" Value="Tight" />
         <Setter Property="Margin" Value="0,3,0,2" />
     </Style>
+
+    <!-- ============================================================
+         Réglages (vague 3) : cartes OLED, titres de groupe, menu latéral.
+         ============================================================ -->
+
+    <!-- Carte de réglage : icône, titre, une phrase, contrôle à droite. 62 DIP au moins. -->
+    <Style x:Key="NfSettingsCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="#FF0E0F12" />
+        <Setter Property="BorderBrush" Value="#12FFFFFF" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="16,10,16,10" />
+        <Setter Property="MinHeight" Value="62" />
+        <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+
+    <Style x:Key="NfSettingsGroupStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="CharacterSpacing" Value="20" />
+        <Setter Property="Foreground" Value="#73FFFFFF" />
+        <Setter Property="Margin" Value="2,14,0,6" />
+    </Style>
+
+    <Style x:Key="NfSettingsTitleStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="Foreground" Value="{ThemeResource NfTextPrimaryBrush}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+
+    <Style x:Key="NfSettingsDescriptionStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11.5" />
+        <Setter Property="Foreground" Value="#80FFFFFF" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+        <Setter Property="Margin" Value="0,2,0,0" />
+    </Style>
+
+    <!-- Entrée du menu latéral : la page active reçoit le fond de sélection et la barre cyan. -->
+    <Style x:Key="NfNavButtonStyle" TargetType="Button" BasedOn="{StaticResource NfMenuRowButtonStyle}">
+        <Setter Property="FontSize" Value="13.5" />
+        <Setter Property="Padding" Value="0,0,10,0" />
+        <Setter Property="Tag" Value="{ThemeResource NfGhostHoverBrush}" />
+    </Style>
 </ResourceDictionary>

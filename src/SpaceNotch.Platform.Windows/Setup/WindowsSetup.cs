@@ -165,6 +165,7 @@ public static class WindowsSetup
             // qui pourrait appartenir à un autre compte. Un échec n'empêche pas
             // l'installation : SpaceNotch tourne, sans les notifications Windows.
             progress?.Report(new SetupProgress(InstallStep.Registering));
+            await TrustIdentityCertificateAsync(layout, source, log).ConfigureAwait(false);
             await IdentityPackage.RegisterAsync(
                 layout.Directory,
                 Path.Combine(layout.Directory, IdentityPackage.FileName),
@@ -186,6 +187,39 @@ public static class WindowsSetup
             log?.Invoke($"[SETUP] Installation interrompue : {ex}");
             return SetupOutcome.Failed;
         }
+    }
+
+    /// <summary>
+    /// Approuve le certificat du paquet d'identité pour l'ordinateur : Windows
+    /// l'exige pour un certificat auto-signé. Directement si l'on est déjà élevé
+    /// (installation pour tous), sinon par un processus élevé qui ne fait que
+    /// cela. Refusé ou échoué : SpaceNotch s'installe quand même, sans les
+    /// notifications Windows.
+    /// </summary>
+    private static async Task TrustIdentityCertificateAsync(InstallLayout layout, string source, Action<string>? log)
+    {
+        string certificate = Path.Combine(layout.Directory, IdentityPackage.CertificateFileName);
+
+        if (!File.Exists(certificate) || IdentityPackage.IsCertificateTrusted())
+        {
+            return;
+        }
+
+        if (IsElevated)
+        {
+            IdentityPackage.TrustCertificate(certificate, log);
+            return;
+        }
+
+        var worker = new SetupCommand(SetupMode.TrustIdentityWorker, new InstallOptions(layout.Scope, false, false), Quiet: true);
+        int? exit = await RunElevatedAsync(source, worker.ToCommandLine()).ConfigureAwait(false);
+
+        log?.Invoke(exit switch
+        {
+            null => "[IDENTITÉ] Approbation du certificat refusée par l'utilisateur : pas de notifications Windows.",
+            0 => "[IDENTITÉ] Certificat approuvé par le processus élevé.",
+            _ => $"[IDENTITÉ] Le processus élevé n'a pas approuvé le certificat (code {exit})."
+        });
     }
 
     /// <summary>
@@ -219,6 +253,13 @@ public static class WindowsSetup
         if (IdentityPackage.BundledPackage is { } identity)
         {
             File.Copy(identity, Path.Combine(layout.Directory, IdentityPackage.FileName), overwrite: true);
+
+            string certificate = Path.Combine(Path.GetDirectoryName(identity)!, IdentityPackage.CertificateFileName);
+
+            if (File.Exists(certificate))
+            {
+                File.Copy(certificate, Path.Combine(layout.Directory, IdentityPackage.CertificateFileName), overwrite: true);
+            }
         }
 
         progress?.Report(new SetupProgress(InstallStep.Shortcuts));
@@ -270,6 +311,7 @@ public static class WindowsSetup
         {
             // Préférence de l'utilisateur : retirée ici, dans sa ruche.
             StartupRegistration.SetEnabled(false, StartupRegistration.BuildCommand(product.Executable), out _);
+
 
 
             if (product.Options.Scope == InstallScope.AllUsers && !IsElevated)
