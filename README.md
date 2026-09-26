@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="docs/assets/brand/spacenotch-logo-128.png" alt="SpaceNotch logo — a glowing 3×3 pixel grid" width="72">
+<img src="docs/assets/readme/teaser.webp" alt="SpaceNotch teaser — a notch drops from the top of the screen, plays music, shows a download, splits off a call, opens search and pulls off the edge" width="100%">
 
-<img src="docs/assets/readme/hero.svg" alt="SpaceNotch — a notch that grows from the top of your screen, with a glowing pixel grid" width="100%">
+<sub><a href="docs/assets/readme/teaser.mp4">▶&nbsp; Watch with sound</a></sub>
 
 <br>
 

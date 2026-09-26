@@ -1,0 +1,512 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: Inter; src: url(InterVariable.ttf); font-weight: 100 900; }
+html,body { margin:0; background:#000; overflow:hidden; }
+canvas { display:block; }
+</style></head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <filter id="goo" color-interpolation-filters="sRGB">
+    <feGaussianBlur in="SourceGraphic" stdDeviation="9" result="b"/>
+    <feColorMatrix in="b" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 26 -12"/>
+  </filter>
+</svg>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// SpaceNotch teaser — every frame is a pure function of t (seconds).
+const W = 1920, H = 1080, CX = W / 2, K = 2.4;           // K: real DIP → video px
+const DURATION = 22.5;
+const c = document.getElementById('c');
+const ctx = c.getContext('2d');
+
+// Real palette (HypnoticField / Tokens.xaml).
+const C = {
+  blue: [0x6F,0xAE,0xFF], cyan: [0x7F,0xE6,0xFF], orange: [0xFF,0xB2,0x6B], coral: [0xFF,0x86,0x7A],
+  peach: [0xFF,0xC4,0x8E], pink: [0xFF,0x8F,0xA3], lav: [0xB9,0xA8,0xFF], mint: [0x7F,0xE8,0xB0],
+  green: [0x5F,0xD0,0x8A],
+};
+const rgba = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+const T1 = 'rgba(255,255,255,0.92)', T2 = 'rgba(255,255,255,0.60)', T3 = 'rgba(255,255,255,0.42)';
+
+// ---------- easing ----------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const smooth = x => x * x * (3 - 2 * x);
+const eio = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eout = x => 1 - Math.pow(1 - x, 3);
+const eoutq = x => 1 - Math.pow(1 - x, 5);
+// Damped spring, the notch's own feel: a little overshoot, settles fast.
+const spring = (x, zeta = 0.42, omega = 11) => {
+  if (x <= 0) return 0;
+  const wd = omega * Math.sqrt(1 - zeta * zeta);
+  return 1 - Math.exp(-zeta * omega * x) * (Math.cos(wd * x) + (zeta * omega / wd) * Math.sin(wd * x));
+};
+const sp = (t, t0, zeta, omega) => spring(t - t0, zeta, omega);
+const mix = (a, b, k) => a.map((v, i) => Math.round(lerp(v, b[i], k)));
+
+// Deterministic noise for stars.
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+const stars = (() => { const r = rng(7); return Array.from({ length: 140 }, () => [r() * W, r() * H * .8, r() * 1.4 + .3, r() * 6.28]); })();
+
+// ---------- wallpaper + taskbar ----------
+function wallpaper(t, a) {
+  if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, '#0a1030'); g.addColorStop(.55, '#15225a'); g.addColorStop(1, '#1d1a4a');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  // Slow aurora glows.
+  const blob = (x, y, r, col, al) => {
+    const rg = ctx.createRadialGradient(x, y, 0, x, y, r);
+    rg.addColorStop(0, rgba(col, al)); rg.addColorStop(1, rgba(col, 0));
+    ctx.fillStyle = rg; ctx.fillRect(x - r, y - r, 2 * r, 2 * r);
+  };
+  blob(420 + 60 * Math.sin(t * .25), 820, 700, [70, 90, 220], .35);
+  blob(1560 + 50 * Math.cos(t * .2), 700, 640, [150, 80, 200], .28);
+  blob(980, 1150, 620, [255, 170, 120], .16);
+  for (const [x, y, s, ph] of stars) {
+    ctx.fillStyle = `rgba(255,255,255,${.25 + .35 * (0.5 + 0.5 * Math.sin(t * 1.3 + ph))})`;
+    ctx.fillRect(x, y, s, s);
+  }
+  // Windows 11 taskbar: a quiet reminder of where we are.
+  ctx.fillStyle = 'rgba(20,22,40,0.72)'; ctx.fillRect(0, H - 56, W, 56);
+  ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(0, H - 56, W, 1);
+  const icons = [[0x4c, 0xa6, 0xff], [0xff, 0xc4, 0x3d], [0x7f, 0xe8, 0xb0], [0xff, 0x8f, 0xa3], [0xb9, 0xa8, 0xff]];
+  const start = CX - (icons.length + 1) * 26;
+  // Start button: four panes.
+  for (let i = 0; i < 4; i++) { ctx.fillStyle = 'rgba(96,170,255,0.95)'; ctx.fillRect(start + (i % 2) * 11, H - 39 + Math.floor(i / 2) * 11, 10, 10); }
+  icons.forEach((col, i) => { roundRect(start + 52 * (i + 1), H - 42, 28, 28, 7); ctx.fillStyle = rgba(col, .85); ctx.fill(); });
+  ctx.font = '500 15px Inter'; ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.textAlign = 'right';
+  ctx.fillText('21:47', W - 28, H - 23);
+  ctx.restore();
+}
+
+function roundRect(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+// ---------- the notch silhouette (NotchGeometry: concave shoulders, squircle corners) ----------
+function notchPath(p, cx, w, h, top = 0) {
+  // w, h in video px. Body width excludes the shoulders.
+  const S = Math.min(12 * K, h * .5, w * .25);
+  const radiusDip = lerp(26, 34, smooth(clamp((h / K - 34) / (120 - 34))));
+  const R = Math.min(radiusDip * K, (h - S * .2) * .5, w * .5);
+  const l = cx - w / 2, r = cx + w / 2, b = top + h, k = 0.62;       // k > .552: squircle-ish
+  p.moveTo(l - S, top);
+  p.bezierCurveTo(l - S * .45, top, l, top + S * .45, l, top + S);    // concave shoulder
+  p.lineTo(l, b - R);
+  p.bezierCurveTo(l, b - R * (1 - k), l + R * (1 - k), b, l + R, b);
+  p.lineTo(r - R, b);
+  p.bezierCurveTo(r - R * (1 - k), b, r, b - R * (1 - k), r, b - R);
+  p.lineTo(r, top + S);
+  p.bezierCurveTo(r, top + S * .45, r + S * .45, top, r + S, top);
+  p.closePath();
+}
+function drawNotch(cx, w, h, opts = {}) {
+  if (h <= 0.5) return;
+  ctx.save();
+  // Soft shadow under the black, then the black itself.
+  if (opts.shadow !== false) {
+    ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 40; ctx.shadowOffsetY = 12;
+  }
+  ctx.beginPath(); notchPath(ctx, cx, w, h); ctx.fillStyle = '#000'; ctx.fill();
+  ctx.restore();
+  // On pure black the shape needs a rim of light to exist at all.
+  if (RIM > 0.01) {
+    ctx.save();
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(1, `rgba(255,255,255,${0.22 * RIM})`);
+    ctx.strokeStyle = g; ctx.lineWidth = 2; ctx.beginPath(); notchPath(ctx, cx, w, h); ctx.stroke();
+    const glow = ctx.createRadialGradient(cx, h, 0, cx, h, w * .7);
+    glow.addColorStop(0, `rgba(127,230,255,${0.10 * RIM})`); glow.addColorStop(1, 'rgba(127,230,255,0)');
+    ctx.globalCompositeOperation = 'destination-over'; ctx.fillStyle = glow; ctx.fillRect(cx - w, 0, 2 * w, h + w * .7);
+    ctx.restore();
+  }
+}
+let RIM = 0;
+function clipNotch(cx, w, h) { ctx.beginPath(); notchPath(ctx, cx, w, h); ctx.clip(); }
+
+// ---------- the pixel grid ----------
+const LOGO = [0.25, 1, 0.25, 1, 1, 1, 0.25, 1, 0.25];
+function drawGrid(x, y, size, cells, colors, glow = 1) {
+  const gap = size * .1, cell = (size - 2 * gap) / 3;
+  for (let i = 0; i < 9; i++) {
+    const a = cells[i]; if (a <= 0.01) continue;
+    const col = Array.isArray(colors[0]) ? colors[i] : colors;
+    const cx = x + (i % 3) * (cell + gap), cy = y + Math.floor(i / 3) * (cell + gap);
+    ctx.save();
+    ctx.shadowColor = rgba(col, .9 * a * glow); ctx.shadowBlur = cell * .9 * glow;
+    roundRect(cx, cy, cell, cell, cell * .22);
+    ctx.fillStyle = rgba(col, a); ctx.fill();
+    ctx.restore();
+  }
+}
+const ring = [0, 1, 2, 5, 8, 7, 6, 3];
+function ringChase(t, speed, trail = 3) {
+  const cells = new Array(9).fill(0.14);
+  const head = t * speed;
+  for (let k = 0; k < trail; k++) {
+    const idx = ring[((Math.floor(head) - k) % 8 + 8) % 8];
+    const frac = head - Math.floor(head);
+    cells[idx] = Math.max(cells[idx], k === 0 ? .55 + .45 * frac : (1 - k / trail) * (1 - frac * .5));
+  }
+  return cells;
+}
+
+// ---------- text ----------
+function text(str, x, y, { size = 64, weight = 600, color = T1, align = 'center', a = 1, blur = 0, dy = 0, track = 0, grad = false } = {}) {
+  if (a <= 0.005) return;
+  ctx.save();
+  ctx.globalAlpha = a;
+  if (blur > 0.2) ctx.filter = `blur(${blur}px)`;
+  ctx.font = `${weight} ${size}px Inter`;
+  ctx.textAlign = align; ctx.textBaseline = 'alphabetic';
+  if ('letterSpacing' in ctx) ctx.letterSpacing = `${track}px`;
+  if (grad) {
+    const g = ctx.createLinearGradient(0, y - size, 0, y + size * .2);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(1, '#b9bfd6'); ctx.fillStyle = g;
+  } else ctx.fillStyle = color;
+  ctx.fillText(str, x, y + dy);
+  ctx.restore();
+}
+// Cinematic caption: rises out of a blur, holds, leaves through a blur.
+function caption(str, t, tin, tout, y, size = 64, opts = {}) {
+  const i = eoutq(prog(t, tin, tin + .45)), o = eio(prog(t, tout, tout + .35));
+  const a = i * (1 - o);
+  text(str, CX, y, { size, a, blur: (1 - i) * 14 + o * 10, dy: (1 - i) * 22 - o * 10, ...opts });
+}
+
+// ---------- icons ----------
+function playGlyph(x, y, s, a) { ctx.fillStyle = `rgba(255,255,255,${a})`; ctx.beginPath(); ctx.moveTo(x - s * .35, y - s * .5); ctx.lineTo(x + s * .5, y); ctx.lineTo(x - s * .35, y + s * .5); ctx.closePath(); ctx.fill(); }
+function pauseGlyph(x, y, s, a) { ctx.fillStyle = `rgba(255,255,255,${a})`; roundRect(x - s * .42, y - s * .5, s * .3, s, 2); ctx.fill(); roundRect(x + s * .12, y - s * .5, s * .3, s, 2); ctx.fill(); }
+function skipGlyph(x, y, s, a, dir) {
+  ctx.fillStyle = `rgba(255,255,255,${a})`;
+  for (const o of [0, s * .45]) { ctx.beginPath(); const xo = x + dir * (o - s * .22); ctx.moveTo(xo - dir * s * .25, y - s * .38); ctx.lineTo(xo + dir * s * .25, y); ctx.lineTo(xo - dir * s * .25, y + s * .38); ctx.closePath(); ctx.fill(); }
+}
+function phoneGlyph(x, y, s, col, a = 1) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(-0.6); ctx.strokeStyle = rgba(col, a); ctx.lineWidth = s * .2; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(-s * .45, -s * .15); ctx.quadraticCurveTo(0, s * .45, s * .45, -s * .15); ctx.stroke();
+  ctx.restore();
+}
+function artwork(x, y, s, r) {
+  const g = ctx.createLinearGradient(x, y, x + s, y + s);
+  g.addColorStop(0, '#ff5f9e'); g.addColorStop(.5, '#a45cff'); g.addColorStop(1, '#ffb26b');
+  roundRect(x, y, s, s, r); ctx.fillStyle = g; ctx.fill();
+  // A skyline, because Midnight City.
+  ctx.save(); roundRect(x, y, s, s, r); ctx.clip(); ctx.fillStyle = 'rgba(20,10,40,0.55)';
+  const bars = [.35, .55, .42, .7, .5, .62, .38];
+  bars.forEach((hh, i) => ctx.fillRect(x + i * s / 7, y + s * (1 - hh), s / 7 - 1, s * hh));
+  ctx.restore();
+}
+function levels(x, y, h, t, col, a = 1) {
+  for (let i = 0; i < 4; i++) {
+    const v = .35 + .65 * Math.abs(Math.sin(t * (5.2 + i * 1.7) + i * 1.3));
+    const bh = h * v; roundRect(x + i * h * .32, y + (h - bh) / 2, h * .18, bh, h * .09);
+    ctx.fillStyle = rgba(col, a); ctx.fill();
+  }
+}
+
+// ---------- scenes ----------
+function sceneBirth(t) {
+  // 0 → 3.25: a pixel of light becomes the grid, and the notch drops around it.
+  const gy = 50, size = 84;
+  const pix = eout(prog(t, .15, .7)) * (1 - prog(t, 1.05, 1.3));
+  const breathe = .75 + .25 * Math.sin(t * 5.5);
+  if (pix > 0) {
+    ctx.save(); ctx.shadowColor = rgba(C.peach, .9); ctx.shadowBlur = 40 * pix;
+    const s = 18 * (.8 + .2 * breathe);
+    roundRect(CX - s / 2, gy + size / 2 - s / 2, s, s, 4); ctx.fillStyle = rgba(C.peach, pix * breathe); ctx.fill(); ctx.restore();
+  }
+  // Notch drops: width springs out, height springs down.
+  const d = sp(t, 1.25, .45, 10);
+  const w = 170 * K * d, h = 56 * K * sp(t, 1.2, .5, 9);
+  drawNotch(CX, Math.max(0, w), Math.max(0, h));
+  // Grid blooms from the centre outward.
+  const cells = LOGO.map((v, i) => {
+    const dist = [1.4, 1, 1.4, 1, 0, 1, 1.4, 1, 1.4][i];
+    return v * eout(prog(t, 1.05 + dist * .12, 1.35 + dist * .12));
+  });
+  const cols = LOGO.map((v, i) => i === 4 ? [255, 255, 255] : C.cyan);
+  drawGrid(CX - size / 2, gy, size, cells, cols, 1.1);
+  caption('Windows never had a notch.', t, 1.45, 3.0, 600, 76, { grad: true, weight: 650 });
+}
+
+function sceneMusic(t) {
+  // 3.25 → 7.7: the desktop appears; the notch plays music, then grows into the player.
+  const toPill = eio(prog(t, 3.35, 3.9));
+  const grow = sp(t, 4.35, .55, 9);
+  const out = eio(prog(t, 7.45, 7.75));
+  const wd = lerp(lerp(170, 240, toPill), 380, grow), hd = lerp(lerp(56, 52, toPill), 140, grow);
+  const w = wd * K, h = hd * K;
+  drawNotch(CX, w, h);
+  ctx.save(); clipNotch(CX, w, h);
+  const l = CX - w / 2;
+  // The logo grid fades as the music takes over.
+  const g = 1 - prog(t, 3.25, 3.55);
+  if (g > 0) drawGrid(CX - 42, 50, 84, LOGO.map(v => v * g), LOGO.map((v, i) => i === 4 ? [255, 255, 255] : C.cyan));
+  const pillA = eout(prog(t, 3.6, 3.95)) * (1 - prog(t, 4.35, 4.55));
+  if (pillA > 0) {
+    artwork(l + 12 * K, 12 * K, 28 * K, 7 * K);
+    ctx.globalAlpha = pillA;
+    ctx.font = `600 ${13 * K}px Inter`; ctx.fillStyle = T1; ctx.textAlign = 'left';
+    ctx.fillText('Midnight City', l + 50 * K, 31 * K);
+    levels(CX + w / 2 - 44 * K, 17 * K, 18 * K, t, C.pink, 1);
+    ctx.globalAlpha = 1;
+  }
+  const full = eout(prog(t, 4.5, 4.95)) * (1 - out);
+  if (full > 0) {
+    // Artwork morphs from the pill into the player.
+    const m = eio(prog(t, 4.35, 4.85));
+    const ax = lerp(l + 12 * K, l + 24 * K, m), ay = lerp(12 * K, 24 * K, m), as = lerp(28, 76, m) * K;
+    artwork(ax, ay, as, lerp(7, 14, m) * K);
+    ctx.globalAlpha = full;
+    const tx = l + 116 * K;
+    ctx.textAlign = 'left';
+    ctx.font = `600 ${17 * K}px Inter`; ctx.fillStyle = T1; ctx.fillText('Midnight City', tx, 48 * K);
+    ctx.font = `400 ${13 * K}px Inter`; ctx.fillStyle = T2; ctx.fillText('M83 · Hurry Up, We’re Dreaming', tx, 68 * K);
+    levels(CX + w / 2 - 50 * K, 32 * K, 20 * K, t, C.pink, 1);
+    // Progress.
+    const bx = tx, by = 88 * K, bw = w / K * K - 140 * K;
+    roundRect(bx, by, bw, 4 * K, 2 * K); ctx.fillStyle = 'rgba(255,255,255,0.16)'; ctx.fill();
+    roundRect(bx, by, bw * (.34 + (t - 4.5) * .01), 4 * K, 2 * K); ctx.fillStyle = 'rgba(255,255,255,0.85)'; ctx.fill();
+    ctx.font = `500 ${10.5 * K}px Inter`; ctx.fillStyle = T3;
+    ctx.fillText('1:24', bx, 106 * K); ctx.textAlign = 'right'; ctx.fillText('-2:39', bx + bw, 106 * K);
+    // Controls.
+    const cy = 124 * K;
+    skipGlyph(CX - 36 * K + 60 * K, cy, 12 * K, .8, -1); pauseGlyph(CX + 60 * K, cy, 14 * K, .95); skipGlyph(CX + 36 * K + 60 * K, cy, 12 * K, .8, 1);
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  const bottom = h;
+  caption('SpaceNotch', t, 4.75, 7.35, bottom + 190, 112, { grad: true, weight: 700, track: -2 });
+  caption('A small piece of darkness at the top of your screen.', t, 5.05, 7.35, bottom + 262, 36, { weight: 450, color: T2 });
+  return { w, h };
+}
+
+function sceneDownload(t) {
+  // 7.7 → 10.7: the grid breathes while work happens, then settles into one calm pixel.
+  const m = sp(t, 7.6, .55, 10);
+  const wd = lerp(380, 340, m), hd = lerp(140, 104, m);
+  const w = wd * K, h = hd * K;
+  const out = eio(prog(t, 10.5, 10.75));
+  drawNotch(CX, w, h);
+  ctx.save(); clipNotch(CX, w, h);
+  const a = eout(prog(t, 7.8, 8.2)) * (1 - out);
+  const l = CX - w / 2;
+  const p = eio(prog(t, 8.1, 9.7));
+  const done = prog(t, 9.7, 10.0);
+  // Grid: orange ring chase while working, one mint pixel once done.
+  const work = ringChase(t, 9).map(v => v * (1 - done));
+  const cells = work.map((v, i) => i === 4 ? Math.max(v * .3, done) : v);
+  const cols = cells.map((v, i) => i === 4 && done > 0 ? mix(C.orange, C.mint, done) : mix(C.orange, C.coral, (i % 3) / 2));
+  ctx.globalAlpha = a;
+  drawGrid(l + 26 * K, 28 * K, 48 * K, cells, cols, 1);
+  const tx = l + 96 * K;
+  ctx.textAlign = 'left';
+  ctx.font = `500 ${12 * K}px Inter`; ctx.fillStyle = T3; ctx.fillText(done > .5 ? 'Downloaded' : 'Downloading', tx, 40 * K);
+  ctx.font = `600 ${16 * K}px Inter`; ctx.fillStyle = T1; ctx.fillText('SpaceNotch-Setup.exe', tx, 62 * K);
+  const bw = w - 124 * K;
+  roundRect(tx, 76 * K, bw, 4 * K, 2 * K); ctx.fillStyle = 'rgba(255,255,255,0.14)'; ctx.fill();
+  const barCol = done > 0 ? mix(C.orange, C.mint, done) : C.orange;
+  roundRect(tx, 76 * K, Math.max(4 * K, bw * p), 4 * K, 2 * K); ctx.fillStyle = rgba(barCol, 1); ctx.fill();
+  ctx.font = `500 ${11 * K}px Inter`; ctx.fillStyle = T2; ctx.textAlign = 'right';
+  ctx.fillText(`${Math.round(p * 100)} %`, tx + bw, 96 * K);
+  ctx.restore();
+  caption('Alive, never busy.', t, 8.0, 10.35, h + 330, 84, { grad: true, weight: 650 });
+}
+
+function gooLayer(draw) {
+  // Draw black shapes on a scratch layer, then melt them together.
+  const L = gooLayer.c || (gooLayer.c = Object.assign(document.createElement('canvas'), { width: W, height: H }));
+  const g = L.getContext('2d');
+  g.clearRect(0, 0, W, H);
+  draw(g);
+  ctx.save(); ctx.filter = 'url(#goo)'; ctx.drawImage(L, 0, 0); ctx.restore();
+}
+
+function sceneCall(t) {
+  // 10.7 → 13.5: something important splits off into its own bubble.
+  const m = sp(t, 10.6, .55, 10);
+  const wd = lerp(340, 240, m), hd = lerp(104, 52, m);
+  const w = wd * K, h = hd * K;
+  const out = eio(prog(t, 13.25, 13.5));
+  const split = sp(t, 11.15, .5, 8);                 // bubble travels right
+  const bub = 52 * K * eout(prog(t, 11.1, 11.4));
+  const bx = CX + w / 2 + lerp(-bub * .6, 22 * K, split) + bub / 2;
+  gooLayer(g => {
+    g.beginPath(); notchPath(g, CX, w, h); g.fillStyle = '#000'; g.fill();
+    if (bub > 0) { g.beginPath(); roundRectOn(g, bx - bub / 2, 0, bub, bub, bub / 2); g.fill(); }
+    // A little ink stays between them for a moment, then lets go.
+  });
+  ctx.save(); clipNotch(CX, w, h);
+  const a = eout(prog(t, 10.9, 11.2)) * (1 - out), l = CX - w / 2;
+  ctx.globalAlpha = a;
+  artwork(l + 12 * K, 12 * K, 28 * K, 7 * K);
+  ctx.font = `600 ${13 * K}px Inter`; ctx.fillStyle = T1; ctx.textAlign = 'left'; ctx.fillText('Midnight City', l + 50 * K, 31 * K);
+  levels(CX + w / 2 - 44 * K, 17 * K, 18 * K, t, C.pink, 1);
+  ctx.restore();
+  const ba = eout(prog(t, 11.4, 11.7)) * (1 - out);
+  if (ba > 0) {
+    const pulse = .5 + .5 * Math.sin(t * 6);
+    ctx.save(); ctx.globalAlpha = ba;
+    ctx.shadowColor = rgba(C.green, .7); ctx.shadowBlur = 18 + 10 * pulse;
+    phoneGlyph(bx, bub / 2 - 2 * K, 18 * K, C.green); ctx.restore();
+    text('00:42', bx, bub + 34 * K, { size: 14 * K, weight: 600, color: rgba(C.green, .95), a: ba });
+  }
+  caption('It splits for what matters.', t, 11.5, 13.1, 600, 84, { grad: true, weight: 650 });
+}
+function roundRectOn(g, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath();
+}
+
+function keycap(label, x, y, pressed, a) {
+  if (a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.font = `600 30px Inter`; const tw = ctx.measureText(label).width;
+  const w = tw + 48, h = 64, dy = pressed ? 5 : 0;
+  roundRect(x - w / 2, y + 6, w, h, 14); ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill();
+  roundRect(x - w / 2, y + dy, w, h, 14); ctx.fillStyle = pressed ? 'rgba(127,230,255,0.22)' : 'rgba(255,255,255,0.12)'; ctx.fill();
+  ctx.strokeStyle = pressed ? 'rgba(127,230,255,0.7)' : 'rgba(255,255,255,0.22)'; ctx.lineWidth = 1.5; ctx.stroke();
+  ctx.fillStyle = T1; ctx.textAlign = 'center'; ctx.fillText(label, x, y + dy + 43);
+  ctx.restore();
+  return w;
+}
+
+function sceneSearch(t) {
+  // 13.5 → 16.8: Alt+Space, the notch opens into search.
+  const open = sp(t, 14.05, .55, 9);
+  const close = eio(prog(t, 16.45, 16.8));
+  const wd = lerp(lerp(240, 440, open), 240, close), hd = lerp(lerp(52, 250, open), 52, close);
+  const w = wd * K, h = hd * K;
+  drawNotch(CX, w, h);
+  const ka = eout(prog(t, 13.55, 13.8)) * (1 - prog(t, 14.6, 14.9));
+  const kp = t > 13.85 && t < 14.3;
+  const kx = CX, ky = 330;
+  keycap('Alt', kx - 90, ky, kp, ka); text('+', kx - 6, ky + 44, { size: 32, color: T3, a: ka }); keycap('Space', kx + 96, ky, kp, ka);
+  ctx.save(); clipNotch(CX, w, h);
+  const a = eout(prog(t, 14.3, 14.6)) * (1 - close), l = CX - w / 2;
+  ctx.globalAlpha = a;
+  // Search field.
+  const fx = l + 22 * K, fy = 22 * K, fw = w - 44 * K;
+  roundRect(fx, fy, fw, 40 * K, 12 * K); ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.12)'; ctx.lineWidth = 2; ctx.stroke();
+  ctx.strokeStyle = T2; ctx.lineWidth = 2.2 * K; ctx.beginPath(); ctx.arc(fx + 20 * K, fy + 19 * K, 6 * K, 0, 6.3); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(fx + 24.5 * K, fy + 23.5 * K); ctx.lineTo(fx + 28 * K, fy + 27 * K); ctx.stroke();
+  const typed = '12*8'.slice(0, Math.max(0, Math.min(4, Math.floor((t - 14.55) / .13) + 1)));
+  ctx.font = `500 ${17 * K}px Inter`; ctx.fillStyle = T1; ctx.textAlign = 'left';
+  ctx.fillText(typed, fx + 40 * K, fy + 26 * K);
+  if (Math.floor(t * 2.2) % 2 === 0) { const cw = ctx.measureText(typed).width; ctx.fillStyle = 'rgba(127,230,255,0.9)'; ctx.fillRect(fx + 41 * K + cw, fy + 11 * K, 1.6 * K, 20 * K); }
+  // Results appear one by one.
+  const rows = [
+    ['= 96', 'Quick maths · Enter to copy', C.cyan],
+    ['Calculator', 'App', C.blue],
+    ['Display settings', 'Windows settings', C.lav],
+    ['budget-2026.xlsx', 'Documents', C.mint],
+  ];
+  rows.forEach(([ttl, sub, col], i) => {
+    const ra = eout(prog(t, 15.1 + i * .1, 15.35 + i * .1));
+    if (ra <= 0) return;
+    const ry = 76 * K + i * 42 * K + (1 - ra) * 8 * K;
+    ctx.globalAlpha = a * ra;
+    if (i === 0) { roundRect(fx, ry - 6 * K, fw, 40 * K, 10 * K); ctx.fillStyle = 'rgba(127,230,255,0.12)'; ctx.fill(); }
+    roundRect(fx + 10 * K, ry + 2 * K, 24 * K, 24 * K, 7 * K); ctx.fillStyle = rgba(col, .9); ctx.fill();
+    ctx.font = `600 ${14 * K}px Inter`; ctx.fillStyle = T1; ctx.fillText(ttl, fx + 46 * K, ry + 13 * K);
+    ctx.font = `400 ${11 * K}px Inter`; ctx.fillStyle = T3; ctx.fillText(sub, fx + 46 * K, ry + 27 * K);
+  });
+  ctx.restore();
+  caption('Apps, settings, files and quick maths.', t, 15.0, 16.35, 880, 58, { grad: true, weight: 620 });
+}
+
+function scenePull(t) {
+  // 16.8 → 19.5: grab the notch, it stretches like ink, snaps free, floats — and flows back.
+  const base = { w: 240 * K, h: 52 * K };
+  const pull = eio(prog(t, 17.0, 17.75));              // stretching
+  const snap = prog(t, 17.75, 17.76);                  // lets go
+  const fly = sp(t, 17.75, .45, 8);                    // pill floats down
+  const back = eio(prog(t, 18.9, 19.35));              // flows home
+  const pillW = 200 * K, pillH = 56 * K;
+  const dropY = snap < 1 ? lerp(base.h * .5, base.h + 150, pull) : lerp(lerp(base.h + 150, 430, fly), base.h * .4, back);
+  const dropR = lerp(26 * K, pillH / 2, pull);
+  const dropW = snap < 1 ? lerp(base.w * .7, pillW * .8, pull) : lerp(pillW, base.w * .8, back);
+  const home = snap < 1 ? base : { w: lerp(160 * K, base.w, back), h: lerp(34 * K, base.h, back) };
+  gooLayer(g => {
+    g.fillStyle = '#000';
+    g.beginPath(); notchPath(g, CX, home.w, home.h); g.fill();
+    // While stretching, a neck ties the drop to the notch.
+    if (snap < 1) {
+      const neck = lerp(base.w * .5, 18 * K, pull);
+      g.beginPath(); g.moveTo(CX - neck / 2, base.h * .5); g.lineTo(CX + neck / 2, base.h * .5);
+      g.lineTo(CX + neck * .3, dropY); g.lineTo(CX - neck * .3, dropY); g.closePath(); g.fill();
+    }
+    if (pull > 0 || snap >= 1) { g.beginPath(); roundRectOn(g, CX - dropW / 2, dropY - pillH / 2, dropW, pillH, dropR); g.fill(); }
+  });
+  // The floating pill carries a calm pixel.
+  const fa = snap >= 1 ? (1 - back) * eout(prog(t, 17.85, 18.1)) : 0;
+  if (fa > 0) {
+    ctx.save(); ctx.globalAlpha = fa;
+    drawGrid(CX - dropW / 2 + 20 * K, dropY - 12 * K, 24 * K, [0, 0, 0, 0, 1, 0, 0, 0, 0], C.peach, 1.2);
+    ctx.font = `600 ${14 * K}px Inter`; ctx.fillStyle = T1; ctx.textAlign = 'left';
+    ctx.fillText('Floating', CX - dropW / 2 + 56 * K, dropY + 5 * K);
+    ctx.restore();
+  }
+  caption('Pull it off the edge.', t, 17.3, 19.2, 820, 84, { grad: true, weight: 650 });
+}
+
+function sceneOutro(t) {
+  // 19.5 → 22.5: rest, logo, name, where to get it.
+  const r = eio(prog(t, 19.35, 19.8));
+  drawNotch(CX, lerp(192, 150, r) * K, lerp(40, 44, r) * K);
+  const la = eout(prog(t, 19.7, 20.2));
+  const ls = 150 * (0.86 + 0.14 * eoutq(prog(t, 19.7, 20.3)));
+  // App-icon tile, as in the logo.
+  if (la > 0) {
+    const tx = CX - ls * .7, ty = 300 - ls * .7, tw = ls * 1.4;
+    ctx.save(); ctx.globalAlpha = la;
+    ctx.shadowColor = 'rgba(127,230,255,0.35)'; ctx.shadowBlur = 60;
+    roundRect(tx, ty, tw, tw, tw * .28); ctx.fillStyle = '#05070b'; ctx.fill();
+    ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.restore();
+    const breathe = .85 + .15 * Math.sin(t * 3.2);
+    const cells = LOGO.map((v, i) => v * la * (i === 4 ? 1 : breathe));
+    drawGrid(CX - ls / 2, 300 - ls / 2, ls, cells, LOGO.map((v, i) => i === 4 ? [255, 255, 255] : C.cyan), 1.2);
+  }
+  caption('SpaceNotch', t, 20.0, 99, 560, 124, { grad: true, weight: 700, track: -3 });
+  caption('The notch your Windows PC never had.', t, 20.3, 99, 632, 38, { weight: 450, color: T2 });
+  caption('FREE & OPEN SOURCE  ·  WINDOWS 11', t, 20.6, 99, 720, 22, { weight: 600, color: T3, track: 6 });
+  caption('github.com/nicoo-o/SpaceNotch', t, 20.8, 99, 790, 30, { weight: 550, color: rgba(C.cyan, .95) });
+}
+
+// ---------- the timeline ----------
+function render(t) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.filter = 'none'; ctx.globalAlpha = 1;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+  // The desktop appears with the music, and goes back to black for the outro.
+  const wall = eio(prog(t, 3.2, 4.1)) * (1 - eio(prog(t, 19.3, 20.0)));
+  wallpaper(t, wall);
+  RIM = 1 - wall;
+  if (t < 3.25) sceneBirth(t);
+  else if (t < 7.7) sceneMusic(t);
+  else if (t < 10.7) sceneDownload(t);
+  else if (t < 13.5) sceneCall(t);
+  else if (t < 16.8) sceneSearch(t);
+  else if (t < 19.5) scenePull(t);
+  else sceneOutro(t);
+  // Film vignette and a whisper of grain keep the black deep and alive.
+  const v = ctx.createRadialGradient(CX, H * .45, H * .3, CX, H * .5, H * .95);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.45)');
+  ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+  // Fade in from black at the very start and out at the very end (clean loop).
+  const edge = Math.min(prog(t, 0, .25), 1 - prog(t, DURATION - .35, DURATION));
+  if (edge < 1) { ctx.fillStyle = `rgba(0,0,0,${1 - edge})`; ctx.fillRect(0, 0, W, H); }
+}
+window.render = render;
+window.DURATION = DURATION;
+window.ready = document.fonts.load('600 40px Inter').then(() => document.fonts.ready);
+</script>
+</body></html>
