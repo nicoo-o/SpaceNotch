@@ -85,6 +85,7 @@
             <!-- Contrôles : activés selon les actions réellement déclarées -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="14" Margin="0,2,0,0">
                 <Button
+                    Style="{StaticResource NfSecondaryButtonStyle}"
                     x:Name="PrevButton"
                     Width="32"
                     Height="32"
@@ -99,6 +100,7 @@
                 </Button>
 
                 <Button
+                    Style="{StaticResource NfPlayButtonStyle}"
                     x:Name="PlayPauseButton"
                     Width="36"
                     Height="36"
@@ -113,6 +115,7 @@
                 </Button>
 
                 <Button
+                    Style="{StaticResource NfSecondaryButtonStyle}"
                     x:Name="NextButton"
                     Width="32"
                     Height="32"

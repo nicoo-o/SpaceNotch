@@ -1,92 +1,141 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
+using SpaceNotch.Core.Launcher;
 using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Platform.Windows.Launcher;
 
 namespace SpaceNotch.Features.Launcher;
 
+/// <summary>Où la recherche range ses favoris, récents et fréquences entre deux sessions.</summary>
+public interface ILauncherHistoryStore
+{
+    LauncherHistory Load();
+
+    void Save(LauncherHistory history);
+}
+
 /// <summary>
-/// Lanceur d'applications : favorites, récemment utilisées et recherche.
+/// La recherche, façon Spotlight et Raycast : applications (bureau et Store),
+/// paramètres de Windows, fichiers récents, calcul et recherche web.
 ///
-/// Le catalogue est constitué en lisant les raccourcis du menu Démarrer, ce qui
-/// évite d'inventorier le registre ou les paquets installés. Deux sources
-/// alimentent le classement : les favorites, mémorisées dans les préférences, et
-/// les applications lancées depuis l'Island pendant la session. Le classement est
-/// fait ici, jamais par la vue.
+/// <para>
+/// Le classement vit dans le cœur (<see cref="LauncherSearch"/>) ; ici, les
+/// sources et les gestes. Le catalogue est un instantané immuable, remplacé en
+/// bloc quand une lecture se termine : la frappe, sur le fil d'interface, ne
+/// croise jamais une liste en cours de modification.
+/// </para>
 /// </summary>
 public sealed class LauncherFeature : IslandFeatureBase
 {
     public const string FeatureKey = "feature.launcher";
 
-    public const string LaunchAction = "launcher.launch";
-
     public const string SearchAction = "launcher.search";
+    public const string OpenAction = "launcher.open";
+    public const string PinAction = "launcher.pin";
+    public const string LocationAction = "launcher.location";
+    public const string AdminAction = "launcher.admin";
+    public const string UninstallAction = "launcher.uninstall";
+    public const string DismissAction = "launcher.dismiss";
+
+    /// <summary>Le panneau d'actions s'ouvre (« 1 ») ou se ferme (« 0 ») : la notch s'agrandit pour lui.</summary>
+    public const string ActionsPanelAction = "launcher.actions";
+
+    /// <summary>Ancien nom de l'action d'ouverture, gardé pour les greffons.</summary>
+    public const string LaunchAction = OpenAction;
 
     private const string ActivityId = "feature.launcher.current";
 
-    /// <summary>Dossiers du menu Démarrer, par utilisateur et global.</summary>
-    private static readonly string[] SearchRoots =
-    [
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "Microsoft", "Windows", "Start Menu", "Programs"),
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "Microsoft", "Windows", "Start Menu", "Programs")
-    ];
+    /// <summary>Le catalogue des applications est relu au plus toutes les deux minutes.</summary>
+    private static readonly TimeSpan CatalogueLifetime = TimeSpan.FromMinutes(2);
 
-    /// <summary>Nombre maximal d'applications présentées simultanément.</summary>
-    private const int MaxVisible = 12;
+    private readonly ILauncherHistoryStore? _store;
+    private readonly bool _french = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
+    private readonly LauncherText _text = LauncherText.For(CultureInfo.CurrentUICulture);
 
-    private readonly List<App> _catalogue = [];
-    private readonly List<string> _recentlyLaunched = [];
-    private readonly List<FileSystemWatcher> _watchers = [];
+    private volatile IReadOnlyList<LauncherCandidate> _apps = [];
+    private volatile IReadOnlyList<LauncherCandidate> _files = [];
+    private readonly List<LauncherCandidate> _settings;
 
-    private Timer? _rescanTimer;
+    private LauncherHistory _history = new();
+    private IReadOnlyList<LauncherSection> _lastSections = [];
+    private DateTimeOffset _loadedAt = DateTimeOffset.MinValue;
+    private int _loading;
     private string _query = string.Empty;
+    private bool _shown;
+    private bool _actionsOpen;
 
-    public LauncherFeature(IActivityManager activities, IEventBus events, bool isEnabled = true)
-        : base(FeatureKey, "Lanceur d'applications", activities, events, isEnabled)
+    public LauncherFeature(IActivityManager activities, IEventBus events, bool isEnabled = true, ILauncherHistoryStore? store = null)
+        : base(FeatureKey, "Recherche", activities, events, isEnabled)
     {
+        _store = store;
+        string subtitle = _french ? "Paramètre Windows" : "Windows setting";
+
+        _settings = WindowsSettingsCatalog.All
+            .Select(s => new LauncherCandidate(
+                LauncherResultKind.Setting,
+                WindowsSettingsCatalog.NameFor(s, _french),
+                subtitle,
+                s.Uri,
+                Keywords: s.Keywords + " " + (_french ? s.English : s.French)))
+            .ToList();
     }
 
+    /// <summary>Raccourci global retenu, affiché dans le pied de la recherche.</summary>
+    public string? Hotkey { get; set; }
+
     /// <summary>Nombre d'applications du catalogue, exposé aux diagnostics.</summary>
-    public int CatalogueSize => _catalogue.Count;
+    public int CatalogueSize => _apps.Count;
 
     protected override Task OnStartAsync(CancellationToken cancellationToken)
     {
-        Rescan();
-        StartWatchers();
-
+        _history = LoadHistory();
+        _ = RefreshAsync();
         return Task.CompletedTask;
     }
 
     protected override Task OnStopAsync()
     {
-        foreach (FileSystemWatcher watcher in _watchers)
-        {
-            watcher.Dispose();
-        }
-
-        _watchers.Clear();
-
-        _rescanTimer?.Dispose();
-        _rescanTimer = null;
-
-        _catalogue.Clear();
-        _recentlyLaunched.Clear();
+        _apps = [];
+        _files = [];
         _query = string.Empty;
-
+        _shown = false;
         RemoveActivity(ActivityId);
-
         return Task.CompletedTask;
+    }
+
+    /// <summary>Montre la recherche, champ vide. Relit les sources si elles ont vieilli.</summary>
+    public void Show()
+    {
+        _query = string.Empty;
+        _shown = true;
+        _actionsOpen = false;
+        Publish();
+
+        if (DateTimeOffset.UtcNow - _loadedAt > CatalogueLifetime)
+        {
+            _ = RefreshAsync();
+        }
+    }
+
+    /// <summary>
+    /// Retire la recherche. Appelé quand la notch se referme : sans cela, elle
+    /// restait l'activité présentée — devant la musique.
+    /// </summary>
+    public void Dismiss()
+    {
+        _query = string.Empty;
+        _shown = false;
+        _actionsOpen = false;
+        RemoveActivity(ActivityId);
     }
 
     public override Task<bool> HandleActionAsync(IslandActionRequest request)
@@ -95,12 +144,46 @@ public sealed class LauncherFeature : IslandFeatureBase
 
         switch (request.ActionId)
         {
-            case LaunchAction:
-                return Task.FromResult(Launch(request.Value));
-
             case SearchAction:
                 _query = request.Value ?? string.Empty;
                 Publish();
+                return Task.FromResult(true);
+
+            case OpenAction:
+                return Task.FromResult(Open(request.Value, admin: false));
+
+            case AdminAction:
+                return Task.FromResult(Open(request.Value, admin: true));
+
+            case PinAction when request.Value is { Length: > 0 } id:
+                _history.TogglePin(id);
+                SaveHistory();
+                Publish();
+                return Task.FromResult(true);
+
+            case LocationAction when request.Value is { Length: > 0 } target:
+                LauncherShell.OpenLocation(target);
+                Dismiss();
+                return Task.FromResult(true);
+
+            case UninstallAction:
+                LauncherShell.Uninstall();
+                Dismiss();
+                return Task.FromResult(true);
+
+            case DismissAction:
+                Dismiss();
+                return Task.FromResult(true);
+
+            case ActionsPanelAction:
+                bool open = request.Value == "1";
+
+                if (open != _actionsOpen)
+                {
+                    _actionsOpen = open;
+                    Publish();
+                }
+
                 return Task.FromResult(true);
 
             default:
@@ -108,276 +191,136 @@ public sealed class LauncherFeature : IslandFeatureBase
         }
     }
 
-    /// <summary>
-    /// Présente le lanceur. Appelé par l'hôte — depuis le menu de la zone de
-    /// notification, par exemple.
-    /// </summary>
-    public void Show()
+    private bool Open(string? id, bool admin)
     {
-        _query = string.Empty;
-        Publish();
+        LauncherResult? result = _lastSections.SelectMany(s => s.Items)
+            .FirstOrDefault(r => string.Equals(r.Id, id, StringComparison.OrdinalIgnoreCase));
 
-        // Un catalogue encore vide — premier lancement, dossiers pas encore
-        // lus — est lu maintenant, en arrière-plan : la notch montre la
-        // recherche pendant ce travail réel, puis les applications.
-        if (_catalogue.Count == 0 && !_scanning)
-        {
-            _ = Task.Run(Rescan);
-        }
-    }
+        string? target = result?.Target ?? id;
 
-    /// <summary>
-    /// Retire le lanceur. Appelé quand la notch se referme : sans cela, il
-    /// restait l'activité présentée — devant la musique — jusqu'au prochain
-    /// lancement d'application.
-    /// </summary>
-    public void Dismiss()
-    {
-        _query = string.Empty;
-        RemoveActivity(ActivityId);
-    }
-
-    private bool Launch(string? target)
-    {
-        if (string.IsNullOrWhiteSpace(target) || !File.Exists(target))
+        if (string.IsNullOrWhiteSpace(target) || !LauncherShell.Open(target, admin))
         {
             return false;
         }
 
+        // Le calcul et le web ne sont pas des « récents » : on ne retient que
+        // ce qu'on rouvrira.
+        if (result is null || result.Kind is LauncherResultKind.Application or LauncherResultKind.Setting or LauncherResultKind.File)
+        {
+            _history.RecordLaunch(result?.Id ?? target);
+            SaveHistory();
+        }
+
+        // La recherche s'efface après avoir lancé : l'utilisateur a obtenu ce
+        // qu'il voulait.
+        Dismiss();
+        return true;
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (Interlocked.Exchange(ref _loading, 1) == 1)
+        {
+            return;
+        }
+
         try
         {
-            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
-
-            // Remonter l'application en tête de liste : c'est la seule notion de
-            // « récent » que le système ne fournit pas — le registre des
-            // applications récentes de Windows ne porte pas d'horodatage.
-            _recentlyLaunched.RemoveAll(t => string.Equals(t, target, StringComparison.OrdinalIgnoreCase));
-            _recentlyLaunched.Insert(0, target);
-
-            while (_recentlyLaunched.Count > MaxVisible)
+            if (_shown)
             {
-                _recentlyLaunched.RemoveAt(_recentlyLaunched.Count - 1);
+                Publish();
             }
 
-            // Le lanceur s'efface après avoir lancé : rien ne justifie de rester
-            // affiché après que l'utilisateur a obtenu ce qu'il voulait.
-            RemoveActivity(ActivityId);
+            IReadOnlyList<LauncherCandidate> apps = await AppCatalog.LoadAsync(
+                _french ? "Application" : "Application",
+                _french ? "Application du Store" : "Store app",
+                ReportMessage).ConfigureAwait(false);
 
-            return true;
+            IReadOnlyList<LauncherCandidate> files = await Task.Run(RecentFiles.Load).ConfigureAwait(false);
+
+            _apps = apps;
+            _files = files;
+            _loadedAt = DateTimeOffset.UtcNow;
         }
         catch (Exception ex)
         {
             ReportError(ex);
-            return false;
-        }
-    }
-
-    /// <summary>
-    /// Observe les dossiers du menu Démarrer.
-    ///
-    /// L'observation est événementielle : aucune analyse périodique. Les
-    /// notifications du système de fichiers peuvent arriver en rafale pendant une
-    /// installation, et sont donc regroupées par un minuteur à usage unique.
-    /// </summary>
-    private void StartWatchers()
-    {
-        foreach (string root in SearchRoots)
-        {
-            if (!Directory.Exists(root))
-            {
-                continue;
-            }
-
-            try
-            {
-                var watcher = new FileSystemWatcher(root)
-                {
-                    IncludeSubdirectories = true,
-                    NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName
-                };
-
-                watcher.Created += OnCatalogueChanged;
-                watcher.Deleted += OnCatalogueChanged;
-                watcher.Renamed += OnCatalogueChanged;
-                watcher.EnableRaisingEvents = true;
-
-                _watchers.Add(watcher);
-            }
-            catch (Exception ex)
-            {
-                // Un dossier non observable n'empêche pas le lanceur de
-                // fonctionner : le catalogue restera simplement figé. L'incident
-                // est consigné, pas tu.
-                ReportError(ex);
-            }
-        }
-    }
-
-    private void OnCatalogueChanged(object sender, FileSystemEventArgs e)
-    {
-        _rescanTimer ??= new Timer(_ => Rescan(), null, Timeout.Infinite, Timeout.Infinite);
-
-        // Regroupement : une seule relecture pour une rafale de notifications.
-        _rescanTimer.Change(TimeSpan.FromMilliseconds(600), Timeout.InfiniteTimeSpan);
-    }
-
-    /// <summary>Vrai pendant la lecture des dossiers du menu Démarrer.</summary>
-    private volatile bool _scanning;
-
-    private void Rescan()
-    {
-        _scanning = true;
-
-        try
-        {
-            RescanCore();
         }
         finally
         {
-            _scanning = false;
-
-            // Le lanceur affiché se met à jour : la grille « Search » s'arrête et
-            // les applications trouvées apparaissent.
-            if (GetActivities().Any())
-            {
-                Publish();
-            }
+            Volatile.Write(ref _loading, 0);
         }
-    }
 
-    private void RescanCore()
-    {
-        if (GetActivities().Any())
+        if (_shown)
         {
             Publish();
         }
-
-        var found = new List<App>();
-
-        foreach (string root in SearchRoots)
-        {
-            if (!Directory.Exists(root))
-            {
-                continue;
-            }
-
-            try
-            {
-                foreach (string file in Directory.EnumerateFiles(root, "*.lnk", SearchOption.AllDirectories))
-                {
-                    string name = Path.GetFileNameWithoutExtension(file);
-
-                    // Les désinstalleurs, aides et sites web encombrent le menu
-                    // Démarrer sans jamais être lancés volontairement.
-                    if (IsNoise(name))
-                    {
-                        continue;
-                    }
-
-                    found.Add(new App(name, file));
-                }
-            }
-            catch (Exception ex)
-            {
-                ReportError(ex);
-            }
-        }
-
-        _catalogue.Clear();
-        _catalogue.AddRange(found
-            .GroupBy(a => a.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(g => g.First()));
     }
-
-    private static bool IsNoise(string name)
-        => name.Contains("uninstall", StringComparison.OrdinalIgnoreCase)
-            || name.Contains("désinstall", StringComparison.OrdinalIgnoreCase)
-            || name.Contains("readme", StringComparison.OrdinalIgnoreCase)
-            || name.Contains("help", StringComparison.OrdinalIgnoreCase)
-            || name.Contains("aide", StringComparison.OrdinalIgnoreCase);
 
     private void Publish()
     {
-        List<LauncherEntry> entries = Rank()
-            .Take(MaxVisible)
-            .Select(a => new LauncherEntry(
-                Id: a.Path,
-                Name: a.Name,
-                Target: a.Path,
-                IsRecent: _recentlyLaunched.Any(
-                    t => string.Equals(t, a.Path, StringComparison.OrdinalIgnoreCase))))
-            .ToList();
+        var candidates = new List<LauncherCandidate>(_apps.Count + _settings.Count + _files.Count);
+        candidates.AddRange(_apps);
+        candidates.AddRange(_settings);
+        candidates.AddRange(_files);
+
+        IReadOnlyList<LauncherSection> sections = LauncherSearch.Build(_query, candidates, _history, _text, CultureInfo.CurrentCulture);
+        _lastSections = sections;
+
+        bool loading = Volatile.Read(ref _loading) == 1 && _apps.Count == 0;
 
         PublishActivity(new IslandActivity
         {
             Id = ActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Launcher,
-            Title = "Applications",
-            Subtitle = $"{_catalogue.Count} application{(_catalogue.Count > 1 ? "s" : string.Empty)}",
+            Title = _french ? "Recherche" : "Search",
+            Subtitle = _query,
             Source = "Launcher",
             IconKey = "Launcher",
             State = IslandActivityState.Idle,
             Priority = ActivityPriority.Normal,
 
-            // Pendant la lecture des dossiers du menu Démarrer — un vrai travail
-            // de disque —, la grille « Search » le dit. Filtrer une liste déjà
-            // chargée, en revanche, est instantané : aucune animation ne
-            // prétendrait le contraire.
-            MotionState = _scanning ? ActivityMotionState.Working : ActivityMotionState.Idle,
+            // La notch prend la hauteur de ce qu'elle montre.
+            ExpandedFootprint = LauncherLayout.FootprintFor(sections, _actionsOpen),
+
+            // Pendant la première lecture du catalogue — un vrai travail —, la
+            // grille « Search » le dit. Filtrer une liste chargée est instantané.
+            MotionState = loading ? ActivityMotionState.Working : ActivityMotionState.Idle,
             MotionPreset = HypnoticPreset.Search,
             Actions =
             [
-                new ActivityAction(LaunchAction, "Lancer", "Launch", ActivityActionKind.Open, IsPrimary: true),
+                new ActivityAction(OpenAction, "Ouvrir", "Open", ActivityActionKind.Open, IsPrimary: true),
                 new ActivityAction(SearchAction, "Rechercher", "Find")
-                // Les favorites modifiables par l'utilisateur ne sont pas encore
-                // exposées : les afficher sans moyen de les définir serait une
-                // promesse sans contenu.
             ],
-            Payload = new LauncherPayload(entries, _query)
+            Payload = new LauncherPayload(sections, _query, loading, Hotkey, _history.Favorites.ToHashSet(StringComparer.OrdinalIgnoreCase))
         });
     }
 
-    /// <summary>
-    /// Classement : correspondances de recherche d'abord, applications lancées
-    /// pendant la session ensuite, puis reste du catalogue par ordre alphabétique.
-    /// </summary>
-    private List<App> Rank()
+    private LauncherHistory LoadHistory()
     {
-        IEnumerable<App> matches = _catalogue;
-
-        if (!string.IsNullOrWhiteSpace(_query))
+        try
         {
-            string query = _query.Trim();
-
-            matches = _catalogue.Where(a => a.Name.Contains(query, StringComparison.OrdinalIgnoreCase));
+            return _store?.Load() ?? new LauncherHistory();
         }
-
-        List<App> ordered = matches.ToList();
-
-        ordered.Sort((left, right) =>
+        catch (Exception ex)
         {
-            int leftRecent = _recentlyLaunched.FindIndex(t => string.Equals(t, left.Path, StringComparison.OrdinalIgnoreCase));
-            int rightRecent = _recentlyLaunched.FindIndex(t => string.Equals(t, right.Path, StringComparison.OrdinalIgnoreCase));
-
-            bool leftKnown = leftRecent >= 0;
-            bool rightKnown = rightRecent >= 0;
-
-            if (leftKnown != rightKnown)
-            {
-                return leftKnown ? -1 : 1;
-            }
-
-            if (leftKnown && rightKnown)
-            {
-                return leftRecent.CompareTo(rightRecent);
-            }
-
-            return string.Compare(left.Name, right.Name, StringComparison.OrdinalIgnoreCase);
-        });
-
-        return ordered;
+            ReportError(ex);
+            return new LauncherHistory();
+        }
     }
 
-    private sealed record App(string Name, string Path);
+    private void SaveHistory()
+    {
+        try
+        {
+            _store?.Save(_history);
+        }
+        catch (Exception ex)
+        {
+            ReportError(ex);
+        }
+    }
+
+    private void ReportMessage(string message) => ReportError(new InvalidOperationException(message));
 }

@@ -60,6 +60,7 @@
         </StackPanel>
 
         <Button
+            Style="{StaticResource NfIconButtonStyle}"
             x:Name="CloseButton"
             Grid.Column="2"
             Width="26"

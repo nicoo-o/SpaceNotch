@@ -75,6 +75,7 @@
                             jamais dans l'Island.
                         -->
                         <Button
+                            Style="{StaticResource NfGhostButtonStyle}"
                             Grid.Column="0"
                             HorizontalAlignment="Stretch"
                             HorizontalContentAlignment="Left"
@@ -97,6 +98,7 @@
                         </Button>
 
                         <Button
+                            Style="{StaticResource NfIconButtonStyle}"
                             Grid.Column="1"
                             Width="24"
                             Height="24"
@@ -111,6 +113,7 @@
                         </Button>
 
                         <Button
+                            Style="{StaticResource NfIconButtonStyle}"
                             Grid.Column="2"
                             Width="24"
                             Height="24"

@@ -366,6 +366,7 @@
                 <scenes:TimerScene x:Name="TimerSceneView" Visibility="Collapsed" />
                 <scenes:ClipboardScene x:Name="ClipboardSceneView" Visibility="Collapsed" />
                 <scenes:LauncherScene x:Name="LauncherSceneView" Visibility="Collapsed" />
+                <scenes:QuickMenuScene x:Name="QuickMenuSceneView" Visibility="Collapsed" />
                 <scenes:InfoScene x:Name="InfoSceneView" Visibility="Collapsed" />
 
                 <!--

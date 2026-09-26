@@ -27,6 +27,7 @@ using SpaceNotch.Features.Downloads;
 using SpaceNotch.Features.FileShelf;
 using SpaceNotch.Features.Launcher;
 using SpaceNotch.Features.Media;
+using SpaceNotch.Features.Menu;
 using SpaceNotch.Features.Notifications;
 using SpaceNotch.Features.Privacy;
 using SpaceNotch.Features.Productivity;
@@ -108,6 +109,7 @@ public sealed partial class IslandWindow : Window
     private readonly PomodoroFeature _pomodoroFeature;
     private readonly TimerFeature _timerFeature;
     private readonly LauncherFeature _launcherFeature;
+    private readonly QuickMenuFeature _quickMenuFeature;
     private readonly MediaFeature _mediaFeature;
     private readonly IslandFeatureRegistry _featureRegistry;
     private readonly PluginLoader _pluginLoader;
@@ -276,7 +278,12 @@ public sealed partial class IslandWindow : Window
             _activityManager, _eventBus, _settings.IsFeatureEnabled(PomodoroFeature.FeatureKey));
 
         _timerFeature = new TimerFeature(_activityManager, _eventBus);
-        _launcherFeature = new LauncherFeature(_activityManager, _eventBus);
+        _launcherFeature = new LauncherFeature(
+            _activityManager,
+            _eventBus,
+            store: new SpaceNotch_App.Launcher.SettingsLauncherHistoryStore(_settingsService));
+
+        _quickMenuFeature = new QuickMenuFeature(_activityManager, _eventBus);
 
         _mediaFeature = new MediaFeature(
             _activityManager, _eventBus, _mediaSessionManager, _settings.IsFeatureEnabled(MediaFeature.FeatureKey));
@@ -302,6 +309,7 @@ public sealed partial class IslandWindow : Window
                 _settings.IsFeatureEnabled(BrightnessHudFeature.FeatureKey)),
             _timerFeature,
             _launcherFeature,
+            _quickMenuFeature,
             new DownloadsFeature(
                 _activityManager, _eventBus, KnownFolders.Downloads,
                 _settings.IsFeatureEnabled(DownloadsFeature.FeatureKey)),
@@ -532,6 +540,7 @@ public sealed partial class IslandWindow : Window
         _scenes[IslandSceneCatalog.Pomodoro] = TimerSceneView;
         _scenes[IslandSceneCatalog.Clipboard] = ClipboardSceneView;
         _scenes[IslandSceneCatalog.Launcher] = LauncherSceneView;
+        _scenes[IslandSceneCatalog.QuickMenu] = QuickMenuSceneView;
 
         // Luminosité et volume partagent la même vue : leur charge utile est
         // identique, seule la clé d'icône les distingue.
@@ -578,6 +587,13 @@ public sealed partial class IslandWindow : Window
         try
         {
             _diagnostics.CountEvent();
+
+            // Les commandes du menu rapide touchent la fenêtre : elles sont
+            // exécutées ici, pas par une fonctionnalité.
+            if (HandleQuickMenuAction(request))
+            {
+                return;
+            }
 
             bool handled = await _featureRegistry.HandleActionAsync(request);
 
@@ -634,6 +650,13 @@ public sealed partial class IslandWindow : Window
                 _launcherFeature.Dismiss();
             }
 
+            // Le menu rapide aussi : refermé, il ne reste pas en tête de pile.
+            if (state == IslandState.Closed && _quickMenuFeature.IsShown)
+            {
+                _quickMenuFeature.Dismiss();
+                _activityManager.PinPresentation(null);
+            }
+
             RequestRender();
         };
 
@@ -657,6 +680,11 @@ public sealed partial class IslandWindow : Window
 
         _messageMonitor = new WindowMessageMonitor(_hWnd);
         _messageMonitor.WindowMessageReceived += OnWindowMessageReceived;
+
+        // Le raccourci global ouvre la recherche de n'importe où : Alt+Espace,
+        // ou Win+Maj+Espace si une autre application tient déjà le premier.
+        _launcherFeature.Hotkey = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.RegisterLauncher(_hWnd);
+        MiniLogger.Log($"Raccourci de recherche : {_launcherFeature.Hotkey ?? "aucun (les deux sont pris)"}");
 
         _shelfManager.ShelfUpdated += (_, _) =>
             OnUiThread(() => FileShelfSceneView.UpdateItems(_shelfManager.GetItems()));
@@ -896,10 +924,16 @@ public sealed partial class IslandWindow : Window
                     CaptureKeyboardForTyping();
                     DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, launcher.FocusSearch);
                 }
+                else if (scene is QuickMenuScene menu)
+                {
+                    // Le menu se parcourt aussi au clavier : ↑↓, Entrée, Échap.
+                    CaptureKeyboardForTyping();
+                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, menu.FocusFirst);
+                }
 
                 // Une seule ligne de temps : la forme grandit, puis le contenu
                 // arrive, flou, et se précise.
-                ContentTransition.Play(scene.Root, UseSpringAnimations(), TimeSpan.FromMilliseconds(90));
+                ContentTransition.Play(scene.Root, UseSpringAnimations(), TimeSpan.FromMilliseconds(80));
                 PlayVeil(TimeSpan.FromMilliseconds(40));
 
                 if (morph is not null)
@@ -1141,7 +1175,7 @@ public sealed partial class IslandWindow : Window
         // valeur la faisait clignoter sans arrêt.
         if (visible && !metric)
         {
-            ContentTransition.Play(target, UseSpringAnimations());
+            ContentTransition.Play(target, UseSpringAnimations(), TimeSpan.FromMilliseconds(60), ContentTransition.SwapDuration);
 
             // Un titre qui change se lit flou, puis net ; une mesure qui défile
             // — une taille reçue, un pourcentage — change sans voile.
@@ -1597,6 +1631,14 @@ public sealed partial class IslandWindow : Window
 
     private void OnWindowMessageReceived(object? sender, WindowMessageEventArgs e)
     {
+        if (e.Message.MessageId == SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.WmHotkey
+            && (int)e.Message.WParam == SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.LauncherId)
+        {
+            ToggleLauncherFromHotkey();
+            e.Handled = true;
+            return;
+        }
+
         // Les notifications système diffusées par message sont routées vers les
         // fonctionnalités concernées — le presse-papier en est l'exemple. Aucune
         // scrutation n'est nécessaire pour les recevoir.
@@ -1690,6 +1732,7 @@ public sealed partial class IslandWindow : Window
         ForceAttach();
 
         SystemVisualState updated = SystemVisualState.Read();
+        SpaceNotch_App.UI.MotionSettings.Invalidate();
 
         if (updated != _visualState)
         {
@@ -2087,7 +2130,7 @@ public sealed partial class IslandWindow : Window
         if (properties.IsRightButtonPressed)
         {
             e.Handled = true;
-            OpenLauncher();
+            ToggleQuickMenu();
             return;
         }
 
@@ -2124,6 +2167,27 @@ public sealed partial class IslandWindow : Window
         }
 
         _controller.ToggleFromUser();
+    }
+
+    /// <summary>
+    /// Le raccourci global : ouvre la recherche, ou la referme si elle est
+    /// déjà devant — le même geste dans les deux sens, comme Spotlight.
+    /// </summary>
+    private void ToggleLauncherFromHotkey()
+    {
+        if (_isClosed)
+        {
+            return;
+        }
+
+        if (_controller.State != IslandState.Closed
+            && _controller.PresentedActivity?.SceneKey == IslandSceneCatalog.Launcher)
+        {
+            _controller.RequestCollapse();
+            return;
+        }
+
+        OpenLauncher();
     }
 
     /// <summary>Ouvre la grille de fonctions et la montre.</summary>
@@ -2477,7 +2541,7 @@ public sealed partial class IslandWindow : Window
             Icon = new FontIcon { Glyph = "\uE768" }
         };
 
-        var launcherItem = new MenuFlyoutItem { Text = "Applications…" };
+        var launcherItem = new MenuFlyoutItem { Text = "Rechercher…" };
         launcherItem.Click += (_, _) =>
         {
             _launcherFeature.Show();
@@ -2925,6 +2989,7 @@ public sealed partial class IslandWindow : Window
             _controller.Dispose();
             _diagnostics.Dispose();
             _screenWatcher.Dispose();
+            SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Unregister(_hWnd);
             _messageMonitor?.Dispose();
         }
         catch (Exception ex)

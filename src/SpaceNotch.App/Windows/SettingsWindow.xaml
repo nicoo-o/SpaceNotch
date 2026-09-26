@@ -326,8 +326,8 @@
                 <ToggleSwitch x:Name="DiagnosticsToggle" Header="Diagnostics" Toggled="OnDiagnosticsToggled" />
 
                 <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
-                    <Button Content="Ouvrir la configuration" Click="OnOpenConfigClicked" />
-                    <Button Content="Ouvrir les greffons" Click="OnOpenPluginsClicked" />
+                    <Button Style="{StaticResource NfSecondaryButtonStyle}" Content="Ouvrir la configuration" Click="OnOpenConfigClicked" />
+                    <Button Style="{StaticResource NfSecondaryButtonStyle}" Content="Ouvrir les greffons" Click="OnOpenPluginsClicked" />
                 </StackPanel>
 
                 <TextBlock
@@ -353,8 +353,8 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <Button Grid.Column="0" Content="Rétablir les valeurs par défaut" Click="OnResetClicked" />
-            <Button Grid.Column="2" Content="Fermer" Click="OnCloseClicked" />
+            <Button Grid.Column="0" Style="{StaticResource NfGhostButtonStyle}" Content="Rétablir les valeurs par défaut" Click="OnResetClicked" />
+            <Button Grid.Column="2" Style="{StaticResource NfPrimaryButtonStyle}" Content="Fermer" Click="OnCloseClicked" />
         </Grid>
     </Grid>
 </Window>

@@ -76,28 +76,34 @@ public sealed record ClipboardEntry(
 /// <summary>Charge utile de la scène presse-papier.</summary>
 public sealed record ClipboardPayload(IReadOnlyList<ClipboardEntry> Entries);
 
-/// <summary>
-/// Application proposée par le lanceur.
-/// </summary>
-/// <param name="Id">Identifiant stable, utilisé comme valeur d'action.</param>
-/// <param name="Name">Nom affiché.</param>
-/// <param name="Target">Chemin du raccourci à ouvrir.</param>
-/// <param name="IsRecent">
-/// Vrai si l'application a été lancée depuis l'Island pendant la session.
-///
-/// Windows n'expose aucun horodatage des applications récemment utilisées : ce
-/// qui est affiché ici est donc un historique de session, et il est nommé comme
-/// tel plutôt que présenté comme l'historique du système.
-/// </param>
-public sealed record LauncherEntry(
-    string Id,
-    string Name,
-    string Target,
-    bool IsRecent = false);
-
-/// <summary>Charge utile du lanceur d'applications.</summary>
-/// <param name="Entries">Applications correspondant à la recherche en cours.</param>
+/// <summary>Charge utile de la recherche (lanceur).</summary>
+/// <param name="Sections">Résultats groupés, dans l'ordre d'affichage.</param>
 /// <param name="Query">Recherche en cours, vide si aucune.</param>
+/// <param name="IsLoading">Vrai pendant la première lecture du catalogue.</param>
+/// <param name="Hotkey">Raccourci global retenu, affiché dans le pied (« Alt+Espace »).</param>
+/// <param name="Favorites">Identifiants épinglés : le panneau d'actions dit « Désépingler ».</param>
 public sealed record LauncherPayload(
-    IReadOnlyList<LauncherEntry> Entries,
-    string Query);
+    IReadOnlyList<SpaceNotch.Core.Launcher.LauncherSection> Sections,
+    string Query,
+    bool IsLoading = false,
+    string? Hotkey = null,
+    IReadOnlyCollection<string>? Favorites = null);
+
+/// <summary>Charge utile du menu rapide (clic droit sur la notch).</summary>
+/// <param name="Hotkey">Raccourci de la recherche, affiché en face de « Rechercher ».</param>
+/// <param name="DockExpanded">Vrai quand « Accrocher à… » est déplié sur ses trois bords.</param>
+/// <param name="Edge">Bord où la notch est accrochée : celui-là est en cyan.</param>
+/// <param name="IsFloating">Vrai si la notch est détachée : « Détacher » n'a plus lieu d'être.</param>
+/// <param name="SideEdgesAllowed">Faux si les réglages limitent la notch au haut de l'écran.</param>
+/// <param name="HasClipboard">Vrai si l'historique du presse-papier a quelque chose à montrer.</param>
+/// <param name="HasShelf">Vrai si l'étagère contient des fichiers.</param>
+/// <param name="TimerRunning">Vrai si un minuteur tourne : la ligne propose de l'arrêter.</param>
+public sealed record QuickMenuPayload(
+    string? Hotkey,
+    bool DockExpanded,
+    SpaceNotch.Core.Presentation.NotchEdge Edge,
+    bool IsFloating,
+    bool SideEdgesAllowed,
+    bool HasClipboard,
+    bool HasShelf,
+    bool TimerRunning);
