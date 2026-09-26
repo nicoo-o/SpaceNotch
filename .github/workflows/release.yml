@@ -160,7 +160,16 @@ jobs:
         run: |
           $log = Join-Path $env:LOCALAPPDATA "SpaceNotch\\logs\\spacenotch.log"
           Remove-Item $log -ErrorAction SilentlyContinue
-          $process = Start-Process -FilePath "${{ runner.temp }}/dist/SpaceNotch.exe" -ArgumentList "--demo" -PassThru
+          try {
+            $process = Start-Process -FilePath "${{ runner.temp }}/dist/SpaceNotch.exe" -ArgumentList "--demo" -PassThru
+          } catch {
+            # Un manifeste refusé (« side-by-side ») : Windows en dit la raison exacte
+            # dans le journal SideBySide — attribut, ligne, valeur.
+            Write-Host "----- journal SideBySide -----"
+            Get-WinEvent -FilterHashtable @{ LogName = "Application"; ProviderName = "SideBySide" } -MaxEvents 5 -ErrorAction SilentlyContinue |
+              ForEach-Object { Write-Host $_.TimeCreated; Write-Host $_.Message }
+            throw "SpaceNotch.exe n'a pas pu démarrer : $($_.Exception.Message)"
+          }
           Start-Sleep -Seconds 12
           $alive = -not $process.HasExited
           if ($alive) { Stop-Process -Id $process.Id -Force }
