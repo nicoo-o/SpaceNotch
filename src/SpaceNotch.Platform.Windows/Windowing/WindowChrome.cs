@@ -53,6 +53,21 @@ public static class WindowChrome
     }
 
     /// <summary>
+    /// Configure l'installeur : une notch comme l'Island, sans cadre ni coins
+    /// de Windows et au premier plan — mais une vraie fenêtre, présente dans la
+    /// barre des tâches et qui prend le focus, parce qu'on lui répond.
+    /// </summary>
+    public static void ApplySetupSurface(IntPtr hWnd)
+    {
+        if (hWnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        DisableDwmRounding(hWnd);
+    }
+
+    /// <summary>
     /// Configure la surface décorative : identique à la surface interactive, plus
     /// <c>WS_EX_TRANSPARENT</c> qui rend chaque clic traversant vers ce qui se
     /// trouve dessous. Le halo et le fondu ne captureront jamais une interaction.

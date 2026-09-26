@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Window
+    x:Class="SpaceNotch_App.Setup.SetupWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:winuiex="using:WinUIEx"
+    Title="SpaceNotch"
+    mc:Ignorable="d">
+
+    <Window.SystemBackdrop>
+        <winuiex:TransparentTintBackdrop />
+    </Window.SystemBackdrop>
+
+    <!--
+        L'installeur est la notch elle-même : elle descend du haut de l'écran,
+        s'ouvre sur ses choix, travaille avec la grille, puis se referme en
+        notch au repos — et la vraie prend sa place. Même noir, mêmes épaules
+        concaves que l'Island. Voir ADR-022.
+    -->
+    <Grid
+        x:Name="RootLayout"
+        Background="Transparent"
+        RequestedTheme="Dark"
+        KeyDown="OnRootKeyDown">
+
+        <!-- Pinceaux du choix, résolus dans le thème de la notch (sombre), pas
+             dans celui de l'application : le code les reprend d'ici. -->
+        <Rectangle
+            x:Name="ChoiceSwatch"
+            Width="0"
+            Height="0"
+            Fill="{ThemeResource NfSetupChoiceBrush}"
+            Stroke="{ThemeResource NfSetupChoiceStrokeBrush}"
+            Visibility="Collapsed" />
+        <Rectangle
+            x:Name="ChosenSwatch"
+            Width="0"
+            Height="0"
+            Stroke="{ThemeResource NfSetupChosenStrokeBrush}"
+            Visibility="Collapsed" />
+
+        <Path
+            x:Name="Surface"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Fill="{ThemeResource NfSurfaceBaseBrush}"
+            Stroke="{ThemeResource NfSetupOutlineBrush}"
+            StrokeThickness="1" />
+
+        <Grid
+            x:Name="ContentHost"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Opacity="0">
+
+            <StackPanel
+                x:Name="ContentPanel"
+                VerticalAlignment="Top"
+                Spacing="18">
+
+                <!-- En-tête : la grille, le nom, une phrase. -->
+                <Grid ColumnSpacing="18">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Grid
+                        x:Name="GridHost"
+                        Width="52"
+                        Height="52"
+                        VerticalAlignment="Center"
+                        IsHitTestVisible="False" />
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                        <TextBlock
+                            x:Name="TitleText"
+                            Style="{StaticResource NfHeroTextStyle}"
+                            Foreground="{ThemeResource NfTextPrimaryBrush}"
+                            Text="SpaceNotch" />
+                        <TextBlock
+                            x:Name="HeadlineText"
+                            Style="{StaticResource NfBodyTextStyle}"
+                            Foreground="{ThemeResource NfTextSecondaryBrush}"
+                            TextWrapping="WrapWholeWords" />
+                    </StackPanel>
+                </Grid>
+
+                <!-- Choix d'une installation neuve. -->
+                <StackPanel x:Name="OptionsPanel" Spacing="12">
+                    <Grid ColumnSpacing="10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Button
+                            x:Name="ForMeButton"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Padding="14,10"
+                            CornerRadius="14"
+                            BorderThickness="1.5"
+                            Click="OnForMeClick">
+                            <StackPanel Spacing="1">
+                                <TextBlock x:Name="ForMeTitle" Style="{StaticResource NfBodyStrongStyle}" />
+                                <TextBlock
+                                    x:Name="ForMeDetail"
+                                    Style="{StaticResource NfCaptionTextStyle}"
+                                    Foreground="{ThemeResource NfTextSecondaryBrush}" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button
+                            x:Name="ForEveryoneButton"
+                            Grid.Column="1"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Left"
+                            Padding="14,10"
+                            CornerRadius="14"
+                            BorderThickness="1.5"
+                            Click="OnForEveryoneClick">
+                            <StackPanel Spacing="1">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock x:Name="ForEveryoneTitle" Style="{StaticResource NfBodyStrongStyle}" />
+                                    <!-- Le bouclier de Windows : ce choix demandera l'accord de l'administrateur. -->
+                                    <FontIcon
+                                        FontSize="12"
+                                        Glyph="&#xEA18;"
+                                        Foreground="{ThemeResource NfTextSecondaryBrush}" />
+                                </StackPanel>
+                                <TextBlock
+                                    x:Name="ForEveryoneDetail"
+                                    Style="{StaticResource NfCaptionTextStyle}"
+                                    Foreground="{ThemeResource NfTextSecondaryBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+
+                    <StackPanel Spacing="0">
+                        <CheckBox x:Name="StartupCheck" IsChecked="True" />
+                        <CheckBox x:Name="DesktopCheck" IsChecked="True" />
+                    </StackPanel>
+
+                    <TextBlock
+                        x:Name="FolderText"
+                        Style="{StaticResource NfCaptionTextStyle}"
+                        Foreground="{ThemeResource NfTextTertiaryBrush}"
+                        TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+
+                <!-- Mise à jour, réinstallation : les choix sont repris. -->
+                <TextBlock
+                    x:Name="KeepsChoicesText"
+                    Style="{StaticResource NfCaptionTextStyle}"
+                    Foreground="{ThemeResource NfTextTertiaryBrush}"
+                    Visibility="Collapsed" />
+
+                <!-- Désinstallation. -->
+                <StackPanel x:Name="UninstallPanel" Spacing="8" Visibility="Collapsed">
+                    <TextBlock
+                        x:Name="UninstallDetailText"
+                        Style="{StaticResource NfBodyTextStyle}"
+                        Foreground="{ThemeResource NfTextSecondaryBrush}"
+                        TextWrapping="WrapWholeWords" />
+                    <CheckBox x:Name="RemoveSettingsCheck" />
+                </StackPanel>
+
+                <!-- Travail en cours. -->
+                <StackPanel x:Name="ProgressPanel" Spacing="10" Visibility="Collapsed">
+                    <TextBlock
+                        x:Name="StepText"
+                        Style="{StaticResource NfBodyTextStyle}"
+                        Foreground="{ThemeResource NfTextSecondaryBrush}" />
+                    <ProgressBar
+                        x:Name="Progress"
+                        Height="3"
+                        Minimum="0"
+                        Maximum="1"
+                        CornerRadius="1.5"
+                        Foreground="{ThemeResource NfSetupProgressBrush}"
+                        Background="{ThemeResource NfSetupTrackBrush}" />
+                </StackPanel>
+
+                <!-- Message : échec, refus d'élévation. -->
+                <TextBlock
+                    x:Name="MessageText"
+                    Style="{StaticResource NfBodyTextStyle}"
+                    Foreground="{ThemeResource NfTextSecondaryBrush}"
+                    TextWrapping="WrapWholeWords"
+                    Visibility="Collapsed" />
+
+                <StackPanel
+                    x:Name="ActionsPanel"
+                    HorizontalAlignment="Right"
+                    Orientation="Horizontal"
+                    Spacing="8">
+                    <Button
+                        x:Name="SecondaryButton"
+                        MinWidth="96"
+                        Padding="18,8"
+                        CornerRadius="18"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Click="OnSecondaryClick" />
+                    <Button
+                        x:Name="PrimaryButton"
+                        MinWidth="120"
+                        Padding="22,8"
+                        CornerRadius="18"
+                        BorderThickness="0"
+                        Background="{ThemeResource NfSetupPrimaryBrush}"
+                        Foreground="{ThemeResource NfSetupPrimaryTextBrush}"
+                        FontWeight="SemiBold"
+                        Click="OnPrimaryClick">
+                        <!-- Le bouton reste blanc sous le pointeur : le gris par défaut
+                             de Fluent ferait un bouton gris à texte noir. -->
+                        <Button.Resources>
+                            <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="NfSetupPrimaryBrush" />
+                            <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="NfSetupPrimaryBrush" />
+                            <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="NfSetupPrimaryTextBrush" />
+                            <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="NfSetupPrimaryTextBrush" />
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

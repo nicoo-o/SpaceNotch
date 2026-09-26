@@ -1,5 +1,7 @@
 using Microsoft.UI.Xaml;
+using SpaceNotch.Core.Setup;
 using SpaceNotch.Infrastructure.Logging;
+using SpaceNotch_App.Setup;
 using SpaceNotch_App.Startup;
 using SpaceNotch_App.Windows;
 
@@ -43,6 +45,18 @@ public partial class App : Application
     {
         MiniLogger.Log("App.OnLaunched starting");
 
+        // Le même exécutable est aussi son installeur : « SpaceNotch-Setup.exe »,
+        // ou --install / --uninstall. Dans ce cas, pas d'Island — la notch de
+        // l'installeur, ou rien du tout pour le travail élevé et les
+        // installations scriptées. Voir ADR-022.
+        SetupCommand setup = SetupCommand.Parse(Environment.GetCommandLineArgs(), Environment.ProcessPath);
+
+        if (setup.Mode != SetupMode.None)
+        {
+            LaunchSetup(setup);
+            return;
+        }
+
         try
         {
             var island = new IslandWindow();
@@ -78,5 +92,33 @@ public partial class App : Application
         {
             MiniLogger.Log($"[FATAL] Exception in OnLaunched: {ex}");
         }
+    }
+
+    private void LaunchSetup(SetupCommand setup)
+    {
+        string version = typeof(App).Assembly.GetName().Version?.ToString(3) ?? "1.0.0";
+
+        if (setup.IsWorker || setup.Quiet)
+        {
+            _ = RunHeadlessAsync(setup, version);
+            return;
+        }
+
+        try
+        {
+            _window = new SetupWindow(setup, version);
+            _window.Activate();
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log($"[FATAL] Installeur : {ex}");
+            Exit();
+        }
+    }
+
+    private static async Task RunHeadlessAsync(SetupCommand setup, string version)
+    {
+        int code = await SetupRunner.RunAsync(setup, version).ConfigureAwait(false);
+        Environment.Exit(code);
     }
 }

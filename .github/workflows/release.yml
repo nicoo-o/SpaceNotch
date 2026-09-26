@@ -1,7 +1,10 @@
 name: Release
 
-# Produit SpaceNotch pour Windows, en deux formes :
-#   - SpaceNotch.exe, un exécutable unique et portable — double-cliquer, rien à installer ;
+# Produit SpaceNotch pour Windows, en trois formes :
+#   - SpaceNotch-Setup.exe, l'installeur : la notch elle-même, qui s'ouvre sur ses choix
+#     (ADR-022). C'est le même exécutable que la version portable, renommé : son nom
+#     suffit à le faire démarrer en installeur ;
+#   - SpaceNotch.exe, l'exécutable unique et portable — double-cliquer, rien à installer ;
 #   - SpaceNotch-win-x64.zip, le dossier complet (démarrage un peu plus rapide).
 #
 # Deux déclencheurs :
@@ -14,7 +17,7 @@ on:
       version:
         description: "Numéro de version inscrit dans l'exécutable (ex. 1.0.0)"
         required: false
-        default: "1.0.0"
+        default: "1.1.0"
       publish:
         description: "Publier une Release GitHub (crée le tag v<version> sur ce commit)"
         type: boolean
@@ -74,7 +77,10 @@ jobs:
       #     (WindowsAppSDK#3718) — même pour une application non empaquetée ;
       #   - IncludeAllContentForSelfExtract + IncludeNativeLibrariesForSelfExtract :
       #     les ressources et les bibliothèques natives vont dans l'exécutable et sont
-      #     extraites au premier lancement.
+      #     extraites au premier lancement ;
+      #   - EnableCompressionInSingleFile : le contenu est compressé dans l'exécutable,
+      #     qui pèse bien moins lourd à télécharger. Il est de toute façon extrait au
+      #     premier lancement : la décompression ne coûte qu'une fois.
       - name: Publier l'exécutable unique
         run: >
           dotnet publish ${{ env.PROJECT }}
@@ -86,6 +92,7 @@ jobs:
           -p:PublishSingleFile=true
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:IncludeAllContentForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
           -p:PublishReadyToRun=true
           -p:Version=${{ steps.version.outputs.value }}
           --output "${{ runner.temp }}/single"
@@ -111,6 +118,8 @@ jobs:
           $exe = Get-ChildItem "${{ runner.temp }}/single" -Filter "*.exe" | Select-Object -First 1
           if (-not $exe) { throw "Aucun exécutable produit par la publication unique." }
           Copy-Item $exe.FullName "$out/SpaceNotch.exe"
+          # L'installeur est le même fichier : « Setup » dans le nom suffit.
+          Copy-Item $exe.FullName "$out/SpaceNotch-Setup.exe"
 
           Compress-Archive -Path "${{ runner.temp }}/folder/*" -DestinationPath "$out/SpaceNotch-win-x64.zip" -Force
 
@@ -135,6 +144,54 @@ jobs:
           Write-Host "SpaceNotch.exe tourne toujours après 12 s."
           Stop-Process -Id $process.Id -Force
 
+      # Essai de l'installeur, de bout en bout, en mode silencieux : installer pour
+      # l'utilisateur, vérifier fichier, raccourcis et entrée de Paramètres ›
+      # Applications, lancer la notch installée, puis désinstaller et vérifier que
+      # rien ne reste. Un installeur cassé ne doit jamais être publié.
+      - name: Essai de l'installeur
+        shell: pwsh
+        run: |
+          $setup = "${{ runner.temp }}/dist/SpaceNotch-Setup.exe"
+          $dir = Join-Path $env:LOCALAPPDATA "Programs\SpaceNotch"
+          $exe = Join-Path $dir "SpaceNotch.exe"
+          $key = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\SpaceNotch"
+          $menu = Join-Path ([Environment]::GetFolderPath("Programs")) "SpaceNotch.lnk"
+          $desktop = Join-Path ([Environment]::GetFolderPath("DesktopDirectory")) "SpaceNotch.lnk"
+
+          $install = Start-Process -FilePath $setup -ArgumentList "--quiet","--startup=on","--desktop=on" -PassThru -Wait
+          if ($install.ExitCode -ne 0) { throw "Installation silencieuse : code $($install.ExitCode)." }
+          if (-not (Test-Path $exe)) { throw "SpaceNotch.exe absent de $dir." }
+          if (-not (Test-Path $menu)) { throw "Raccourci du menu Démarrer absent." }
+          if (-not (Test-Path $desktop)) { throw "Raccourci du bureau absent." }
+
+          $entry = Get-ItemProperty $key
+          Write-Host "Paramètres › Applications : $($entry.DisplayName) $($entry.DisplayVersion) — $($entry.UninstallString)"
+          if ($entry.DisplayVersion -ne "${{ steps.version.outputs.value }}") { throw "Version inscrite inattendue : $($entry.DisplayVersion)." }
+
+          $run = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run").SpaceNotch
+          if ($run -ne "`"$exe`" --startup") { throw "Lancement au démarrage inattendu : $run." }
+
+          $app = Start-Process -FilePath $exe -ArgumentList "--demo" -PassThru
+          Start-Sleep -Seconds 12
+          if ($app.HasExited) {
+            Write-Host "::warning::La notch installée s'est arrêtée au démarrage (code $($app.ExitCode))."
+          } else {
+            Write-Host "La notch installée tourne toujours après 12 s."
+          }
+
+          # La désinstallation ferme elle-même la notch en cours.
+          $uninstall = Start-Process -FilePath $exe -ArgumentList "--uninstall","--quiet" -PassThru -Wait
+          if ($uninstall.ExitCode -ne 0) { throw "Désinstallation silencieuse : code $($uninstall.ExitCode)." }
+
+          # Le dossier est effacé par l'interpréteur de commandes, après la sortie.
+          for ($i = 0; $i -lt 20 -and (Test-Path $dir); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path $dir) { throw "Le dossier d'installation est resté." }
+          if (Test-Path $key) { throw "L'entrée de Paramètres › Applications est restée." }
+          if (Test-Path $menu) { throw "Le raccourci du menu Démarrer est resté." }
+          if (Test-Path $desktop) { throw "Le raccourci du bureau est resté." }
+          if ((Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run").SpaceNotch) { throw "Le lancement au démarrage est resté." }
+          Write-Host "Installation et désinstallation propres."
+
       - name: Conserver le journal de démarrage
         if: always()
         uses: actions/upload-artifact@v4
@@ -148,6 +205,13 @@ jobs:
         with:
           name: SpaceNotch-${{ steps.version.outputs.value }}-exe
           path: ${{ runner.temp }}/dist/SpaceNotch.exe
+          if-no-files-found: error
+
+      - name: Conserver l'installeur
+        uses: actions/upload-artifact@v4
+        with:
+          name: SpaceNotch-${{ steps.version.outputs.value }}-setup
+          path: ${{ runner.temp }}/dist/SpaceNotch-Setup.exe
           if-no-files-found: error
 
       - name: Conserver le dossier zippé
@@ -168,7 +232,8 @@ jobs:
           name: SpaceNotch v${{ steps.version.outputs.value }}
           generate_release_notes: true
           body: |
-            **Télécharger** : `SpaceNotch.exe` (un seul fichier, rien à installer) ou
+            **Télécharger** : `SpaceNotch-Setup.exe` (l'installeur — la notch s'ouvre sur
+            ses choix), `SpaceNotch.exe` (portable, rien à installer) ou
             `SpaceNotch-win-x64.zip` (dossier complet).
 
             Windows 11 x64. L'application n'est pas signée : au premier lancement,
@@ -177,5 +242,6 @@ jobs:
 
             Démonstration : `SpaceNotch.exe --demo`.
           files: |
+            ${{ runner.temp }}/dist/SpaceNotch-Setup.exe
             ${{ runner.temp }}/dist/SpaceNotch.exe
             ${{ runner.temp }}/dist/SpaceNotch-win-x64.zip

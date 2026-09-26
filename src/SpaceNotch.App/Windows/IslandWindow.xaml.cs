@@ -245,6 +245,7 @@ public sealed partial class IslandWindow : Window
         _hWnd = WindowNative.GetWindowHandle(this);
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hWnd);
         _appWindow = AppWindow.GetFromWindowId(windowId);
+        AppIcon.ApplyTo(_appWindow);
 
         if (_appWindow.Presenter is OverlappedPresenter presenter)
         {

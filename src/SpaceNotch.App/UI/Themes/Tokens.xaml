@@ -113,6 +113,17 @@
                  Inspora. Elle est teintée par l'état lorsqu'il en porte un. -->
             <Color x:Key="NfHypnoticWarmColor">#FFB46A</Color>
 
+            <!-- Installeur : la notch qui s'ouvre sur ses choix. Le cyan est celui
+                 du logo — la grille au repos. Voir ADR-022. -->
+            <SolidColorBrush x:Key="NfSetupChoiceBrush" Color="#FFFFFF" Opacity="0.06" />
+            <SolidColorBrush x:Key="NfSetupChoiceStrokeBrush" Color="#FFFFFF" Opacity="0.10" />
+            <SolidColorBrush x:Key="NfSetupChosenStrokeBrush" Color="#7FE6FF" />
+            <SolidColorBrush x:Key="NfSetupProgressBrush" Color="#7FE6FF" />
+            <SolidColorBrush x:Key="NfSetupTrackBrush" Color="#FFFFFF" Opacity="0.10" />
+            <SolidColorBrush x:Key="NfSetupPrimaryBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="NfSetupPrimaryTextBrush" Color="#000000" />
+            <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="#FFFFFF" Opacity="0.12" />
+
         </ResourceDictionary>
 
         <!-- ============================================================
@@ -160,6 +171,15 @@
             <SolidColorBrush x:Key="NfSurfaceElevatedBrush" Color="#101014" Opacity="0.05" />
 
             <Color x:Key="NfHypnoticWarmColor">#D9822B</Color>
+
+            <SolidColorBrush x:Key="NfSetupChoiceBrush" Color="#101014" Opacity="0.05" />
+            <SolidColorBrush x:Key="NfSetupChoiceStrokeBrush" Color="#101014" Opacity="0.12" />
+            <SolidColorBrush x:Key="NfSetupChosenStrokeBrush" Color="#0E8FB0" />
+            <SolidColorBrush x:Key="NfSetupProgressBrush" Color="#0E8FB0" />
+            <SolidColorBrush x:Key="NfSetupTrackBrush" Color="#101014" Opacity="0.12" />
+            <SolidColorBrush x:Key="NfSetupPrimaryBrush" Color="#101014" />
+            <SolidColorBrush x:Key="NfSetupPrimaryTextBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="#101014" Opacity="0.12" />
 
         </ResourceDictionary>
 
@@ -210,6 +230,15 @@
             <SolidColorBrush x:Key="NfSurfaceElevatedBrush" Color="{ThemeResource SystemColorWindowColor}" />
 
             <Color x:Key="NfHypnoticWarmColor">#FFFFFF</Color>
+
+            <SolidColorBrush x:Key="NfSetupChoiceBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="NfSetupChoiceStrokeBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="NfSetupChosenStrokeBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfSetupProgressBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfSetupTrackBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="NfSetupPrimaryBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="NfSetupPrimaryTextBrush" Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
 
         </ResourceDictionary>
 

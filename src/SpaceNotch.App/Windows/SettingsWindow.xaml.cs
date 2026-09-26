@@ -101,6 +101,7 @@ public sealed partial class SettingsWindow : Window
     {
         IntPtr handle = WindowNative.GetWindowHandle(this);
         AppWindow appWindow = AppWindow.GetFromWindowId(Microsoft.UI.Win32Interop.GetWindowIdFromWindow(handle));
+        AppIcon.ApplyTo(appWindow);
 
         if (appWindow.Presenter is OverlappedPresenter presenter)
         {

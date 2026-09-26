@@ -1,10 +1,12 @@
 <div align="center">
 
+<img src="docs/assets/brand/spacenotch-logo-128.png" alt="SpaceNotch logo — a glowing 3×3 pixel grid" width="72">
+
 <img src="docs/assets/readme/hero.svg" alt="SpaceNotch — a notch that grows from the top of your screen, with a glowing pixel grid" width="100%">
 
 <br>
 
-<a href="https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch.exe"><img src="https://img.shields.io/badge/Download_for_Windows-000000?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows" height="44"></a>
+<a href="https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe"><img src="https://img.shields.io/badge/Download_for_Windows-000000?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows" height="44"></a>
 
 <br><br>
 
@@ -100,14 +102,17 @@ flows back home.
 
 ## Get started
 
-1. **[Download SpaceNotch.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch.exe)** — one file, nothing to install.
+1. **[Download SpaceNotch-Setup.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe)**.
 2. Run it. Windows may say it *protected your PC*: choose **More info › Run anyway** (the app isn't code-signed yet).
-3. Look up. Hover the notch to peek, click to open, right-click for the launcher.
+3. The installer is the notch itself: it drops from the top of your screen and opens on a few
+   choices — just you or everyone, start with Windows, a desktop shortcut. Press **Install**, and it
+   folds back into your notch.
+4. Look up. Hover the notch to peek, click to open, right-click for the launcher.
    Settings live in the tray icon.
 
 Want the full tour? Run `SpaceNotch.exe --demo`.
 
-<sub>Windows 11 (23H2 or later), x64. Prefer a folder? Grab <code>SpaceNotch-win-x64.zip</code> from the <a href="https://github.com/nicoo-o/SpaceNotch/releases/latest">latest release</a>.</sub>
+<sub>Windows 11 (23H2 or later), x64. Rather not install? <a href="https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch.exe"><code>SpaceNotch.exe</code></a> runs as is, and <code>SpaceNotch-win-x64.zip</code> is in the <a href="https://github.com/nicoo-o/SpaceNotch/releases/latest">latest release</a>. To uninstall: Settings › Apps › SpaceNotch.</sub>
 
 <br>
 
