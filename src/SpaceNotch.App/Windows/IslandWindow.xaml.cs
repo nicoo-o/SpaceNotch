@@ -933,7 +933,7 @@ public sealed partial class IslandWindow : Window
 
                 // Une seule ligne de temps : la forme grandit, puis le contenu
                 // arrive, flou, et se précise.
-                ContentTransition.Play(scene.Root, UseSpringAnimations(), TimeSpan.FromMilliseconds(90));
+                ContentTransition.Play(scene.Root, UseSpringAnimations(), TimeSpan.FromMilliseconds(80));
                 PlayVeil(TimeSpan.FromMilliseconds(40));
 
                 if (morph is not null)
@@ -1175,7 +1175,7 @@ public sealed partial class IslandWindow : Window
         // valeur la faisait clignoter sans arrêt.
         if (visible && !metric)
         {
-            ContentTransition.Play(target, UseSpringAnimations());
+            ContentTransition.Play(target, UseSpringAnimations(), TimeSpan.FromMilliseconds(60), ContentTransition.SwapDuration);
 
             // Un titre qui change se lit flou, puis net ; une mesure qui défile
             // — une taille reçue, un pourcentage — change sans voile.

@@ -49,6 +49,7 @@
             <!-- Contrôles au trait, jamais remplis : sur une carte noire, une
                  pastille blanche attire plus que le chiffre qu'elle commande. -->
             <Button
+                Style="{StaticResource NfGhostButtonStyle}"
                 x:Name="ToggleButton"
                 Width="30"
                 Height="30"
@@ -67,6 +68,7 @@
             </Button>
 
             <Button
+                Style="{StaticResource NfGhostButtonStyle}"
                 x:Name="ResetButton"
                 Width="30"
                 Height="30"

@@ -221,13 +221,13 @@ public sealed class AppSettings
     /// vive. C'est le premier des deux nombres qui décrivent vraiment un
     /// mouvement ; l'ancienne raideur ne le faisait qu'indirectement.
     /// </summary>
-    public double SpringResponseSeconds { get; set; } = 0.46;
+    public double SpringResponseSeconds { get; set; } = 0.42;
 
     /// <summary>
     /// Rebond, c'est-à-dire le rapport d'amortissement : 1,0 ne dépasse jamais la
     /// cible, 0,55 la dépasse franchement.
     /// </summary>
-    public double SpringBounce { get; set; } = 0.58;
+    public double SpringBounce { get; set; } = 0.78;
 
     /// <summary>
     /// Préréglage de mouvement choisi dans les réglages. <see cref="MotionStyle.Custom"/>
@@ -689,6 +689,17 @@ public sealed class AppSettings
         // siens : une configuration réglée à la main avant l'existence des
         // préréglages — ou éditée depuis — se déclare personnalisée plutôt que
         // d'afficher « Naturel » sur un mouvement qui ne l'est pas.
+        // Vague 2 : « Naturel » est passé de 0,46 / 0,58 à 0,42 / 0,78. Une
+        // configuration restée sur l'ancien Naturel suit le nouveau, au lieu de
+        // se déclarer personnalisée.
+        if (MotionStyle == MotionStyle.Natural
+            && Math.Abs(SpringResponseSeconds - 0.46) <= 0.005
+            && Math.Abs(SpringBounce - 0.58) <= 0.005)
+        {
+            SpringResponseSeconds = MotionPresets.NaturalOpen.ResponseSeconds;
+            SpringBounce = MotionPresets.NaturalOpen.DampingRatio;
+        }
+
         if (MotionStyle != MotionStyle.Custom)
         {
             SpringParameters preset = MotionPresets.Spring(MotionStyle);

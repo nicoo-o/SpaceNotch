@@ -3,7 +3,6 @@ using System.Numerics;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Hosting;
-using SpaceNotch.Core.Motion;
 
 namespace SpaceNotch_App.Animations;
 
@@ -26,11 +25,17 @@ namespace SpaceNotch_App.Animations;
 /// </summary>
 internal static class ContentTransition
 {
-    /// <summary>Opacité de départ : le texte ne part pas du vide, il se précise.</summary>
-    private const float StartOpacity = 0.15f;
+    /// <summary>Opacité de départ : le voile (flou 6 → 0) porte la matière, le fondu part de rien.</summary>
+    private const float StartOpacity = 0f;
 
     /// <summary>Montée verticale, en DIPs : juste assez pour qu'on lise un arrivant.</summary>
-    private const float Rise = 4f;
+    private const float Rise = 6f;
+
+    /// <summary>Durée d'arrivée validée pour la vague 2 : 220 ms, décélération.</summary>
+    public static readonly TimeSpan EnterDuration = TimeSpan.FromMilliseconds(220);
+
+    /// <summary>Changement d'activité : le nouveau contenu arrive en 200 ms.</summary>
+    public static readonly TimeSpan SwapDuration = TimeSpan.FromMilliseconds(200);
 
     /// <summary>
     /// Joue la transition d'arrivée sur un élément dont le contenu vient de
@@ -43,7 +48,7 @@ internal static class ContentTransition
     /// pris l'essentiel de sa place : forme et contenu suivent une seule ligne de
     /// temps, au lieu d'arriver ensemble et de se bousculer.
     /// </param>
-    public static void Play(UIElement element, bool animate, TimeSpan delay = default)
+    public static void Play(UIElement element, bool animate, TimeSpan delay = default, TimeSpan? duration = null)
     {
         ArgumentNullException.ThrowIfNull(element);
 
@@ -59,23 +64,24 @@ internal static class ContentTransition
 
             ElementCompositionPreview.SetIsTranslationEnabled(element, true);
 
+            // Décélération (0, 0, 0, 1) : l'arrivant freine jusqu'à sa place.
             CompositionEasingFunction easeOut = compositor.CreateCubicBezierEasingFunction(
-                new Vector2(0.2f, 0f),
+                new Vector2(0f, 0f),
                 new Vector2(0f, 1f));
 
-            TimeSpan duration = TimeSpan.FromMilliseconds(MotionPresets.DurationMs(MotionKind.Standard));
+            TimeSpan length = duration ?? EnterDuration;
 
             ScalarKeyFrameAnimation fade = compositor.CreateScalarKeyFrameAnimation();
             fade.InsertKeyFrame(0f, StartOpacity);
             fade.InsertKeyFrame(1f, 1f, easeOut);
-            fade.Duration = duration;
+            fade.Duration = length;
             fade.DelayTime = delay;
             fade.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
 
             Vector3KeyFrameAnimation slide = compositor.CreateVector3KeyFrameAnimation();
             slide.InsertKeyFrame(0f, new Vector3(0, Rise, 0));
             slide.InsertKeyFrame(1f, Vector3.Zero, easeOut);
-            slide.Duration = duration;
+            slide.Duration = length;
             slide.DelayTime = delay;
             slide.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
 

@@ -268,3 +268,28 @@ public sealed class QuickMenuLayoutTests
         Assert.True(SpaceNotch.Core.Scenes.IslandSceneCatalog.IsKnown(SpaceNotch.Core.Scenes.IslandSceneCatalog.QuickMenu));
     }
 }
+
+public sealed class WaveTwoMotionTests
+{
+    [Fact]
+    public void Natural_opens_at_the_approved_spring_and_closes_faster_without_bounce()
+    {
+        var open = SpaceNotch.Core.Motion.MotionPresets.Spring(SpaceNotch.Core.Motion.MotionStyle.Natural);
+        var close = SpaceNotch.Core.Motion.MotionPresets.CloseOf(open);
+
+        Assert.Equal(0.42, open.ResponseSeconds, 3);
+        Assert.Equal(0.78, open.DampingRatio, 3);
+        Assert.Equal(0.36, close.ResponseSeconds, 3);
+        Assert.Equal(0.9, close.DampingRatio, 3);
+    }
+
+    [Fact]
+    public void Settings_on_the_old_natural_spring_follow_the_new_one()
+    {
+        var settings = new SpaceNotch.Infrastructure.Config.AppSettings { SpringResponseSeconds = 0.46, SpringBounce = 0.58 };
+        settings.Sanitize();
+
+        Assert.Equal(SpaceNotch.Core.Motion.MotionStyle.Natural, settings.MotionStyle);
+        Assert.Equal(0.42, settings.SpringResponseSeconds, 3);
+    }
+}
