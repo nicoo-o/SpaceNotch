@@ -264,6 +264,16 @@ public class HypnoticFieldTests
         }
     }
 
+    [Fact]
+    public void ReducedMotion_ReadShowsMoreThanACursor()
+    {
+        // La première image de la lecture n'est qu'un pixel : l'installeur, sans
+        // animation, affichait un point dans le coin au lieu de la grille.
+        HypnoticFrame still = HypnoticField.StaticFrame(HypnoticPreset.Read);
+
+        Assert.True(still.Cells.Count(cell => cell > 0.4) >= 2);
+    }
+
     [Theory]
     [InlineData(ActivityMotionState.Idle, HypnoticPreset.Search, HypnoticPreset.None)]
     [InlineData(ActivityMotionState.Complete, HypnoticPreset.Search, HypnoticPreset.None)]

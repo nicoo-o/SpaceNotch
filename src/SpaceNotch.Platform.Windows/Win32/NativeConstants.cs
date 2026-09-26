@@ -26,6 +26,20 @@ public static class NativeConstants
     public const int GWL_EXSTYLE = -20;
     public const int GWL_STYLE = -16;
 
+    public const int WS_POPUP = unchecked((int)0x80000000);
+    public const int WS_CAPTION = 0x00C00000;
+    public const int WS_BORDER = 0x00800000;
+    public const int WS_DLGFRAME = 0x00400000;
+    public const int WS_THICKFRAME = 0x00040000;
+    public const int WS_SYSMENU = 0x00080000;
+    public const int WS_MINIMIZEBOX = 0x00020000;
+    public const int WS_MAXIMIZEBOX = 0x00010000;
+
+    public const int WS_EX_DLGMODALFRAME = 0x00000001;
+    public const int WS_EX_WINDOWEDGE = 0x00000100;
+    public const int WS_EX_CLIENTEDGE = 0x00000200;
+    public const int WS_EX_STATICEDGE = 0x00020000;
+
     public const int WS_EX_LAYERED = 0x00080000;
     public const int WS_EX_TRANSPARENT = 0x00000020;
     public const int WS_EX_TOOLWINDOW = 0x00000080;

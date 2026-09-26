@@ -200,6 +200,8 @@ public static class WindowChrome
     /// </summary>
     private static void DisableDwmRounding(IntPtr hWnd)
     {
+        StripFrame(hWnd);
+
         int cornerPreference = NativeConstants.DWMWCP_DONOTROUND;
         NativeMethods.DwmSetWindowAttribute(
             hWnd,
@@ -218,6 +220,64 @@ public static class WindowChrome
             NativeConstants.DWMWA_BORDER_COLOR,
             ref noBorder,
             sizeof(int));
+    }
+
+    /// <summary>
+    /// Retire tout cadre à la fenêtre : une fenêtre surgissante nue, sans
+    /// bordure, sans cadre de dialogue ni bord redimensionnable.
+    ///
+    /// <para>
+    /// <c>SetBorderAndTitleBar(false, false)</c> ne retire pas tout : il reste à
+    /// la fenêtre WinUI des bits de cadre, et Windows dessine autour d'elle un
+    /// liseré blanc de la taille de la fenêtre — de la notch, de son halo et de
+    /// l'installeur. La couleur de bordure DWM « aucune » ne l'efface pas : ce
+    /// n'est pas la bordure DWM (captures de la CI, v1.3.0).
+    /// </para>
+    /// </summary>
+    public static void StripFrame(IntPtr hWnd)
+    {
+        if (hWnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        const int frame = NativeConstants.WS_CAPTION
+            | NativeConstants.WS_BORDER
+            | NativeConstants.WS_DLGFRAME
+            | NativeConstants.WS_THICKFRAME
+            | NativeConstants.WS_SYSMENU
+            | NativeConstants.WS_MINIMIZEBOX
+            | NativeConstants.WS_MAXIMIZEBOX;
+
+        const int edges = NativeConstants.WS_EX_DLGMODALFRAME
+            | NativeConstants.WS_EX_WINDOWEDGE
+            | NativeConstants.WS_EX_CLIENTEDGE
+            | NativeConstants.WS_EX_STATICEDGE;
+
+        // Le bit de WS_POPUP est le bit de signe : pas de ToInt32, qui lèverait.
+        int style = unchecked((int)NativeMethods.GetWindowLongPtr(hWnd, NativeConstants.GWL_STYLE).ToInt64());
+        int exStyle = unchecked((int)NativeMethods.GetWindowLongPtr(hWnd, NativeConstants.GWL_EXSTYLE).ToInt64());
+
+        int newStyle = (style & ~frame) | NativeConstants.WS_POPUP;
+        int newExStyle = exStyle & ~edges;
+
+        if (newStyle == style && newExStyle == exStyle)
+        {
+            return;
+        }
+
+        NativeMethods.SetWindowLongPtr(hWnd, NativeConstants.GWL_STYLE, new IntPtr(newStyle));
+        NativeMethods.SetWindowLongPtr(hWnd, NativeConstants.GWL_EXSTYLE, new IntPtr(newExStyle));
+
+        NativeMethods.SetWindowPos(
+            hWnd,
+            IntPtr.Zero,
+            0, 0, 0, 0,
+            NativeConstants.SWP_NOMOVE
+            | NativeConstants.SWP_NOSIZE
+            | NativeConstants.SWP_NOZORDER
+            | NativeConstants.SWP_NOACTIVATE
+            | NativeConstants.SWP_FRAMECHANGED);
     }
 
     /// <summary>

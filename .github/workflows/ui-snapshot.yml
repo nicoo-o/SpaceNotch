@@ -1,0 +1,97 @@
+name: Captures d'interface
+
+# Captures d'écran de l'installeur et de la notch sur un vrai Windows : ce que
+# voit l'utilisateur, image par image. « Avant » : la dernière version publiée.
+# « Après » : la branche, installée par-dessus (écran de mise à jour).
+on:
+  workflow_dispatch:
+  push:
+    branches: ["claude/**"]
+    paths:
+      - "src/SpaceNotch.App/**"
+      - "src/SpaceNotch.Platform.Windows/Windowing/**"
+      - "src/SpaceNotch.Core/Motion/**"
+      - "tools/ui-snapshot/**"
+      - ".github/workflows/ui-snapshot.yml"
+
+permissions:
+  contents: read
+
+env:
+  PROJECT: src/SpaceNotch.App/SpaceNotch.App.csproj
+
+jobs:
+  snapshot:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Dernière version publiée
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo ${{ github.repository }} --pattern "SpaceNotch-Setup.exe" --dir "${{ runner.temp }}/released"
+          Get-ChildItem "${{ runner.temp }}/released"
+
+      - name: Construire la branche
+        run: >
+          dotnet publish ${{ env.PROJECT }}
+          -c Release -p:Platform=x64 -r win-x64
+          --self-contained true
+          -p:WindowsPackageType=None
+          -p:WindowsAppSDKSelfContained=true
+          -p:EnableMsixTooling=true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:IncludeAllContentForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:Version=99.0.0
+          --output "${{ runner.temp }}/built"
+
+      - name: Captures
+        shell: pwsh
+        run: |
+          $shots = "${{ runner.temp }}/shots"
+          $capture = "./tools/ui-snapshot/capture.ps1"
+          $released = "${{ runner.temp }}/released/SpaceNotch-Setup.exe"
+          $built = Get-ChildItem "${{ runner.temp }}/built" -Filter "*.exe" | Select-Object -First 1
+          Copy-Item $built.FullName "${{ runner.temp }}/built/SpaceNotch-Setup.exe"
+          $builtSetup = "${{ runner.temp }}/built/SpaceNotch-Setup.exe"
+
+          function Shoot($exe, $arguments, $name, $wait = 5000, $count = 3) {
+            $p = if ($arguments) { Start-Process -FilePath $exe -ArgumentList $arguments -PassThru } else { Start-Process -FilePath $exe -PassThru }
+            Start-Sleep -Milliseconds $wait
+            & $capture -OutDir $shots -Name $name -Count $count
+            if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+            Get-Process SpaceNotch* -ErrorAction SilentlyContinue | Stop-Process -Force
+            Start-Sleep -Seconds 1
+          }
+
+          # Avant : installeur publié, installation neuve.
+          Shoot $released $null "avant-installation"
+
+          # Après : installeur de la branche, installation neuve.
+          Shoot $builtSetup $null "apres-installation"
+
+          # Installer la version publiée, puis ouvrir la branche : écran de mise à jour.
+          Start-Process -FilePath $released -ArgumentList "--quiet","--startup=off","--desktop=off" -Wait
+          Get-Process SpaceNotch* -ErrorAction SilentlyContinue | Stop-Process -Force
+          Shoot $released $null "avant-reinstallation"
+          Shoot $builtSetup $null "apres-mise-a-jour"
+
+          # La notch elle-même.
+          Shoot (Join-Path $env:LOCALAPPDATA "Programs\SpaceNotch\SpaceNotch.exe") @("--demo") "avant-notch" 8000 3
+          Copy-Item $built.FullName "${{ runner.temp }}/built/SpaceNotch.exe" -Force
+          $log = Join-Path $env:LOCALAPPDATA "SpaceNotch\logs\spacenotch.log"
+          Remove-Item $log -ErrorAction SilentlyContinue
+          Shoot "${{ runner.temp }}/built/SpaceNotch.exe" @("--demo") "apres-notch" 8000 4
+          if (Test-Path $log) { Copy-Item $log (Join-Path $shots "apres-notch.log"); Get-Content $log | Select-Object -Last 60 }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: captures
+          path: ${{ runner.temp }}/shots
