@@ -90,6 +90,12 @@ public partial class App : Application
 
             MiniLogger.Log("App.OnLaunched completed and window activated");
 
+            // Vérifié par le workflow Release après une installation : l'identité
+            // de paquet doit être là, sans quoi les notifications restent muettes.
+            MiniLogger.Log(SpaceNotch.Platform.Windows.Setup.IdentityPackage.HasIdentity
+                ? "Identité de paquet : présente"
+                : "Identité de paquet : absente");
+
             // Les options sont traitées après l'affichage : une commodité de
             // lancement ne doit jamais retarder l'Island, qui est la raison d'être
             // de l'application.

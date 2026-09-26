@@ -160,6 +160,16 @@ public static class WindowsSetup
                 await Task.Run(() => InstallFiles(layout, options, source, version, progress, log)).ConfigureAwait(false);
             }
 
+            // Identité de paquet (notifications), pour l'utilisateur lui-même :
+            // enregistrée depuis son processus, jamais depuis le processus élevé,
+            // qui pourrait appartenir à un autre compte. Un échec n'empêche pas
+            // l'installation : SpaceNotch tourne, sans les notifications Windows.
+            progress?.Report(new SetupProgress(InstallStep.Registering));
+            await IdentityPackage.RegisterAsync(
+                layout.Directory,
+                Path.Combine(layout.Directory, IdentityPackage.FileName),
+                log).ConfigureAwait(false);
+
             // Préférence de l'utilisateur, dans sa propre ruche, jamais élevée.
             StartupRegistration.SetEnabled(options.StartWithWindows, StartupRegistration.BuildCommand(layout.Executable), out string? error);
 
@@ -202,6 +212,14 @@ public static class WindowsSetup
 
         progress?.Report(new SetupProgress(InstallStep.Copying));
         CopyExecutable(source, layout.Executable, within => progress?.Report(new SetupProgress(InstallStep.Copying, within)));
+
+        // Le paquet d'identité voyage avec l'exécutable : on le garde dans le
+        // dossier d'installation, où l'enregistrement — et un réenregistrement
+        // plus tard — le trouvent.
+        if (IdentityPackage.BundledPackage is { } identity)
+        {
+            File.Copy(identity, Path.Combine(layout.Directory, IdentityPackage.FileName), overwrite: true);
+        }
 
         progress?.Report(new SetupProgress(InstallStep.Shortcuts));
         ShellLink.Create(layout.StartMenuShortcut, layout.Executable, SetupIdentity.ShortcutDescription);
@@ -252,6 +270,7 @@ public static class WindowsSetup
         {
             // Préférence de l'utilisateur : retirée ici, dans sa ruche.
             StartupRegistration.SetEnabled(false, StartupRegistration.BuildCommand(product.Executable), out _);
+
 
             if (product.Options.Scope == InstallScope.AllUsers && !IsElevated)
             {
@@ -316,7 +335,7 @@ public static class WindowsSetup
             leftovers.Remove(layout.Directory);
         }
 
-        var cleanup = new ProcessStartInfo("cmd.exe", SelfDelete.Arguments(leftovers))
+        var cleanup = new ProcessStartInfo("cmd.exe", SelfDelete.Arguments(leftovers, [IdentityPackage.RemoveCommand]))
         {
             CreateNoWindow = true,
             UseShellExecute = false,

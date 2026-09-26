@@ -14,9 +14,18 @@ public static class SelfDelete
     /// Arguments de <c>cmd.exe</c>. Un chemin contenant un guillemet ou vide est
     /// écarté : il casserait la commande, et n'est jamais un de nos dossiers.
     /// </summary>
-    public static string Arguments(IEnumerable<string> directories)
+    public static string Arguments(IEnumerable<string> directories) => Arguments(directories, []);
+
+    /// <summary>
+    /// Arguments de <c>cmd.exe</c>, avec des commandes jouées une fois le
+    /// processus sorti, avant l'effacement : le retrait du paquet d'identité,
+    /// que le désinstalleur ne peut pas faire lui-même — il porte cette identité,
+    /// et Windows fermerait le processus qui retire son propre paquet.
+    /// </summary>
+    public static string Arguments(IEnumerable<string> directories, IEnumerable<string> afterExit)
     {
         ArgumentNullException.ThrowIfNull(directories);
+        ArgumentNullException.ThrowIfNull(afterExit);
 
         List<string> removals = directories
             .Where(d => !string.IsNullOrWhiteSpace(d) && !d.Contains('"', StringComparison.Ordinal) && IsRooted(d))
@@ -25,6 +34,7 @@ public static class SelfDelete
 
         const string Wait = "ping -n 3 127.0.0.1 > nul";
         var commands = new List<string> { Wait };
+        commands.AddRange(afterExit.Where(c => !string.IsNullOrWhiteSpace(c)));
         commands.AddRange(removals);
 
         if (removals.Count > 0)

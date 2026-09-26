@@ -2,6 +2,14 @@
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
   <assemblyIdentity version="1.0.0.0" name="SpaceNotch.App.app"/>
 
+  <!-- Identité de paquet (ADR-023) : relie SpaceNotch.exe au paquet non signé
+       « SpaceNotch.Identity » qu'enregistre l'installeur. Sans paquet enregistré
+       — l'exécutable portable —, cet élément est simplement ignoré. -->
+  <msix xmlns="urn:schemas-microsoft-com:msix.v1"
+        publisher="CN=SpaceNotch, OID.2.25.311729368913984317654407730594956997722=1"
+        packageName="SpaceNotch.Identity"
+        applicationId="SpaceNotch" />
+
   <compatibility xmlns="urn:schemas-microsoft-com:compatibility.v1">
     <application>
       <!-- The ID below informs the system that this application is compatible with OS features first introduced in Windows 10. 

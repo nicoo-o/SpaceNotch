@@ -111,6 +111,7 @@ public sealed partial class IslandWindow : Window
     private readonly LauncherFeature _launcherFeature;
     private readonly QuickMenuFeature _quickMenuFeature;
     private readonly ClipboardFeature _clipboardFeature;
+    private readonly NotificationFeature _notificationFeature;
     private readonly MediaFeature _mediaFeature;
     private readonly IslandFeatureRegistry _featureRegistry;
     private readonly PluginLoader _pluginLoader;
@@ -286,6 +287,14 @@ public sealed partial class IslandWindow : Window
 
         _quickMenuFeature = new QuickMenuFeature(_activityManager, _eventBus);
 
+        _notificationListener.Log = message => MiniLogger.Log(message);
+        _notificationFeature = new NotificationFeature(
+            _activityManager, _eventBus, _notificationListener,
+            _settings.IsFeatureEnabled(NotificationFeature.FeatureKey))
+        {
+            IgnoredApps = _settings.IgnoredNotificationApps
+        };
+
         _clipboardFeature = new ClipboardFeature(
             _activityManager, _eventBus, _clipboardMonitor, _hWnd,
             _settings.IsFeatureEnabled(ClipboardFeature.FeatureKey))
@@ -304,9 +313,7 @@ public sealed partial class IslandWindow : Window
             new SystemHudFeature(
                 _activityManager, _eventBus, _volumeListener,
                 _settings.IsFeatureEnabled(SystemHudFeature.FeatureKey)),
-            new NotificationFeature(
-                _activityManager, _eventBus, _notificationListener,
-                _settings.IsFeatureEnabled(NotificationFeature.FeatureKey)),
+            _notificationFeature,
             new BluetoothFeature(
                 _activityManager, _eventBus, _bluetoothWatcher,
                 _settings.IsFeatureEnabled(BluetoothFeature.FeatureKey)),
@@ -2765,6 +2772,7 @@ public sealed partial class IslandWindow : Window
 
         _settings = settings;
         _clipboardFeature.IgnoreSecrets = settings.ClipboardIgnoreSecrets;
+        _notificationFeature.IgnoredApps = settings.IgnoredNotificationApps;
 
         // Le détachement retiré, ou l'écran cible changé : la notch revient au
         // bord de l'écran qui est désormais le sien.
@@ -3010,6 +3018,7 @@ public sealed partial class IslandWindow : Window
             _controller.Dispose();
             _diagnostics.Dispose();
             _screenWatcher.Dispose();
+            _notificationListener.Dispose();
             SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Unregister(_hWnd);
             _messageMonitor?.Dispose();
         }

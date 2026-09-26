@@ -33,6 +33,18 @@
   </ItemGroup>
 
   <!--
+    Paquet d'identité (ADR-023), produit par le workflow Release avec MakeAppx dans
+    artifacts/identity/. Livré à côté de l'exécutable (et dans l'exécutable unique) :
+    l'installeur l'enregistre. Absent d'une construction locale : sans effet.
+  -->
+  <ItemGroup Condition="Exists('$(MSBuildThisFileDirectory)..\..\artifacts\identity\SpaceNotch.Identity.msix')">
+    <Content Include="$(MSBuildThisFileDirectory)..\..\artifacts\identity\SpaceNotch.Identity.msix"
+             Link="SpaceNotch.Identity.msix"
+             CopyToOutputDirectory="PreserveNewest"
+             CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!--
     Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
     Tools extension to be activated for this project even if the Windows App SDK Nuget
     package has not yet been restored.

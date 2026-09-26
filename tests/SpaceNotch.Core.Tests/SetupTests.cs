@@ -310,6 +310,18 @@ public class SelfDeleteTests
         Assert.Contains("rd /s /q \"C:\\Program Files\\SpaceNotch\"", arguments, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Commands_after_exit_run_before_the_folder_is_removed()
+    {
+        string arguments = SelfDelete.Arguments([@"C:\Users\ana\AppData\Local\Programs\SpaceNotch"], ["retirer-identite"]);
+
+        int wait = arguments.IndexOf("ping", StringComparison.Ordinal);
+        int identity = arguments.IndexOf("retirer-identite", StringComparison.Ordinal);
+        int removal = arguments.IndexOf("rd /s /q", StringComparison.Ordinal);
+
+        Assert.True(wait < identity && identity < removal);
+    }
+
     [Theory]
     [InlineData(@"C:\")]
     [InlineData(@"C:\Windows")]

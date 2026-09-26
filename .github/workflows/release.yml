@@ -81,6 +81,27 @@ jobs:
       #   - EnableCompressionInSingleFile : le contenu est compressé dans l'exécutable,
       #     qui pèse bien moins lourd à télécharger. Il est de toute façon extrait au
       #     premier lancement : la décompression ne coûte qu'une fois.
+      # Paquet d'identité (ADR-023) : le manifeste de packaging/identity, à la version
+      # publiée, empaqueté par MakeAppx sans signature (l'éditeur porte l'OID des
+      # paquets non signés). Le projet l'embarque s'il existe dans artifacts/identity.
+      - name: Paquet d'identité
+        shell: pwsh
+        run: |
+          $makeappx = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64\makeappx.exe" |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $makeappx) { throw "MakeAppx introuvable (Windows SDK)." }
+
+          $work = "${{ runner.temp }}/identity"
+          New-Item -ItemType Directory -Force -Path $work | Out-Null
+          Copy-Item packaging/identity/* $work -Recurse -Force
+          $manifest = Join-Path $work "AppxManifest.xml"
+          (Get-Content $manifest -Raw).Replace("__VERSION__", "${{ steps.version.outputs.value }}.0") | Set-Content $manifest -Encoding utf8
+
+          New-Item -ItemType Directory -Force -Path artifacts/identity | Out-Null
+          & $makeappx.FullName pack /d $work /p artifacts/identity/SpaceNotch.Identity.msix /nv /o
+          if ($LASTEXITCODE -ne 0) { throw "MakeAppx a échoué ($LASTEXITCODE)." }
+          Get-Item artifacts/identity/SpaceNotch.Identity.msix | ForEach-Object { "{0} {1:N0} octets" -f $_.Name, $_.Length }
+
       - name: Publier l'exécutable unique
         run: >
           dotnet publish ${{ env.PROJECT }}
@@ -202,6 +223,11 @@ jobs:
           if (-not (Test-Path $menu)) { throw "Raccourci du menu Démarrer absent." }
           if (-not (Test-Path $desktop)) { throw "Raccourci du bureau absent." }
 
+          # Identité de paquet : enregistrée par l'installeur, liée au dossier.
+          $identity = Get-AppxPackage -Name "SpaceNotch.Identity"
+          if (-not $identity) { throw "Paquet d'identité absent après l'installation." }
+          Write-Host "Identité : $($identity.PackageFullName) — emplacement externe : $($identity.InstallLocation)"
+
           $entry = Get-ItemProperty $key
           Write-Host "Paramètres › Applications : $($entry.DisplayName) $($entry.DisplayVersion) — $($entry.UninstallString)"
           if ($entry.DisplayVersion -ne "${{ steps.version.outputs.value }}") { throw "Version inscrite inattendue : $($entry.DisplayVersion)." }
@@ -209,13 +235,25 @@ jobs:
           $run = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run").SpaceNotch
           if ($run -ne "`"$exe`" --startup") { throw "Lancement au démarrage inattendu : $run." }
 
+          # La notch installée tourne avec son identité : elle doit s'ouvrir comme
+          # la portable, et le dire au journal. Bloquant : une identité qui casse
+          # le chargement XAML ne doit jamais être publiée.
+          Get-Process SpaceNotch -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep -Seconds 1
+          $log = Join-Path $env:LOCALAPPDATA "SpaceNotch\logs\spacenotch.log"
+          Remove-Item $log -ErrorAction SilentlyContinue
           $app = Start-Process -FilePath $exe -ArgumentList "--demo" -PassThru
           Start-Sleep -Seconds 12
-          if ($app.HasExited) {
-            Write-Host "::warning::La notch installée s'est arrêtée au démarrage (code $($app.ExitCode))."
-          } else {
-            Write-Host "La notch installée tourne toujours après 12 s."
+          $journal = if (Test-Path $log) { Get-Content $log -Raw } else { "" }
+          if ($app.HasExited -or $journal -match "\[FATAL\]" -or $journal -notmatch "window activated") {
+            Write-Host $journal
+            throw "La notch installée ne s'est pas ouverte (identité de paquet)."
           }
+          if ($journal -notmatch "Identité de paquet : présente") {
+            Write-Host $journal
+            throw "La notch installée tourne sans identité de paquet."
+          }
+          Write-Host "La notch installée tourne avec son identité après 12 s."
 
           # La désinstallation ferme elle-même la notch en cours.
           $uninstall = Start-Process -FilePath $exe -ArgumentList "--uninstall","--quiet" -PassThru -Wait
@@ -225,6 +263,7 @@ jobs:
           for ($i = 0; $i -lt 20 -and (Test-Path $dir); $i++) { Start-Sleep -Seconds 1 }
           if (Test-Path $dir) { throw "Le dossier d'installation est resté." }
           if (Test-Path $key) { throw "L'entrée de Paramètres › Applications est restée." }
+          if (Get-AppxPackage -Name "SpaceNotch.Identity") { throw "Le paquet d'identité est resté." }
           if (Test-Path $menu) { throw "Le raccourci du menu Démarrer est resté." }
           if (Test-Path $desktop) { throw "Le raccourci du bureau est resté." }
           if ((Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run").SpaceNotch) { throw "Le lancement au démarrage est resté." }
