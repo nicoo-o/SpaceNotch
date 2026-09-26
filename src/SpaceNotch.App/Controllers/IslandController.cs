@@ -330,7 +330,7 @@ public sealed class IslandController : IDisposable
 
     public void RequestCollapse()
     {
-        _animator.UpdateParameters(_motionParameters);
+        _animator.UpdateParameters(SpaceNotch.Core.Motion.MotionPresets.CloseOf(_motionParameters));
         _stateManager.TryTransitionTo(IslandState.Collapsing);
         AnimateTo(_collapsedFootprint);
     }

@@ -125,6 +125,28 @@
             <SolidColorBrush x:Key="NfSetupPrimaryHoverBrush" Color="#E6FFFFFF" />
             <SolidColorBrush x:Key="NfSetupPrimaryPressedBrush" Color="#C7FFFFFF" />
             <SolidColorBrush x:Key="NfSetupChoiceHoverBrush" Color="#1AFFFFFF" />
+            <!-- Contrôles maison OLED (vague 2) : matière en verre sur le noir,
+                 blanc plein pour l'action principale, cyan du logo pour ce qui
+                 est « activé ». Voir docs/audit/2026-09-audit.md. -->
+            <SolidColorBrush x:Key="NfControlFillBrush" Color="#14FFFFFF" />
+            <SolidColorBrush x:Key="NfControlFillHoverBrush" Color="#24FFFFFF" />
+            <SolidColorBrush x:Key="NfControlFillPressedBrush" Color="#0DFFFFFF" />
+            <SolidColorBrush x:Key="NfControlStrokeBrush" Color="#1AFFFFFF" />
+            <SolidColorBrush x:Key="NfGhostHoverBrush" Color="#14FFFFFF" />
+            <SolidColorBrush x:Key="NfGhostPressedBrush" Color="#0DFFFFFF" />
+            <SolidColorBrush x:Key="NfPrimaryFillBrush" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="NfPrimaryFillHoverBrush" Color="#E6FFFFFF" />
+            <SolidColorBrush x:Key="NfPrimaryFillPressedBrush" Color="#C7FFFFFF" />
+            <SolidColorBrush x:Key="NfOnPrimaryBrush" Color="#FF000000" />
+            <SolidColorBrush x:Key="NfDangerFillBrush" Color="#24FF5A5A" />
+            <SolidColorBrush x:Key="NfDangerFillHoverBrush" Color="#38FF5A5A" />
+            <SolidColorBrush x:Key="NfDangerFillPressedBrush" Color="#1AFF5A5A" />
+            <SolidColorBrush x:Key="NfDangerTextBrush" Color="#FFFF9A9A" />
+            <SolidColorBrush x:Key="NfActiveBrush" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="NfSelectionBrush" Color="#17FFFFFF" />
+            <SolidColorBrush x:Key="NfKeyStrokeBrush" Color="#29FFFFFF" />
+            <SolidColorBrush x:Key="NfFocusRingBrush" Color="#D9FFFFFF" />
+            <SolidColorBrush x:Key="NfPopupBrush" Color="#FF141418" />
             <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="#1FFFFFFF" />
 
         </ResourceDictionary>
@@ -185,6 +207,28 @@
             <SolidColorBrush x:Key="NfSetupPrimaryHoverBrush" Color="#E6101014" />
             <SolidColorBrush x:Key="NfSetupPrimaryPressedBrush" Color="#C7101014" />
             <SolidColorBrush x:Key="NfSetupChoiceHoverBrush" Color="#1A101014" />
+            <!-- Contrôles maison OLED (vague 2) : matière en verre sur le noir,
+                 blanc plein pour l'action principale, cyan du logo pour ce qui
+                 est « activé ». Voir docs/audit/2026-09-audit.md. -->
+            <SolidColorBrush x:Key="NfControlFillBrush" Color="#0D101014" />
+            <SolidColorBrush x:Key="NfControlFillHoverBrush" Color="#1A101014" />
+            <SolidColorBrush x:Key="NfControlFillPressedBrush" Color="#08101014" />
+            <SolidColorBrush x:Key="NfControlStrokeBrush" Color="#1F101014" />
+            <SolidColorBrush x:Key="NfGhostHoverBrush" Color="#0D101014" />
+            <SolidColorBrush x:Key="NfGhostPressedBrush" Color="#08101014" />
+            <SolidColorBrush x:Key="NfPrimaryFillBrush" Color="#FF101014" />
+            <SolidColorBrush x:Key="NfPrimaryFillHoverBrush" Color="#E6101014" />
+            <SolidColorBrush x:Key="NfPrimaryFillPressedBrush" Color="#C7101014" />
+            <SolidColorBrush x:Key="NfOnPrimaryBrush" Color="#FFFFFFFF" />
+            <SolidColorBrush x:Key="NfDangerFillBrush" Color="#24FF5A5A" />
+            <SolidColorBrush x:Key="NfDangerFillHoverBrush" Color="#38FF5A5A" />
+            <SolidColorBrush x:Key="NfDangerFillPressedBrush" Color="#1AFF5A5A" />
+            <SolidColorBrush x:Key="NfDangerTextBrush" Color="#FFC62828" />
+            <SolidColorBrush x:Key="NfActiveBrush" Color="#FF0E8FB0" />
+            <SolidColorBrush x:Key="NfSelectionBrush" Color="#14101014" />
+            <SolidColorBrush x:Key="NfKeyStrokeBrush" Color="#29101014" />
+            <SolidColorBrush x:Key="NfFocusRingBrush" Color="#D9101014" />
+            <SolidColorBrush x:Key="NfPopupBrush" Color="#FFF6F6F8" />
             <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="#1F101014" />
 
         </ResourceDictionary>
@@ -247,6 +291,25 @@
             <SolidColorBrush x:Key="NfSetupPrimaryHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="NfSetupPrimaryPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
             <SolidColorBrush x:Key="NfSetupChoiceHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfControlFillBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="NfControlFillHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfControlFillPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfControlStrokeBrush" Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="NfGhostHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfGhostPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfPrimaryFillBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="NfPrimaryFillHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfPrimaryFillPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfOnPrimaryBrush" Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="NfDangerFillBrush" Color="{ThemeResource SystemColorButtonFaceColor}" />
+            <SolidColorBrush x:Key="NfDangerFillHoverBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfDangerFillPressedBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfDangerTextBrush" Color="{ThemeResource SystemColorButtonTextColor}" />
+            <SolidColorBrush x:Key="NfActiveBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfSelectionBrush" Color="{ThemeResource SystemColorHighlightColor}" />
+            <SolidColorBrush x:Key="NfKeyStrokeBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="NfFocusRingBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="NfPopupBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
 
         </ResourceDictionary>

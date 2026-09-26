@@ -25,6 +25,9 @@ public static class IslandSceneCatalog
     public const string Clipboard = "clipboard";
     public const string Launcher = "launcher";
 
+    /// <summary>Menu rapide : clic droit sur la notch, qui s'ouvre en menu.</summary>
+    public const string QuickMenu = "quick-menu";
+
     /// <summary>
     /// Scène générique destinée au contenu qui n'a pas de vue dédiée, et
     /// notamment à celui d'un greffon tiers.
@@ -66,6 +69,9 @@ public static class IslandSceneCatalog
         // Le lanceur occupe la surface la plus large du répertoire : c'est la
         // seule scène qui présente une grille et un champ de recherche.
         [Launcher] = new IslandFootprint(440 + Shoulders, 260),
+
+        // Le menu rapide : sa hauteur exacte vient de QuickMenuLayout.
+        [QuickMenu] = new IslandFootprint(SpaceNotch.Core.Menu.QuickMenuLayout.Width, SpaceNotch.Core.Menu.QuickMenuLayout.Height),
 
         // La carte générique est dimensionnée pour un titre, un sous-titre et une
         // rangée de deux ou trois contrôles. Elle est plus haute qu'un HUD : un

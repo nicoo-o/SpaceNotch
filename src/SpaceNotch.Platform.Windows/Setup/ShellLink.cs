@@ -52,6 +52,50 @@ public static partial class ShellLink
         }
     }
 
+    /// <summary>
+    /// Cible d'un raccourci existant, ou <c>null</c> s'il est illisible ou ne
+    /// vise pas un fichier (un élément virtuel, une page web).
+    /// </summary>
+    public static string? ResolveTarget(string shortcutPath)
+    {
+        if (string.IsNullOrWhiteSpace(shortcutPath))
+        {
+            return null;
+        }
+
+        Guid clsid = ClsidShellLink;
+        Guid iid = IidIUnknown;
+
+        if (CoCreateInstance(in clsid, IntPtr.Zero, ClsctxInprocServer, in iid, out IntPtr unknown) != 0)
+        {
+            return null;
+        }
+
+        const int Capacity = 1024;
+        IntPtr buffer = Marshal.AllocHGlobal(Capacity * sizeof(char));
+
+        try
+        {
+            var wrappers = new StrategyBasedComWrappers();
+            object instance = wrappers.GetOrCreateObjectForComInstance(unknown, CreateObjectFlags.UniqueInstance);
+
+            ((IPersistFile)instance).Load(shortcutPath, 0);
+            ((IShellLinkW)instance).GetPath(buffer, Capacity, IntPtr.Zero, 0);
+
+            string? target = Marshal.PtrToStringUni(buffer);
+            return string.IsNullOrWhiteSpace(target) ? null : target;
+        }
+        catch (COMException)
+        {
+            return null;
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buffer);
+            Marshal.Release(unknown);
+        }
+    }
+
     /// <summary>Supprime un raccourci s'il existe.</summary>
     public static void Delete(string shortcutPath)
     {

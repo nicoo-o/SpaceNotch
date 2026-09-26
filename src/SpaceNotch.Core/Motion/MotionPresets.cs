@@ -65,10 +65,24 @@ public static class MotionPresets
         MotionStyle.Quiet => SpringParameters.FromResponse(0.52, 0.92),
         MotionStyle.Dynamic => SpringParameters.FromResponse(0.38, 0.48),
 
-        // Naturel reprend le ressort de référence : c'est lui que tout le reste
-        // du projet a été réglé à regarder.
-        _ => SpringParameters.Default
+        // Naturel : ouverture ferme, un soupçon de dépassement (réponse
+        // 0,42 s, amortissement 0,78) — validé avec les visuels de la vague 2.
+        _ => NaturalOpen
     };
+
+    /// <summary>Ouverture « Naturel » : 0,42 s, amortissement 0,78.</summary>
+    public static SpringParameters NaturalOpen { get; } = SpringParameters.FromResponse(0.42, 0.78);
+
+    /// <summary>
+    /// Ressort de fermeture, dérivé de celui de l'ouverture : plus court
+    /// (0,36 / 0,42) et sans rebond (amortissement au moins 0,9). Une notch
+    /// qui rebondit en se refermant a l'air de refuser de partir.
+    /// </summary>
+    public static SpringParameters CloseOf(SpringParameters open)
+        => SpringParameters.FromResponse(
+            open.ResponseSeconds * (0.36 / 0.42),
+            Math.Max(open.DampingRatio, 0.9),
+            open.Mass);
 
     /// <summary>
     /// Durée d'une transition temporelle, en millisecondes.

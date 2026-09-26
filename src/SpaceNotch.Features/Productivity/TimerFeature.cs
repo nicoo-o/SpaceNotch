@@ -88,6 +88,22 @@ public sealed class TimerFeature : IslandFeatureBase
         Publish();
     }
 
+    /// <summary>Lance un compte à rebours de la durée donnée : les puces 5 / 15 / 25 min du menu rapide.</summary>
+    public void StartCountdown(TimeSpan duration)
+    {
+        if (!IsEnabled || duration <= TimeSpan.Zero)
+        {
+            return;
+        }
+
+        Mode = TimerMode.Countdown;
+        _value = duration;
+        _running = true;
+        _tick.Change(TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+
+        Publish();
+    }
+
     /// <summary>Remet la mesure à zéro et l'arrête.</summary>
     public void Reset()
     {

@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Contrôles OLED maison. Un seul gabarit de bouton, décliné par pinceaux :
+    le survol éclaircit l'encre (+6 %, 120 ms), l'appui est porté par
+    PressFeedback (échelle 0,96 sur ressort) plutôt que par un changement de
+    couleur brutal — c'est ce qui donnait le « flash blanc » de la vague 1.
+    L'anneau de focus n'apparaît qu'au clavier : 2 px blanc, écart 2 px noir.
+-->
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="using:SpaceNotch_App.UI">
+
+    <!-- Contrôles système, en accent cyan (#7FE6FF, celui du logo) : case,
+         interrupteur, curseur. Couleurs écrites ici : une référence vers un
+         autre dictionnaire fusionné n'est pas garantie au chargement. -->
+    <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Default">
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="#FF000000" />
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="#FF000000" />
+            <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="#FF000000" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOnPointerOver" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOnPressed" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOn" Color="#FF000000" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPointerOver" Color="#FF000000" />
+            <SolidColorBrush x:Key="ToggleSwitchKnobFillOnPressed" Color="#FF000000" />
+            <SolidColorBrush x:Key="SliderTrackValueFill" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="SliderThumbBackground" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="#FF7FE6FF" />
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Light">
+            <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="ToggleSwitchFillOn" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="SliderTrackValueFill" Color="#FF7FE6FF" />
+            <SolidColorBrush x:Key="SliderThumbBackground" Color="#FF7FE6FF" />
+        </ResourceDictionary>
+        <!-- Contraste élevé : les couleurs système restent maîtresses. -->
+        <ResourceDictionary x:Key="HighContrast" />
+    </ResourceDictionary.ThemeDictionaries>
+
+    <Thickness x:Key="NfFocusThickness">2</Thickness>
+    <Thickness x:Key="NfFocusSecondaryThickness">2</Thickness>
+
+    <!-- Gabarit commun : fond, contour et rayon viennent du style. -->
+    <Style x:Key="NfButtonBaseStyle" TargetType="Button">
+        <Setter Property="Background" Value="{ThemeResource NfControlFillBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource NfTextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{ThemeResource NfControlStrokeBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Padding" Value="14,7" />
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="UseSystemFocusVisuals" Value="True" />
+        <Setter Property="FocusVisualMargin" Value="-3" />
+        <Setter Property="FocusVisualPrimaryBrush" Value="{ThemeResource NfFocusRingBrush}" />
+        <Setter Property="FocusVisualPrimaryThickness" Value="{StaticResource NfFocusThickness}" />
+        <Setter Property="FocusVisualSecondaryBrush" Value="{ThemeResource NfSurfaceBaseBrush}" />
+        <Setter Property="FocusVisualSecondaryThickness" Value="{StaticResource NfFocusSecondaryThickness}" />
+        <Setter Property="ui:PressFeedback.IsEnabled" Value="True" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Grid
+                        x:Name="RootGrid"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}">
+                        <!-- Encre de survol : sous le contenu, apparaît en fondu. -->
+                        <Border
+                            x:Name="HoverLayer"
+                            Background="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                            CornerRadius="{TemplateBinding CornerRadius}"
+                            Opacity="0">
+                            <Border.OpacityTransition>
+                                <ScalarTransition Duration="0:0:0.12" />
+                            </Border.OpacityTransition>
+                        </Border>
+                        <ContentPresenter
+                            x:Name="ContentPresenter"
+                            Padding="{TemplateBinding Padding}"
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"
+                            ContentTransitions="{TemplateBinding ContentTransitions}"
+                            Foreground="{TemplateBinding Foreground}"
+                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                            AutomationProperties.AccessibilityView="Raw" />
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="HoverLayer.Opacity" Value="1" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Pressed">
+                                    <VisualState.Setters>
+                                        <Setter Target="HoverLayer.Opacity" Value="1" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Disabled">
+                                    <VisualState.Setters>
+                                        <Setter Target="RootGrid.Opacity" Value="0.38" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!--
+        L'encre de survol passe par Tag : un gabarit unique, et chaque style
+        choisit la sienne sans dupliquer les états visuels.
+    -->
+
+    <!-- Secondaire : plaque grise discrète. -->
+    <Style x:Key="NfSecondaryButtonStyle" TargetType="Button" BasedOn="{StaticResource NfButtonBaseStyle}">
+        <Setter Property="Tag" Value="{ThemeResource NfControlFillHoverBrush}" />
+    </Style>
+
+    <!-- Primaire : blanc sur noir, texte noir. -->
+    <Style x:Key="NfPrimaryButtonStyle" TargetType="Button" BasedOn="{StaticResource NfButtonBaseStyle}">
+        <Setter Property="Background" Value="{ThemeResource NfPrimaryFillBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource NfOnPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Tag" Value="{ThemeResource NfPrimaryFillHoverBrush}" />
+    </Style>
+
+    <!-- Fantôme : aucun fond au repos, une encre au survol. -->
+    <Style x:Key="NfGhostButtonStyle" TargetType="Button" BasedOn="{StaticResource NfButtonBaseStyle}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{ThemeResource NfTextSecondaryBrush}" />
+        <Setter Property="Tag" Value="{ThemeResource NfGhostHoverBrush}" />
+    </Style>
+
+    <!-- Destructif : rouge sourd, texte rouge. -->
+    <Style x:Key="NfDangerButtonStyle" TargetType="Button" BasedOn="{StaticResource NfButtonBaseStyle}">
+        <Setter Property="Background" Value="{ThemeResource NfDangerFillBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource NfDangerTextBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Tag" Value="{ThemeResource NfDangerFillHoverBrush}" />
+    </Style>
+
+    <!-- Icône : carré de 32, rond de 10. -->
+    <Style x:Key="NfIconButtonStyle" TargetType="Button" BasedOn="{StaticResource NfGhostButtonStyle}">
+        <Setter Property="Width" Value="32" />
+        <Setter Property="Height" Value="32" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="Foreground" Value="{ThemeResource NfTextPrimaryBrush}" />
+    </Style>
+
+    <!-- Lecture : le rond blanc au centre des commandes média. -->
+    <Style x:Key="NfPlayButtonStyle" TargetType="Button" BasedOn="{StaticResource NfPrimaryButtonStyle}">
+        <Setter Property="Width" Value="40" />
+        <Setter Property="Height" Value="40" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="CornerRadius" Value="20" />
+        <Setter Property="FontSize" Value="15" />
+    </Style>
+
+    <!-- Pastille : minuteurs 5 / 15 / 25 min, bords de l'écran. -->
+    <Style x:Key="NfChipButtonStyle" TargetType="Button" BasedOn="{StaticResource NfSecondaryButtonStyle}">
+        <Setter Property="Padding" Value="10,3" />
+        <Setter Property="MinHeight" Value="24" />
+        <Setter Property="CornerRadius" Value="12" />
+        <Setter Property="FontSize" Value="11.5" />
+    </Style>
+
+    <!-- Pastille choisie par défaut : blanche, texte noir (15 min). -->
+    <Style x:Key="NfPrimaryChipButtonStyle" TargetType="Button" BasedOn="{StaticResource NfChipButtonStyle}">
+        <Setter Property="Background" Value="{ThemeResource NfPrimaryFillBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource NfOnPrimaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Tag" Value="{ThemeResource NfPrimaryFillHoverBrush}" />
+    </Style>
+
+    <!-- Pastille de l'état actuel : contour et texte cyan (le bord où la notch est). -->
+    <Style x:Key="NfActiveChipButtonStyle" TargetType="Button" BasedOn="{StaticResource NfChipButtonStyle}">
+        <Setter Property="BorderBrush" Value="{ThemeResource NfActiveBrush}" />
+        <Setter Property="Foreground" Value="{ThemeResource NfActiveBrush}" />
+    </Style>
+
+    <!-- Ligne de menu : pleine largeur, alignée à gauche, rond de 8. -->
+    <Style x:Key="NfMenuRowButtonStyle" TargetType="Button" BasedOn="{StaticResource NfGhostButtonStyle}">
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="Padding" Value="10,0" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="FontWeight" Value="Normal" />
+        <Setter Property="Foreground" Value="{ThemeResource NfTextPrimaryBrush}" />
+        <Setter Property="ui:PressFeedback.Scale" Value="0.985" />
+    </Style>
+    <!--
+        Champ nu : ni cadre, ni fond, ni soulignement d'accent. Sur le noir de
+        la notch, le texte seul suffit — c'est la barre qui fait le champ.
+    -->
+    <Style x:Key="NfSearchFieldStyle" TargetType="TextBox">
+        <Setter Property="FontSize" Value="17" />
+        <Setter Property="Foreground" Value="{ThemeResource NfTextPrimaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="MinHeight" Value="0" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="SelectionHighlightColor" Value="{ThemeResource NfActiveBrush}" />
+        <Setter Property="IsSpellCheckEnabled" Value="False" />
+        <Setter Property="IsTextPredictionEnabled" Value="False" />
+        <Setter Property="UseSystemFocusVisuals" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TextBox">
+                    <Grid Background="Transparent">
+                        <TextBlock
+                            x:Name="PlaceholderTextContentPresenter"
+                            Text="{TemplateBinding PlaceholderText}"
+                            Foreground="{ThemeResource NfTextTertiaryBrush}"
+                            FontSize="{TemplateBinding FontSize}"
+                            Padding="{TemplateBinding Padding}"
+                            TextTrimming="CharacterEllipsis"
+                            IsHitTestVisible="False"
+                            VerticalAlignment="Center" />
+                        <ScrollViewer
+                            x:Name="ContentElement"
+                            Padding="{TemplateBinding Padding}"
+                            Foreground="{TemplateBinding Foreground}"
+                            HorizontalScrollMode="Auto"
+                            HorizontalScrollBarVisibility="Hidden"
+                            VerticalScrollMode="Disabled"
+                            VerticalScrollBarVisibility="Disabled"
+                            IsTabStop="False"
+                            ZoomMode="Disabled"
+                            VerticalAlignment="Center"
+                            AutomationProperties.AccessibilityView="Raw" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Touche dessinée : « Échap », « ↵ », « Ctrl K ». -->
+    <Style x:Key="NfKeyCapStyle" TargetType="Border">
+        <Setter Property="BorderBrush" Value="{ThemeResource NfKeyStrokeBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="6,1,6,2" />
+        <Setter Property="MinWidth" Value="20" />
+    </Style>
+
+    <Style x:Key="NfKeyCapTextStyle" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{ThemeResource NfTextTertiaryBrush}" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="TextLineBounds" Value="Tight" />
+        <Setter Property="Margin" Value="0,3,0,2" />
+    </Style>
+</ResourceDictionary>
