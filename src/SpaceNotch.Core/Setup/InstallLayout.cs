@@ -43,6 +43,25 @@ public sealed record InstallLayout(
     string StartMenuShortcut,
     string DesktopShortcut)
 {
+    /// <summary>
+    /// Vrai si <paramref name="directory"/> est exactement le dossier
+    /// d'installation de cette portée. La désinstallation n'efface jamais un
+    /// autre dossier : celui qu'indique le registre peut avoir été modifié, et
+    /// l'effacement se fait parfois avec les droits d'administrateur.
+    /// </summary>
+    public bool IsExpectedDirectory(string? directory)
+    {
+        if (string.IsNullOrWhiteSpace(directory) || directory.Contains("..", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        return string.Equals(
+            directory.Replace('/', '\\').TrimEnd('\\'),
+            Directory.TrimEnd('\\'),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>Vrai quand l'installation exige les droits d'administrateur.</summary>
     public bool RequiresElevation => Scope == InstallScope.AllUsers;
 

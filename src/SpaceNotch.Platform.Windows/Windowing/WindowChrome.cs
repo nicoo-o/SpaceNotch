@@ -151,6 +151,22 @@ public static class WindowChrome
     }
 
     /// <summary>
+    /// Donne le premier plan à la fenêtre, pour qu'elle reçoive la frappe.
+    /// Windows ne l'accorde qu'au processus qui vient de recevoir une entrée de
+    /// l'utilisateur — ici, le clic qui a ouvert le lanceur.
+    /// </summary>
+    public static void BringToForeground(IntPtr hWnd)
+    {
+        if (hWnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        NativeMethods.SetForegroundWindow(hWnd);
+        NativeMethods.SetFocus(hWnd);
+    }
+
+    /// <summary>
     /// Ajoute des bits à GWL_EXSTYLE sans écraser ceux déjà posés par WinUI.
     /// </summary>
     private static void AddExtendedStyles(IntPtr hWnd, int styles)
@@ -190,10 +206,25 @@ public static class WindowChrome
             NativeConstants.DWMWA_WINDOW_CORNER_PREFERENCE,
             ref cornerPreference,
             sizeof(int));
+
+        // Et sans bordure : Windows 11 trace un liseré de 1 px autour de toute
+        // fenêtre, même sans cadre ni barre de titre. Sur une fenêtre
+        // transparente, il dessinait un rectangle blanc autour de la notch, de
+        // son halo, de la bulle et de l'installeur — et il s'allumait à
+        // l'activation, d'où un « flash » au clic.
+        int noBorder = NativeConstants.DWMWA_COLOR_NONE;
+        NativeMethods.DwmSetWindowAttribute(
+            hWnd,
+            NativeConstants.DWMWA_BORDER_COLOR,
+            ref noBorder,
+            sizeof(int));
     }
 
     /// <summary>
-    /// Force le passage au premier plan de la bande topmost, sans activation.
+    /// Force le passage au premier plan de la bande topmost, sans activation —
+    /// et sans montrer la fenêtre : chacune se montre elle-même, une fois
+    /// placée. Montrer ici faisait apparaître la bulle à sa taille par défaut,
+    /// invisible mais au premier plan, qui avalait les clics sur le bureau.
     /// </summary>
     private static void ForceTopmost(IntPtr hWnd)
     {
@@ -203,7 +234,6 @@ public static class WindowChrome
             0, 0, 0, 0,
             NativeConstants.SWP_NOMOVE
             | NativeConstants.SWP_NOSIZE
-            | NativeConstants.SWP_NOACTIVATE
-            | NativeConstants.SWP_SHOWWINDOW);
+            | NativeConstants.SWP_NOACTIVATE);
     }
 }

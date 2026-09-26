@@ -124,7 +124,7 @@ public sealed partial class AtmosphereWindow : Window
 
         ApplyFallbackSurface();
 
-        _appWindow.Show();
+        _appWindow.Show(activateWindow: false);
 
         Closed += OnClosed;
     }

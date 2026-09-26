@@ -131,22 +131,29 @@ public sealed partial class IslandWindow
         bool firstShow = !_bubble.IsShown;
         bool goo = AnimateBubbleGoo;
         _bubble.UseSpringAnimations = UseSpringAnimations();
-        _bubble.Show(target, preset, AnimateHypnotic() && !resting, ownAnimation: !goo);
 
         if (firstShow && goo)
         {
             // Elle naît du flanc de la notch, comme une goutte qui s'en détache.
             _bubbleGoo = 0;
             _bubbleGooRate = 1 / BubbleBridge.BirthSeconds;
-            HookDetachFrames();
         }
 
         if (firstShow)
         {
+            // Placée avant d'être montrée : sa première image est à sa place,
+            // pas à la taille et à la position par défaut d'une fenêtre neuve.
             // Le ressort de suivi part de la notch : la bulle en sort.
             ScreenRect origin = UsesFloatingGeometry ? CurrentPillRect() : default;
             _bubbleSpring.Snap(origin.Right, origin.CenterY);
             PositionBubble();
+        }
+
+        _bubble.Show(target, preset, AnimateHypnotic() && !resting, ownAnimation: !goo);
+
+        if (firstShow && goo)
+        {
+            HookDetachFrames();
         }
 
         ArmBubbleRest(preset, resting);

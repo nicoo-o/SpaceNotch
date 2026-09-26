@@ -60,7 +60,16 @@ public sealed record InstallOptions(InstallScope Scope, bool StartWithWindows, b
 /// <param name="Options">Choix transmis au processus élevé, ou imposés en mode silencieux.</param>
 /// <param name="Quiet">Aucune interface : installation ou désinstallation scriptée.</param>
 /// <param name="RemoveSettings">À la désinstallation, supprimer aussi réglages et journaux.</param>
-public sealed record SetupCommand(SetupMode Mode, InstallOptions Options, bool Quiet = false, bool RemoveSettings = false)
+/// <param name="CallerProcessId">
+/// Processus de l'interface qui a lancé le travail élevé : il attend sa fin et
+/// ne doit pas être fermé avec les autres notches.
+/// </param>
+public sealed record SetupCommand(
+    SetupMode Mode,
+    InstallOptions Options,
+    bool Quiet = false,
+    bool RemoveSettings = false,
+    int? CallerProcessId = null)
 {
     /// <summary>Vrai pour les processus élevés, sans interface, qui font le travail d'administrateur.</summary>
     public bool IsWorker => Mode is SetupMode.InstallWorker or SetupMode.UninstallWorker;
@@ -84,6 +93,7 @@ public sealed record SetupCommand(SetupMode Mode, InstallOptions Options, bool Q
         bool desktop = InstallOptions.Default.DesktopShortcut;
         bool quiet = false;
         bool removeSettings = false;
+        int? caller = null;
 
         foreach (string raw in arguments)
         {
@@ -127,12 +137,17 @@ public sealed record SetupCommand(SetupMode Mode, InstallOptions Options, bool Q
                 case "--DESKTOP":
                     desktop = IsOn(value);
                     break;
+                case "--CALLER":
+                    caller = int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int id) && id > 0
+                        ? id
+                        : null;
+                    break;
             }
         }
 
         mode ??= ModeFromFileName(executablePath);
 
-        return new SetupCommand(mode.Value, new InstallOptions(scope, startup, desktop), quiet, removeSettings);
+        return new SetupCommand(mode.Value, new InstallOptions(scope, startup, desktop), quiet, removeSettings, caller);
     }
 
     /// <summary>
@@ -193,6 +208,11 @@ public sealed record SetupCommand(SetupMode Mode, InstallOptions Options, bool Q
         if (RemoveSettings)
         {
             arguments.Add("--remove-settings");
+        }
+
+        if (CallerProcessId is int caller)
+        {
+            arguments.Add(string.Create(System.Globalization.CultureInfo.InvariantCulture, $"--caller={caller}"));
         }
 
         return arguments;

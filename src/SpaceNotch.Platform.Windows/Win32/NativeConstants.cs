@@ -51,6 +51,9 @@ public static class NativeConstants
 
     public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
     public const int DWMWA_BORDER_COLOR = 34;
+
+    /// <summary>Valeur de DWMWA_BORDER_COLOR qui supprime la bordure (DWMWA_COLOR_NONE).</summary>
+    public const int DWMWA_COLOR_NONE = unchecked((int)0xFFFFFFFE);
     public const int DWMWA_CAPTION_COLOR = 35;
     public const int DWMWA_TEXT_COLOR = 36;
 

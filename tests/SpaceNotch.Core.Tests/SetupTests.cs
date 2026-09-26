@@ -55,7 +55,8 @@ public class SetupCommandTests
             SetupMode.InstallWorker,
             new InstallOptions(InstallScope.AllUsers, StartWithWindows: false, DesktopShortcut: true),
             Quiet: true,
-            RemoveSettings: true);
+            RemoveSettings: true,
+            CallerProcessId: 4242);
 
         SetupCommand parsed = SetupCommand.Parse(original.ToArguments(), null);
 
@@ -85,6 +86,19 @@ public class SetupCommandTests
 
 public class InstallLayoutTests
 {
+    [Fact]
+    public void Only_the_expected_folder_is_recognised_as_an_installation()
+    {
+        InstallLayout layout = InstallLayout.For(InstallScope.AllUsers, Folders);
+
+        Assert.True(layout.IsExpectedDirectory(@"C:\Program Files\SpaceNotch\"));
+        Assert.True(layout.IsExpectedDirectory(@"c:\program files\spacenotch"));
+        Assert.False(layout.IsExpectedDirectory(@"C:\Windows\System32"));
+        Assert.False(layout.IsExpectedDirectory(@"C:\Users\ana\Documents"));
+        Assert.False(layout.IsExpectedDirectory(@"C:\Program Files\SpaceNotch\..\Other"));
+        Assert.False(layout.IsExpectedDirectory(""));
+    }
+
     private static readonly SystemFolders Folders = new(
         LocalAppData: @"C:\Users\ana\AppData\Local",
         RoamingAppData: @"C:\Users\ana\AppData\Roaming",

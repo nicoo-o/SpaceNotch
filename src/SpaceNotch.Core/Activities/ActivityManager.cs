@@ -134,6 +134,7 @@ public sealed class ActivityManager : IActivityManager
 
             next = ordered[target];
             _pinnedActivityId = next.Id;
+            _currentActivity = next;
         }
 
         ActiveActivityChanged?.Invoke(this, next);
@@ -155,6 +156,20 @@ public sealed class ActivityManager : IActivityManager
 
             // Remplacement par identifiant : le cœur de la garantie anti-fuite.
             _activities[activity.Id] = activity;
+
+            // Une activité importante, plus prioritaire que celle qu'on a
+            // épinglée, reprend la main : l'épingle choisit parmi ce qui attend,
+            // elle ne fait pas taire le volume, un appel ou la fin d'un
+            // minuteur. Une activité ordinaire — une copie, un fichier déposé —
+            // attend son tour.
+            if (_pinnedActivityId is not null
+                && !string.Equals(_pinnedActivityId, activity.Id, StringComparison.Ordinal)
+                && _activities.TryGetValue(_pinnedActivityId, out IslandActivity? pinned)
+                && activity.Priority >= ActivityPriority.High
+                && activity.Priority > pinned.Priority)
+            {
+                _pinnedActivityId = null;
+            }
 
             EvictOverflowBackground(activity.Id, ref evicted);
 

@@ -183,13 +183,15 @@ public sealed class FullscreenPresenceWatcher : IDisposable
     private bool Query() => SessionIsOccupied() || ForegroundCoversIsland();
 
     /// <summary>
-    /// Vrai lorsqu'une autre application recouvre le rectangle de l'Island.
+    /// Vrai lorsqu'une autre application occupe <em>tout</em> l'écran de l'Island.
     ///
-    /// L'Island ne se retire pas devant n'importe quoi : elle se retire devant une
-    /// fenêtre qui occupe la place qu'elle occupe. Un éditeur agrandi, un
-    /// navigateur agrandi, une vidéo lancée depuis une fenêtre maximisée — dans
-    /// tous ces cas, l'Island masquerait une barre de titre ou une barre d'onglets,
-    /// ce qu'aucun overlay ne doit faire.
+    /// L'Island ne se retire que devant un vrai plein écran : une vidéo, un jeu,
+    /// une présentation — une fenêtre qui couvre le moniteur entier, barre des
+    /// tâches comprise. Une fenêtre simplement agrandie laisse la barre des
+    /// tâches visible et ne compte pas : se retirer devant elle faisait
+    /// disparaître la notch presque en permanence, puisque la plupart des
+    /// fenêtres sont agrandies. Le bureau lui-même (Progman, WorkerW) et la
+    /// barre des tâches ne comptent jamais, ni l'installeur de SpaceNotch.
     /// </summary>
     private bool ForegroundCoversIsland()
     {
@@ -209,7 +211,7 @@ public sealed class FullscreenPresenceWatcher : IDisposable
 
         IntPtr foreground = GetForegroundWindow();
 
-        if (foreground == IntPtr.Zero || IsIconic(foreground))
+        if (foreground == IntPtr.Zero || IsIconic(foreground) || IsShellWindow(foreground))
         {
             return false;
         }
@@ -219,7 +221,7 @@ public sealed class FullscreenPresenceWatcher : IDisposable
         // « une autre application ».
         _ = GetWindowThreadProcessId(foreground, out uint processId);
 
-        if (processId == (uint)Environment.ProcessId)
+        if (processId == (uint)Environment.ProcessId || IsSpaceNotchProcess(processId))
         {
             return false;
         }
@@ -229,10 +231,54 @@ public sealed class FullscreenPresenceWatcher : IDisposable
             return false;
         }
 
-        return rect.Left < x + width
-            && rect.Right > x
-            && rect.Top < y + height
-            && rect.Bottom > y;
+        var island = new WindowRect { Left = x, Top = y, Right = x + width, Bottom = y + height };
+        IntPtr monitor = MonitorFromRect(ref island, MonitorDefaultToNearest);
+        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+
+        if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref info))
+        {
+            return false;
+        }
+
+        // Plein écran : la fenêtre couvre tout le moniteur de l'Island.
+        return rect.Left <= info.Monitor.Left
+            && rect.Top <= info.Monitor.Top
+            && rect.Right >= info.Monitor.Right
+            && rect.Bottom >= info.Monitor.Bottom;
+    }
+
+    /// <summary>Le bureau et la barre des tâches : jamais « une application en plein écran ».</summary>
+    private static bool IsShellWindow(IntPtr window)
+    {
+        var name = new char[64];
+        int length = GetClassName(window, name, name.Length);
+
+        if (length <= 0)
+        {
+            return false;
+        }
+
+        string cls = new(name, 0, length);
+
+        return cls is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
+    }
+
+    /// <summary>L'installeur (SpaceNotch-Setup) est un autre processus, mais pas un autre produit.</summary>
+    private static bool IsSpaceNotchProcess(uint processId)
+    {
+        try
+        {
+            using var process = global::System.Diagnostics.Process.GetProcessById((int)processId);
+            return process.ProcessName.StartsWith("SpaceNotch", StringComparison.OrdinalIgnoreCase);
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     /// <summary>Interroge le shell sur l'occupation de la session.</summary>
@@ -314,6 +360,27 @@ public sealed class FullscreenPresenceWatcher : IDisposable
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool GetWindowRect(IntPtr hWnd, out WindowRect rect);
+
+    private const uint MonitorDefaultToNearest = 2;
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(IntPtr hWnd, [Out] char[] className, int maxCount);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromRect(ref WindowRect rect, uint flags);
+
+    [DllImport("user32.dll", EntryPoint = "GetMonitorInfoW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MonitorInfo
+    {
+        public int Size;
+        public WindowRect Monitor;
+        public WindowRect Work;
+        public uint Flags;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     private struct WindowRect

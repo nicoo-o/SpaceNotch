@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Security.Principal;
 using System.Threading;
 using System.Threading.Tasks;
@@ -79,8 +80,12 @@ public static class WindowsSetup
     /// ensuite ; <c>null</c> si rien n'est installé.
     /// </summary>
     public static InstalledProduct? FindInstalled()
+        => FindInstalled(InstallScope.CurrentUser) ?? FindInstalled(InstallScope.AllUsers);
+
+    /// <summary>SpaceNotch installée dans une portée précise, ou <c>null</c>.</summary>
+    public static InstalledProduct? FindInstalled(InstallScope only)
     {
-        foreach (InstallScope scope in new[] { InstallScope.CurrentUser, InstallScope.AllUsers })
+        foreach (InstallScope scope in new[] { only })
         {
             try
             {
@@ -251,7 +256,7 @@ public static class WindowsSetup
             if (product.Options.Scope == InstallScope.AllUsers && !IsElevated)
             {
                 string self = Environment.ProcessPath ?? product.Executable;
-                var worker = new SetupCommand(SetupMode.UninstallWorker, product.Options, Quiet: true, removeSettings);
+                var worker = new SetupCommand(SetupMode.UninstallWorker, product.Options, Quiet: true, removeSettings, Environment.ProcessId);
                 int? exit = await RunElevatedAsync(self, worker.ToCommandLine()).ConfigureAwait(false);
 
                 return exit switch
@@ -277,18 +282,24 @@ public static class WindowsSetup
     /// l'interpréteur de commandes l'effacement des dossiers, une fois ce
     /// processus sorti.
     /// </summary>
-    public static void RemoveFiles(InstalledProduct product, bool removeSettings, Action<string>? log = null)
+    public static void RemoveFiles(InstalledProduct product, bool removeSettings, Action<string>? log = null, int? callerProcessId = null)
     {
         ArgumentNullException.ThrowIfNull(product);
 
         SystemFolders folders = Folders();
-        InstallLayout layout = InstallLayout.For(product.Options.Scope, folders) with
-        {
-            Directory = product.Directory,
-            Executable = product.Executable
-        };
 
-        StopRunning(log);
+        // Le dossier effacé est celui que SpaceNotch s'est choisi, jamais celui
+        // que prétend le registre : la valeur peut avoir été modifiée, et cet
+        // effacement se fait parfois avec les droits d'administrateur.
+        InstallLayout layout = InstallLayout.For(product.Options.Scope, folders);
+        bool ownFolder = layout.IsExpectedDirectory(product.Directory);
+
+        if (!ownFolder)
+        {
+            log?.Invoke($"[SETUP] Dossier inscrit inattendu, conservé : {product.Directory}");
+        }
+
+        StopRunning(log, callerProcessId);
 
         ShellLink.Delete(layout.StartMenuShortcut);
         ShellLink.Delete(layout.DesktopShortcut);
@@ -298,7 +309,12 @@ public static class WindowsSetup
             root.DeleteSubKeyTree(SetupIdentity.UninstallKeyPath, throwOnMissingSubKey: false);
         }
 
-        IReadOnlyList<string> leftovers = layout.LeftoversAfterExit(folders, removeSettings);
+        List<string> leftovers = layout.LeftoversAfterExit(folders, removeSettings).ToList();
+
+        if (!ownFolder)
+        {
+            leftovers.Remove(layout.Directory);
+        }
 
         var cleanup = new ProcessStartInfo("cmd.exe", SelfDelete.Arguments(leftovers))
         {
@@ -329,7 +345,7 @@ public static class WindowsSetup
     /// Ferme la notch en cours : on ne remplace pas un exécutable qui tourne.
     /// Ses réglages sont déjà enregistrés, elle n'a rien à sauver.
     /// </summary>
-    public static void StopRunning(Action<string>? log = null)
+    public static void StopRunning(Action<string>? log = null, int? keepProcessId = null)
     {
         int self = Environment.ProcessId;
 
@@ -337,7 +353,8 @@ public static class WindowsSetup
         {
             using (process)
             {
-                if (process.Id == self)
+                // Ni ce processus, ni l'interface qui attend sa fin.
+                if (process.Id == self || process.Id == keepProcessId)
                 {
                     continue;
                 }

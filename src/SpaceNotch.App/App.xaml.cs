@@ -1,3 +1,4 @@
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using SpaceNotch.Core.Setup;
 using SpaceNotch.Infrastructure.Logging;
@@ -19,9 +20,16 @@ namespace SpaceNotch_App;
 public partial class App : Application
 {
     private Window? _window;
+    private SingleInstance? _instance;
 
     public App()
     {
+        // Le produit est noir OLED : les menus, info-bulles et fenêtres de
+        // l'application suivent le thème sombre, quel que soit celui de Windows.
+        // Sans cela, un Windows en thème clair donnait des info-bulles et des
+        // boutons clairs — le « flash blanc » au clic dans l'installeur.
+        RequestedTheme = ApplicationTheme.Dark;
+
         InitializeComponent();
 
         // Le journal démarre avant tout le reste : un échec de démarrage doit
@@ -58,6 +66,16 @@ public partial class App : Application
             return;
         }
 
+        // Une seule notch par session : un second lancement réveille la
+        // première et se retire.
+        _instance = SingleInstance.TryClaim();
+
+        if (_instance is null)
+        {
+            Exit();
+            return;
+        }
+
         try
         {
             var island = new IslandWindow();
@@ -66,6 +84,9 @@ public partial class App : Application
             _window.Closed += (_, _) => MiniLogger.Log("Fenêtre de l'Island fermée.");
 
             _window.Activate();
+
+            DispatcherQueue queue = island.DispatcherQueue;
+            _instance.ListenForReveal(() => queue.TryEnqueue(island.RevealFromSecondLaunch));
 
             MiniLogger.Log("App.OnLaunched completed and window activated");
 
@@ -91,7 +112,11 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
+            // Jamais de processus fantôme, sans fenêtre ni icône : l'utilisateur
+            // voit pourquoi, et le processus se retire.
             MiniLogger.Log($"[FATAL] Exception in OnLaunched: {ex}");
+            NativeMethods.MessageBox(IntPtr.Zero, $"SpaceNotch n'a pas pu démarrer.\n\n{ex.Message}\n\n{MiniLogger.LogPath}", SetupIdentity.ProductName, 0x10);
+            Environment.Exit(1);
         }
     }
 
