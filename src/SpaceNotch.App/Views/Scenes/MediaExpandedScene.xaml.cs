@@ -3,7 +3,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using SpaceNotch.Core.Activities;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Platform.Windows.Media;
 using SpaceNotch_App.Views;
@@ -118,6 +120,23 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         }
 
         TimeText.Text = $"{Format(track?.Position ?? TimeSpan.Zero)} / {Format(track?.Duration ?? TimeSpan.Zero)}";
+
+        // Sans durée, la frise n'aurait rien à dire : « 0:00 / 0:00 » laissait
+        // croire à une lecture arrêtée. À la place, ce qui est vrai.
+        bool known = duration > 0;
+        TimelineRow.Visibility = known ? Visibility.Visible : Visibility.Collapsed;
+        LiveRow.Visibility = known ? Visibility.Collapsed : Visibility.Visible;
+
+        if (!known)
+        {
+            bool playing = track?.IsPlaying ?? false;
+            string state = playing ? Lang.T("En lecture", "Playing") : Lang.T("En pause", "Paused");
+            string source = MediaSource.FriendlyName(track?.AppId);
+
+            LiveText.Text = source.Length == 0 ? state : $"{state} · {source}";
+            LiveBars.Tint = (Brush)Application.Current.Resources["NfTextSecondaryBrush"];
+            LiveBars.Show(playing ? new CompactTrailing(TrailingKind.Equalizer, 0) : CompactTrailing.None);
+        }
     }
 
     private async Task UpdateArtworkAsync(MediaTrackInfo? track)

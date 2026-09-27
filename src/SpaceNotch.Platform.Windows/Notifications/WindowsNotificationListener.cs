@@ -52,7 +52,14 @@ public sealed class WindowsNotificationListener : IDisposable
     private Timer? _poll;
     private int _polling;
 
-    public event Action<string, string, string>? NotificationReceived;
+    /// <summary>
+    /// Une notification est arrivée : application, titre, corps, et l'icône de
+    /// l'application en PNG quand Windows la fournit.
+    /// </summary>
+    public event Action<string, string, string, byte[]?>? NotificationReceived;
+
+    /// <summary>Icônes déjà lues, par application : une seule lecture par application.</summary>
+    private readonly global::System.Collections.Concurrent.ConcurrentDictionary<string, byte[]?> _logos = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Diagnostic.</summary>
     public Action<string>? Log { get; set; }
@@ -214,7 +221,7 @@ public sealed class WindowsNotificationListener : IDisposable
 
             foreach (UserNotification notification in fresh)
             {
-                Announce(notification);
+                _ = AnnounceAsync(notification);
             }
         }
         catch (Exception ex)
@@ -246,7 +253,7 @@ public sealed class WindowsNotificationListener : IDisposable
         {
             if (sender.GetNotification(args.UserNotificationId) is { } notification)
             {
-                Announce(notification);
+                _ = AnnounceAsync(notification);
             }
         }
         catch
@@ -255,7 +262,7 @@ public sealed class WindowsNotificationListener : IDisposable
         }
     }
 
-    private void Announce(UserNotification notification)
+    private async Task AnnounceAsync(UserNotification notification)
     {
         try
         {
@@ -270,12 +277,51 @@ public sealed class WindowsNotificationListener : IDisposable
             string title = texts.Count > 0 ? texts[0].Text : "Notification";
             string body = texts.Count > 1 ? texts[1].Text : string.Empty;
             string appName = notification.AppInfo?.DisplayInfo?.DisplayName ?? "Windows";
+            byte[]? logo = await LogoAsync(notification, appName).ConfigureAwait(false);
 
-            NotificationReceived?.Invoke(appName, title, body);
+            NotificationReceived?.Invoke(appName, title, body, logo);
         }
         catch
         {
             // Notification au format inattendu : ignorée.
         }
+    }
+
+    /// <summary>
+    /// Icône de l'application qui notifie, lue une fois puis gardée : la notch
+    /// montre le vrai logo de Discord ou de Teams, et non une cloche générique.
+    /// </summary>
+    private async Task<byte[]?> LogoAsync(UserNotification notification, string appName)
+    {
+        if (_logos.TryGetValue(appName, out byte[]? cached))
+        {
+            return cached;
+        }
+
+        byte[]? bytes = null;
+
+        try
+        {
+            if (notification.AppInfo?.DisplayInfo is { } info)
+            {
+                global::Windows.Storage.Streams.RandomAccessStreamReference reference = info.GetLogo(new global::Windows.Foundation.Size(64, 64));
+                using global::Windows.Storage.Streams.IRandomAccessStreamWithContentType stream = await reference.OpenReadAsync();
+
+                if (stream.Size is > 0 and < 4 * 1024 * 1024)
+                {
+                    using var reader = new global::Windows.Storage.Streams.DataReader(stream);
+                    await reader.LoadAsync((uint)stream.Size);
+                    bytes = new byte[stream.Size];
+                    reader.ReadBytes(bytes);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Log?.Invoke($"[NOTIFICATIONS] Icône de {appName} illisible : {ex.Message}");
+        }
+
+        _logos[appName] = bytes;
+        return bytes;
     }
 }

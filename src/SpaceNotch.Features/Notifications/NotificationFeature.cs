@@ -60,7 +60,7 @@ public sealed class NotificationFeature : IslandFeatureBase
     /// <summary>Demande l'accès (fenêtre de Windows), puis écoute s'il est accordé.</summary>
     public Task<NotificationAccess> RequestAccessAsync() => _listener.RequestAccessAsync();
 
-    private void OnNotificationReceived(string appName, string title, string body)
+    private void OnNotificationReceived(string appName, string title, string body, byte[]? logo)
     {
         if (IgnoredApps.Contains(appName, StringComparer.OrdinalIgnoreCase))
         {
@@ -74,7 +74,7 @@ public sealed class NotificationFeature : IslandFeatureBase
 
         lock (_gate)
         {
-            activity = _groups.Add(FeatureKey, appName, title, body, DateTimeOffset.UtcNow);
+            activity = _groups.Add(FeatureKey, appName, title, body, DateTimeOffset.UtcNow, logo);
         }
 
         PublishActivity(activity);

@@ -37,6 +37,8 @@ public sealed partial class NotificationScene : UserControl, IIslandSceneView
     {
         ArgumentNullException.ThrowIfNull(activity);
 
+        ApplyLogo(activity.Artwork);
+
         if (activity.Payload is NotificationGroupPayload group && group.Count > 0)
         {
             AppSourceText.Text = group.AppName;
@@ -83,5 +85,34 @@ public sealed partial class NotificationScene : UserControl, IIslandSceneView
     private void OnCloseClicked(object sender, RoutedEventArgs e)
     {
         DismissRequested?.Invoke();
+    }
+
+    private byte[]? _logoBytes;
+
+    /// <summary>Le vrai logo de l'application, ou la cloche en pixels.</summary>
+    private void ApplyLogo(byte[]? bytes)
+    {
+        bool logo = bytes is { Length: > 0 };
+        AppLogo.Visibility = logo ? Visibility.Visible : Visibility.Collapsed;
+        AppGlyph.Visibility = logo ? Visibility.Collapsed : Visibility.Visible;
+
+        if (logo && !ReferenceEquals(bytes, _logoBytes))
+        {
+            _logoBytes = bytes;
+            _ = LoadLogoAsync(bytes);
+        }
+    }
+
+    private async System.Threading.Tasks.Task LoadLogoAsync(byte[]? bytes)
+    {
+        try
+        {
+            AppLogoImage.Source = await ArtworkLoader.LoadAsync(bytes);
+        }
+        catch (Exception)
+        {
+            AppLogo.Visibility = Visibility.Collapsed;
+            AppGlyph.Visibility = Visibility.Visible;
+        }
     }
 }

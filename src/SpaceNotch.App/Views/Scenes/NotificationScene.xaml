@@ -22,14 +22,27 @@
             <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
-        <FontIcon
+        <!-- Le logo de l'application quand Windows le donne ; sinon la cloche
+             en pixels. Même place, même taille : la pastille s'y prolonge. -->
+        <Grid
             x:Name="AppIcon"
             Grid.Column="0"
-            Glyph="&#xEA8F;"
-            FontSize="18"
-            Foreground="{ThemeResource NfStateInfoBrush}"
+            Width="20"
+            Height="20"
             VerticalAlignment="Top"
-            Margin="0,3,0,0" />
+            Margin="0,2,0,0">
+            <l:GlyphView
+                x:Name="AppGlyph"
+                Size="18"
+                Key="Notification"
+                Tint="{ThemeResource NfStateInfoBrush}" />
+            <Border
+                x:Name="AppLogo"
+                CornerRadius="5"
+                Visibility="Collapsed">
+                <Image x:Name="AppLogoImage" Stretch="UniformToFill" />
+            </Border>
+        </Grid>
 
         <StackPanel Grid.Column="1" Spacing="2">
             <StackPanel Orientation="Horizontal" Spacing="6">
