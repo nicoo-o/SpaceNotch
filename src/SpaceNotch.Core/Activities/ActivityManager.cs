@@ -282,7 +282,7 @@ public sealed class ActivityManager : IActivityManager
         }
     }
 
-    public int ExpireOverdue(DateTimeOffset now)
+    public int ExpireOverdue(DateTimeOffset now, string? spare = null)
     {
         List<IslandActivity> expired;
         IslandActivity? previous;
@@ -290,7 +290,9 @@ public sealed class ActivityManager : IActivityManager
 
         lock (_lock)
         {
-            expired = _activities.Values.Where(a => a.IsExpiredAt(now)).ToList();
+            expired = _activities.Values
+                .Where(a => a.IsExpiredAt(now) && !string.Equals(a.Id, spare, StringComparison.Ordinal))
+                .ToList();
 
             if (expired.Count == 0)
             {
@@ -320,11 +322,12 @@ public sealed class ActivityManager : IActivityManager
         return expired.Count;
     }
 
-    public TimeSpan? GetTimeUntilNextExpiration(DateTimeOffset now)
+    public TimeSpan? GetTimeUntilNextExpiration(DateTimeOffset now, string? spare = null)
     {
         lock (_lock)
         {
             DateTimeOffset? nearest = _activities.Values
+                .Where(a => !string.Equals(a.Id, spare, StringComparison.Ordinal))
                 .Select(a => a.ExpiresAt)
                 .Where(e => e.HasValue)
                 .Select(e => e!.Value)

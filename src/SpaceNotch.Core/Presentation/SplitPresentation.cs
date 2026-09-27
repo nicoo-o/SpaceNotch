@@ -154,6 +154,42 @@ public static class SplitPresentation
     }
 
     /// <summary>
+    /// Nombre d'activités vraiment cachées, pour le compteur « +N ». Ne compte
+    /// ni l'activité présentée, ni celle que montre déjà la bulle, ni — quand
+    /// un retour temporaire (volume, notification) passe par-dessus — celle
+    /// que la notch retrouvera juste après : elles se voient déjà, ou se verront
+    /// dans l'instant, les compter ferait croire à une pile qui n'existe pas.
+    /// </summary>
+    /// <param name="presented">Activité présentée par la notch.</param>
+    /// <param name="active">Activités actives.</param>
+    /// <param name="bubble">Activité montrée par la bulle, s'il y en a une.</param>
+    public static int HiddenCount(IslandActivity? presented, IReadOnlyList<IslandActivity> active, IslandActivity? bubble)
+    {
+        ArgumentNullException.ThrowIfNull(active);
+
+        List<IslandActivity> hidden = active
+            .Where(a => presented is null || !string.Equals(a.Id, presented.Id, StringComparison.Ordinal))
+            .Where(a => bubble is null || !string.Equals(a.Id, bubble.Id, StringComparison.Ordinal))
+            .ToList();
+
+        if (presented is not null && ActivityPolicies.Resolve(presented) == ActivityPresentationPolicy.Temporary)
+        {
+            IslandActivity? beneath = hidden
+                .Where(a => ActivityPolicies.Resolve(a) != ActivityPresentationPolicy.Temporary)
+                .OrderByDescending(a => a.Priority)
+                .ThenByDescending(a => a.CreatedAt)
+                .FirstOrDefault();
+
+            if (beneath is not null)
+            {
+                hidden.Remove(beneath);
+            }
+        }
+
+        return hidden.Count;
+    }
+
+    /// <summary>
     /// Place de la bulle accrochée : à droite de la notch, épaule contre épaule,
     /// ou à gauche si la droite de l'écran manque de place.
     /// </summary>

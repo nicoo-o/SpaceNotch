@@ -19,6 +19,7 @@ using SpaceNotch.Infrastructure.Logging;
 using SpaceNotch.Infrastructure.Plugins;
 using SpaceNotch.Platform.Windows.System;
 using SpaceNotch_App.Composition;
+using SpaceNotch_App.Views;
 using Windows.Graphics;
 using Windows.UI;
 using WinRT.Interop;
@@ -205,17 +206,29 @@ public sealed partial class SettingsWindow : Window
 
     private static (string Glyph, string Title, string Description) DescribeFeature(IIslandFeature feature) => feature.Id switch
     {
-        FeatureKeys.Media => ("\uE8D6", Lang.T("Musique et vidéos", "Music and video"), Lang.T("Pochette, titre, lecture — Spotify, navigateur, Apple Music…", "Artwork, title, playback — Spotify, browser, Apple Music…")),
-        FeatureKeys.Notifications => ("\uE715", "Notifications", Lang.T("Un aperçu dans la notch, puis elles se rangent.", "A glimpse in the notch, then they tidy themselves away.")),
-        FeatureKeys.Clipboard => ("\uE77F", Lang.T("Presse-papier", "Clipboard"), Lang.T("Les derniers éléments copiés, épinglables.", "Your latest copied items, pinnable.")),
-        FeatureKeys.Bluetooth => ("\uE702", "Bluetooth", Lang.T("Connexion, déconnexion et batterie de tes appareils.", "Connections, disconnections and battery of your devices.")),
-        FeatureKeys.VolumeHud => ("\uE767", "Volume", Lang.T("Remplace l’indicateur de volume de Windows.", "Replaces the Windows volume indicator.")),
-        FeatureKeys.Pomodoro => ("\uE916", "Focus", Lang.T("Des sessions de 25 minutes, puis une pause.", "25-minute sessions, then a break.")),
-        FeatureKeys.FileShelf => ("\uE7B8", Lang.T("Étagère", "Shelf"), Lang.T("Dépose des fichiers sur la notch, reprends-les plus tard.", "Drop files on the notch, pick them up later.")),
-        FeatureKeys.Downloads => ("\uE896", Lang.T("Téléchargements", "Downloads"), Lang.T("La progression de ce que tu télécharges.", "The progress of what you download.")),
-        FeatureKeys.Privacy => ("\uE72E", Lang.T("Caméra et micro", "Camera and mic"), Lang.T("Un point quand une application les utilise.", "A dot when an app is using them.")),
-        _ => ("\uE71D", feature.DisplayName, string.Empty)
+        FeatureKeys.Media => ("Music", Lang.T("Musique et vidéos", "Music and video"), Lang.T("Pochette, titre, lecture — Spotify, navigateur, Apple Music…", "Artwork, title, playback — Spotify, browser, Apple Music…")),
+        FeatureKeys.Notifications => ("Notification", "Notifications", Lang.T("Un aperçu dans la notch, puis elles se rangent.", "A glimpse in the notch, then they tidy themselves away.")),
+        FeatureKeys.Clipboard => ("Clipboard", Lang.T("Presse-papier", "Clipboard"), Lang.T("Les derniers éléments copiés, épinglables.", "Your latest copied items, pinnable.")),
+        FeatureKeys.Bluetooth => ("Bluetooth", "Bluetooth", Lang.T("Connexion, déconnexion et batterie de tes appareils.", "Connections, disconnections and battery of your devices.")),
+        FeatureKeys.VolumeHud => ("VolumeHigh", "Volume", Lang.T("Remplace l’indicateur de volume de Windows.", "Replaces the Windows volume indicator.")),
+        FeatureKeys.Pomodoro => ("Timer", "Focus", Lang.T("Des sessions de 25 minutes, puis une pause.", "25-minute sessions, then a break.")),
+        FeatureKeys.FileShelf => ("Folder", Lang.T("Étagère", "Shelf"), Lang.T("Dépose des fichiers sur la notch, reprends-les plus tard.", "Drop files on the notch, pick them up later.")),
+        FeatureKeys.Downloads => ("Download", Lang.T("Téléchargements", "Downloads"), Lang.T("La progression de ce que tu télécharges.", "The progress of what you download.")),
+        FeatureKeys.Privacy => ("Camera", Lang.T("Caméra et micro", "Camera and mic"), Lang.T("Un point quand une application les utilise.", "A dot when an app is using them.")),
+        _ => ("Launcher", feature.DisplayName, string.Empty)
     };
+
+    /// <summary>
+    /// La trame du menu latéral : la matière de la notch, au cyan du logo,
+    /// sous le dernier onglet. Rien en contraste élevé.
+    /// </summary>
+    private void OnNavColumnSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        NavTrame.IsAllowed = !new global::Windows.UI.ViewManagement.AccessibilitySettings().HighContrast;
+        NavTrame.Animate = GlyphView.AnimationsEnabled;
+        NavTrame.Resize(Math.Max(0, NavColumn.ActualWidth - 20), Math.Max(0, NavColumn.ActualHeight - 28), 0, 0);
+        NavTrame.Present(NavColumn, Color.FromArgb(0xFF, 0x7F, 0xE6, 0xFF), music: false);
+    }
 
     /// <summary>Carte OLED construite en code, identique à celles du XAML.</summary>
     private static Border SettingsCard(string glyph, string title, string description, FrameworkElement control)
@@ -225,11 +238,11 @@ public sealed partial class SettingsWindow : Window
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        grid.Children.Add(new FontIcon
+        grid.Children.Add(new GlyphView
         {
-            Glyph = glyph,
-            FontSize = 16,
-            Foreground = new SolidColorBrush(Color.FromArgb(0xB8, 0xFF, 0xFF, 0xFF)),
+            Key = glyph,
+            Size = 16,
+            Tint = new SolidColorBrush(Color.FromArgb(0xB8, 0xFF, 0xFF, 0xFF)),
             VerticalAlignment = VerticalAlignment.Center
         });
 

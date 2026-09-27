@@ -45,12 +45,7 @@ public sealed partial class BluetoothScene : UserControl, IIslandSceneView
         }
 
         NameText.Text = payload.Name;
-        KindIcon.Key = payload.Kind switch
-        {
-            "audio" => "Music",
-            "phone" => "Call",
-            _ => "Bluetooth"
-        };
+        KindIcon.Key = payload.IconKey;
 
         double dim = payload.IsConnected ? 1 : 0.5;
         IconPlate.Opacity = dim;

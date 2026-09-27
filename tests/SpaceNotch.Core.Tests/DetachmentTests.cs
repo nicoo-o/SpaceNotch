@@ -618,6 +618,35 @@ public class DetachmentTests
     }
 
     [Fact]
+    public void TheCounter_SkipsWhatTheBubbleAlreadyShows()
+    {
+        IslandActivity media = Activity("media");
+        IslandActivity download = Activity("download", ActivityRole.Download, ageSeconds: 30);
+        IslandActivity bubble = SplitPresentation.BubbleFor(media, [media, download])!;
+
+        Assert.Equal(0, SplitPresentation.HiddenCount(media, [media, download], bubble));
+    }
+
+    [Fact]
+    public void TheCounter_SkipsWhatTheNotchReturnsToAfterAnOverlay()
+    {
+        IslandActivity media = Activity("media", priority: ActivityPriority.Background, ageSeconds: 60);
+        IslandActivity volume = Activity("volume", policy: ActivityPresentationPolicy.Temporary);
+
+        Assert.Equal(0, SplitPresentation.HiddenCount(volume, [media, volume], null));
+    }
+
+    [Fact]
+    public void TheCounter_CountsWhatIsReallyHidden()
+    {
+        IslandActivity timer = Activity("timer");
+        IslandActivity media = Activity("media", priority: ActivityPriority.Background, ageSeconds: 60);
+        IslandActivity headset = Activity("headset", ageSeconds: 30);
+
+        Assert.Equal(2, SplitPresentation.HiddenCount(timer, [timer, media, headset], null));
+    }
+
+    [Fact]
     public void NoPresentedActivityMeansNoBubble()
         => Assert.Null(SplitPresentation.BubbleFor(null, [Activity("download", ActivityRole.Download)]));
 

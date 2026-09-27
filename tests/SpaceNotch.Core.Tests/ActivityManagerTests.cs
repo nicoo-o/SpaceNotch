@@ -127,6 +127,21 @@ public class ActivityManagerTests
     }
 
     [Fact]
+    public void ActivityManager_SparesTheOpenedActivity_UntilItCloses()
+    {
+        DateTimeOffset now = DateTimeOffset.UtcNow;
+        var manager = new ActivityManager(() => now);
+        manager.PostActivity(Activity("notif", ActivityPriority.High, duration: TimeSpan.FromSeconds(2), createdAt: now));
+
+        // Ouverte : la notification reste tant qu'on la lit, et n'arme aucune échéance.
+        Assert.Equal(0, manager.ExpireOverdue(now.AddSeconds(3), spare: "notif"));
+        Assert.Null(manager.GetTimeUntilNextExpiration(now.AddSeconds(3), spare: "notif"));
+
+        // Refermée : elle expire aussitôt.
+        Assert.Equal(1, manager.ExpireOverdue(now.AddSeconds(3)));
+    }
+
+    [Fact]
     public void ActivityManager_CapsBackgroundActivities()
     {
         // Le plafond borne la mémoire de façon déterministe, indépendamment du

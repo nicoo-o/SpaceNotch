@@ -65,8 +65,9 @@ public static class IslandSceneCatalog
         [Bluetooth] = new IslandFootprint(320 + Shoulders, 78),
         [FileShelf] = new IslandFootprint(320 + Shoulders, 120),
         [DropZone] = new IslandFootprint(260 + Shoulders, 75),
-        [Pomodoro] = new IslandFootprint(220 + Shoulders, 78),
-        [Timer] = new IslandFootprint(220 + Shoulders, 78),
+        // Chiffres, mode, puis la rangée de contrôles : 116 de haut, sinon les boutons sont coupés.
+        [Pomodoro] = new IslandFootprint(220 + Shoulders, 116),
+        [Timer] = new IslandFootprint(220 + Shoulders, 116),
         [Clipboard] = new IslandFootprint(380 + Shoulders, 230),
 
         // Le lanceur occupe la surface la plus large du répertoire : c'est la

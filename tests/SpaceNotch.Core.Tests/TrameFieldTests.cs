@@ -42,6 +42,18 @@ public class TrameFieldTests
     }
 
     [Fact]
+    public void TheTrame_StartsBelowTheLowestContent_NeverBesideIt()
+    {
+        // Un titre étroit à gauche : la trame ne remplit pas le vide à sa droite.
+        var title = new TrameRect(20, 100, 200, 170);
+
+        var cells = TrameField.Cells(570, 225, 4.5, 48, 0, [title]);
+
+        Assert.NotEmpty(cells);
+        Assert.All(cells, c => Assert.True((c.Row + 0.5) * 4.5 > 170));
+    }
+
+    [Fact]
     public void TheRoundedCorners_AreRespected()
     {
         var cells = TrameField.Cells(570, 225, 4.5, 60, 18, Nothing);

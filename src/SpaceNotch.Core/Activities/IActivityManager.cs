@@ -64,7 +64,13 @@ public interface IActivityManager
     /// Retire les activités dont la durée de vie est écoulée. Retourne le nombre
     /// d'activités effectivement retirées.
     /// </summary>
-    int ExpireOverdue(DateTimeOffset now);
+    /// <param name="now">Instant de référence.</param>
+    /// <param name="spare">
+    /// Activité épargnée : celle que l'utilisateur a ouverte. Une notification
+    /// ne disparaît pas sous ses yeux pendant qu'il la lit ; elle expirera
+    /// quand la notch se refermera.
+    /// </param>
+    int ExpireOverdue(DateTimeOffset now, string? spare = null);
 
     /// <summary>
     /// Délai restant avant la prochaine expiration, ou <c>null</c> s'il n'y a
@@ -73,5 +79,7 @@ public interface IActivityManager
     /// Permet à l'hôte d'armer un unique minuteur borné au lieu de vérifier
     /// périodiquement — et de le désarmer dès qu'il n'y a plus d'échéance.
     /// </summary>
-    TimeSpan? GetTimeUntilNextExpiration(DateTimeOffset now);
+    /// <param name="now">Instant de référence.</param>
+    /// <param name="spare">Activité épargnée, voir <see cref="ExpireOverdue"/>.</param>
+    TimeSpan? GetTimeUntilNextExpiration(DateTimeOffset now, string? spare = null);
 }

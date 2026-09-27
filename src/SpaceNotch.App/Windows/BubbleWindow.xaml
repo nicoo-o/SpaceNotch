@@ -48,6 +48,14 @@
                 HorizontalAlignment="Left"
                 VerticalAlignment="Top" />
 
+            <!-- L'info vivante : l'anneau de progression ou l'arc de batterie
+                 entoure l'icône, comme sur l'iPhone ; la musique danse à sa place. -->
+            <views:TrailingView
+                x:Name="BubbleLive"
+                Diameter="28"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center" />
+
             <Grid
                 x:Name="BubbleContent"
                 HorizontalAlignment="Center"

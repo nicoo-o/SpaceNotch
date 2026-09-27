@@ -7,6 +7,7 @@ using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Features.Media;
 using SpaceNotch.Features.Notifications;
 using SpaceNotch.Features.SystemHud;
 using SpaceNotch.Infrastructure.Logging;
@@ -29,6 +30,7 @@ public sealed partial class IslandWindow
     private List<(string Label, Action Run)> _tourSteps = [];
     private int _tourIndex;
     private DispatcherQueueTimer? _tourTimer;
+    private DispatcherQueueTimer? _tourOpen;
 
     /// <summary>Lance la visite des états.</summary>
     public void StartTour()
@@ -67,19 +69,22 @@ public sealed partial class IslandWindow
         _tourTimer.Start();
     }
 
-    /// <summary>Montre une activité, compacte ou ouverte.</summary>
+    /// <summary>
+    /// Montre une activité, compacte ou ouverte. Ouverte, la notch se referme
+    /// d'abord : pendant qu'elle est ouverte, une arrivée ordinaire attend la
+    /// fermeture (c'est voulu), la visite doit donc refermer puis rouvrir.
+    /// </summary>
     private void TourShow(IslandActivity activity, bool open)
     {
+        _controller.RequestCollapse();
         _activityManager.PostActivity(activity);
         _activityManager.PinPresentation(activity.Id);
 
         if (open)
         {
-            _controller.RequestExpand();
-        }
-        else
-        {
-            _controller.RequestCollapse();
+            _tourOpen ??= CreateOneShotTimer(TimeSpan.FromMilliseconds(700), () => _controller.RequestExpand());
+            _tourOpen.Stop();
+            _tourOpen.Start();
         }
     }
 
@@ -112,6 +117,13 @@ public sealed partial class IslandWindow
             State = IslandActivityState.MediaActive,
             Priority = ActivityPriority.Background,
             Tint = new ActivityTint(0x9B, 0x7B, 0xE0),
+            Actions =
+            [
+                new ActivityAction(MediaFeature.PreviousAction, Lang.T("Piste précédente", "Previous track"), "Previous"),
+                new ActivityAction(MediaFeature.PlayPauseAction, "Pause", "Pause", ActivityActionKind.Toggle, IsPrimary: true),
+                new ActivityAction(MediaFeature.NextAction, Lang.T("Piste suivante", "Next track"), "Next"),
+                new ActivityAction(MediaFeature.SeekAction, Lang.T("Déplacer la lecture", "Seek"), "Seek", ActivityActionKind.Invoke, IsEnabled: true)
+            ],
             Payload = new MediaTrackInfo("Good Days", "SZA", "SOS", "Spotify.exe", true, TimeSpan.FromSeconds(83), TimeSpan.FromSeconds(279), null, new ActivityTint(0x9B, 0x7B, 0xE0))
         };
 
@@ -141,7 +153,7 @@ public sealed partial class IslandWindow
             SceneKey = IslandSceneCatalog.Bluetooth,
             Title = "AirPods Pro",
             Subtitle = Lang.T("Connecté", "Connected"),
-            IconKey = "Bluetooth",
+            IconKey = "Headphones",
             State = IslandActivityState.DeviceActive,
             Priority = ActivityPriority.Normal,
             Policy = ActivityPresentationPolicy.Passive,
@@ -237,7 +249,8 @@ public sealed partial class IslandWindow
             ("pastille détachée · avec bulle", () => DetachFromMenu()),
             ("raccrochée", () => ReattachTo(NotchEdge.Top, 0.5)),
             ("présentation · premier lancement", () => { TourClear("tour.media", "tour.download"); ShowWelcome(); }),
-            ("fin", () => TourClear())
+            ("réglages", () => { TourClear(); OpenSettingsWindow(); }),
+            ("fin", () => { _settingsWindow?.Close(); TourClear(); })
         ];
     }
 }

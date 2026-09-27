@@ -300,10 +300,23 @@ public sealed partial class BubbleWindow : Window
     {
         bool hypnotic = _hypnotic is not null && preset != HypnoticPreset.None;
 
+        // Une bulle qui ne montre qu'une icône fixe ne dit rien de plus que la
+        // notch : elle porte l'info vivante de son activité. L'anneau entoure
+        // l'icône ; l'égaliseur prend sa place.
+        CompactTrailing live = CompactTrailing.For(activity);
+        bool ring = live.Kind is TrailingKind.Ring or TrailingKind.Battery;
+        bool dancing = live.Kind == TrailingKind.Equalizer && !hypnotic;
+        Brush tint = StatePalette.Brush(activity.State);
+
+        BubbleLive.Diameter = ring ? 28 : 16;
+        BubbleLive.Tint = tint;
+        BubbleLive.Show(ring || dancing ? live : CompactTrailing.None);
+
         BubbleHypnoticHost.Visibility = hypnotic ? Visibility.Visible : Visibility.Collapsed;
-        BubbleGlyph.Visibility = hypnotic ? Visibility.Collapsed : Visibility.Visible;
+        BubbleGlyph.Visibility = hypnotic || dancing ? Visibility.Collapsed : Visibility.Visible;
+        BubbleGlyph.Size = ring ? 12 : (double)Application.Current.Resources["NfSignalGlyphSize"];
         BubbleGlyph.Key = activity.IconKey;
-        BubbleGlyph.Tint = StatePalette.Brush(activity.State);
+        BubbleGlyph.Tint = tint;
 
         _hypnotic?.SetPreset(hypnotic ? preset : HypnoticPreset.None, animateMotion);
 

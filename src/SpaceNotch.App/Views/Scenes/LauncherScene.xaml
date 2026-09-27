@@ -2,6 +2,7 @@
 <UserControl
     x:Class="SpaceNotch_App.Views.Scenes.LauncherScene"
     xmlns:l="using:SpaceNotch_App.Views"
+    xmlns:views="using:SpaceNotch_App.Views"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -31,11 +32,11 @@
                 <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
-            <FontIcon
+            <views:GlyphView
                 Grid.Column="0"
-                Glyph="&#xE721;"
-                FontSize="16"
-                Foreground="{ThemeResource NfTextTertiaryBrush}"
+                Key="Search"
+                Size="16"
+                Tint="{ThemeResource NfTextTertiaryBrush}"
                 VerticalAlignment="Center" />
 
             <TextBox

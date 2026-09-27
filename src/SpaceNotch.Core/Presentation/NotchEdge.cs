@@ -142,12 +142,15 @@ public static class SideTab
     /// <summary>Épaule par défaut de la languette.</summary>
     public const double DefaultShoulder = 10;
 
-    /// <summary>Profondeur au repos, depuis le bord, pour chaque taille.</summary>
+    /// <summary>
+    /// Profondeur au repos, depuis le bord, pour chaque taille. Assez pour que
+    /// l'icône et sa jauge se lisent d'un coup d'œil sans ouvrir la languette.
+    /// </summary>
     public static double Depth(ElementSize size) => size switch
     {
-        ElementSize.Small => 24,
-        ElementSize.Large => 34,
-        _ => 28
+        ElementSize.Small => 26,
+        ElementSize.Large => 38,
+        _ => 32
     };
 
     /// <summary>Longueur au repos le long du bord, épaules non comprises.</summary>

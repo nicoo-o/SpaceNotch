@@ -671,6 +671,10 @@ public sealed partial class IslandWindow : Window
         _controller.AnimationCompleted += (_, _) => RequestRender();
         _controller.StateChanged += (_, state) =>
         {
+            // Ouverte, l'activité présentée est épargnée ; refermée, elle
+            // reprend son échéance. Le minuteur se recale dans les deux cas.
+            RearmExpirationTimer();
+
             // Refermée, la notch rend le clavier à l'application de l'utilisateur.
             if (state == IslandState.Closed && _typingCapture)
             {
@@ -1370,11 +1374,20 @@ public sealed partial class IslandWindow : Window
         }
     }
 
-    private bool StackIndicatorVisible() => _settings.ShowActivityStack && _activityManager.Count > 1;
+    /// <summary>
+    /// Activités vraiment cachées : ni la présentée, ni celle de la bulle, ni
+    /// celle que la notch retrouvera sous un retour temporaire.
+    /// </summary>
+    private int HiddenActivityCount() => SplitPresentation.HiddenCount(
+        _controller.PresentedActivity,
+        _activityManager.GetActiveActivities(),
+        _settings.ShowSplitBubble ? SplitPresentation.BubbleFor(_controller.PresentedActivity, _activityManager.GetActiveActivities()) : null);
+
+    private bool StackIndicatorVisible() => _settings.ShowActivityStack && HiddenActivityCount() > 0;
 
     private void UpdateStackIndicator()
     {
-        int count = _activityManager.Count;
+        int count = HiddenActivityCount() + 1;
 
         // Une seule notch : la pile se signale dans la notch elle-même, jamais
         // par un second objet posé à côté. Voir ADR-017.
@@ -1507,7 +1520,9 @@ public sealed partial class IslandWindow : Window
 
         // Le contenu se mesure depuis les flancs, pas depuis les épaules : les
         // épaules appartiennent au bord de l'écran, aucun texte n'y a sa place.
-        if (Math.Abs(shoulder - _contentShoulder) > 0.25)
+        // « Pas proche » plutôt que « écart > 0,25 » : au départ la valeur est NaN,
+        // et toute comparaison avec NaN est fausse ; la marge ne se posait jamais.
+        if (!(Math.Abs(shoulder - _contentShoulder) <= 0.25))
         {
             _contentShoulder = shoulder;
             ContentArea.Margin = new Thickness(shoulder, 0, shoulder, 0);
@@ -1554,7 +1569,7 @@ public sealed partial class IslandWindow : Window
         if (StackIndicatorVisible())
         {
             _measureStack.Style ??= SignalStackIndicator.Style;
-            stack += 6 + Measure(_measureStack, CompactTrailing.StackBadge(_activityManager.Count));
+            stack += 6 + Measure(_measureStack, CompactTrailing.StackBadge(HiddenActivityCount() + 1));
         }
 
         CompactTrailing trailing = CompactTrailing.For(activity);
@@ -1878,9 +1893,16 @@ public sealed partial class IslandWindow : Window
     /// a plus rien à faire expirer. Aucune vérification périodique n'est donc
     /// effectuée en l'absence d'activité temporaire.
     /// </summary>
+    /// <summary>
+    /// Activité ouverte par l'utilisateur, épargnée par l'expiration : une
+    /// notification ouverte ne laisse pas place à la musique pendant qu'on la lit.
+    /// </summary>
+    private string? OpenedActivityId()
+        => _controller.State is IslandState.Expanding or IslandState.Expanded ? _controller.PresentedActivity?.Id : null;
+
     private void RearmExpirationTimer()
     {
-        TimeSpan? delay = _activityManager.GetTimeUntilNextExpiration(DateTimeOffset.UtcNow);
+        TimeSpan? delay = _activityManager.GetTimeUntilNextExpiration(DateTimeOffset.UtcNow, OpenedActivityId());
 
         if (delay is null)
         {
@@ -1901,7 +1923,7 @@ public sealed partial class IslandWindow : Window
 
     private void OnExpirationTick()
     {
-        int expired = _activityManager.ExpireOverdue(DateTimeOffset.UtcNow);
+        int expired = _activityManager.ExpireOverdue(DateTimeOffset.UtcNow, OpenedActivityId());
 
         if (expired > 0)
         {
