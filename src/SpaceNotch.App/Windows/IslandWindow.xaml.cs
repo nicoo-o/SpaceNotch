@@ -1142,7 +1142,7 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void PresentTrame(IslandActivity activity, IIslandSceneView scene)
     {
-        SceneTrame.IsAllowed = !_visualState.HighContrast && _settings.Appearance != IslandAppearance.Light;
+        SceneTrame.IsAllowed = _settings.ShowTrame && !_visualState.HighContrast && _settings.Appearance != IslandAppearance.Light;
         SceneTrame.Animate = UseSpringAnimations();
 
         Color tint = activity.Tint is { } declared
