@@ -109,7 +109,7 @@ threading.Thread(target=close_noise, daemon=True).start()
 # ---------- record ----------
 rec = subprocess.Popen([FFMPEG, "-y", "-loglevel", "error", "-f", "gdigrab", "-framerate", "30", "-draw_mouse", "1",
                         "-i", "desktop", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "10", "-pix_fmt", "yuv420p",
-                        "-t", "74", OUT], stdin=subprocess.PIPE)
+                        "-t", "77", OUT], stdin=subprocess.PIPE)
 T0 = time.monotonic()
 time.sleep(1.5)
 log("enregistrement")
@@ -148,17 +148,17 @@ log("saisie 12*8")
 at(56.2); glide(cx + sw // 4, sh // 2, 0.8)
 at(58.0); pyautogui.press("escape"); log("Échap")
 
-# Pull the notch off the edge: hover first (the lip wakes up under the pointer), then
-# press and pull slowly, let it float, and send it home with a double-click.
-at(59.5); glide(cx, 10, 0.6); log("survol de la notch")
-at(61.0); pyautogui.mouseDown(); log("appui")
+# Pull the notch off the edge, once the search has fully folded back (a press during
+# that transition is ignored): hover, press, pull slowly, let it float, send it home.
+at(63.0); glide(cx, 10, 0.6); log("survol de la notch")
+at(64.2); pyautogui.mouseDown(); log("appui")
 glide(cx, 22, 0.35)
 glide(cx, 10 + sh // 3, 1.6); log("tirée vers le bas")
-at(63.4); pyautogui.mouseUp(); log("relâchée : flottante")
-at(64.0); glide(cx + sw // 4, sh // 2, 0.8)
-at(66.5); glide(cx, 10 + sh // 3 + 4, 0.6)
-at(67.4); pyautogui.doubleClick(); log("double-clic : retour au bord")
-at(68.3); glide(cx + sw // 4, sh // 2, 0.8)
+at(66.6); pyautogui.mouseUp(); log("relâchée : flottante")
+at(67.2); glide(cx + sw // 4, sh // 2, 0.8)
+at(70.0); glide(cx, 10 + sh // 3 + 4, 0.6)
+at(70.9); pyautogui.doubleClick(); log("double-clic : retour au bord")
+at(71.8); glide(cx + sw // 4, sh // 2, 0.8)
 
 rec.wait()
 probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
