@@ -26,15 +26,16 @@ public sealed record LauncherText(
     string Web,
     string SearchWebFormat,
     string DefaultBrowser,
-    string CopyResult)
+    string CopyResult,
+    string Command)
 {
     public static LauncherText French { get; } = new(
         "Favoris", "Récents", "Applications", "Paramètres", "Fichiers récents", "Calcul", "Web",
-        "Rechercher « {0} » sur le web", "Navigateur par défaut", "Copier le résultat");
+        "Rechercher « {0} » sur le web", "Navigateur par défaut", "Copier le résultat", "Commande");
 
     public static LauncherText English { get; } = new(
         "Favorites", "Recent", "Applications", "Settings", "Recent files", "Calculation", "Web",
-        "Search the web for “{0}”", "Default browser", "Copy result");
+        "Search the web for “{0}”", "Default browser", "Copy result", "Command");
 
     public static LauncherText For(CultureInfo culture)
     {
@@ -150,6 +151,15 @@ public static class LauncherSearch
         AddGroup(LauncherResultKind.File, text.Files, MaxFiles);
 
         var sections = new List<LauncherSection>();
+
+        // Une commande tapée (F4) passe avant tout : c'est ce que la saisie demande.
+        if (LauncherCommands.TryParse(q, ReferenceEquals(text, LauncherText.French), out LauncherCommand command))
+        {
+            sections.Add(new LauncherSection(text.Command,
+            [
+                new LauncherResult(command.Target, LauncherResultKind.Command, command.Title, command.Subtitle, command.Target, [], Glyph: "›")
+            ]));
+        }
 
         if (InlineCalculator.TryEvaluate(q, out double value))
         {

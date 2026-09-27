@@ -611,6 +611,30 @@ public static class PixelGlyphs
             "xx....x",
             ".xx..xx",
             "..xxxx."),
+        ["Bolt"] = Mask(
+            "....xx.",
+            "...xx..",
+            "..xx...",
+            ".xxxxx.",
+            "...xx..",
+            "..xx...",
+            ".xx...."),
+        ["Cpu"] = Mask(
+            ".x.x.x.",
+            "xxxxxxx",
+            ".x...x.",
+            "xx.x.xx",
+            ".x...x.",
+            "xxxxxxx",
+            ".x.x.x."),
+        ["Command"] = Mask(
+            ".......",
+            "x......",
+            ".x.....",
+            "..x....",
+            ".x.....",
+            "x..xxxx",
+            "......."),
     };
 
     /// <summary>Clés disposant d'un motif.</summary>
