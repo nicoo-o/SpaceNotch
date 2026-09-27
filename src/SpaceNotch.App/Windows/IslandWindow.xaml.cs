@@ -109,6 +109,7 @@ public sealed partial class IslandWindow : Window
     private readonly FileShelfManager _shelfManager;
     private readonly PomodoroFeature _pomodoroFeature;
     private readonly TimerFeature _timerFeature;
+    private readonly NoteFeature _noteFeature;
     private readonly LauncherFeature _launcherFeature;
     private readonly QuickMenuFeature _quickMenuFeature;
     private readonly ClipboardFeature _clipboardFeature;
@@ -289,6 +290,10 @@ public sealed partial class IslandWindow : Window
             _activityManager, _eventBus, _settings.IsFeatureEnabled(PomodoroFeature.FeatureKey));
 
         _timerFeature = new TimerFeature(_activityManager, _eventBus);
+        _noteFeature = new NoteFeature(
+            _activityManager,
+            _eventBus,
+            System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SpaceNotch"));
         _launcherFeature = new LauncherFeature(
             _activityManager,
             _eventBus,
@@ -337,6 +342,7 @@ public sealed partial class IslandWindow : Window
                 _activityManager, _eventBus, _brightnessService,
                 _settings.IsFeatureEnabled(BrightnessHudFeature.FeatureKey)),
             _timerFeature,
+            _noteFeature,
             _launcherFeature,
             _quickMenuFeature,
             _welcomeFeature,
@@ -584,6 +590,8 @@ public sealed partial class IslandWindow : Window
         _scenes[IslandSceneCatalog.QuickMenu] = QuickMenuSceneView;
         _scenes[IslandSceneCatalog.Bluetooth] = BluetoothSceneView;
         _scenes[IslandSceneCatalog.Welcome] = WelcomeSceneView;
+        _scenes[IslandSceneCatalog.Color] = ColorSceneView;
+        _scenes[IslandSceneCatalog.Note] = NoteSceneView;
 
         // Luminosité et volume partagent la même vue : leur charge utile est
         // identique, seule la clé d'icône les distingue.
@@ -696,6 +704,12 @@ public sealed partial class IslandWindow : Window
             {
                 _typingCapture = false;
                 WindowChrome.SetKeyboardCapture(_hWnd, enabled: false);
+            }
+
+            // La note se range à la fermeture ; son texte est déjà enregistré.
+            if (state == IslandState.Closed && _noteFeature.IsShown)
+            {
+                _noteFeature.Dismiss();
             }
 
             // Le lanceur ne vit que tant qu'il est ouvert — même quand une autre
@@ -990,6 +1004,12 @@ public sealed partial class IslandWindow : Window
                 {
                     CaptureKeyboardForTyping();
                     DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, launcher.FocusSearch);
+                }
+                else if (scene is NoteScene note)
+                {
+                    // La note s'ouvre pour qu'on écrive : clavier et curseur tout de suite.
+                    CaptureKeyboardForTyping();
+                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, note.FocusNote);
                 }
                 else if (scene is WelcomeScene welcome)
                 {
@@ -2466,6 +2486,18 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
+        // Double-clic (F7) : le second clic arrive pendant que la notch s'ouvre ;
+        // au lieu de la refermer, il ouvre la note. Le premier clic n'attend rien.
+        if (properties.IsLeftButtonPressed
+            && Environment.TickCount64 - _lastClickAt < (long)DoubleClickDelay().TotalMilliseconds
+            && !UsesFloatingGeometry)
+        {
+            e.Handled = true;
+            _lastClickAt = 0;
+            OpenNote();
+            return;
+        }
+
         // Clic du milieu (U3) : lecture ou pause, sans ouvrir la notch.
         if (properties.IsMiddleButtonPressed)
         {
@@ -2498,8 +2530,12 @@ public sealed partial class IslandWindow : Window
     }
 
     /// <summary>Clic validé au relâcher, sur une forme compacte.</summary>
+    private long _lastClickAt;
+
     private void CommitClick()
     {
+        _lastClickAt = Environment.TickCount64;
+
         if (_pressOpensLauncher && _controller.PresentedActivity is null)
         {
             OpenLauncher();
@@ -2531,6 +2567,15 @@ public sealed partial class IslandWindow : Window
     }
 
     /// <summary>Ouvre la grille de fonctions et la montre.</summary>
+    /// <summary>Note éclair (F7) : la note s'ouvre dans la notch, curseur à la fin.</summary>
+    private void OpenNote()
+    {
+        _quickMenuFeature.Dismiss();
+        _noteFeature.Show();
+        _activityManager.PinPresentation(NoteFeature.ActivityId);
+        RevealPresented();
+    }
+
     private void OpenLauncher()
     {
         _launcherFeature.Show();

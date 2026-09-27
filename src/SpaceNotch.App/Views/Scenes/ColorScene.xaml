@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="SpaceNotch_App.Views.Scenes.ColorScene"
+    xmlns:l="using:SpaceNotch_App.Views"
+    xmlns:views="using:SpaceNotch_App.Views"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!-- Couleur copiée (F5) : la nuance, et ses trois formats prêts à recopier. -->
+    <Grid Padding="{StaticResource NfScenePadding}" ColumnSpacing="16">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Border
+            x:Name="Swatch"
+            Width="56"
+            Height="56"
+            CornerRadius="12"
+            VerticalAlignment="Center"
+            BorderThickness="1"
+            BorderBrush="{ThemeResource NfStrokeSubtleBrush}" />
+
+        <StackPanel x:Name="Formats" Grid.Column="1" Spacing="2" VerticalAlignment="Center" />
+    </Grid>
+</UserControl>

@@ -117,6 +117,10 @@ public sealed partial class IslandWindow
                 PresentFromMenu(FileShelfManager.ShelfActivityId);
                 return true;
 
+            case QuickMenuFeature.NoteAction:
+                OpenNote();
+                return true;
+
             case QuickMenuFeature.DetachAction:
                 CloseQuickMenu();
                 _controller.RequestCollapse();

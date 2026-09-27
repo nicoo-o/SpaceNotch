@@ -146,3 +146,12 @@ public sealed record WelcomePayload(int Step, int Count, string NotificationAcce
 {
     public bool IsLast => Step >= Count - 1;
 }
+
+/// <summary>Couleur copiée (F5) : la nuance reconnue dans le presse-papier.</summary>
+public sealed record ColorPayload(ColorCode Color);
+
+/// <summary>Note éclair (F7) : le texte de la note.</summary>
+public sealed record NotePayload(string Text);
+
+/// <summary>Retour du calme (F9) : ce qui est arrivé pendant « Ne pas déranger ».</summary>
+public sealed record QuietPayload(IReadOnlyList<QuietGroup> Groups, int Total);

@@ -381,6 +381,8 @@
                 <scenes:BluetoothScene x:Name="BluetoothSceneView" Visibility="Collapsed" />
                 <scenes:WelcomeScene x:Name="WelcomeSceneView" Visibility="Collapsed" />
                 <scenes:InfoScene x:Name="InfoSceneView" Visibility="Collapsed" />
+                <scenes:ColorScene x:Name="ColorSceneView" Visibility="Collapsed" />
+                <scenes:NoteScene x:Name="NoteSceneView" Visibility="Collapsed" />
 
                 <!--
                     Cible de dépôt de fichiers. Pendant le survol d'un fichier, la

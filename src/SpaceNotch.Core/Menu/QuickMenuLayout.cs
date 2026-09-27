@@ -14,8 +14,8 @@ public static class QuickMenuLayout
     public const double Top = SpaceNotch.Core.Scenes.SceneInsets.Top;
     public const double Bottom = SpaceNotch.Core.Scenes.SceneInsets.Bottom;
 
-    /// <summary>Rechercher, Minuteur, Presse-papier, Étagère · Détacher, Accrocher · Réglages, Quitter.</summary>
-    public const int Rows = 8;
+    /// <summary>Rechercher, Minuteur, Note, Presse-papier, Étagère · Détacher, Accrocher · Réglages, Quitter.</summary>
+    public const int Rows = 9;
 
     public const int Separators = 2;
 

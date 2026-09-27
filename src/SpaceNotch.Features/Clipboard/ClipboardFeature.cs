@@ -9,6 +9,7 @@ using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
 using SpaceNotch.Core.Localization;
+using SpaceNotch.Core.Presentation;
 using SpaceNotch.Platform.Windows.Clipboard;
 using SpaceNotch.Platform.Windows.Win32;
 
@@ -40,6 +41,12 @@ public sealed class ClipboardFeature : IslandFeatureBase
     public const string RemoveAction = "clipboard.remove";
 
     public const string ActivityId = "feature.clipboard.current";
+
+    /// <summary>Couleur copiée (F5) : l'activité qui montre la nuance.</summary>
+    public const string ColorActivityId = "feature.clipboard.color";
+
+    /// <summary>Recopier un format de la couleur (valeur : le texte à copier).</summary>
+    public const string CopyTextAction = "clipboard.copy-text";
 
     /// <summary>Longueur maximale d'une prévisualisation, en caractères.</summary>
     private const int PreviewLength = 120;
@@ -135,6 +142,9 @@ public sealed class ClipboardFeature : IslandFeatureBase
             case RemoveAction:
                 return Task.FromResult(Remove(request.Value));
 
+            case CopyTextAction when !string.IsNullOrEmpty(request.Value):
+                return Task.FromResult(ClipboardAccess.SetText(request.Value));
+
             default:
                 return Task.FromResult(false);
         }
@@ -191,6 +201,36 @@ public sealed class ClipboardFeature : IslandFeatureBase
 
         PublishEvent(new ClipboardChangedEvent(Kind: "changed", Preview: null));
         Publish();
+        PublishColor(text);
+    }
+
+    /// <summary>
+    /// Couleur copiée (F5) : un code couleur seul dans le presse-papier fait
+    /// apparaître la nuance dans la notch ; ouverte, elle donne HEX, RGB et HSL.
+    /// </summary>
+    private void PublishColor(string text)
+    {
+        if (!ColorCode.TryParse(text, out ColorCode color))
+        {
+            return;
+        }
+
+        PublishActivity(new IslandActivity
+        {
+            Id = ColorActivityId,
+            FeatureId = FeatureKey,
+            SceneKey = IslandSceneCatalog.Color,
+            Title = color.Hex,
+            Subtitle = Lang.T("Couleur copiée", "Colour copied"),
+            Source = Lang.T("Presse-papier", "Clipboard"),
+            IconKey = "Palette",
+            Tint = new ActivityTint(color.R, color.G, color.B),
+            State = IslandActivityState.Idle,
+            Priority = ActivityPriority.Normal,
+            Policy = ActivityPresentationPolicy.Passive,
+            Duration = TimeSpan.FromSeconds(10),
+            Payload = new ColorPayload(color)
+        });
     }
 
     private bool Paste(string? entryId)
