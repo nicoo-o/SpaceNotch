@@ -12,6 +12,7 @@ using Microsoft.UI.Xaml.Automation.Peers;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Animation;
 using SpaceNotch.Core.Events;
@@ -176,6 +177,14 @@ public sealed partial class IslandWindow : Window
     private readonly TextBlock _measureHeadline = new();
     private readonly TextBlock _measureMetric = new();
     private readonly TextBlock _measureStack = new();
+
+    /// <summary>Liseré d'un pixel dans la teinte de l'activité ; transparent au repos.</summary>
+    private readonly SolidColorBrush _rimBrush = new(Color.FromArgb(0, 0, 0, 0));
+
+    private Storyboard? _rimStoryboard;
+
+    /// <summary>Dernier roulement de mesure, en millisecondes système.</summary>
+    private long _lastRoll;
 
     /// <summary>Épaule appliquée en dernier à la zone de contenu, pour ne la redisposer qu'au changement.</summary>
     private double _contentShoulder = double.NaN;
@@ -1219,6 +1228,21 @@ public sealed partial class IslandWindow : Window
         // Une mesure qui défile — un pourcentage publié plusieurs fois par
         // seconde — change sur place : la faire réapparaître en fondu à chaque
         // valeur la faisait clignoter sans arrêt.
+        // Une mesure roule — au plus cinq fois par seconde : au-delà, un
+        // pourcentage publié en continu tremblerait au lieu de rouler.
+        if (visible && metric)
+        {
+            long now = Environment.TickCount64;
+
+            if (now - _lastRoll >= 200)
+            {
+                _lastRoll = now;
+                ContentTransition.Roll(target, UseSpringAnimations());
+            }
+
+            return;
+        }
+
         if (visible && !metric)
         {
             ContentTransition.Play(target, UseSpringAnimations(), TimeSpan.FromMilliseconds(60), ContentTransition.SwapDuration);
@@ -1346,10 +1370,18 @@ public sealed partial class IslandWindow : Window
         string text = visible ? CompactTrailing.StackBadge(count) ?? string.Empty : string.Empty;
         Visibility state = visible ? Visibility.Visible : Visibility.Collapsed;
 
+        // Le compteur roule quand la pile grandit ou se vide.
+        bool rolls = visible && !string.Equals(SignalStackIndicator.Text, text, StringComparison.Ordinal);
+
         SignalStackIndicator.Text = text;
         SignalStackIndicator.Visibility = state;
         CardStackIndicator.Text = text;
         CardStackIndicator.Visibility = state;
+
+        if (rolls)
+        {
+            ContentTransition.Roll(SignalRestView.Visibility == Visibility.Visible ? SignalStackIndicator : CardStackIndicator, UseSpringAnimations());
+        }
     }
 
     /// <summary>
@@ -1374,6 +1406,7 @@ public sealed partial class IslandWindow : Window
 
         _atmosphere.SetGlowIntensity(ambient.Intensity, ambient.TintOpacity);
         _atmosphere.SetGlowColor(Color.FromArgb(0xFF, ambient.Tint.R, ambient.Tint.G, ambient.Tint.B));
+        ApplyRim(activity, ambient.Tint);
 
         // La dissolution respire avec la matière qui travaille : même fonction,
         // même période. Elle n'est relancée qu'au changement de mouvement, sans
@@ -1388,6 +1421,52 @@ public sealed partial class IslandWindow : Window
             _atmosphere.SetHypnoticPulse(preset, ambient.Pulse);
             _atmosphere.SetBinaryRain(_settings.ShowBinaryRain && preset == HypnoticPreset.Process);
         }
+    }
+
+    /// <summary>
+    /// Liseré d'un pixel autour de la notch, dans la teinte de l'activité : il
+    /// s'allume quand une activité vit et s'éteint au repos, en fondu. C'est la
+    /// lueur de la maquette validée — un bord net plus un halo discret — sans
+    /// jamais griser le noir.
+    /// </summary>
+    private void ApplyRim(IslandActivity? activity, ActivityTint tint)
+    {
+        if (!ReferenceEquals(SurfaceFill.Stroke, _rimBrush))
+        {
+            // Contour choisi par l'utilisateur, ou thème clair : rien à teinter.
+            return;
+        }
+
+        double opacity = AmbientState.RimOpacity(activity, _visualState.HighContrast);
+        Color target = Color.FromArgb((byte)Math.Round(opacity * 255), tint.R, tint.G, tint.B);
+
+        if (_rimBrush.Color == target)
+        {
+            return;
+        }
+
+        _rimStoryboard?.Stop();
+
+        if (!UseSpringAnimations())
+        {
+            _rimBrush.Color = target;
+            return;
+        }
+
+        var fade = new ColorAnimation
+        {
+            To = target,
+            Duration = new Duration(TimeSpan.FromMilliseconds(320)),
+            EnableDependentAnimation = true,
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+        };
+
+        Storyboard.SetTarget(fade, _rimBrush);
+        Storyboard.SetTargetProperty(fade, "Color");
+
+        _rimStoryboard = new Storyboard();
+        _rimStoryboard.Children.Add(fade);
+        _rimStoryboard.Begin();
     }
 
     /// <summary>
@@ -1949,7 +2028,9 @@ public sealed partial class IslandWindow : Window
         SurfaceFill.Fill = CreateSurfaceBrush(light, mode == IslandBackdropMode.Opaque);
 
         // Contour optionnel, pour les fonds d'écran sombres où le noir se perd.
-        SurfaceFill.Stroke = CreateOutlineBrush(light);
+        // Sans contour choisi, le bord porte le liseré teinté de l'activité
+        // (noir pur au repos). Le thème clair n'a pas de lueur, donc pas de liseré.
+        SurfaceFill.Stroke = CreateOutlineBrush(light) ?? (light ? null : _rimBrush);
         SurfaceFill.StrokeThickness = SurfaceFill.Stroke is null ? 0 : 1;
 
         // La goutte est la même matière que la notch ; la bulle aussi, dans sa
