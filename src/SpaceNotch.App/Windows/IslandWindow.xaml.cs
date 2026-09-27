@@ -913,6 +913,7 @@ public sealed partial class IslandWindow : Window
         if (activity is null)
         {
             StopRestingHypnotic();
+            SceneTrame.Present(null, null, music: false);
             IdleRestView.Visibility = Visibility.Visible;
 
             // L'heure est un réglage et non un défaut : elle installerait une
@@ -950,6 +951,7 @@ public sealed partial class IslandWindow : Window
 
             scene.Apply(activity);
             scene.Root.Visibility = Visibility.Visible;
+            PresentTrame(activity, scene);
 
             // Entrée de la scène, une seule fois : son contenu apparaît sur place
             // pendant que la forme grandit, et les éléments ancrés grandissent
@@ -994,6 +996,7 @@ public sealed partial class IslandWindow : Window
 
         _visibleSceneRoot = null;
         InfoSceneView.Rest();
+        SceneTrame.Present(null, null, music: false);
 
         PresentResting(activity);
 
@@ -1111,6 +1114,23 @@ public sealed partial class IslandWindow : Window
         ApplyHypnoticSlot(_cardHypnotic, CardHypnoticHost, CardGlyph, preset);
         ApplyRestArtwork(activity, CardArtwork, CardArtworkImage, CardGlyph, preset);
         SignalArtwork.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// Trame de la scène ouverte, dans la couleur de l'activité. Ni en thème
+    /// clair ni en contraste élevé ; fixe quand Windows réduit les animations.
+    /// Dans le lecteur, elle suit la musique.
+    /// </summary>
+    private void PresentTrame(IslandActivity activity, IIslandSceneView scene)
+    {
+        SceneTrame.IsAllowed = !_visualState.HighContrast && _settings.Appearance != IslandAppearance.Light;
+        SceneTrame.Animate = UseSpringAnimations();
+
+        Color tint = activity.Tint is { } declared
+            ? Color.FromArgb(0xFF, declared.R, declared.G, declared.B)
+            : StatePalette.Tint(activity.State);
+
+        SceneTrame.Present(scene.Root, tint, music: scene is MediaExpandedScene && activity.State == IslandActivityState.MediaActive);
     }
 
     /// <summary>Languette latérale au repos : glyphe ou grille, jauge verticale.</summary>
@@ -1471,6 +1491,8 @@ public sealed partial class IslandWindow : Window
         {
             SurfaceFill.Data = silhouette;
         }
+
+        SceneTrame.Resize(footprint.Width, footprint.Height, radius, shoulder);
 
         // Le reflet suit la même courbe, borné à sa bande. La borne est ce qui
         // l'empêche de mordre dans les congés sur les paliers bas : à 34 de haut,

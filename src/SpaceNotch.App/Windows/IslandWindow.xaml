@@ -91,6 +91,9 @@
                 Opacity="{ThemeResource NfSpecularOpacity}"
                 IsHitTestVisible="False" />
 
+            <!-- Trame des scènes ouvertes (B3) : pixels teintés entre la surface et le contenu. -->
+            <views:TrameView x:Name="SceneTrame" />
+
             <!--
                 Le contenu se superpose aux tracés dans l'ordre de déclaration :
                 un contrôle d'une scène ouverte reçoit donc le pointeur avant la
