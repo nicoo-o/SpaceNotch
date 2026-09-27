@@ -115,6 +115,10 @@ public partial class App : Application
             {
                 island.StartDemo();
             }
+            else if (options.RunTour)
+            {
+                island.StartTour();
+            }
             else
             {
                 // Premier lancement : la notch se présente d'elle-même.

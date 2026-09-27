@@ -22,7 +22,11 @@ namespace SpaceNotch_App.Startup;
 /// téléchargement, casque, et la référence vidéo « Thinking ». C'est le test de
 /// torture du plan, à juger à l'œil.
 /// </param>
-internal sealed record CommandLineOptions(bool OpenSettings, bool StartedByWindows, bool RunDemo = false)
+/// <param name="RunTour">
+/// Visite de tous les états de la notch, quatre secondes chacun, journalisée :
+/// de quoi juger à l'œil chaque forme et chaque scène.
+/// </param>
+internal sealed record CommandLineOptions(bool OpenSettings, bool StartedByWindows, bool RunDemo = false, bool RunTour = false)
 {
     public static CommandLineOptions Parse(IReadOnlyList<string> arguments)
     {
@@ -31,6 +35,7 @@ internal sealed record CommandLineOptions(bool OpenSettings, bool StartedByWindo
         bool openSettings = false;
         bool startedByWindows = false;
         bool runDemo = false;
+        bool runTour = false;
 
         foreach (string argument in arguments)
         {
@@ -46,9 +51,13 @@ internal sealed record CommandLineOptions(bool OpenSettings, bool StartedByWindo
             {
                 runDemo = true;
             }
+            else if (Matches(argument, "--tour"))
+            {
+                runTour = true;
+            }
         }
 
-        return new CommandLineOptions(openSettings, startedByWindows, runDemo);
+        return new CommandLineOptions(openSettings, startedByWindows, runDemo, runTour);
     }
 
     /// <summary>

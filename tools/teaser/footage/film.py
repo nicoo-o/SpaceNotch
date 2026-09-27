@@ -23,6 +23,9 @@ import win32gui
 
 OUT = sys.argv[1]
 EXE = sys.argv[2]
+# « tour » : la visite de tous les états (--tour), filmée sans aucun geste.
+TOUR = len(sys.argv) > 3 and sys.argv[3] == "tour"
+DURATION = "130" if TOUR else "77"
 HERE = os.path.dirname(os.path.abspath(__file__))
 FFMPEG = shutil.which("ffmpeg")
 user32 = ctypes.windll.user32
@@ -110,14 +113,14 @@ threading.Thread(target=close_noise, daemon=True).start()
 # ---------- record ----------
 rec = subprocess.Popen([FFMPEG, "-y", "-loglevel", "error", "-f", "gdigrab", "-framerate", "30", "-draw_mouse", "1",
                         "-i", "desktop", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "10", "-pix_fmt", "yuv420p",
-                        "-t", "77", OUT], stdin=subprocess.PIPE)
+                        "-t", DURATION, OUT], stdin=subprocess.PIPE)
 T0 = time.monotonic()
 T0_WALL = time.time()
 time.sleep(1.5)
 log("enregistrement")
 
-app = subprocess.Popen([EXE, "--demo"])
-log("SpaceNotch --demo")
+app = subprocess.Popen([EXE, "--tour" if TOUR else "--demo"])
+log("SpaceNotch --tour" if TOUR else "SpaceNotch --demo")
 
 cx = sw // 2
 
@@ -137,31 +140,36 @@ def glide(x, y, secs):
 # hide all of it — an open notch stays open until you leave it.
 pyautogui.moveTo(cx + sw // 4, sh // 2)
 
-# Search, once the demo is over (the music leaves at ~51.5 s). Windows only gives the
-# keyboard to a window the user just clicked: Alt+Space opens the search, a click on it
-# takes the focus, then we type.
-at(53.0); pyautogui.hotkey("alt", "space"); log("Alt+Espace")
-at(53.6); glide(cx, 20, 0.5)
-at(54.2); pyautogui.click(); log("clic : la recherche prend le clavier")
-at(54.8)
-for ch in "12*8":
-    pyautogui.write(ch); time.sleep(0.18)
-log("saisie 12*8")
-at(56.2); glide(cx + sw // 4, sh // 2, 0.8)
-at(58.0); pyautogui.press("escape"); log("Échap : vide la recherche")
-at(58.5); pyautogui.press("escape"); log("Échap : la referme")
+if TOUR:
+    # La visite se joue seule : le pointeur reste loin, rien ne s'ouvre au survol.
+    at(128.0)
 
-# Pull the notch off the edge, once the search has fully folded back (a press during
-# that transition is ignored): hover, press, pull slowly, let it float, send it home.
-at(63.0); glide(cx, 10, 0.6); log("survol de la notch")
-at(64.2); pyautogui.mouseDown(); log("appui")
-glide(cx, 22, 0.35)
-glide(cx, 10 + sh // 3, 1.6); log("tirée vers le bas")
-at(66.6); pyautogui.mouseUp(); log("relâchée : flottante")
-at(67.2); glide(cx + sw // 4, sh // 2, 0.8)
-at(70.0); glide(cx, 10 + sh // 3 + 4, 0.6)
-at(70.9); pyautogui.doubleClick(); log("double-clic : retour au bord")
-at(71.8); glide(cx + sw // 4, sh // 2, 0.8)
+else:
+    # Search, once the demo is over (the music leaves at ~51.5 s). Windows only gives the
+    # keyboard to a window the user just clicked: Alt+Space opens the search, a click on it
+    # takes the focus, then we type.
+    at(53.0); pyautogui.hotkey("alt", "space"); log("Alt+Espace")
+    at(53.6); glide(cx, 20, 0.5)
+    at(54.2); pyautogui.click(); log("clic : la recherche prend le clavier")
+    at(54.8)
+    for ch in "12*8":
+        pyautogui.write(ch); time.sleep(0.18)
+    log("saisie 12*8")
+    at(56.2); glide(cx + sw // 4, sh // 2, 0.8)
+    at(58.0); pyautogui.press("escape"); log("Échap : vide la recherche")
+    at(58.5); pyautogui.press("escape"); log("Échap : la referme")
+
+    # Pull the notch off the edge, once the search has fully folded back (a press during
+    # that transition is ignored): hover, press, pull slowly, let it float, send it home.
+    at(63.0); glide(cx, 10, 0.6); log("survol de la notch")
+    at(64.2); pyautogui.mouseDown(); log("appui")
+    glide(cx, 22, 0.35)
+    glide(cx, 10 + sh // 3, 1.6); log("tirée vers le bas")
+    at(66.6); pyautogui.mouseUp(); log("relâchée : flottante")
+    at(67.2); glide(cx + sw // 4, sh // 2, 0.8)
+    at(70.0); glide(cx, 10 + sh // 3 + 4, 0.6)
+    at(70.9); pyautogui.doubleClick(); log("double-clic : retour au bord")
+    at(71.8); glide(cx + sw // 4, sh // 2, 0.8)
 
 rec.wait()
 probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
