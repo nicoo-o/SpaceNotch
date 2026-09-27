@@ -74,11 +74,12 @@ def set_desktop():
     log("bureau propre")
 
 
-user32.SetProcessDpiAware()
-set_resolution()
-set_scaling()
-set_animations()
-set_desktop()
+user32.SetProcessDPIAware()
+for step in (set_resolution, set_scaling, set_animations, set_desktop):
+    try:
+        step()
+    except Exception as ex:  # un réglage manqué ne doit pas empêcher le tournage
+        log(f"{step.__name__} : {ex}")
 time.sleep(2)
 
 sw, sh = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
