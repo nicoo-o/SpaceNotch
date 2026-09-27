@@ -294,7 +294,8 @@ public sealed partial class IslandWindow
         {
             DateTimeOffset t = DateTimeOffset.UtcNow;
             var heaviest = new SpaceNotch.Platform.Windows.Power.HeavyProcess("blender", 7312, 88.4);
-            double[] loads = [62, 71, 88, 93, 96, 91, 94, 97, 95, 92, 96, 94];
+            // Treize mesures au-dessus de 85 % : 24 secondes, plus que les 20 exigées.
+            double[] loads = [62, 71, 88, 93, 96, 91, 94, 97, 95, 92, 96, 94, 97, 95, 93];
 
             for (int i = 0; i < loads.Length; i++)
             {

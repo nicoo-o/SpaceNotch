@@ -177,10 +177,13 @@ public sealed partial class GlyphView : Grid
     {
         for (int i = 0; i < _cells.Length && i < mask.Count; i++)
         {
+            // L'allumage anime l'opacité du visuel : on l'arrête et on la remet
+            // à 1 d'abord, puis l'opacité de la case décide. Dans l'ordre
+            // inverse, le visuel écrasait la case et tout s'allumait.
             Visual visual = ElementCompositionPreview.GetElementVisual(_cells[i]);
             visual.StopAnimation("Opacity");
-            _cells[i].Opacity = mask[i] ? 1 : UnlitOpacity;
             visual.Opacity = 1;
+            _cells[i].Opacity = mask[i] ? 1 : UnlitOpacity;
         }
     }
 
