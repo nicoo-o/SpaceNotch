@@ -6,6 +6,7 @@ interactions the demo cannot: open the player, search with Alt+Space, pull the n
 edge. Every action is logged with its time since the recording started (`actions.log`).
 """
 import ctypes
+import json
 import os
 import shutil
 import subprocess
@@ -111,6 +112,7 @@ rec = subprocess.Popen([FFMPEG, "-y", "-loglevel", "error", "-f", "gdigrab", "-f
                         "-i", "desktop", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "10", "-pix_fmt", "yuv420p",
                         "-t", "77", OUT], stdin=subprocess.PIPE)
 T0 = time.monotonic()
+T0_WALL = time.time()
 time.sleep(1.5)
 log("enregistrement")
 
@@ -166,5 +168,8 @@ probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-sh
                         "-of", "csv=p=0", OUT], capture_output=True, text=True)
 log(f"fin — vidéo {probe.stdout.strip()} (ffmpeg : {FFMPEG})")
 app.kill()
+# The cut lines the demo up from this: where the recording started, in wall-clock time.
+with open(os.path.join(os.path.dirname(OUT), "clock.json"), "w", encoding="utf-8") as f:
+    json.dump({"recording_start_unix": T0_WALL}, f)
 with open(os.path.join(os.path.dirname(OUT), "actions.log"), "w", encoding="utf-8") as f:
     f.write("\n".join(log_lines) + "\n")

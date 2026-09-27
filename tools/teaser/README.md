@@ -1,24 +1,40 @@
 # Teaser
 
 The teaser at the top of the README (`docs/assets/readme/teaser.*`) is cut from **real footage of
-the app** — nothing in it is redrawn.
+the app** — nothing in it is redrawn. The whole chain is scripted, so a new design only needs a
+new run.
 
-1. **Filming** — `footage/film.py`, run by the *Tournage du teaser* workflow on a Windows runner:
-   a sharp desktop (1920×1080 at 175 %, animations on, `footage/wallpaper.jpg`, no icons), a screen
+## Remake it
+
+**Actions › Teaser › Run workflow** (app: `build` films this branch, `release` the latest
+release). When it's done, download the **teaser** artifact and copy `teaser.mp4`, `teaser.webp`
+and `teaser-poster.jpg` into `docs/assets/readme/`. `contact.png` shows one frame per shot, to
+check the cut at a glance.
+
+Locally, from a `footage` artifact: `tools/teaser/make.sh <footage dir> <out dir>`
+(python3 + numpy + Pillow, node + Playwright with Chromium, ffmpeg with libwebp).
+
+## How it works
+
+1. **Film** — `footage/film.py`, on a Windows runner (job `film`): a sharp desktop (1920×1080 at
+   175 %, animations on, `footage/wallpaper.jpg`, no icons, system pop-ups closed), a screen
    recording, `SpaceNotch.exe --demo`, then scripted input for what the demo doesn't do alone
-   (Alt+Space and a quick calculation). The `footage` artifact holds `footage.mp4` and the logs.
-2. **Cut** — `edit/cut.py <footage.mp4> extract` takes each shot from the footage (source time,
-   speed, crop around the notch) and writes `timeline.json`. `edit/appear.py` finds when the notch
-   first shows up, to re-time a new take.
+   (Alt+Space, `12*8`, Escape twice). Writes `footage.mp4`, `spacenotch.log`, `clock.json`,
+   `actions.log`.
+2. **Cut** — `edit/cut.py` picks each shot (clock, start, length, speed, crop around the notch)
+   and writes `timeline.json`. Demo shots are timed from `[DEMO] scénario lancé` in the app log,
+   so a new take needs no re-timing; scripted shots use the recording clock.
 3. **Titles** — `edit/edit.html` lays the shots end to end with dissolves, the captions, the intro
-   and the outro; every frame is a pure function of time. Needs `InterVariable.ttf`
-   ([Inter](https://rsms.me/inter/)) next to it, served over HTTP (`python3 -m http.server 8123`).
-4. **Sound** — `edit/music.py` writes `music.wav` from `timeline.json`: chords change with the shots,
-   effects in the same key.
-5. **Render** — `edit/render.js` (Playwright → FFmpeg), then mux and loop:
+   and the outro; every frame is a pure function of time. Font: `edit/InterVariable.ttf`
+   ([Inter](https://rsms.me/inter/), SIL Open Font License).
+4. **Sound** — `edit/music.py` writes `music.wav` from `timeline.json`: chords change with the
+   shots, effects in the same key.
+5. **Render** — `edit/render.js` (Playwright → FFmpeg), then `make.sh` bakes the poster as frame 0,
+   muxes the sound and encodes the README loop.
 
-```bash
-NODE_PATH=$(npm root -g) node render.js video.mp4
-ffmpeg -i video.mp4 -i music.wav -c:v libx264 -crf 16 -c:a aac -b:a 192k -shortest teaser.mp4
-ffmpeg -i video.mp4 -vf "fps=20,scale=1280:720:flags=lanczos" -c:v libwebp_anim -q:v 92 -loop 0 -preset photo teaser.webp
-```
+## Changing it
+
+- **New UI, same story**: just rerun the workflow.
+- **Different shots or captions**: edit `SEGMENTS` in `edit/cut.py` (the demo's own timings are in
+  `src/SpaceNotch.Features/Demo/DemoScenario.cs`).
+- **Different gestures**: edit the end of `footage/film.py` and the `rec` shots in `cut.py`.
