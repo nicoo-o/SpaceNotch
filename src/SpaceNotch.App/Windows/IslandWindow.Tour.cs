@@ -31,6 +31,7 @@ public sealed partial class IslandWindow
     private int _tourIndex;
     private DispatcherQueueTimer? _tourTimer;
     private DispatcherQueueTimer? _tourOpen;
+    private DispatcherQueueTimer? _tourPreview;
 
     /// <summary>Lance la visite des états.</summary>
     public void StartTour()
@@ -305,7 +306,12 @@ public sealed partial class IslandWindow
             // visite s'effacent le temps de ce plan (la bulle les republie).
             TourClear("tour.media", "tour.download");
             _weatherFeature.Inject(new SpaceNotch.Core.Weather.WeatherReport(14.6, 61, true), "Paris");
-            _controller.RequestPreview();
+
+            // L'aperçu est refusé pendant la fermeture : on le demande une fois
+            // la notch revenue au repos, comme un vrai survol.
+            _tourPreview ??= CreateOneShotTimer(TimeSpan.FromMilliseconds(900), _controller.RequestPreview);
+            _tourPreview.Stop();
+            _tourPreview.Start();
         }
 
         void CpuAlert()
