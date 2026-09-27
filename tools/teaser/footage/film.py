@@ -94,7 +94,7 @@ log(f"écran {sw}×{sh}")
 # ---------- record ----------
 rec = subprocess.Popen([FFMPEG, "-y", "-loglevel", "error", "-f", "gdigrab", "-framerate", "30", "-draw_mouse", "1",
                         "-i", "desktop", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "10", "-pix_fmt", "yuv420p",
-                        "-t", "70", OUT], stdin=subprocess.PIPE)
+                        "-t", "74", OUT], stdin=subprocess.PIPE)
 T0 = time.monotonic()
 time.sleep(1.5)
 log("enregistrement")
@@ -115,31 +115,33 @@ def glide(x, y, secs):
     pyautogui.moveTo(x, y, duration=secs, tween=pyautogui.easeInOutQuad)
 
 
-# Rest the pointer far from the notch.
+# Rest the pointer far from the notch, and let the demo play untouched: music, volume,
+# notifications, a download, AirPods, the grid at work. Opening the player here would
+# hide all of it — an open notch stays open until you leave it.
 pyautogui.moveTo(cx + sw // 4, sh // 2)
 
-# Open the player (music runs from the start of the demo; the volume shows at 3–4 s).
-at(8.0); glide(cx, 14, 0.7); log("survol de la notch")
-at(9.2); pyautogui.click(); log("clic : lecteur")
-at(13.0); glide(cx + sw // 4, sh // 2, 0.8); log("le pointeur s'éloigne")
-
-# Search once the demo has gone quiet (after 46 s the thinking card leaves).
-at(49.0); pyautogui.hotkey("alt", "space"); log("Alt+Espace")
-at(50.0)
+# Search, once the demo is over (the music leaves at ~51.5 s). Windows only gives the
+# keyboard to a window the user just clicked: Alt+Space opens the search, a click on it
+# takes the focus, then we type.
+at(53.0); pyautogui.hotkey("alt", "space"); log("Alt+Espace")
+at(53.6); glide(cx, 20, 0.5)
+at(54.2); pyautogui.click(); log("clic : la recherche prend le clavier")
+at(54.8)
 for ch in "12*8":
-    pyautogui.write(ch); time.sleep(0.16)
+    pyautogui.write(ch); time.sleep(0.18)
 log("saisie 12*8")
-at(53.2); pyautogui.press("escape"); log("Échap")
+at(56.2); glide(cx + sw // 4, sh // 2, 0.8)
+at(58.0); pyautogui.press("escape"); log("Échap")
 
 # Pull the notch off the edge, let it float, then send it home.
-at(55.5); glide(cx, 12, 0.6); log("prise de la notch")
-at(56.3); pyautogui.mouseDown(); log("appui")
-glide(cx, 12 + sh // 3, 1.4); log("tirée vers le bas")
-at(58.2); pyautogui.mouseUp(); log("relâchée : flottante")
-at(59.0); glide(cx + sw // 4, sh // 2, 0.8)
-at(61.5); glide(cx, 12 + sh // 3 + 6, 0.6)
-at(62.4); pyautogui.doubleClick(); log("double-clic : retour au bord")
-at(63.5); glide(cx + sw // 4, sh // 2, 0.8)
+at(60.0); glide(cx, 8, 0.6); log("prise de la notch")
+at(60.9); pyautogui.mouseDown(); log("appui")
+glide(cx, 8 + sh // 3, 1.4); log("tirée vers le bas")
+at(62.8); pyautogui.mouseUp(); log("relâchée : flottante")
+at(63.4); glide(cx + sw // 4, sh // 2, 0.8)
+at(66.0); glide(cx, 8 + sh // 3 + 4, 0.6)
+at(66.9); pyautogui.doubleClick(); log("double-clic : retour au bord")
+at(67.8); glide(cx + sw // 4, sh // 2, 0.8)
 
 rec.wait()
 probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
