@@ -7,6 +7,7 @@ edge. Every action is logged with its time since the recording started (`actions
 """
 import ctypes
 import os
+import shutil
 import subprocess
 import sys
 import time
@@ -19,6 +20,7 @@ import win32con
 OUT = sys.argv[1]
 EXE = sys.argv[2]
 HERE = os.path.dirname(os.path.abspath(__file__))
+FFMPEG = shutil.which("ffmpeg")
 user32 = ctypes.windll.user32
 pyautogui.FAILSAFE = False
 pyautogui.PAUSE = 0
@@ -74,7 +76,6 @@ def set_desktop():
     log("bureau propre")
 
 
-user32.SetProcessDPIAware()
 for step in (set_resolution, set_scaling, set_animations, set_desktop):
     try:
         step()
@@ -82,11 +83,16 @@ for step in (set_resolution, set_scaling, set_animations, set_desktop):
         log(f"{step.__name__} : {ex}")
 time.sleep(2)
 
+# Pixels physiques partout : ce script (DPI par écran v2) et l'enregistreur (drapeau de
+# compatibilité), sinon Windows leur donne un écran réduit à l'échelle et flou.
+user32.SetProcessDpiAwarenessContext(ctypes.c_void_p(-4))
+subprocess.run(["reg", "add", r"HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers",
+                "/v", FFMPEG, "/t", "REG_SZ", "/d", "~ HIGHDPIAWARE", "/f"], capture_output=True)
 sw, sh = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 log(f"écran {sw}×{sh}")
 
 # ---------- record ----------
-rec = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "gdigrab", "-framerate", "30", "-draw_mouse", "1",
+rec = subprocess.Popen([FFMPEG, "-y", "-loglevel", "error", "-f", "gdigrab", "-framerate", "30", "-draw_mouse", "1",
                         "-i", "desktop", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "10", "-pix_fmt", "yuv420p",
                         "-t", "70", OUT], stdin=subprocess.PIPE)
 T0 = time.monotonic()
