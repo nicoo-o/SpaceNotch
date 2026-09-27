@@ -43,11 +43,18 @@ public sealed partial class TabStripView : Grid
     /// <summary>Un onglet est choisi : l'identifiant de son activité.</summary>
     public event EventHandler<string>? TabInvoked;
 
+    /// <summary>
+    /// Pinceau de la pilule de sélection. Propriété de dépendance : le XAML le
+    /// donne par <c>{ThemeResource}</c>.
+    /// </summary>
+    public static readonly DependencyProperty PillBrushProperty = DependencyProperty.Register(
+        nameof(PillBrush), typeof(Brush), typeof(TabStripView), new PropertyMetadata(null, (d, e) => ((TabStripView)d)._pill.Background = (Brush?)e.NewValue));
+
     /// <summary>Pinceau de la pilule de sélection.</summary>
     public Brush? PillBrush
     {
-        get => _pill.Background;
-        set => _pill.Background = value;
+        get => (Brush?)GetValue(PillBrushProperty);
+        set => SetValue(PillBrushProperty, value);
     }
 
     /// <summary>Faux quand Windows réduit les animations : la pilule saute.</summary>

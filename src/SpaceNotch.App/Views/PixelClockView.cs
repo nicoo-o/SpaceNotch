@@ -37,22 +37,31 @@ public sealed partial class PixelClockView : StackPanel
     /// <summary>Faux quand Windows réduit les animations : le chiffre change sur place.</summary>
     public bool Animate { get; set; } = true;
 
+    /// <summary>
+    /// Teinte des pixels allumés. Propriété de dépendance : le XAML la donne
+    /// par <c>{ThemeResource}</c>, qu'une propriété ordinaire ne peut recevoir.
+    /// </summary>
+    public static readonly DependencyProperty TintProperty = DependencyProperty.Register(
+        nameof(Tint), typeof(Brush), typeof(PixelClockView), new PropertyMetadata(null, (d, e) => ((PixelClockView)d).OnTintChanged((Brush?)e.NewValue)));
+
     /// <summary>Teinte des pixels allumés.</summary>
     public Brush? Tint
     {
-        get => _tint;
-        set
-        {
-            _tint = value;
+        get => (Brush?)GetValue(TintProperty);
+        set => SetValue(TintProperty, value);
+    }
 
-            if (_shown is not null)
-            {
-                string text = _shown;
-                _shown = null;
-                _palettes.Clear();
-                Children.Clear();
-                Show(text);
-            }
+    private void OnTintChanged(Brush? value)
+    {
+        _tint = value;
+
+        if (_shown is not null)
+        {
+            string text = _shown;
+            _shown = null;
+            _palettes.Clear();
+            Children.Clear();
+            Show(text);
         }
     }
 
