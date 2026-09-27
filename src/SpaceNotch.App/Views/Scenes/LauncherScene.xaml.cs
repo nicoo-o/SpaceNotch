@@ -15,6 +15,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Launcher;
+using SpaceNotch.Core.Motion;
 using SpaceNotch_App.Launcher;
 using SpaceNotch_App.UI;
 using Windows.System;
@@ -687,6 +688,7 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
                 break;
 
             case VirtualKey.Escape when SearchBox.Text.Length > 0:
+                Shatter(SearchBox.Text);
                 SearchBox.Text = string.Empty;
                 break;
 
@@ -695,6 +697,72 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
         }
 
         e.Handled = true;
+    }
+
+    // ------------------------------------------------------------------
+    // Éclatement (S3)
+    // ------------------------------------------------------------------
+
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _shatterTimer;
+    private DateTime _shatterStart;
+    private int _shatterLetters;
+    private double _letterWidth;
+
+    /// <summary>
+    /// Effacé par Échap, le texte ne disparaît pas d'un coup : chaque lettre se
+    /// brise en carrés de pixels qui tombent et s'éteignent (450 ms), puis
+    /// l'indication revient.
+    /// </summary>
+    private void Shatter(string text)
+    {
+        if (!MotionSettings.AnimationsEnabled || text.Length == 0)
+        {
+            return;
+        }
+
+        var probe = new TextBlock { Text = text, FontSize = SearchBox.FontSize, FontFamily = SearchBox.FontFamily };
+        probe.Measure(new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+
+        _shatterLetters = Math.Min(text.Length, 60);
+        _letterWidth = Math.Max(4, probe.DesiredSize.Width / text.Length);
+        _shatterStart = DateTime.UtcNow;
+        ShatterPath.Margin = new Thickness(SearchBox.Padding.Left + 2, 0, 0, 0);
+
+        _shatterTimer ??= CreateShatterTimer();
+        _shatterTimer.Start();
+    }
+
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer CreateShatterTimer()
+    {
+        Microsoft.UI.Dispatching.DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
+        timer.Interval = TimeSpan.FromMilliseconds(16);
+        timer.Tick += (_, _) =>
+        {
+            double seconds = (DateTime.UtcNow - _shatterStart).TotalSeconds;
+            IReadOnlyList<Shard> shards = PixelShatter.At(_shatterLetters, _letterWidth, SearchBox.FontSize, seconds);
+
+            if (shards.Count == 0)
+            {
+                timer.Stop();
+                ShatterPath.Data = null;
+                return;
+            }
+
+            var group = new GeometryGroup();
+            double size = PixelShatter.ShardDip;
+
+            foreach (Shard shard in shards)
+            {
+                // L'extinction se lit en taille : un éclat qui meurt rétrécit.
+                double s = size * Math.Clamp(shard.Opacity, 0.35, 1);
+                group.Children.Add(new RectangleGeometry { Rect = new global::Windows.Foundation.Rect(shard.X, shard.Y, s, s) });
+            }
+
+            ShatterPath.Data = group;
+            ShatterPath.Opacity = shards.Max(s => s.Opacity);
+        };
+
+        return timer;
     }
 
     // ------------------------------------------------------------------

@@ -70,8 +70,16 @@
                 MaxLines="2"
                 TextWrapping="WrapWholeWords" />
 
-            <!-- Les messages précédents du groupe : une ligne chacun. -->
-            <StackPanel x:Name="HistoryHost" Spacing="2" Margin="0,4,0,0" />
+            <!-- Les messages précédents : une pile de cartes qui s'ouvre en
+                 éventail au survol (S1), chacune lisible sans rien ouvrir. -->
+            <Grid
+                x:Name="HistoryHost"
+                Height="36"
+                Margin="0,8,0,0"
+                Background="Transparent"
+                Visibility="Collapsed"
+                PointerEntered="OnHistoryPointerEntered"
+                PointerExited="OnHistoryPointerExited" />
         </StackPanel>
 
         <Button

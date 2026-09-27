@@ -27,6 +27,9 @@ public sealed class NotificationGroups
     public static TimeSpan Window { get; } = TimeSpan.FromMinutes(2);
 
     /// <summary>Durée de présence du groupe dans la notch après la dernière arrivée.</summary>
+    /// <summary>Hauteur ajoutée par l'éventail des messages précédents, en DIPs.</summary>
+    public const double FanRow = CardFan.CardHeight + 8;
+
     public static TimeSpan Lifetime { get; } = TimeSpan.FromSeconds(6);
 
     /// <summary>Plafond d'un groupe : au-delà, les plus anciennes sont oubliées.</summary>
@@ -95,9 +98,9 @@ public sealed class NotificationGroups
             CreatedAt = now,
             Duration = Lifetime,
 
-            // La hauteur ouverte suit le groupe : une ligne de plus par
-            // expéditeur précédent, jusqu'à trois.
-            ExpandedFootprint = new IslandFootprint(scene.Width, scene.Height + (history * 20)),
+            // Les messages précédents forment un éventail de cartes (S1) : une
+            // rangée de plus dès qu'il y en a un.
+            ExpandedFootprint = new IslandFootprint(scene.Width, scene.Height + (history > 0 ? FanRow : 0)),
             Payload = new NotificationGroupPayload(app, items.ToArray())
         };
     }

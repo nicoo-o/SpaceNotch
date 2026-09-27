@@ -162,10 +162,10 @@ public sealed class Wave5CoreTests
         var open = CardFan.Layout(5, open: true);
 
         Assert.Equal(CardFan.MaxCards, open.Count);
-        Assert.Equal(CardFan.Spread * 2, open[2].OffsetY);
+        Assert.Equal(CardFan.Spread * 2, open[2].Offset);
         Assert.Equal(1.5, open[1].Rotation);
         Assert.Equal(-1.5, open[2].Rotation);
-        Assert.True(CardFan.Height(3, true, 60) > CardFan.Height(3, false, 60));
+        Assert.True(CardFan.Width(3, true, 130) > CardFan.Width(3, false, 130));
     }
 
     // U4 — notch magnétique

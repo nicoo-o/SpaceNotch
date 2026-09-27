@@ -414,6 +414,7 @@ public sealed partial class IslandWindow : Window
         WireEvents();
         WireSceneActions();
         StartMagnet();
+        SceneTabs.TabInvoked += (_, id) => _controller.PresentActivity(id);
         ApplyBackdropMode();
 
         // Toute modification venue de la fenêtre de réglages est appliquée ici,
@@ -882,6 +883,7 @@ public sealed partial class IslandWindow : Window
         IslandState previousState = _lastRenderedState;
         _lastPresentedId = activity?.Id;
         Celebrate(activity);
+        UpdateTabs(activity, expanded);
         _lastRenderedState = _controller.State;
 
         // Le palier au repos ne dépend jamais de l'ouverture : il est résolu à
@@ -1040,7 +1042,7 @@ public sealed partial class IslandWindow : Window
             // forme n'est pas celle du bord ou que les animations sont réduites.
             Breathe();
 
-            if (!PlayDissolve(expanded ? activity!.Footprint : _restFootprint))
+            if (!PlayDissolve(expanded ? _controller.Opened(activity!) : _restFootprint))
             {
                 PlayVeil();
             }
@@ -2004,6 +2006,35 @@ public sealed partial class IslandWindow : Window
         return null;
     }
 
+    /// <summary>
+    /// Onglets glissants (U2) : notch ouverte et au moins deux activités qui
+    /// durent — pas un retour de volume, pas une notification qui passe —, une
+    /// rangée d'onglets s'ajoute en haut, dans l'ordre d'arrivée.
+    /// </summary>
+    private void UpdateTabs(IslandActivity? activity, bool expanded)
+    {
+        static bool Tabbable(IslandActivity a) => a.SceneKey is not (IslandSceneCatalog.QuickMenu or IslandSceneCatalog.Launcher or IslandSceneCatalog.Welcome);
+
+        List<IslandActivity> tabs = expanded && activity is not null && Tabbable(activity) && !UsesSideTab
+            ? _activityManager.GetActiveActivities()
+                .Where(a => Tabbable(a) && (a.Id == activity.Id || ActivityPolicies.Resolve(a) != ActivityPresentationPolicy.Temporary))
+                .OrderBy(a => a.CreatedAt)
+                .Take(4)
+                .ToList()
+            : [];
+
+        if (tabs.Count < 2)
+        {
+            tabs.Clear();
+        }
+
+        double row = tabs.Count >= 2 ? TabStripView.RowHeight : 0;
+        _controller.TabRowHeight = row;
+        ContentArea.Padding = new Thickness(0, row, 0, 0);
+        SceneTabs.Animate = UseSpringAnimations();
+        SceneTabs.Show(tabs, activity?.Id, (Brush)Application.Current.Resources["NfTextPrimaryBrush"], (Brush)Application.Current.Resources["NfTextTertiaryBrush"]);
+    }
+
     /// <summary>Fondu en pixels (A2) sur la forme d'arrivée ; faux s'il ne peut pas jouer.</summary>
     private bool PlayDissolve(IslandFootprint target)
     {
@@ -2038,7 +2069,7 @@ public sealed partial class IslandWindow : Window
 
         // Les rayons partent sous la forme où l'activité se pose.
         IslandFootprint shape = _controller.State is IslandState.Expanded or IslandState.Expanding
-            ? activity.Footprint
+            ? _controller.Opened(activity)
             : _restFootprint;
 
         _atmosphere.PlayLightRays(tint, shape.Width, shape.Height);
@@ -2435,6 +2466,14 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
+        // Clic du milieu (U3) : lecture ou pause, sans ouvrir la notch.
+        if (properties.IsMiddleButtonPressed)
+        {
+            e.Handled = true;
+            _ = SendMediaActionAsync(MediaFeature.PlayPauseAction);
+            return;
+        }
+
         // Forme compacte : l'appui ne décide encore rien. Relâché sur place,
         // c'est un clic ; tiré, c'est un glisser — l'arrachement au bord, ou le
         // déplacement d'une notch déjà détachée. Voir IslandWindow.Detach.
@@ -2527,12 +2566,43 @@ public sealed partial class IslandWindow : Window
     /// Molette sur l'Island : parcourt la pile d'activités. C'est l'interaction
     /// qui donne accès à ce qui est en attente derrière l'activité présentée.
     /// </summary>
+    /// <summary>
+    /// Gestes sur la notch (U3) : la molette règle le volume (2 % par cran, le
+    /// fader cranté s'affiche), un balayage horizontal change de morceau.
+    /// Ctrl + molette parcourt toujours la pile d'activités.
+    /// </summary>
     private void OnIslandPointerWheelChanged(object sender, PointerRoutedEventArgs e)
     {
-        int delta = e.GetCurrentPoint(IslandBody).Properties.MouseWheelDelta;
+        PointerPointProperties properties = e.GetCurrentPoint(IslandBody).Properties;
+        int delta = properties.MouseWheelDelta;
 
         if (delta == 0)
         {
+            return;
+        }
+
+        bool ctrl = (e.KeyModifiers & global::Windows.System.VirtualKeyModifiers.Control) != 0;
+
+        if (properties.IsHorizontalMouseWheel)
+        {
+            // Pavé tactile : un balayage produit une rafale ; un seul morceau par geste.
+            long now = Environment.TickCount64;
+
+            if (now - _lastSwipe > 450)
+            {
+                _lastSwipe = now;
+                _ = SendMediaActionAsync(delta > 0 ? MediaFeature.NextAction : MediaFeature.PreviousAction);
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (!ctrl && _volumeListener.Level is float level)
+        {
+            _volumeListener.SetLevel((float)VolumeFader.Wheel(level, delta / 120.0));
+            _diagnostics.CountEvent();
+            e.Handled = true;
             return;
         }
 
@@ -2540,6 +2610,29 @@ public sealed partial class IslandWindow : Window
         {
             _diagnostics.CountEvent();
             e.Handled = true;
+        }
+    }
+
+    private long _lastSwipe;
+
+    /// <summary>Envoie une commande au lecteur en cours, s'il y en a un.</summary>
+    private async Task SendMediaActionAsync(string actionId)
+    {
+        IslandActivity? media = _activityManager.GetActiveActivities()
+            .FirstOrDefault(a => string.Equals(a.FeatureId, MediaFeature.FeatureKey, StringComparison.Ordinal));
+
+        if (media is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _featureRegistry.HandleActionAsync(new IslandActionRequest(media.Id, actionId));
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log("[GESTE] Commande du lecteur impossible", ex);
         }
     }
 

@@ -360,6 +360,59 @@ public sealed class IslandController : IDisposable
         }
     }
 
+    /// <summary>
+    /// Passe par une forme intermédiaire pendant l'ouverture : la goutte du
+    /// menu liquide (U1), étirée et étroite, avant de devenir le menu.
+    /// </summary>
+    public void Via(IslandFootprint shape)
+    {
+        if (State is IslandState.Expanding or IslandState.Expanded)
+        {
+            _animator.UpdateParameters(_hoverParameters);
+            AnimateTo(shape);
+        }
+    }
+
+    /// <summary>Reprend la forme que l'état demande, avec le ressort de l'ouverture.</summary>
+    public void Resume()
+    {
+        _animator.UpdateParameters(_motionParameters);
+        AnimateTo(FootprintForState());
+    }
+
+    /// <summary>
+    /// Hauteur de la rangée d'onglets (U2) ajoutée à une scène ouverte quand
+    /// plusieurs activités tournent ; 0 sinon. Posée par la fenêtre.
+    /// </summary>
+    public double TabRowHeight
+    {
+        get => _tabRow;
+        set
+        {
+            if (Math.Abs(value - _tabRow) < 0.5)
+            {
+                return;
+            }
+
+            _tabRow = value;
+
+            if (State is IslandState.Expanded or IslandState.Expanding)
+            {
+                AnimateTo(FootprintForState());
+            }
+        }
+    }
+
+    private double _tabRow;
+
+    /// <summary>Forme ouverte d'une activité, onglets compris.</summary>
+    public IslandFootprint Opened(IslandActivity activity)
+    {
+        ArgumentNullException.ThrowIfNull(activity);
+        IslandFootprint scene = activity.Footprint;
+        return _tabRow > 0 ? new IslandFootprint(scene.Width, scene.Height + _tabRow) : scene;
+    }
+
     private const double PressScale = 0.97;
     private bool _pressed;
     private double _lean = 1;
@@ -395,7 +448,7 @@ public sealed class IslandController : IDisposable
 
         _animator.UpdateParameters(_motionParameters);
         _stateManager.TryTransitionTo(IslandState.Expanding);
-        AnimateTo(_presented.Footprint);
+        AnimateTo(Opened(_presented));
     }
 
     public void RequestCollapse()
@@ -526,7 +579,7 @@ public sealed class IslandController : IDisposable
     /// <summary>Encombrement que l'état courant réclame.</summary>
     private IslandFootprint FootprintForState() => State switch
     {
-        IslandState.Expanded or IslandState.Expanding when _presented is not null => _presented.Footprint,
+        IslandState.Expanded or IslandState.Expanding when _presented is not null => Opened(_presented),
         IslandState.Preview when PreviewFootprint is not null => PreviewFootprint(),
         IslandState.Closed when _lean > 1.0005 => new IslandFootprint(_collapsedFootprint.Width * _lean, _collapsedFootprint.Height * _lean),
         _ => _collapsedFootprint
@@ -595,7 +648,7 @@ public sealed class IslandController : IDisposable
 
         if (State is IslandState.Expanded or IslandState.Expanding)
         {
-            AnimateTo(activity.Footprint);
+            AnimateTo(Opened(activity));
         }
     }
 
