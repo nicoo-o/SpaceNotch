@@ -7,6 +7,7 @@ using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Productivity;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 
 namespace SpaceNotch.Features.Productivity;
 
@@ -191,17 +192,17 @@ public sealed class TimerFeature : IslandFeatureBase
             Id = ActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Timer,
-            Title = "Temps écoulé",
-            Subtitle = "Minuteur",
+            Title = Lang.T("Temps écoulé", "Time’s up"),
+            Subtitle = Lang.T("Minuteur", "Timer"),
             Source = "Timer",
             IconKey = "Timer",
             State = IslandActivityState.TimerActive,
             Priority = ActivityPriority.High,
             Duration = TimeSpan.FromSeconds(5),
-            Payload = new TimerPayload(TimeSpan.Zero, false, "Temps écoulé")
+            Payload = new TimerPayload(TimeSpan.Zero, false, Lang.T("Temps écoulé", "Time’s up"))
         });
 
-        PublishEvent(new NotificationPostedEvent("Minuteur", "Temps écoulé", "La mesure est terminée."));
+        PublishEvent(new NotificationPostedEvent(Lang.T("Minuteur", "Timer"), Lang.T("Temps écoulé", "Time’s up"), Lang.T("La mesure est terminée.", "The timer has finished.")));
     }
 
     private void Publish()
@@ -210,8 +211,8 @@ public sealed class TimerFeature : IslandFeatureBase
 
         string mode = Mode switch
         {
-            TimerMode.Stopwatch => "Chronomètre",
-            _ => "Minuteur"
+            TimerMode.Stopwatch => Lang.T("Chronomètre", "Stopwatch"),
+            _ => Lang.T("Minuteur", "Timer")
         };
 
         PublishActivity(new IslandActivity

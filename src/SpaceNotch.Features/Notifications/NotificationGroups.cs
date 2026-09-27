@@ -5,6 +5,7 @@ using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 
 namespace SpaceNotch.Features.Notifications;
 
@@ -43,7 +44,7 @@ public sealed class NotificationGroups
     /// <summary>Ajoute une notification et renvoie l'activité de son groupe.</summary>
     public IslandActivity Add(string featureId, string appName, string title, string body, DateTimeOffset now)
     {
-        string app = string.IsNullOrWhiteSpace(appName) ? "Application" : appName.Trim();
+        string app = string.IsNullOrWhiteSpace(appName) ? Lang.T("Application", "App") : appName.Trim();
 
         if (!_groups.TryGetValue(app, out List<NotificationItem>? items))
         {

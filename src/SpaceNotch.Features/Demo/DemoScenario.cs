@@ -5,6 +5,7 @@ using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Features.Notifications;
 using SpaceNotch.Features.SystemHud;
 
@@ -79,7 +80,7 @@ public static class DemoScenario
 
         foreach (string sender in senders)
         {
-            At(7 + Array.IndexOf(senders, sender), now => notifications.Add(FeatureId, "Discord", sender, "Nouveau message", now));
+            At(7 + Array.IndexOf(senders, sender), now => notifications.Add(FeatureId, "Discord", sender, Lang.T("Nouveau message", "New message"), now));
         }
 
         // 4. Un téléchargement : la grille « Process », la taille qui grandit.
@@ -89,7 +90,7 @@ public static class DemoScenario
             At(13 + i, now => Download(now, null, ActivityMotionState.Working, null, progress: progress));
         }
 
-        At(20, now => Download(now, "✓", ActivityMotionState.Completing, TimeSpan.FromSeconds(5), "Téléchargé"));
+        At(20, now => Download(now, "✓", ActivityMotionState.Completing, TimeSpan.FromSeconds(5), Lang.T("Téléchargé", "Downloaded")));
 
         // 5. Un casque qui se connecte : une bonne nouvelle discrète.
         At(22, now => new IslandActivity
@@ -99,7 +100,7 @@ public static class DemoScenario
             FeatureId = FeatureId,
             SceneKey = IslandSceneCatalog.Bluetooth,
             Title = "AirPods Pro",
-            Subtitle = "Connecté",
+            Subtitle = Lang.T("Connecté", "Connected"),
             IconKey = "Bluetooth",
             Payload = new BluetoothPayload("AirPods Pro", true, 84, "audio"),
             State = IslandActivityState.DeviceActive,
@@ -111,7 +112,7 @@ public static class DemoScenario
         At(26, now => Thinking(now, "Read app-sidebar.tsx · 219 lines", "Thinking", ActivityMotionState.Working, HypnoticPreset.Think));
         At(30, now => Thinking(now, "Read dropdown-menu.tsx · 257 lines", "Reading file", ActivityMotionState.Working, HypnoticPreset.Read));
         At(34, now => Thinking(now, "Read sidebar.tsx · 741 lines", "Creating prototype", ActivityMotionState.Working, HypnoticPreset.Process));
-        At(42, now => Thinking(now, "Read sidebar.tsx · 741 lines", "Prototype prêt", ActivityMotionState.Completing, HypnoticPreset.None));
+        At(42, now => Thinking(now, "Read sidebar.tsx · 741 lines", Lang.T("Prototype prêt", "Prototype ready"), ActivityMotionState.Completing, HypnoticPreset.None));
         At(46, null, ThinkingId);
 
         // 7. La musique s'arrête : la notch retourne à sa lèvre.
@@ -120,14 +121,14 @@ public static class DemoScenario
         return steps;
     }
 
-    private static IslandActivity Download(DateTimeOffset now, string? metric, ActivityMotionState state, TimeSpan? lifetime, string title = "Téléchargement", double? progress = null)
+    private static IslandActivity Download(DateTimeOffset now, string? metric, ActivityMotionState state, TimeSpan? lifetime, string? title = null, double? progress = null)
         => new()
         {
             CreatedAt = now,
             Id = DownloadId,
             FeatureId = FeatureId,
             SceneKey = IslandSceneCatalog.Card,
-            Title = title,
+            Title = title ?? Lang.T("Téléchargement", "Downloading"),
             Eyebrow = "ubuntu-24.04-desktop.iso",
             Metric = metric,
             Progress = progress,

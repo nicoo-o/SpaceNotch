@@ -8,6 +8,7 @@ using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Platform.Windows.Clipboard;
 using SpaceNotch.Platform.Windows.Win32;
 
@@ -299,17 +300,17 @@ public sealed class ClipboardFeature : IslandFeatureBase
             Id = ActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Clipboard,
-            Title = $"{previews.Count} élément{(previews.Count > 1 ? "s" : string.Empty)}",
-            Subtitle = "Presse-papier",
+            Title = Lang.T($"{previews.Count} élément{(previews.Count > 1 ? "s" : string.Empty)}", $"{previews.Count} item{(previews.Count == 1 ? string.Empty : "s")}"),
+            Subtitle = Lang.T("Presse-papier", "Clipboard"),
             Source = "Clipboard",
             IconKey = "Clipboard",
             State = IslandActivityState.Idle,
             Priority = ActivityPriority.Normal,
             Actions =
             [
-                new ActivityAction(PasteAction, "Coller", "Paste"),
-                new ActivityAction(PinAction, "Épingler", "Pin"),
-                new ActivityAction(RemoveAction, "Supprimer", "Delete")
+                new ActivityAction(PasteAction, Lang.T("Coller", "Paste"), "Paste"),
+                new ActivityAction(PinAction, Lang.T("Épingler", "Pin"), "Pin"),
+                new ActivityAction(RemoveAction, Lang.T("Supprimer", "Delete"), "Delete")
             ],
             Payload = new ClipboardPayload(previews)
         });
@@ -327,8 +328,8 @@ public sealed class ClipboardFeature : IslandFeatureBase
     private static string Classify(string content)
         => content.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
             || content.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
-                ? "Lien"
-                : "Texte";
+                ? Lang.T("Lien", "Link")
+                : Lang.T("Texte", "Text");
 
     /// <summary>
     /// Entrée d'historique. Le contenu complet n'existe qu'ici et n'est jamais

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <UserControl
     x:Class="SpaceNotch_App.Views.Scenes.LauncherScene"
+    xmlns:l="using:SpaceNotch_App.Views"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -12,7 +13,9 @@
         (cœur) : barre 52, filet 1, liste (en-têtes 26, lignes 40, calcul 70),
         pied 40, marge basse 10. La notch prend exactement cette hauteur.
     -->
-    <Grid x:Name="RootGrid" Padding="0,0,0,10">
+    <!-- Marge latérale : filets et pilule de sélection restent dans le noir
+         de la notch, sans déborder sur ses flancs arrondis. -->
+    <Grid x:Name="RootGrid" Padding="12,0,12,10">
         <Grid.RowDefinitions>
             <RowDefinition Height="52" />
             <RowDefinition Height="1" />
@@ -39,8 +42,8 @@
                 x:Name="SearchBox"
                 Grid.Column="1"
                 Style="{StaticResource NfSearchFieldStyle}"
-                PlaceholderText="Rechercher des applications, réglages, fichiers…"
-                AutomationProperties.Name="Rechercher"
+                PlaceholderText="{l:Loc Fr='Rechercher des applications, réglages, fichiers…', En='Search apps, settings, files…'}"
+                AutomationProperties.Name="{l:Loc Fr='Rechercher', En='Search'}"
                 TextChanged="OnSearchTextChanged"
                 GotFocus="OnSearchGotFocus"
                 LostFocus="OnSearchLostFocus"
@@ -51,7 +54,7 @@
                 Grid.Column="2"
                 Style="{StaticResource NfKeyCapStyle}"
                 VerticalAlignment="Center">
-                <TextBlock Text="Échap" Style="{StaticResource NfKeyCapTextStyle}" />
+                <TextBlock Text="{l:Loc Fr='Échap', En='Esc'}" Style="{StaticResource NfKeyCapTextStyle}" />
             </Border>
         </Grid>
 
@@ -145,8 +148,8 @@
                     Style="{StaticResource NfSearchFieldStyle}"
                     FontSize="12.5"
                     Margin="6,0,6,2"
-                    PlaceholderText="Filtrer les actions…"
-                    AutomationProperties.Name="Filtrer les actions"
+                    PlaceholderText="{l:Loc Fr='Filtrer les actions…', En='Filter actions…'}"
+                    AutomationProperties.Name="{l:Loc Fr='Filtrer les actions', En='Filter actions'}"
                     TextChanged="OnActionsFilterChanged"
                     PreviewKeyDown="OnActionsPreviewKeyDown" />
             </StackPanel>

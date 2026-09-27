@@ -55,7 +55,7 @@ public sealed partial class VolumeHudScene : UserControl, IIslandSceneView
     public void UpdateHud(HudPayload hud)
     {
         _maximum = hud.Maximum <= 0 ? 100 : hud.Maximum;
-        _muted = string.Equals(hud.ValueText, "Muet", StringComparison.Ordinal);
+        _muted = string.Equals(hud.ValueText, SpaceNotch.Features.SystemHud.HudActivity.MutedText, StringComparison.Ordinal);
 
         VolumeLabel.Text = hud.Label;
         VolumeIcon.Key = hud.IconKey;

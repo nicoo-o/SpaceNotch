@@ -1,4 +1,5 @@
 using System;
+using SpaceNotch.Core.Localization;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -76,7 +77,7 @@ public sealed class DownloadTracker
             name = name[..^extension.Length];
         }
 
-        return name.Length == 0 || Unconfirmed.IsMatch(name) ? "Téléchargement" : name;
+        return name.Length == 0 || Unconfirmed.IsMatch(name) ? Lang.T("Téléchargement", "Download") : name;
     }
 
     /// <summary>
@@ -137,7 +138,7 @@ public sealed class DownloadTracker
     /// <summary>Taille lisible, en unités décimales comme l'explorateur de fichiers.</summary>
     public static string FormatSize(long bytes)
     {
-        string[] units = ["o", "Ko", "Mo", "Go", "To"];
+        string[] units = Lang.French ? ["o", "Ko", "Mo", "Go", "To"] : ["B", "KB", "MB", "GB", "TB"];
         double value = bytes;
         int unit = 0;
 

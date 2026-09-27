@@ -6,6 +6,7 @@ using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Platform.Windows.Audio;
 
 namespace SpaceNotch.Features.SystemHud;
@@ -79,7 +80,7 @@ public sealed class SystemHudFeature : IslandFeatureBase
             volume,
             100,
             isMuted ? "VolumeMute" : GlyphKeyFor(volume),
-            "Sortie principale",
+            Lang.T("Sortie principale", "Main output"),
             HudLifetime,
             isMuted);
 

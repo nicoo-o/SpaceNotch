@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using SpaceNotch.Core.Activities;
+using SpaceNotch.Core.Localization;
 using Windows.Foundation;
 
 namespace SpaceNotch_App.Views.Scenes;
@@ -58,8 +59,8 @@ public sealed partial class BluetoothScene : UserControl, IIslandSceneView
 
         bool low = payload.IsConnected && payload.IsBatteryLow;
         StateText.Text = !payload.IsConnected
-            ? "Déconnecté"
-            : low ? $"Batterie faible · {payload.BatteryPercent} %" : "Connecté";
+            ? Lang.T("Déconnecté", "Disconnected")
+            : low ? Lang.T($"Batterie faible · {payload.BatteryPercent} %", $"Low battery · {payload.BatteryPercent}%") : Lang.T("Connecté", "Connected");
         StateText.Foreground = low
             ? new SolidColorBrush(Amber)
             : (Brush)Application.Current.Resources["NfTextSecondaryBrush"];

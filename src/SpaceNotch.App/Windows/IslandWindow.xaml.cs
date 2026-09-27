@@ -21,6 +21,7 @@ using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Features.Bluetooth;
 using SpaceNotch.Features.Clipboard;
 using SpaceNotch.Features.Demo;
@@ -2460,7 +2461,7 @@ public sealed partial class IslandWindow : Window
         }
 
         e.AcceptedOperation = DataPackageOperation.Copy;
-        e.DragUIOverride.Caption = "Déposer dans la notch";
+        e.DragUIOverride.Caption = Lang.T("Déposer dans la notch", "Drop into the notch");
 
         // DragOver arrive en rafale : la mise en place n'a lieu qu'une fois.
         if (DropZoneView.Visibility == Visibility.Visible)
@@ -2620,7 +2621,7 @@ public sealed partial class IslandWindow : Window
 
         var toggleItem = new MenuFlyoutItem
         {
-            Text = expanded ? "Réduire la notch" : "Déployer la notch",
+            Text = expanded ? Lang.T("Réduire la notch", "Collapse the notch") : Lang.T("Déployer la notch", "Expand the notch"),
             Icon = new FontIcon { Glyph = expanded ? "\uE70E" : "\uE70D" }
         };
         toggleItem.Click += (_, _) => _controller.ToggleFromUser();
@@ -2633,7 +2634,7 @@ public sealed partial class IslandWindow : Window
         {
             var attachItem = new MenuFlyoutItem
             {
-                Text = "Raccrocher au bord de l'écran",
+                Text = Lang.T("Raccrocher au bord de l’écran", "Dock to the screen edge"),
                 Icon = new FontIcon { Glyph = "\uE8A7" }
             };
             attachItem.Click += (_, _) => ReattachFromMenu();
@@ -2649,7 +2650,7 @@ public sealed partial class IslandWindow : Window
 
         var settingsItem = new MenuFlyoutItem
         {
-            Text = "Réglages…",
+            Text = Lang.T("Réglages…", "Settings…"),
             Icon = new FontIcon { Glyph = "\uE713" }
         };
         settingsItem.Click += (_, _) => OpenSettingsWindow();
@@ -2668,7 +2669,7 @@ public sealed partial class IslandWindow : Window
 
         flyout.Items.Add(new MenuFlyoutSeparator());
 
-        var exitItem = new MenuFlyoutItem { Text = "Quitter SpaceNotch" };
+        var exitItem = new MenuFlyoutItem { Text = Lang.T("Quitter SpaceNotch", "Quit SpaceNotch") };
         exitItem.Click += (_, _) => QuitApplication();
         flyout.Items.Add(exitItem);
 
@@ -2680,11 +2681,11 @@ public sealed partial class IslandWindow : Window
     {
         var menu = new MenuFlyoutSubItem
         {
-            Text = "Lancer",
+            Text = Lang.T("Lancer", "Start"),
             Icon = new FontIcon { Glyph = "\uE768" }
         };
 
-        var launcherItem = new MenuFlyoutItem { Text = "Rechercher…" };
+        var launcherItem = new MenuFlyoutItem { Text = Lang.T("Rechercher…", "Search…") };
         launcherItem.Click += (_, _) =>
         {
             _launcherFeature.Show();
@@ -2692,7 +2693,7 @@ public sealed partial class IslandWindow : Window
         };
 
         bool countdown = _timerFeature.IsMeasuring && _timerFeature.Mode is TimerMode.Countdown;
-        var timerItem = new MenuFlyoutItem { Text = countdown ? "Arrêter le minuteur" : "Minuteur (5 min)" };
+        var timerItem = new MenuFlyoutItem { Text = countdown ? Lang.T("Arrêter le minuteur", "Stop timer") : Lang.T("Minuteur (5 min)", "Timer (5 min)") };
         timerItem.Click += (_, _) =>
         {
             // Arrêter depuis le menu n'implique pas d'ouvrir la notch : la mesure
@@ -2707,7 +2708,7 @@ public sealed partial class IslandWindow : Window
         };
 
         bool stopwatch = _timerFeature.IsMeasuring && _timerFeature.Mode is TimerMode.Stopwatch;
-        var stopwatchItem = new MenuFlyoutItem { Text = stopwatch ? "Arrêter le chronomètre" : "Chronomètre" };
+        var stopwatchItem = new MenuFlyoutItem { Text = stopwatch ? Lang.T("Arrêter le chronomètre", "Stop stopwatch") : Lang.T("Chronomètre", "Stopwatch") };
         stopwatchItem.Click += (_, _) =>
         {
             _timerFeature.SetMode(TimerMode.Stopwatch);
@@ -2721,7 +2722,7 @@ public sealed partial class IslandWindow : Window
 
         var focusItem = new MenuFlyoutItem
         {
-            Text = _pomodoroFeature.IsSessionRunning ? "Mettre le focus en pause" : "Focus (25 min)"
+            Text = _pomodoroFeature.IsSessionRunning ? Lang.T("Mettre le focus en pause", "Pause focus") : "Focus (25 min)"
         };
         focusItem.Click += (_, _) =>
         {
@@ -2737,7 +2738,7 @@ public sealed partial class IslandWindow : Window
             RevealPresented();
         };
 
-        var demoItem = new MenuFlyoutItem { Text = "Démonstration" };
+        var demoItem = new MenuFlyoutItem { Text = Lang.T("Démonstration", "Demo") };
         demoItem.Click += (_, _) => StartDemo();
 
         menu.Items.Add(launcherItem);
@@ -2759,7 +2760,7 @@ public sealed partial class IslandWindow : Window
     {
         var menu = new MenuFlyoutSubItem
         {
-            Text = "Activités",
+            Text = Lang.T("Activités", "Activities"),
             Icon = new FontIcon { Glyph = "\uE9D5" }
         };
 
@@ -2816,15 +2817,15 @@ public sealed partial class IslandWindow : Window
     {
         var menu = new MenuFlyoutSubItem
         {
-            Text = "Mouvement",
+            Text = Lang.T("Mouvement", "Motion"),
             Icon = new FontIcon { Glyph = "\uE916" }
         };
 
         foreach ((MotionStyle style, string label) in new[]
                  {
-                     (MotionStyle.Quiet, "Calme"),
-                     (MotionStyle.Natural, "Naturel"),
-                     (MotionStyle.Dynamic, "Dynamique")
+                     (MotionStyle.Quiet, Lang.T("Calme", "Calm")),
+                     (MotionStyle.Natural, Lang.T("Naturel", "Natural")),
+                     (MotionStyle.Dynamic, Lang.T("Dynamique", "Lively"))
                  })
         {
             var item = new RadioMenuFlyoutItem
@@ -2844,7 +2845,7 @@ public sealed partial class IslandWindow : Window
 
         var hypnotic = new ToggleMenuFlyoutItem
         {
-            Text = "Mouvement hypnotique",
+            Text = Lang.T("Mouvement hypnotique", "Hypnotic motion"),
             IsChecked = _settings.AllowHypnoticMotion
         };
         hypnotic.Click += (_, _) => _settingsService.Update(settings => settings.AllowHypnoticMotion = hypnotic.IsChecked);
@@ -2859,15 +2860,15 @@ public sealed partial class IslandWindow : Window
     {
         var menu = new MenuFlyoutSubItem
         {
-            Text = "Apparence",
+            Text = Lang.T("Apparence", "Appearance"),
             Icon = new FontIcon { Glyph = "\uE790" }
         };
 
         foreach ((IslandAppearance appearance, string label) in new[]
                  {
-                     (IslandAppearance.Dark, "Sombre"),
-                     (IslandAppearance.Light, "Clair"),
-                     (IslandAppearance.Auto, "Automatique")
+                     (IslandAppearance.Dark, Lang.T("Sombre", "Dark")),
+                     (IslandAppearance.Light, Lang.T("Clair", "Light")),
+                     (IslandAppearance.Auto, Lang.T("Automatique", "Automatic"))
                  })
         {
             var item = new RadioMenuFlyoutItem

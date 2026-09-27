@@ -35,6 +35,14 @@ public sealed partial class AtmosphereWindow : Window
     private const int HorizontalBleedPhysical = 64;
 
     /// <summary>
+    /// Force de la dissolution — le voile teinté qui fondait le bas de la notch
+    /// ouverte dans le bureau. Éteinte depuis la vague 4 : ce voile éclaircissait
+    /// un grand pan de bureau autour d'une grande scène (la recherche), et la
+    /// direction retenue est un noir pur bordé d'un liseré et d'un halo discret.
+    /// </summary>
+    private const double DissolutionStrength = 0;
+
+    /// <summary>
     /// Profondeur minimale du fondu, en pixels physiques. S'applique à la pilule
     /// au repos, dont le bas doit se dissiper court.
     /// </summary>
@@ -235,7 +243,9 @@ public sealed partial class AtmosphereWindow : Window
 
         // Le halo déborde sous l'Island : il est centré sur sa partie haute, puis
         // étiré vers le bas.
-        double glowWidth = placement.WidthDip * 1.35;
+        // Jamais plus large que la fenêtre : un halo coupé par les bords de sa
+        // fenêtre se lisait comme un rectangle gris derrière la recherche.
+        double glowWidth = Math.Min(placement.WidthDip * 1.35, width / scale);
         double glowHeight = contentHeight * 0.92;
 
         Glow.SetGlowSize(glowWidth, glowHeight);
@@ -280,7 +290,7 @@ public sealed partial class AtmosphereWindow : Window
         // objet au contour franc, et c'est l'ombre qui le sépare du bureau.
         FadeHost.Width = glowWidth;
         FadeHost.Height = contentHeight;
-        FadeHost.Opacity = _deployment;
+        FadeHost.Opacity = _deployment * DissolutionStrength;
 
         // La pluie tombe du bas de la notch, sur sa largeur.
         if (_rainActive)
@@ -296,7 +306,7 @@ public sealed partial class AtmosphereWindow : Window
             double fadeStart = Math.Clamp(placement.HeightDip * 0.35 / contentHeight, 0.10, 0.90);
 
             _surface.Configure(glowWidth, contentHeight, fadeStart);
-            _surface.SetOpacity(_glowIntensity * _deployment);
+            _surface.SetOpacity(_glowIntensity * _deployment * DissolutionStrength);
         }
     }
 
@@ -356,7 +366,7 @@ public sealed partial class AtmosphereWindow : Window
         // La dissolution suit la même intensité que le halo, pondérée par le
         // déploiement : deux réglages indépendants finiraient par diverger
         // visuellement.
-        _surface?.SetOpacity(_glowIntensity * _deployment);
+        _surface?.SetOpacity(_glowIntensity * _deployment * DissolutionStrength);
     }
 
     /// <summary>

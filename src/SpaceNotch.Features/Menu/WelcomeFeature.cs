@@ -6,6 +6,7 @@ using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 
 namespace SpaceNotch.Features.Menu;
 
@@ -119,7 +120,7 @@ public sealed class WelcomeFeature : IslandFeatureBase
             Id = ActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Welcome,
-            Title = "Bienvenue",
+            Title = Lang.T("Bienvenue", "Welcome"),
             Source = "SpaceNotch",
             IconKey = "Welcome",
             State = IslandActivityState.Idle,

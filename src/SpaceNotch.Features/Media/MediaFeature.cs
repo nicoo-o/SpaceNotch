@@ -6,6 +6,7 @@ using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Platform.Windows.Media;
 
 namespace SpaceNotch.Features.Media;
@@ -130,15 +131,15 @@ public sealed class MediaFeature : IslandFeatureBase
             // sans toucher à l'interface.
             Actions =
             [
-                new ActivityAction(PreviousAction, "Piste précédente", "Previous"),
+                new ActivityAction(PreviousAction, Lang.T("Piste précédente", "Previous track"), "Previous"),
                 new ActivityAction(
                     PlayPauseAction,
-                    track.IsPlaying ? "Pause" : "Lecture",
+                    track.IsPlaying ? "Pause" : Lang.T("Lecture", "Play"),
                     track.IsPlaying ? "Pause" : "Play",
                     ActivityActionKind.Toggle,
                     IsPrimary: true),
-                new ActivityAction(NextAction, "Piste suivante", "Next"),
-                new ActivityAction(SeekAction, "Déplacer la lecture", "Seek", ActivityActionKind.Invoke, IsEnabled: true)
+                new ActivityAction(NextAction, Lang.T("Piste suivante", "Next track"), "Next"),
+                new ActivityAction(SeekAction, Lang.T("Déplacer la lecture", "Seek"), "Seek", ActivityActionKind.Invoke, IsEnabled: true)
             ],
 
             // La teinte de l'atmosphère est déclarée par la fonctionnalité :

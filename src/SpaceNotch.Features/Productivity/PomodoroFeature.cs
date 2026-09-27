@@ -8,6 +8,7 @@ using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Productivity;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 
 namespace SpaceNotch.Features.Productivity;
 
@@ -82,7 +83,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
         _clock.Start();
         _tickTimer.Change(TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
-        PublishSessionActivity("Focus en cours");
+        PublishSessionActivity(Lang.T("Focus en cours", "Focusing"));
     }
 
     public void Pause()
@@ -94,7 +95,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
         _clock.Pause();
         StopTimer();
-        PublishSessionActivity("En pause");
+        PublishSessionActivity(Lang.T("En pause", "On a break"));
     }
 
     public void Reset(TimeSpan? duration = null)
@@ -131,7 +132,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
             // seulement quand la seconde affichée change.
             if (_clock.Value != _published)
             {
-                PublishSessionActivity("Focus en cours");
+                PublishSessionActivity(Lang.T("Focus en cours", "Focusing"));
             }
 
             return;
@@ -145,8 +146,8 @@ public sealed class PomodoroFeature : IslandFeatureBase
             Id = ActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Pomodoro,
-            Title = "Session terminée",
-            Subtitle = "Prenez une pause",
+            Title = Lang.T("Session terminée", "Session complete"),
+            Subtitle = Lang.T("Prenez une pause", "Take a break"),
             Source = "Pomodoro",
             IconKey = "Timer",
             State = IslandActivityState.TimerActive,
@@ -154,7 +155,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
             Duration = TimeSpan.FromSeconds(5)
         });
 
-        PublishEvent(new NotificationPostedEvent("Pomodoro", "Session terminée", "Prenez une pause"));
+        PublishEvent(new NotificationPostedEvent("Pomodoro", Lang.T("Session terminée", "Session complete"), Lang.T("Prenez une pause", "Take a break")));
     }
 
     private void PublishSessionActivity(string subtitle)
