@@ -155,3 +155,12 @@ public sealed record NotePayload(string Text);
 
 /// <summary>Retour du calme (F9) : ce qui est arrivé pendant « Ne pas déranger ».</summary>
 public sealed record QuietPayload(IReadOnlyList<QuietGroup> Groups, int Total);
+
+/// <summary>Branchement du chargeur (F1) : le niveau, pour remplir la batterie en pixels.</summary>
+public sealed record ChargePayload(int Percent);
+
+/// <summary>
+/// Moniteur système (F6) : la courbe récente du processeur (0..100), le
+/// processus le plus gourmand et sa part.
+/// </summary>
+public sealed record MonitorPayload(IReadOnlyList<double> History, string Process, int ProcessId, double Percent);

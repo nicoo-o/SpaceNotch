@@ -121,6 +121,69 @@ public sealed partial class GlyphView : Grid
         }
     }
 
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _frameTimer;
+    private IReadOnlyList<bool[]>? _frames;
+    private int _frame;
+
+    /// <summary>
+    /// Joue une petite scène en pixels (F1, F12) : les images défilent, puis
+    /// l'icône de la clé courante revient. Rien quand Windows réduit les
+    /// animations : l'icône reste simplement posée.
+    /// </summary>
+    public void Play(IReadOnlyList<bool[]> frames, int frameMilliseconds)
+    {
+        ArgumentNullException.ThrowIfNull(frames);
+
+        if (!AnimationsEnabled || frames.Count == 0 || _mask is null)
+        {
+            return;
+        }
+
+        _frames = frames;
+        _frame = 0;
+
+        if (_frameTimer is null)
+        {
+            _frameTimer = DispatcherQueue.CreateTimer();
+            _frameTimer.Tick += (_, _) => NextFrame();
+        }
+
+        _frameTimer.Interval = TimeSpan.FromMilliseconds(frameMilliseconds);
+        ShowMask(frames[0]);
+        _frameTimer.Start();
+    }
+
+    private void NextFrame()
+    {
+        _frame++;
+
+        if (_frames is null || _frame >= _frames.Count)
+        {
+            _frameTimer?.Stop();
+            _frames = null;
+
+            if (_mask is not null)
+            {
+                ShowMask(_mask);
+            }
+
+            return;
+        }
+
+        ShowMask(_frames[_frame]);
+    }
+
+    private void ShowMask(IReadOnlyList<bool> mask)
+    {
+        for (int i = 0; i < _cells.Length && i < mask.Count; i++)
+        {
+            Visual visual = ElementCompositionPreview.GetElementVisual(_cells[i]);
+            visual.StopAnimation("Opacity");
+            _cells[i].Opacity = mask[i] ? 1 : UnlitOpacity;
+            visual.Opacity = 1;
+        }
+    }
+
     private void ApplyTint()
     {
         Brush? tint = Tint;

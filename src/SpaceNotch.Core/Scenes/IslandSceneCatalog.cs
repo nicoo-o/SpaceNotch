@@ -34,6 +34,9 @@ public static class IslandSceneCatalog
     /// <summary>Retour du calme (F9) : ce qui est arrivé, groupé par application.</summary>
     public const string Quiet = "quiet";
 
+    /// <summary>Moniteur système (F6) : le processus gourmand, la courbe, la fermeture.</summary>
+    public const string Monitor = "monitor";
+
     /// <summary>Menu rapide : clic droit sur la notch, qui s'ouvre en menu.</summary>
     public const string QuickMenu = "quick-menu";
 
@@ -92,6 +95,7 @@ public static class IslandSceneCatalog
 
         // Le résumé du calme : jusqu'à quatre applications, une ligne chacune.
         [Quiet] = SceneInsets.Wrap(320, 112),
+        [Monitor] = SceneInsets.Wrap(320, 96),
 
         // Le lanceur occupe la surface la plus large du répertoire : c'est la
         // seule scène qui présente une grille et un champ de recherche.

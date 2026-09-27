@@ -110,6 +110,8 @@ public sealed partial class IslandWindow : Window
     private readonly PomodoroFeature _pomodoroFeature;
     private readonly TimerFeature _timerFeature;
     private readonly NoteFeature _noteFeature;
+    private readonly SpaceNotch.Features.Power.ChargeFeature _chargeFeature;
+    private readonly SpaceNotch.Features.Power.SystemMonitorFeature _monitorFeature;
     /// <summary>Visite (--tour) : 0 = Windows décide, 1 = calme forcé, 2 = calme levé.</summary>
     private volatile int _quietOverride;
     private readonly LauncherFeature _launcherFeature;
@@ -305,6 +307,12 @@ public sealed partial class IslandWindow : Window
         };
 
         _quickMenuFeature = new QuickMenuFeature(_activityManager, _eventBus);
+        _chargeFeature = new SpaceNotch.Features.Power.ChargeFeature(
+            _activityManager, _eventBus, new SpaceNotch.Platform.Windows.Power.PowerWatcher(),
+            _settings.IsFeatureEnabled(SpaceNotch.Features.Power.ChargeFeature.FeatureKey));
+        _monitorFeature = new SpaceNotch.Features.Power.SystemMonitorFeature(
+            _activityManager, _eventBus,
+            _settings.IsFeatureEnabled(SpaceNotch.Features.Power.SystemMonitorFeature.FeatureKey));
         _welcomeFeature = new WelcomeFeature(_activityManager, _eventBus);
         _welcomeFeature.Completed += (_, _) => OnWelcomeCompleted();
 
@@ -355,7 +363,9 @@ public sealed partial class IslandWindow : Window
             new PrivacyFeature(
                 _activityManager, _eventBus, new CapabilityUsageWatcher(),
                 _settings.IsFeatureEnabled(PrivacyFeature.FeatureKey)),
-            _clipboardFeature
+            _clipboardFeature,
+            _chargeFeature,
+            _monitorFeature
         };
 
         // Les greffons sont chargés avant la création du registre : ils en font
@@ -596,6 +606,7 @@ public sealed partial class IslandWindow : Window
         _scenes[IslandSceneCatalog.Color] = ColorSceneView;
         _scenes[IslandSceneCatalog.Note] = NoteSceneView;
         _scenes[IslandSceneCatalog.Quiet] = QuietSceneView;
+        _scenes[IslandSceneCatalog.Monitor] = MonitorSceneView;
 
         // Luminosité et volume partagent la même vue : leur charge utile est
         // identique, seule la clé d'icône les distingue.
@@ -1123,6 +1134,7 @@ public sealed partial class IslandWindow : Window
         if (shown == IslandPresentationTier.Signal)
         {
             SignalGlyph.Key = activity.IconKey;
+            PlayArrival(activity, SignalGlyph);
             SetText(SignalLabel, activity.Title, _signalWasVisible, veil: true);
             ShimmerText.Set(SignalLabel, activity.MotionState == ActivityMotionState.Working, UseSpringAnimations());
             ShimmerText.Set(CardHeadline, working: false, animate: false);
@@ -1154,6 +1166,7 @@ public sealed partial class IslandWindow : Window
         CardRestView.Margin = new Thickness(14, padding, 14, padding);
 
         CardGlyph.Key = activity.IconKey;
+        PlayArrival(activity, CardGlyph);
 
         // Le contexte d'abord, l'état ensuite : une activité qui déclare une
         // ligne de contexte — « Read app-sidebar.tsx · 219 lines » — la voit à

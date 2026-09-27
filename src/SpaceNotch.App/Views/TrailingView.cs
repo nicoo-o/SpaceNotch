@@ -333,28 +333,47 @@ public sealed partial class TrailingView : Grid
             return;
         }
 
+        // Égaliseur branché au vrai son (F3) : le niveau crête de la sortie
+        // audio, lu vingt fois par seconde tant que les barres sont visibles.
+        // En pause, le son se tait et les barres se posent.
         try
         {
-            double[] periods = [0.9, 0.7, 1.1];
-
-            for (int i = 0; i < _barCells.Length; i++)
+            foreach (Rectangle bar in _barCells)
             {
-                Visual visual = ElementCompositionPreview.GetElementVisual(_barCells[i]);
-                visual.CenterPoint = new Vector3(1, 6, 0);
-                Compositor compositor = visual.Compositor;
-
-                Vector3KeyFrameAnimation dance = compositor.CreateVector3KeyFrameAnimation();
-                dance.InsertKeyFrame(0f, new Vector3(1, 0.35f, 1));
-                dance.InsertKeyFrame(0.5f, new Vector3(1, 1f, 1));
-                dance.InsertKeyFrame(1f, new Vector3(1, 0.35f, 1));
-                dance.Duration = TimeSpan.FromSeconds(periods[i]);
-                dance.IterationBehavior = AnimationIterationBehavior.Forever;
-                visual.StartAnimation("Scale", dance);
+                ElementCompositionPreview.GetElementVisual(bar).CenterPoint = new Vector3(1, 6, 0);
             }
+
+            _meter ??= new SpaceNotch.Platform.Windows.Audio.AudioPeakMeter();
+            _danceStart = DateTime.UtcNow;
+
+            if (_danceTimer is null)
+            {
+                _danceTimer = DispatcherQueue.CreateTimer();
+                _danceTimer.Interval = TimeSpan.FromMilliseconds(50);
+                _danceTimer.Tick += (_, _) => Dance();
+            }
+
+            _danceTimer.Start();
         }
         catch (Exception)
         {
-            // Compositeur indisponible : des barres immobiles valent mieux qu'une chute.
+            // Compositeur ou mesure indisponible : des barres immobiles valent mieux qu'une chute.
+        }
+    }
+
+    private SpaceNotch.Platform.Windows.Audio.AudioPeakMeter? _meter;
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _danceTimer;
+    private DateTime _danceStart;
+    private double _level;
+
+    private void Dance()
+    {
+        _level = TrameField.Smooth(_level, _meter?.Read() ?? 0);
+        double[] heights = EqualizerBars.Heights(_level, (DateTime.UtcNow - _danceStart).TotalSeconds);
+
+        for (int i = 0; i < _barCells.Length && i < heights.Length; i++)
+        {
+            ElementCompositionPreview.GetElementVisual(_barCells[i]).Scale = new Vector3(1, (float)heights[i], 1);
         }
     }
 
@@ -366,6 +385,8 @@ public sealed partial class TrailingView : Grid
         }
 
         _dancing = false;
+        _danceTimer?.Stop();
+        _level = 0;
 
         try
         {
