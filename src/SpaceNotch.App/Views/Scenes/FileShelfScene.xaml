@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <UserControl
     x:Class="SpaceNotch_App.Views.Scenes.FileShelfScene"
+    xmlns:l="using:SpaceNotch_App.Views"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -30,8 +31,8 @@
                 x:Name="ClearButton"
                 HorizontalAlignment="Right"
                 Style="{StaticResource NfChipButtonStyle}"
-                Content="Tout vider"
-                AutomationProperties.Name="Vider l'étagère"
+                Content="{l:Loc Fr='Tout vider', En='Clear all'}"
+                AutomationProperties.Name="{l:Loc Fr='Vider l’étagère', En='Clear the shelf'}"
                 Click="OnClearClicked" />
         </Grid>
 
@@ -46,7 +47,7 @@
         <TextBlock
             x:Name="EmptyText"
             Grid.Row="1"
-            Text="Glisse un fichier sur la notch"
+            Text="{l:Loc Fr='Glisse un fichier sur la notch', En='Drop a file on the notch'}"
             FontSize="12.5"
             Foreground="{ThemeResource NfTextTertiaryBrush}"
             HorizontalAlignment="Center"

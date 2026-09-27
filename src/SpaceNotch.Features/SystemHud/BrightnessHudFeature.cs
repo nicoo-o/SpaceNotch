@@ -6,6 +6,7 @@ using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Platform.Windows.Display;
 
 namespace SpaceNotch.Features.SystemHud;
@@ -32,7 +33,7 @@ public sealed class BrightnessHudFeature : IslandFeatureBase
         IEventBus events,
         BrightnessService brightness,
         bool isEnabled = true)
-        : base(FeatureKey, "Luminosité", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Luminosité", "Brightness"), activities, events, isEnabled)
     {
         _brightness = brightness ?? throw new ArgumentNullException(nameof(brightness));
     }
@@ -72,7 +73,7 @@ public sealed class BrightnessHudFeature : IslandFeatureBase
             info.Percent,
             100,
             "Brightness",
-            "Luminosité",
+            Lang.T("Luminosité", "Brightness"),
             HudLifetime));
     }
 }

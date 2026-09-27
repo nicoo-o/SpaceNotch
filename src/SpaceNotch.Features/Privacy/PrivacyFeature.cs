@@ -9,6 +9,7 @@ using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Platform.Windows.Privacy;
 
 namespace SpaceNotch.Features.Privacy;
@@ -40,7 +41,7 @@ public static class PrivacyActivities
     {
         if (string.IsNullOrWhiteSpace(appId))
         {
-            return "Application";
+            return Lang.T("Application", "App");
         }
 
         // Chemin d'exécutable : le magasin remplace les séparateurs par des #.
@@ -66,7 +67,7 @@ public static class PrivacyActivities
         string trimmed = name.Trim();
 
         return trimmed.Length == 0
-            ? "Application"
+            ? Lang.T("Application", "App")
             : char.ToUpperInvariant(trimmed[0]) + trimmed[1..];
     }
 
@@ -100,8 +101,8 @@ public static class PrivacyActivities
             string name = AppNameOf(app.Key);
 
             string title = call
-                ? (camera ? "Appel vidéo" : "Appel en cours")
-                : (microphone && camera ? "Micro et caméra actifs" : camera ? "Caméra active" : "Micro actif");
+                ? (camera ? Lang.T("Appel vidéo", "Video call") : Lang.T("Appel en cours", "On a call"))
+                : (microphone && camera ? Lang.T("Micro et caméra actifs", "Mic and camera on") : camera ? Lang.T("Caméra active", "Camera on") : Lang.T("Micro actif", "Mic on"));
 
             activities.Add(new IslandActivity
             {

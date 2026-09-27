@@ -9,6 +9,7 @@ using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 
 namespace SpaceNotch.Features.FileShelf;
 
@@ -154,8 +155,8 @@ public sealed class FileShelfManager : IslandFeatureBase
             Id = ShelfActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.FileShelf,
-            Title = $"{count} fichier{(count > 1 ? "s" : string.Empty)} déposé{(count > 1 ? "s" : string.Empty)}",
-            Subtitle = "Prêt à être glissé ou partagé",
+            Title = Lang.T($"{count} fichier{(count > 1 ? "s" : string.Empty)} déposé{(count > 1 ? "s" : string.Empty)}", $"{count} file{(count == 1 ? string.Empty : "s")} dropped"),
+            Subtitle = Lang.T("Prêt à être glissé ou partagé", "Ready to drag or share"),
             Source = "FileShelf",
             IconKey = "Folder",
             State = IslandActivityState.Idle,

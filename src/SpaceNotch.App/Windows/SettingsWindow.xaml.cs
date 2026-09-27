@@ -13,6 +13,7 @@ using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Infrastructure.Config;
 using SpaceNotch.Infrastructure.Logging;
 using SpaceNotch.Infrastructure.Plugins;
@@ -204,15 +205,15 @@ public sealed partial class SettingsWindow : Window
 
     private static (string Glyph, string Title, string Description) DescribeFeature(IIslandFeature feature) => feature.Id switch
     {
-        FeatureKeys.Media => ("\uE8D6", "Musique et vidéos", "Pochette, titre, lecture — Spotify, navigateur, Apple Music…"),
-        FeatureKeys.Notifications => ("\uE715", "Notifications", "Un aperçu dans la notch, puis elles se rangent."),
-        FeatureKeys.Clipboard => ("\uE77F", "Presse-papier", "Les derniers éléments copiés, épinglables."),
-        FeatureKeys.Bluetooth => ("\uE702", "Bluetooth", "Connexion, déconnexion et batterie de tes appareils."),
-        FeatureKeys.VolumeHud => ("\uE767", "Volume", "Remplace l'indicateur de volume de Windows."),
-        FeatureKeys.Pomodoro => ("\uE916", "Focus", "Des sessions de 25 minutes, puis une pause."),
-        FeatureKeys.FileShelf => ("\uE7B8", "Étagère", "Dépose des fichiers sur la notch, reprends-les plus tard."),
-        FeatureKeys.Downloads => ("\uE896", "Téléchargements", "La progression de ce que tu télécharges."),
-        FeatureKeys.Privacy => ("\uE72E", "Caméra et micro", "Un point quand une application les utilise."),
+        FeatureKeys.Media => ("\uE8D6", Lang.T("Musique et vidéos", "Music and video"), Lang.T("Pochette, titre, lecture — Spotify, navigateur, Apple Music…", "Artwork, title, playback — Spotify, browser, Apple Music…")),
+        FeatureKeys.Notifications => ("\uE715", "Notifications", Lang.T("Un aperçu dans la notch, puis elles se rangent.", "A glimpse in the notch, then they tidy themselves away.")),
+        FeatureKeys.Clipboard => ("\uE77F", Lang.T("Presse-papier", "Clipboard"), Lang.T("Les derniers éléments copiés, épinglables.", "Your latest copied items, pinnable.")),
+        FeatureKeys.Bluetooth => ("\uE702", "Bluetooth", Lang.T("Connexion, déconnexion et batterie de tes appareils.", "Connections, disconnections and battery of your devices.")),
+        FeatureKeys.VolumeHud => ("\uE767", "Volume", Lang.T("Remplace l’indicateur de volume de Windows.", "Replaces the Windows volume indicator.")),
+        FeatureKeys.Pomodoro => ("\uE916", "Focus", Lang.T("Des sessions de 25 minutes, puis une pause.", "25-minute sessions, then a break.")),
+        FeatureKeys.FileShelf => ("\uE7B8", Lang.T("Étagère", "Shelf"), Lang.T("Dépose des fichiers sur la notch, reprends-les plus tard.", "Drop files on the notch, pick them up later.")),
+        FeatureKeys.Downloads => ("\uE896", Lang.T("Téléchargements", "Downloads"), Lang.T("La progression de ce que tu télécharges.", "The progress of what you download.")),
+        FeatureKeys.Privacy => ("\uE72E", Lang.T("Caméra et micro", "Camera and mic"), Lang.T("Un point quand une application les utilise.", "A dot when an app is using them.")),
         _ => ("\uE71D", feature.DisplayName, string.Empty)
     };
 
@@ -256,22 +257,22 @@ public sealed partial class SettingsWindow : Window
 
     private void BuildComboItems()
     {
-        AppearanceBox.ItemsSource = new[] { "Sombre", "Clair", "Automatique" };
-        BackdropBox.ItemsSource = new[] { "Automatique", "Transparent", "Flouté", "Opaque" };
-        DisplayBox.ItemsSource = new[] { "Écran principal", "Écran du curseur", "Écran où elle a été accrochée" };
-        EdgeBox.ItemsSource = new[] { "Haut", "Gauche", "Droite" };
-        SurfaceTintBox.ItemsSource = new[] { "Noir OLED", "Graphite", "Personnalisée" };
-        BubbleSizeBox.ItemsSource = new[] { "Petite", "Normale", "Grande" };
-        TabSizeBox.ItemsSource = new[] { "Petite", "Normale", "Grande" };
-        DetachFeelBox.ItemsSource = new[] { "Souple", "Naturelle", "Ferme" };
-        DensityBox.ItemsSource = new[] { "Compacte", "Confortable", "Aérée" };
-        CutoutBox.ItemsSource = new[] { "Aucune", "Centrée", "À gauche", "À droite", "Personnalisée" };
+        AppearanceBox.ItemsSource = new[] { Lang.T("Sombre", "Dark"), Lang.T("Clair", "Light"), Lang.T("Automatique", "Automatic") };
+        BackdropBox.ItemsSource = new[] { Lang.T("Automatique", "Automatic"), "Transparent", Lang.T("Flouté", "Blurred"), "Opaque" };
+        DisplayBox.ItemsSource = new[] { Lang.T("Écran principal", "Main display"), Lang.T("Écran du curseur", "Display with the pointer"), Lang.T("Écran où elle a été accrochée", "Display it was docked to") };
+        EdgeBox.ItemsSource = new[] { Lang.T("Haut", "Top"), Lang.T("Gauche", "Left"), Lang.T("Droite", "Right") };
+        SurfaceTintBox.ItemsSource = new[] { Lang.T("Noir OLED", "OLED black"), "Graphite", Lang.T("Personnalisée", "Custom") };
+        BubbleSizeBox.ItemsSource = new[] { Lang.T("Petite", "Small"), Lang.T("Normale", "Normal"), Lang.T("Grande", "Large") };
+        TabSizeBox.ItemsSource = new[] { Lang.T("Petite", "Small"), Lang.T("Normale", "Normal"), Lang.T("Grande", "Large") };
+        DetachFeelBox.ItemsSource = new[] { Lang.T("Souple", "Soft"), Lang.T("Naturelle", "Natural"), Lang.T("Ferme", "Firm") };
+        DensityBox.ItemsSource = new[] { Lang.T("Compacte", "Compact"), Lang.T("Confortable", "Comfortable"), Lang.T("Aérée", "Airy") };
+        CutoutBox.ItemsSource = new[] { Lang.T("Aucune", "None"), Lang.T("Centrée", "Centred"), Lang.T("À gauche", "Left"), Lang.T("À droite", "Right"), Lang.T("Personnalisée", "Custom") };
 
         // L'ordre suit l'énumération MotionStyle : l'index sélectionné en est la valeur.
-        MotionStyleBox.ItemsSource = new[] { "Calme", "Naturel", "Dynamique", "Personnalisé" };
+        MotionStyleBox.ItemsSource = new[] { Lang.T("Calme", "Calm"), Lang.T("Naturel", "Natural"), Lang.T("Dynamique", "Lively"), Lang.T("Personnalisé", "Custom") };
 
         WebSearchBox.ItemsSource = WebEngines.Select(e => e.Label).ToArray();
-        ClipboardSizeBox.ItemsSource = ClipboardSizes.Select(n => $"{n} éléments").ToArray();
+        ClipboardSizeBox.ItemsSource = ClipboardSizes.Select(n => Lang.T($"{n} éléments", $"{n} items")).ToArray();
     }
 
     /// <summary>
@@ -731,7 +732,7 @@ public sealed partial class SettingsWindow : Window
 
         if (executable.Length == 0)
         {
-            StatusText.Text = "Chemin de l'exécutable introuvable : inscription au démarrage impossible.";
+            StatusText.Text = Lang.T("Chemin de l’exécutable introuvable : inscription au démarrage impossible.", "Executable path not found: cannot register at startup.");
             return;
         }
 
@@ -739,7 +740,7 @@ public sealed partial class SettingsWindow : Window
 
         if (!StartupRegistration.SetEnabled(enabled, StartupRegistration.BuildCommand(executable), out string? error))
         {
-            StatusText.Text = $"Inscription au démarrage refusée : {error}";
+            StatusText.Text = Lang.T($"Inscription au démarrage refusée : {error}", $"Startup registration refused: {error}");
 
             // Le contrôle revient à l'état réel : il ne doit pas prétendre avoir
             // obtenu ce que le système a refusé.
@@ -751,7 +752,7 @@ public sealed partial class SettingsWindow : Window
         }
 
         StatusText.Text = enabled
-            ? "Inscription au démarrage enregistrée pour ce compte."
+            ? Lang.T("Inscription au démarrage enregistrée pour ce compte.", "Registered to start with this account.")
             : string.Empty;
 
         _settings.Update(s => s.StartWithWindows = enabled);
@@ -774,9 +775,9 @@ public sealed partial class SettingsWindow : Window
 
         string outcome = feature.State switch
         {
-            FeatureState.Running => "active",
-            FeatureState.Stopped => "inactive",
-            FeatureState.Faulted => "en échec — API système indisponible",
+            FeatureState.Running => Lang.T("active", "on"),
+            FeatureState.Stopped => Lang.T("inactive", "off"),
+            FeatureState.Faulted => Lang.T("en échec — API système indisponible", "failed — system API unavailable"),
             _ => feature.State.ToString()
         };
 
@@ -794,7 +795,7 @@ public sealed partial class SettingsWindow : Window
         // curseur.
         LoadFromSettings();
 
-        StatusText.Text = "Valeurs par défaut rétablies.";
+        StatusText.Text = Lang.T("Valeurs par défaut rétablies.", "Defaults restored.");
     }
 
     private void OnOpenConfigClicked(object sender, RoutedEventArgs e)
@@ -813,7 +814,7 @@ public sealed partial class SettingsWindow : Window
         {
             if (string.IsNullOrEmpty(directory))
             {
-                StatusText.Text = "Dossier introuvable.";
+                StatusText.Text = Lang.T("Dossier introuvable.", "Folder not found.");
                 return;
             }
 
@@ -823,7 +824,7 @@ public sealed partial class SettingsWindow : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"Impossible d'ouvrir le dossier : {ex.Message}";
+            StatusText.Text = Lang.T($"Impossible d’ouvrir le dossier : {ex.Message}", $"Could not open the folder: {ex.Message}");
         }
     }
 
@@ -902,7 +903,7 @@ public sealed partial class SettingsWindow : Window
         }
 
         int found = SetCardsVisible(all: false, query);
-        SearchHeader.Text = found == 0 ? $"Aucun réglage pour « {query} »" : $"Résultats pour « {query} »";
+        SearchHeader.Text = found == 0 ? Lang.T($"Aucun réglage pour « {query} »", $"No settings for “{query}”") : Lang.T($"Résultats pour « {query} »", $"Results for “{query}”");
         SearchHeader.Visibility = Visibility.Visible;
     }
 
@@ -987,7 +988,7 @@ public sealed partial class SettingsWindow : Window
         {
             HotkeyCaps.Children.Add(new TextBlock
             {
-                Text = "Aucun (Alt+Espace et Win+Maj+Espace sont pris)",
+                Text = Lang.T("Aucun (Alt+Espace et Win+Maj+Espace sont pris)", "None (Alt+Space and Win+Shift+Space are taken)"),
                 FontSize = 12,
                 Foreground = new SolidColorBrush(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF)),
                 VerticalAlignment = VerticalAlignment.Center
@@ -1022,10 +1023,10 @@ public sealed partial class SettingsWindow : Window
 
         (string Status, Brush Brush, string? Button) card = access switch
         {
-            SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Allowed => ("● Autorisé", green, null),
-            SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Denied => ("Bloqué par Windows", dim, "Ouvrir les paramètres"),
-            SpaceNotch.Platform.Windows.Notifications.NotificationAccess.NotAsked => (string.Empty, dim, "Autoriser"),
-            _ => ("Demande SpaceNotch installé", dim, null)
+            SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Allowed => (Lang.T("● Autorisé", "● Allowed"), green, null),
+            SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Denied => (Lang.T("Bloqué par Windows", "Blocked by Windows"), dim, Lang.T("Ouvrir les paramètres", "Open Settings")),
+            SpaceNotch.Platform.Windows.Notifications.NotificationAccess.NotAsked => (string.Empty, dim, Lang.T("Autoriser", "Allow")),
+            _ => (Lang.T("Demande SpaceNotch installé", "Requires SpaceNotch to be installed"), dim, null)
         };
         (string status, Brush brush, string? button) = card;
 
@@ -1066,7 +1067,7 @@ public sealed partial class SettingsWindow : Window
                 Style = (Style)Application.Current.Resources["NfChipButtonStyle"],
                 Content = $"{app}  ✕"
             };
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(chip, $"Ne plus ignorer {app}");
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(chip, Lang.T($"Ne plus ignorer {app}", $"Stop ignoring {app}"));
 
             string captured = app;
             chip.Click += (_, _) => Apply(s => s.IgnoredNotificationApps.RemoveAll(a => string.Equals(a, captured, StringComparison.OrdinalIgnoreCase)));
@@ -1131,7 +1132,7 @@ public sealed partial class SettingsWindow : Window
         {
             PendingPluginsHost.Children.Add(new TextBlock
             {
-                Text = "Aucun greffon en attente.",
+                Text = Lang.T("Aucun greffon en attente.", "No pending plugins."),
                 FontSize = 12,
                 Foreground = new SolidColorBrush(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF))
             });
@@ -1157,19 +1158,19 @@ public sealed partial class SettingsWindow : Window
             var approve = new Button
             {
                 Style = (Style)Application.Current.Resources["NfSecondaryButtonStyle"],
-                Content = "Autoriser"
+                Content = Lang.T("Autoriser", "Allow")
             };
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(approve, $"Autoriser le greffon {name}");
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(approve, Lang.T($"Autoriser le greffon {name}", $"Allow plugin {name}"));
             approve.Click += (_, _) =>
             {
                 if (PluginAllowlist.Hash(path) is not { } hash)
                 {
-                    StatusText.Text = $"{name} : fichier illisible.";
+                    StatusText.Text = Lang.T($"{name} : fichier illisible.", $"{name}: unreadable file.");
                     return;
                 }
 
                 Apply(s => s.ApprovedPlugins[name] = hash);
-                StatusText.Text = $"{name} sera chargé au prochain démarrage de SpaceNotch.";
+                StatusText.Text = Lang.T($"{name} sera chargé au prochain démarrage de SpaceNotch.", $"{name} will load the next time SpaceNotch starts.");
                 ShowPendingPlugins();
             };
             Grid.SetColumn(approve, 1);

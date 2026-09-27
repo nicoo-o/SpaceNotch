@@ -3,6 +3,7 @@ using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 
 namespace SpaceNotch.Features.SystemHud;
 
@@ -24,6 +25,9 @@ namespace SpaceNotch.Features.SystemHud;
 /// </summary>
 public static class HudActivity
 {
+    /// <summary>Valeur affichée d'un son coupé, dans la langue de l'interface.</summary>
+    public static string MutedText => Lang.T("Muet", "Muted");
+
     /// <summary>Construit l'activité d'un retour système.</summary>
     public static IslandActivity Build(
         string id,
@@ -38,10 +42,11 @@ public static class HudActivity
         bool muted = false,
         DateTimeOffset? createdAt = null)
     {
+        // (MutedText est aussi lu par la scène pour reconnaître le muet.)
         double max = maximum <= 0 ? 100 : maximum;
         double clamped = Math.Clamp(value, 0, max);
         string valueText = muted
-            ? "Muet"
+            ? MutedText
             : string.Create(System.Globalization.CultureInfo.CurrentCulture, $"{Math.Round(clamped / max * 100):0} %");
 
         return new IslandActivity

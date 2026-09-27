@@ -94,4 +94,54 @@ internal static class ContentTransition
             // place : c'est le repli correct, pas une panne.
         }
     }
+
+    /// <summary>Durée d'un chiffre qui roule : court, pour suivre une mesure qui change souvent.</summary>
+    public static readonly TimeSpan RollDuration = TimeSpan.FromMilliseconds(180);
+
+    /// <summary>
+    /// Une mesure qui change — « 3 » devient « 4 », « 61 % » devient « 62 % » —
+    /// roule vers le haut : la nouvelle valeur monte de sa hauteur de ligne et se
+    /// pose, avec un léger ressort d'échelle. Plus lisible qu'un fondu : l'œil
+    /// voit que la valeur a <em>changé</em>, sans relire le mot.
+    /// </summary>
+    public static void Roll(UIElement element, bool animate, bool upward = true)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+
+        if (!animate)
+        {
+            return;
+        }
+
+        try
+        {
+            Visual visual = ElementCompositionPreview.GetElementVisual(element);
+            Compositor compositor = visual.Compositor;
+
+            ElementCompositionPreview.SetIsTranslationEnabled(element, true);
+
+            CompositionEasingFunction easeOut = compositor.CreateCubicBezierEasingFunction(
+                new Vector2(0.2f, 0f),
+                new Vector2(0f, 1f));
+
+            float from = upward ? 8f : -8f;
+
+            Vector3KeyFrameAnimation slide = compositor.CreateVector3KeyFrameAnimation();
+            slide.InsertKeyFrame(0f, new Vector3(0, from, 0));
+            slide.InsertKeyFrame(1f, Vector3.Zero, easeOut);
+            slide.Duration = RollDuration;
+
+            ScalarKeyFrameAnimation fade = compositor.CreateScalarKeyFrameAnimation();
+            fade.InsertKeyFrame(0f, 0.2f);
+            fade.InsertKeyFrame(1f, 1f, easeOut);
+            fade.Duration = RollDuration;
+
+            visual.StartAnimation("Translation", slide);
+            visual.StartAnimation("Opacity", fade);
+        }
+        catch (Exception)
+        {
+            // Même repli que l'arrivée : la valeur est déjà écrite.
+        }
+    }
 }

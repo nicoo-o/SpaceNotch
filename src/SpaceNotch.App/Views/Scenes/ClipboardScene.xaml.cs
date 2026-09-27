@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Input;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Motion;
+using SpaceNotch.Core.Localization;
 using SpaceNotch_App.Views;
 
 namespace SpaceNotch_App.Views.Scenes;
@@ -60,7 +61,7 @@ public sealed partial class ClipboardScene : UserControl, IIslandSceneView
         }
 
         EntriesListView.ItemsSource = payload.Entries;
-        CountText.Text = $"{payload.Entries.Count} élément{(payload.Entries.Count > 1 ? "s" : string.Empty)}";
+        CountText.Text = Lang.T($"{payload.Entries.Count} élément{(payload.Entries.Count > 1 ? "s" : string.Empty)}", $"{payload.Entries.Count} item{(payload.Entries.Count == 1 ? string.Empty : "s")}");
 
         bool empty = payload.Entries.Count == 0;
 

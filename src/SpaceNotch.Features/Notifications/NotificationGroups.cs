@@ -5,6 +5,7 @@ using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 
 namespace SpaceNotch.Features.Notifications;
 
@@ -41,9 +42,9 @@ public sealed class NotificationGroups
         => $"notification.{(string.IsNullOrWhiteSpace(appName) ? "app" : appName.Trim().ToLowerInvariant())}";
 
     /// <summary>Ajoute une notification et renvoie l'activité de son groupe.</summary>
-    public IslandActivity Add(string featureId, string appName, string title, string body, DateTimeOffset now)
+    public IslandActivity Add(string featureId, string appName, string title, string body, DateTimeOffset now, byte[]? appIcon = null)
     {
-        string app = string.IsNullOrWhiteSpace(appName) ? "Application" : appName.Trim();
+        string app = string.IsNullOrWhiteSpace(appName) ? Lang.T("Application", "App") : appName.Trim();
 
         if (!_groups.TryGetValue(app, out List<NotificationItem>? items))
         {
@@ -60,13 +61,13 @@ public sealed class NotificationGroups
             items.RemoveRange(Capacity, items.Count - Capacity);
         }
 
-        return Build(featureId, app, items, now);
+        return Build(featureId, app, items, now, appIcon);
     }
 
     /// <summary>Oublie le groupe d'une application — après lecture, par exemple.</summary>
     public void Clear(string appName) => _groups.Remove(appName.Trim());
 
-    private static IslandActivity Build(string featureId, string app, List<NotificationItem> items, DateTimeOffset now)
+    private static IslandActivity Build(string featureId, string app, List<NotificationItem> items, DateTimeOffset now, byte[]? appIcon)
     {
         NotificationItem latest = items[0];
         int count = items.Count;
@@ -84,6 +85,10 @@ public sealed class NotificationGroups
             Source = app,
             Metric = count > 1 ? count.ToString(System.Globalization.CultureInfo.CurrentCulture) : null,
             IconKey = "Notification",
+
+            // Le vrai logo de l'application, quand Windows le donne : il prend
+            // la place de la cloche, dans la pastille comme dans la scène.
+            Artwork = appIcon,
             State = IslandActivityState.Notification,
             Priority = ActivityPriority.Normal,
             Policy = ActivityPresentationPolicy.Temporary,

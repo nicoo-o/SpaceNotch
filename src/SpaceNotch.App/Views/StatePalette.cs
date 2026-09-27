@@ -1,6 +1,7 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 using Windows.UI;
 
 namespace SpaceNotch_App.Views;
@@ -68,13 +69,13 @@ internal static class StatePalette
     /// </summary>
     public static string Label(IslandActivityState state) => state switch
     {
-        IslandActivityState.MediaActive => "En lecture",
-        IslandActivityState.CallActive => "Appel en cours",
-        IslandActivityState.DownloadActive => "En cours",
-        IslandActivityState.FileDrag => "Dépôt",
+        IslandActivityState.MediaActive => Lang.T("En lecture", "Playing"),
+        IslandActivityState.CallActive => Lang.T("Appel en cours", "On a call"),
+        IslandActivityState.DownloadActive => Lang.T("En cours", "In progress"),
+        IslandActivityState.FileDrag => Lang.T("Dépôt", "Drop"),
         IslandActivityState.Notification => "Notification",
-        IslandActivityState.TimerActive => "Minuteur",
-        IslandActivityState.DeviceActive => "Périphérique",
+        IslandActivityState.TimerActive => Lang.T("Minuteur", "Timer"),
+        IslandActivityState.DeviceActive => Lang.T("Périphérique", "Device"),
         _ => string.Empty
     };
 

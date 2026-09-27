@@ -20,6 +20,7 @@ using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Features.Bluetooth;
 using SpaceNotch.Features.Clipboard;
 using SpaceNotch.Features.Demo;
@@ -175,6 +176,10 @@ public sealed partial class IslandWindow : Window
     private readonly TextBlock _measureSubhead = new();
     private readonly TextBlock _measureHeadline = new();
     private readonly TextBlock _measureMetric = new();
+    private readonly TextBlock _measureStack = new();
+
+    /// <summary>Dernier roulement de mesure, en millisecondes système.</summary>
+    private long _lastRoll;
 
     /// <summary>Épaule appliquée en dernier à la zone de contenu, pour ne la redisposer qu'au changement.</summary>
     private double _contentShoulder = double.NaN;
@@ -265,6 +270,7 @@ public sealed partial class IslandWindow : Window
         WindowChrome.ApplyInteractiveSurface(_hWnd);
 
         _visualState = SystemVisualState.Read();
+        GlyphView.AnimationsEnabled = _visualState.UseSpringAnimations;
 
         // La couche décorative est créée avant le contrôleur : celui-ci applique
         // sa géométrie initiale dès sa construction (SnapTo), et la géométrie
@@ -907,6 +913,7 @@ public sealed partial class IslandWindow : Window
         if (activity is null)
         {
             StopRestingHypnotic();
+            SceneTrame.Present(null, null, music: false);
             IdleRestView.Visibility = Visibility.Visible;
 
             // L'heure est un réglage et non un défaut : elle installerait une
@@ -944,6 +951,7 @@ public sealed partial class IslandWindow : Window
 
             scene.Apply(activity);
             scene.Root.Visibility = Visibility.Visible;
+            PresentTrame(activity, scene);
 
             // Entrée de la scène, une seule fois : son contenu apparaît sur place
             // pendant que la forme grandit, et les éléments ancrés grandissent
@@ -988,6 +996,7 @@ public sealed partial class IslandWindow : Window
 
         _visibleSceneRoot = null;
         InfoSceneView.Rest();
+        SceneTrame.Present(null, null, music: false);
 
         PresentResting(activity);
 
@@ -1053,18 +1062,20 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        string? metric = activity.TrailingMetric;
+        CompactTrailing trailing = CompactTrailing.For(activity);
+        string? metric = CompactTrailing.MetricFor(activity, trailing);
         Visibility metricVisibility = metric is null ? Visibility.Collapsed : Visibility.Visible;
 
         if (shown == IslandPresentationTier.Signal)
         {
-            SignalGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
+            SignalGlyph.Key = activity.IconKey;
             SetText(SignalLabel, activity.Title, _signalWasVisible, veil: true);
             SetText(SignalMetric, metric, _signalWasVisible, metric: true);
             SignalMetric.Visibility = metricVisibility;
 
-            SignalLevel.Visibility = activity.Progress is null ? Visibility.Collapsed : Visibility.Visible;
-            SignalLevelScale.ScaleX = Math.Clamp(activity.Progress ?? 0, 0, 1);
+            SignalLevel.Visibility = trailing.Kind == TrailingKind.Level ? Visibility.Visible : Visibility.Collapsed;
+            SignalLevelScale.ScaleX = trailing.Kind == TrailingKind.Level ? trailing.Value : 0;
+            SignalTrailing.Show(trailing);
             SignalRestView.Visibility = Visibility.Visible;
 
             _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
@@ -1086,7 +1097,7 @@ public sealed partial class IslandWindow : Window
 
         CardRestView.Margin = new Thickness(14, padding, 14, padding);
 
-        CardGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
+        CardGlyph.Key = activity.IconKey;
 
         // Le contexte d'abord, l'état ensuite : une activité qui déclare une
         // ligne de contexte — « Read app-sidebar.tsx · 219 lines » — la voit à
@@ -1096,6 +1107,7 @@ public sealed partial class IslandWindow : Window
         SetText(CardHeadline, activity.Title, _cardWasVisible, veil: true);
         SetText(CardMetric, metric, _cardWasVisible, metric: true);
         CardMetric.Visibility = metricVisibility;
+        CardTrailing.Show(trailing);
         CardRestView.Visibility = Visibility.Visible;
 
         _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
@@ -1104,11 +1116,28 @@ public sealed partial class IslandWindow : Window
         SignalArtwork.Visibility = Visibility.Collapsed;
     }
 
+    /// <summary>
+    /// Trame de la scène ouverte, dans la couleur de l'activité. Ni en thème
+    /// clair ni en contraste élevé ; fixe quand Windows réduit les animations.
+    /// Dans le lecteur, elle suit la musique.
+    /// </summary>
+    private void PresentTrame(IslandActivity activity, IIslandSceneView scene)
+    {
+        SceneTrame.IsAllowed = !_visualState.HighContrast && _settings.Appearance != IslandAppearance.Light;
+        SceneTrame.Animate = UseSpringAnimations();
+
+        Color tint = activity.Tint is { } declared
+            ? Color.FromArgb(0xFF, declared.R, declared.G, declared.B)
+            : StatePalette.Tint(activity.State);
+
+        SceneTrame.Present(scene.Root, tint, music: scene is MediaExpandedScene && activity.State == IslandActivityState.MediaActive);
+    }
+
     /// <summary>Languette latérale au repos : glyphe ou grille, jauge verticale.</summary>
     private void PresentTab(IslandActivity activity, HypnoticPreset preset)
     {
-        TabGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
-        TabGlyph.Foreground = StatePalette.Brush(activity.State);
+        TabGlyph.Key = activity.IconKey;
+        TabGlyph.Tint = StatePalette.Brush(activity.State);
 
         double? progress = activity.Progress;
         TabLevel.Visibility = progress is null ? Visibility.Collapsed : Visibility.Visible;
@@ -1214,6 +1243,21 @@ public sealed partial class IslandWindow : Window
         // Une mesure qui défile — un pourcentage publié plusieurs fois par
         // seconde — change sur place : la faire réapparaître en fondu à chaque
         // valeur la faisait clignoter sans arrêt.
+        // Une mesure roule — au plus cinq fois par seconde : au-delà, un
+        // pourcentage publié en continu tremblerait au lieu de rouler.
+        if (visible && metric)
+        {
+            long now = Environment.TickCount64;
+
+            if (now - _lastRoll >= 200)
+            {
+                _lastRoll = now;
+                ContentTransition.Roll(target, UseSpringAnimations());
+            }
+
+            return;
+        }
+
         if (visible && !metric)
         {
             ContentTransition.Play(target, UseSpringAnimations(), TimeSpan.FromMilliseconds(60), ContentTransition.SwapDuration);
@@ -1248,12 +1292,15 @@ public sealed partial class IslandWindow : Window
         string detail = activity.Subtitle ?? activity.Source ?? string.Empty;
         string state = StatePalette.Label(activity.State);
 
+        // Une seule information par ligne : le détail s'il existe, sinon l'état.
+        // « Connecté · Batterie 84 % · Périphérique » disait trois fois la même
+        // chose que l'icône et l'arc de batterie.
         if (detail.Length == 0)
         {
             return state.Length == 0 ? "SpaceNotch" : state;
         }
 
-        return state.Length == 0 ? detail : $"{detail} · {state}";
+        return detail;
     }
 
     /// <summary>
@@ -1333,15 +1380,23 @@ public sealed partial class IslandWindow : Window
         // par un second objet posé à côté. Voir ADR-017.
         bool visible = StackIndicatorVisible();
 
-        // Des points plutôt qu'un nombre : la pile se constate, elle ne se lit
-        // pas. Au-delà de quatre, un point de plus n'apprendrait rien.
-        string text = visible ? string.Join(" ", Enumerable.Repeat("•", Math.Min(count, 4))) : string.Empty;
+        // Un nombre plutôt que des points : « +2 » se lit d'un coup d'œil, là
+        // où « • • • » demandait de compter.
+        string text = visible ? CompactTrailing.StackBadge(count) ?? string.Empty : string.Empty;
         Visibility state = visible ? Visibility.Visible : Visibility.Collapsed;
+
+        // Le compteur roule quand la pile grandit ou se vide.
+        bool rolls = visible && !string.Equals(SignalStackIndicator.Text, text, StringComparison.Ordinal);
 
         SignalStackIndicator.Text = text;
         SignalStackIndicator.Visibility = state;
         CardStackIndicator.Text = text;
         CardStackIndicator.Visibility = state;
+
+        if (rolls)
+        {
+            ContentTransition.Roll(SignalRestView.Visibility == Visibility.Visible ? SignalStackIndicator : CardStackIndicator, UseSpringAnimations());
+        }
     }
 
     /// <summary>
@@ -1364,7 +1419,10 @@ public sealed partial class IslandWindow : Window
             new ActivityTint(state.R, state.G, state.B),
             _visualState.HighContrast);
 
-        _atmosphere.SetGlowIntensity(ambient.Intensity, ambient.TintOpacity);
+        // Vague 5, choix E1 : rien autour de la notch. Ni liseré ni halo ; la
+        // couleur de l'activité vit seulement dans le contenu (icône, anneau,
+        // pochette). La teinte reste calculée pour ce contenu et pour la pulsation.
+        _atmosphere.SetGlowIntensity(0, 0);
         _atmosphere.SetGlowColor(Color.FromArgb(0xFF, ambient.Tint.R, ambient.Tint.G, ambient.Tint.B));
 
         // La dissolution respire avec la matière qui travaille : même fonction,
@@ -1397,8 +1455,10 @@ public sealed partial class IslandWindow : Window
         Brush tint = StatePalette.Brush(_visualState.HighContrast ? IslandActivityState.Idle : state);
 
         IdleStatusDot.Fill = tint;
-        SignalGlyph.Foreground = tint;
-        CardGlyph.Foreground = tint;
+        SignalGlyph.Tint = tint;
+        CardGlyph.Tint = tint;
+        SignalTrailing.Tint = tint;
+        CardTrailing.Tint = tint;
     }
 
     /// <summary>
@@ -1431,6 +1491,8 @@ public sealed partial class IslandWindow : Window
         {
             SurfaceFill.Data = silhouette;
         }
+
+        SceneTrame.Resize(footprint.Width, footprint.Height, radius, shoulder);
 
         // Le reflet suit la même courbe, borné à sa bande. La borne est ce qui
         // l'empêche de mordre dans les congés sur les paliers bas : à 34 de haut,
@@ -1487,17 +1549,27 @@ public sealed partial class IslandWindow : Window
             return IslandFootprint.For(tier, _settings.Density);
         }
 
-        double stack = StackIndicatorVisible() ? 6 + (7 * Math.Min(_activityManager.Count, 4)) : 0;
+        double stack = 0;
 
-        if (activity.TrailingMetric is { } metric)
+        if (StackIndicatorVisible())
+        {
+            _measureStack.Style ??= SignalStackIndicator.Style;
+            stack += 6 + Measure(_measureStack, CompactTrailing.StackBadge(_activityManager.Count));
+        }
+
+        CompactTrailing trailing = CompactTrailing.For(activity);
+
+        if (CompactTrailing.MetricFor(activity, trailing) is { } metric)
         {
             _measureMetric.Style ??= SignalMetric.Style;
             stack += 8 + Measure(_measureMetric, metric);
         }
 
-        if (tier == IslandPresentationTier.Signal && activity.Progress is not null)
+        // Le fil de niveau n'existe que dans la pastille ; les formes carrées,
+        // dans les deux paliers.
+        if (trailing.Kind != TrailingKind.None && (trailing.Kind != TrailingKind.Level || tier == IslandPresentationTier.Signal))
         {
-            stack += 36 + 6;
+            stack += trailing.Width + 6;
         }
 
         double content = tier == IslandPresentationTier.Signal
@@ -1778,6 +1850,7 @@ public sealed partial class IslandWindow : Window
         if (updated != _visualState)
         {
             _visualState = updated;
+            GlyphView.AnimationsEnabled = updated.UseSpringAnimations;
             ApplyBackdropMode();
 
             // L'atmosphère doit cesser d'animer si Windows demande la réduction
@@ -2358,7 +2431,7 @@ public sealed partial class IslandWindow : Window
         }
 
         e.AcceptedOperation = DataPackageOperation.Copy;
-        e.DragUIOverride.Caption = "Déposer dans la notch";
+        e.DragUIOverride.Caption = Lang.T("Déposer dans la notch", "Drop into the notch");
 
         // DragOver arrive en rafale : la mise en place n'a lieu qu'une fois.
         if (DropZoneView.Visibility == Visibility.Visible)
@@ -2518,7 +2591,7 @@ public sealed partial class IslandWindow : Window
 
         var toggleItem = new MenuFlyoutItem
         {
-            Text = expanded ? "Réduire la notch" : "Déployer la notch",
+            Text = expanded ? Lang.T("Réduire la notch", "Collapse the notch") : Lang.T("Déployer la notch", "Expand the notch"),
             Icon = new FontIcon { Glyph = expanded ? "\uE70E" : "\uE70D" }
         };
         toggleItem.Click += (_, _) => _controller.ToggleFromUser();
@@ -2531,7 +2604,7 @@ public sealed partial class IslandWindow : Window
         {
             var attachItem = new MenuFlyoutItem
             {
-                Text = "Raccrocher au bord de l'écran",
+                Text = Lang.T("Raccrocher au bord de l’écran", "Dock to the screen edge"),
                 Icon = new FontIcon { Glyph = "\uE8A7" }
             };
             attachItem.Click += (_, _) => ReattachFromMenu();
@@ -2547,7 +2620,7 @@ public sealed partial class IslandWindow : Window
 
         var settingsItem = new MenuFlyoutItem
         {
-            Text = "Réglages…",
+            Text = Lang.T("Réglages…", "Settings…"),
             Icon = new FontIcon { Glyph = "\uE713" }
         };
         settingsItem.Click += (_, _) => OpenSettingsWindow();
@@ -2566,7 +2639,7 @@ public sealed partial class IslandWindow : Window
 
         flyout.Items.Add(new MenuFlyoutSeparator());
 
-        var exitItem = new MenuFlyoutItem { Text = "Quitter SpaceNotch" };
+        var exitItem = new MenuFlyoutItem { Text = Lang.T("Quitter SpaceNotch", "Quit SpaceNotch") };
         exitItem.Click += (_, _) => QuitApplication();
         flyout.Items.Add(exitItem);
 
@@ -2578,11 +2651,11 @@ public sealed partial class IslandWindow : Window
     {
         var menu = new MenuFlyoutSubItem
         {
-            Text = "Lancer",
+            Text = Lang.T("Lancer", "Start"),
             Icon = new FontIcon { Glyph = "\uE768" }
         };
 
-        var launcherItem = new MenuFlyoutItem { Text = "Rechercher…" };
+        var launcherItem = new MenuFlyoutItem { Text = Lang.T("Rechercher…", "Search…") };
         launcherItem.Click += (_, _) =>
         {
             _launcherFeature.Show();
@@ -2590,7 +2663,7 @@ public sealed partial class IslandWindow : Window
         };
 
         bool countdown = _timerFeature.IsMeasuring && _timerFeature.Mode is TimerMode.Countdown;
-        var timerItem = new MenuFlyoutItem { Text = countdown ? "Arrêter le minuteur" : "Minuteur (5 min)" };
+        var timerItem = new MenuFlyoutItem { Text = countdown ? Lang.T("Arrêter le minuteur", "Stop timer") : Lang.T("Minuteur (5 min)", "Timer (5 min)") };
         timerItem.Click += (_, _) =>
         {
             // Arrêter depuis le menu n'implique pas d'ouvrir la notch : la mesure
@@ -2605,7 +2678,7 @@ public sealed partial class IslandWindow : Window
         };
 
         bool stopwatch = _timerFeature.IsMeasuring && _timerFeature.Mode is TimerMode.Stopwatch;
-        var stopwatchItem = new MenuFlyoutItem { Text = stopwatch ? "Arrêter le chronomètre" : "Chronomètre" };
+        var stopwatchItem = new MenuFlyoutItem { Text = stopwatch ? Lang.T("Arrêter le chronomètre", "Stop stopwatch") : Lang.T("Chronomètre", "Stopwatch") };
         stopwatchItem.Click += (_, _) =>
         {
             _timerFeature.SetMode(TimerMode.Stopwatch);
@@ -2619,7 +2692,7 @@ public sealed partial class IslandWindow : Window
 
         var focusItem = new MenuFlyoutItem
         {
-            Text = _pomodoroFeature.IsSessionRunning ? "Mettre le focus en pause" : "Focus (25 min)"
+            Text = _pomodoroFeature.IsSessionRunning ? Lang.T("Mettre le focus en pause", "Pause focus") : "Focus (25 min)"
         };
         focusItem.Click += (_, _) =>
         {
@@ -2635,7 +2708,7 @@ public sealed partial class IslandWindow : Window
             RevealPresented();
         };
 
-        var demoItem = new MenuFlyoutItem { Text = "Démonstration" };
+        var demoItem = new MenuFlyoutItem { Text = Lang.T("Démonstration", "Demo") };
         demoItem.Click += (_, _) => StartDemo();
 
         menu.Items.Add(launcherItem);
@@ -2657,7 +2730,7 @@ public sealed partial class IslandWindow : Window
     {
         var menu = new MenuFlyoutSubItem
         {
-            Text = "Activités",
+            Text = Lang.T("Activités", "Activities"),
             Icon = new FontIcon { Glyph = "\uE9D5" }
         };
 
@@ -2714,15 +2787,15 @@ public sealed partial class IslandWindow : Window
     {
         var menu = new MenuFlyoutSubItem
         {
-            Text = "Mouvement",
+            Text = Lang.T("Mouvement", "Motion"),
             Icon = new FontIcon { Glyph = "\uE916" }
         };
 
         foreach ((MotionStyle style, string label) in new[]
                  {
-                     (MotionStyle.Quiet, "Calme"),
-                     (MotionStyle.Natural, "Naturel"),
-                     (MotionStyle.Dynamic, "Dynamique")
+                     (MotionStyle.Quiet, Lang.T("Calme", "Calm")),
+                     (MotionStyle.Natural, Lang.T("Naturel", "Natural")),
+                     (MotionStyle.Dynamic, Lang.T("Dynamique", "Lively"))
                  })
         {
             var item = new RadioMenuFlyoutItem
@@ -2742,7 +2815,7 @@ public sealed partial class IslandWindow : Window
 
         var hypnotic = new ToggleMenuFlyoutItem
         {
-            Text = "Mouvement hypnotique",
+            Text = Lang.T("Mouvement hypnotique", "Hypnotic motion"),
             IsChecked = _settings.AllowHypnoticMotion
         };
         hypnotic.Click += (_, _) => _settingsService.Update(settings => settings.AllowHypnoticMotion = hypnotic.IsChecked);
@@ -2757,15 +2830,15 @@ public sealed partial class IslandWindow : Window
     {
         var menu = new MenuFlyoutSubItem
         {
-            Text = "Apparence",
+            Text = Lang.T("Apparence", "Appearance"),
             Icon = new FontIcon { Glyph = "\uE790" }
         };
 
         foreach ((IslandAppearance appearance, string label) in new[]
                  {
-                     (IslandAppearance.Dark, "Sombre"),
-                     (IslandAppearance.Light, "Clair"),
-                     (IslandAppearance.Auto, "Automatique")
+                     (IslandAppearance.Dark, Lang.T("Sombre", "Dark")),
+                     (IslandAppearance.Light, Lang.T("Clair", "Light")),
+                     (IslandAppearance.Auto, Lang.T("Automatique", "Automatic"))
                  })
         {
             var item = new RadioMenuFlyoutItem

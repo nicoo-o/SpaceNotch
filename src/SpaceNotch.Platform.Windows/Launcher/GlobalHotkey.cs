@@ -1,4 +1,5 @@
 using System;
+using SpaceNotch.Core.Localization;
 using System.Runtime.InteropServices;
 
 namespace SpaceNotch.Platform.Windows.Launcher;
@@ -27,12 +28,12 @@ public static partial class GlobalHotkey
     {
         if (RegisterHotKey(window, LauncherId, ModAlt | ModNoRepeat, VkSpace))
         {
-            return "Alt+Espace";
+            return Lang.T("Alt+Espace", "Alt+Space");
         }
 
         if (RegisterHotKey(window, LauncherId, ModWin | ModShift | ModNoRepeat, VkSpace))
         {
-            return "Win+Maj+Espace";
+            return Lang.T("Win+Maj+Espace", "Win+Shift+Space");
         }
 
         return null;

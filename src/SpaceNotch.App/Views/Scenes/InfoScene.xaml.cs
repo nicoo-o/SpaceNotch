@@ -103,7 +103,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
 
         TitleText.Text = activity.Title;
         SubtitleText.Text = activity.Subtitle ?? string.Empty;
-        SceneIcon.Glyph = GlyphCatalog.Resolve(activity.IconKey);
+        SceneIcon.Key = activity.IconKey;
 
         EyebrowText.Text = activity.Eyebrow ?? string.Empty;
         EyebrowText.Visibility = string.IsNullOrWhiteSpace(activity.Eyebrow) ? Visibility.Collapsed : Visibility.Visible;

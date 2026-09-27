@@ -11,6 +11,7 @@ using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Core.Localization;
 
 namespace SpaceNotch.Features.Downloads;
 
@@ -231,10 +232,10 @@ public sealed class DownloadsFeature : IslandFeatureBase
             Id = ActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Card,
-            Title = active.Length == 1 ? "Téléchargement" : $"{active.Length} téléchargements",
-            Eyebrow = active.Length == 1 ? first.DisplayName : $"{first.DisplayName} et {active.Length - 1} autre(s)",
+            Title = active.Length == 1 ? Lang.T("Téléchargement", "Downloading") : Lang.T($"{active.Length} téléchargements", $"{active.Length} downloads"),
+            Eyebrow = active.Length == 1 ? first.DisplayName : Lang.T($"{first.DisplayName} et {active.Length - 1} autre(s)", $"{first.DisplayName} and {active.Length - 1} more"),
             Metric = DownloadTracker.FormatSize(total),
-            Source = "Téléchargements",
+            Source = Lang.T("Téléchargements", "Downloads"),
             IconKey = "Download",
             State = IslandActivityState.DownloadActive,
             Priority = ActivityPriority.Normal,
@@ -260,17 +261,17 @@ public sealed class DownloadsFeature : IslandFeatureBase
 
         string name = _tracker.LastCompletedPath is { } completed
             ? DownloadTracker.FileNameOf(completed)
-            : "Fichier";
+            : Lang.T("Fichier", "File");
 
         PublishActivity(new IslandActivity
         {
             Id = ActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Card,
-            Title = "Téléchargé",
+            Title = Lang.T("Téléchargé", "Downloaded"),
             Eyebrow = name,
             Metric = "✓",
-            Source = "Téléchargements",
+            Source = Lang.T("Téléchargements", "Downloads"),
             IconKey = "Check",
             State = IslandActivityState.DownloadActive,
             Priority = ActivityPriority.Normal,
@@ -279,8 +280,8 @@ public sealed class DownloadsFeature : IslandFeatureBase
             Duration = CompletedLifetime,
             Actions =
             [
-                new ActivityAction(OpenAction, "Ouvrir", "\uE8E5", ActivityActionKind.Invoke, IsPrimary: true),
-                new ActivityAction(RevealAction, "Afficher", "\uE838")
+                new ActivityAction(OpenAction, Lang.T("Ouvrir", "Open"), "\uE8E5", ActivityActionKind.Invoke, IsPrimary: true),
+                new ActivityAction(RevealAction, Lang.T("Afficher", "Show"), "\uE838")
             ]
         });
     }
