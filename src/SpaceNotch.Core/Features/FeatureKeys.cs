@@ -33,4 +33,10 @@ public static class FeatureKeys
 
     /// <summary>Micro et caméra en cours d'utilisation : appels et enregistrements.</summary>
     public const string Privacy = "feature.privacy";
+
+    /// <summary>Branchement du chargeur (F1).</summary>
+    public const string Charge = "feature.charge";
+
+    /// <summary>Moniteur système (F6).</summary>
+    public const string Monitor = "feature.monitor";
 }

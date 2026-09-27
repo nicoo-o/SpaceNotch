@@ -479,6 +479,18 @@ public sealed class AppSettings
     /// </summary>
     public bool ShowPrivacy { get; set; } = true;
 
+    /// <summary>Branchement du chargeur (F1) : la batterie qui se remplit, un instant.</summary>
+    public bool ShowCharge { get; set; } = true;
+
+    /// <summary>Moniteur système (F6) : une alerte quand le processeur sature.</summary>
+    public bool ShowMonitor { get; set; } = true;
+
+    /// <summary>
+    /// Sons discrets (D3) : ouverture, dépôt, fin du minuteur. Désactivés par
+    /// défaut ; jamais pendant « Ne pas déranger ».
+    /// </summary>
+    public bool PlaySounds { get; set; }
+
     /// <summary>Regroupe les activités d'arrière-plan au-delà de la première.</summary>
     public bool ShowActivityStack { get; set; } = true;
 
@@ -557,6 +569,8 @@ public sealed class AppSettings
         FeatureKeys.FileShelf => ShowFileShelf,
         FeatureKeys.Downloads => ShowDownloads,
         FeatureKeys.Privacy => ShowPrivacy,
+        FeatureKeys.Charge => ShowCharge,
+        FeatureKeys.Monitor => ShowMonitor,
         _ => true
     };
 
@@ -577,6 +591,8 @@ public sealed class AppSettings
         FeatureKeys.FileShelf => true,
         FeatureKeys.Downloads => true,
         FeatureKeys.Privacy => true,
+        FeatureKeys.Charge => true,
+        FeatureKeys.Monitor => true,
         _ => false
     };
 
@@ -619,6 +635,14 @@ public sealed class AppSettings
 
             case FeatureKeys.Privacy:
                 ShowPrivacy = enabled;
+                return true;
+
+            case FeatureKeys.Charge:
+                ShowCharge = enabled;
+                return true;
+
+            case FeatureKeys.Monitor:
+                ShowMonitor = enabled;
                 return true;
 
             default:

@@ -690,6 +690,21 @@
                             <ToggleSwitch x:Name="TrameToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnTrameToggled" AutomationProperties.Name="{l:Loc Fr='Trame', En='Pixel pattern'}" />
                         </Grid>
                     </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Sons discrets son ouverture dépôt minuteur sounds">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Volume" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Sons discrets', En='Subtle sounds'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="{l:Loc Fr='Trois sons très courts : ouverture, dépôt d’un fichier, fin du minuteur. Jamais en « Ne pas déranger ».', En='Three very short sounds: opening, dropping a file, timer done. Never in Do not disturb.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="SoundsToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnSoundsToggled" AutomationProperties.Name="{l:Loc Fr='Sons discrets', En='Subtle sounds'}" />
+                        </Grid>
+                    </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Intensité du contour ">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>

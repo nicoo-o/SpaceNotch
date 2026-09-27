@@ -214,6 +214,8 @@ public sealed partial class SettingsWindow : Window
         FeatureKeys.Pomodoro => ("Timer", "Focus", Lang.T("Des sessions de 25 minutes, puis une pause.", "25-minute sessions, then a break.")),
         FeatureKeys.FileShelf => ("Folder", Lang.T("Étagère", "Shelf"), Lang.T("Dépose des fichiers sur la notch, reprends-les plus tard.", "Drop files on the notch, pick them up later.")),
         FeatureKeys.Downloads => ("Download", Lang.T("Téléchargements", "Downloads"), Lang.T("La progression de ce que tu télécharges.", "The progress of what you download.")),
+        FeatureKeys.Charge => ("Bolt", Lang.T("Charge", "Charging"), Lang.T("La batterie qui se remplit quand tu branches le chargeur.", "The battery filling up when you plug in the charger.")),
+        FeatureKeys.Monitor => ("Cpu", Lang.T("Moniteur système", "System monitor"), Lang.T("Une alerte quand le processeur sature, avec le coupable.", "An alert when the processor is maxed out, with the culprit.")),
         FeatureKeys.Privacy => ("Camera", Lang.T("Caméra et micro", "Camera and mic"), Lang.T("Un point quand une application les utilise.", "A dot when an app is using them.")),
         _ => ("Launcher", feature.DisplayName, string.Empty)
     };
@@ -337,6 +339,7 @@ public sealed partial class SettingsWindow : Window
             ShadowSlider.Value = settings.FloatingShadowOpacity * 100;
             OutlineToggle.IsOn = settings.ShowOutline;
             TrameToggle.IsOn = settings.ShowTrame;
+            SoundsToggle.IsOn = settings.PlaySounds;
             OutlineSlider.Value = settings.OutlineOpacity * 100;
             BubbleSizeBox.SelectedIndex = (int)settings.BubbleSize;
             TabSizeBox.SelectedIndex = (int)settings.TabSize;
@@ -456,6 +459,9 @@ public sealed partial class SettingsWindow : Window
 
     private void OnOutlineToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.ShowOutline = OutlineToggle.IsOn);
+
+    private void OnSoundsToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.PlaySounds = SoundsToggle.IsOn);
 
     private void OnTrameToggled(object sender, RoutedEventArgs e)
     {

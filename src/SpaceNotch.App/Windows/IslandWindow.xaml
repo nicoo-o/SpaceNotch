@@ -397,6 +397,7 @@
                 <scenes:ColorScene x:Name="ColorSceneView" Visibility="Collapsed" />
                 <scenes:NoteScene x:Name="NoteSceneView" Visibility="Collapsed" />
                 <scenes:QuietScene x:Name="QuietSceneView" Visibility="Collapsed" />
+                <scenes:MonitorScene x:Name="MonitorSceneView" Visibility="Collapsed" />
 
                 <!--
                     Cible de dépôt de fichiers. Pendant le survol d'un fichier, la

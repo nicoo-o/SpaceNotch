@@ -16,7 +16,10 @@ public enum LauncherResultKind
     Calculation,
 
     /// <summary>La recherche sur le web, en repli.</summary>
-    Web
+    Web,
+
+    /// <summary>Une commande tapée (F4) : minuteur, volume, couleur.</summary>
+    Command
 }
 
 /// <summary>Un passage trouvé dans un nom : ce que la vue met en valeur.</summary>
