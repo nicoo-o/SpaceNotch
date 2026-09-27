@@ -60,6 +60,126 @@ public static class OutlineTrim
         return ring;
     }
 
+    /// <summary>
+    /// L'anneau sans son bord haut : un U ouvert vers l'écran, du haut du flanc
+    /// droit au haut du flanc gauche en passant par le bas. Un anneau fermé se
+    /// lisait comme un liseré autour de la notch ; le U se lit comme un
+    /// niveau.
+    /// </summary>
+    public static ShapePoint[] OpenTop(IReadOnlyList<ShapePoint> ring)
+    {
+        ArgumentNullException.ThrowIfNull(ring);
+
+        if (ring.Count < 3)
+        {
+            return [];
+        }
+
+        double top = double.MaxValue;
+
+        foreach (ShapePoint p in ring)
+        {
+            top = Math.Min(top, p.Y);
+        }
+
+        // Le premier point sous le bord haut, en suivant le sens de l'anneau.
+        int start = -1;
+
+        for (int i = 0; i < ring.Count; i++)
+        {
+            bool onTop = ring[i].Y <= top + 0.01;
+            bool previousOnTop = ring[(i - 1 + ring.Count) % ring.Count].Y <= top + 0.01;
+
+            if (!onTop && previousOnTop)
+            {
+                start = i;
+                break;
+            }
+        }
+
+        if (start < 0)
+        {
+            return [];
+        }
+
+        var result = new List<ShapePoint> { ring[(start - 1 + ring.Count) % ring.Count] };
+
+        for (int k = 0; k < ring.Count; k++)
+        {
+            ShapePoint p = ring[(start + k) % ring.Count];
+            result.Add(p);
+
+            if (p.Y <= top + 0.01)
+            {
+                break;
+            }
+        }
+
+        return [.. result];
+    }
+
+    /// <summary>
+    /// Portion d'une polyligne ouverte centrée sur son milieu : à
+    /// <paramref name="remaining"/> = 1 tout le tracé, puis les deux bras
+    /// raccourcissent ensemble vers le milieu, jusqu'à rien.
+    /// </summary>
+    public static IReadOnlyList<ShapePoint> Centered(IReadOnlyList<ShapePoint> path, double remaining)
+    {
+        ArgumentNullException.ThrowIfNull(path);
+        var result = new List<ShapePoint>();
+        remaining = Math.Clamp(remaining, 0, 1);
+
+        if (path.Count < 2 || remaining <= 0)
+        {
+            return result;
+        }
+
+        double total = 0;
+
+        for (int i = 1; i < path.Count; i++)
+        {
+            total += Distance(path[i - 1], path[i]);
+        }
+
+        double from = total * (1 - remaining) / 2;
+        double to = total - from;
+        double walked = 0;
+
+        for (int i = 1; i < path.Count; i++)
+        {
+            ShapePoint a = path[i - 1], b = path[i];
+            double segment = Distance(a, b);
+            double start = walked, end = walked + segment;
+            walked = end;
+
+            if (end < from || start > to || segment <= 0)
+            {
+                continue;
+            }
+
+            if (result.Count == 0)
+            {
+                result.Add(Lerp(a, b, (Math.Max(from, start) - start) / segment));
+            }
+
+            if (end <= to)
+            {
+                result.Add(b);
+            }
+            else
+            {
+                result.Add(Lerp(a, b, (to - start) / segment));
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    private static double Distance(ShapePoint a, ShapePoint b) => Math.Sqrt(Math.Pow(b.X - a.X, 2) + Math.Pow(b.Y - a.Y, 2));
+
+    private static ShapePoint Lerp(ShapePoint a, ShapePoint b, double f) => new(a.X + ((b.X - a.X) * f), a.Y + ((b.Y - a.Y) * f));
+
     /// <summary>Longueur totale d'une polyligne fermée.</summary>
     public static double Length(IReadOnlyList<ShapePoint> outline)
     {

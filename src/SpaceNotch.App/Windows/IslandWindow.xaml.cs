@@ -110,7 +110,8 @@ public sealed partial class IslandWindow : Window
     private readonly PomodoroFeature _pomodoroFeature;
     private readonly TimerFeature _timerFeature;
     private readonly NoteFeature _noteFeature;
-    private volatile bool _forceQuiet;
+    /// <summary>Visite (--tour) : 0 = Windows décide, 1 = calme forcé, 2 = calme levé.</summary>
+    private volatile int _quietOverride;
     private readonly LauncherFeature _launcherFeature;
     private readonly QuickMenuFeature _quickMenuFeature;
     private readonly ClipboardFeature _clipboardFeature;
@@ -311,7 +312,7 @@ public sealed partial class IslandWindow : Window
         _notificationFeature = new NotificationFeature(
             _activityManager, _eventBus, _notificationListener,
             _settings.IsFeatureEnabled(NotificationFeature.FeatureKey),
-            isQuiet: () => _forceQuiet || SpaceNotch.Platform.Windows.Notifications.FocusAssistProbe.IsQuiet())
+            isQuiet: () => _quietOverride switch { 1 => true, 2 => false, _ => SpaceNotch.Platform.Windows.Notifications.FocusAssistProbe.IsQuiet() })
         {
             IgnoredApps = _settings.IgnoredNotificationApps
         };

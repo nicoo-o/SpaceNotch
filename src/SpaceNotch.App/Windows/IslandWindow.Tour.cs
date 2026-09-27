@@ -259,7 +259,7 @@ public sealed partial class IslandWindow
 
         void Quiet()
         {
-            _forceQuiet = true;
+            _quietOverride = 1;
             _notificationFeature.RefreshQuiet();
             _notificationFeature.Receive("Slack", "Alice", Lang.T("Réunion déplacée à 15 h", "Meeting moved to 3 pm"));
             _notificationFeature.Receive("Slack", "Bob", Lang.T("Déploiement terminé", "Deploy finished"));
@@ -270,7 +270,7 @@ public sealed partial class IslandWindow
 
         void QuietOver()
         {
-            _forceQuiet = false;
+            _quietOverride = 2;
             _notificationFeature.RefreshQuiet();
             TourOpen(NotificationFeature.QuietSummaryActivityId);
         }
@@ -307,7 +307,7 @@ public sealed partial class IslandWindow
             ("téléchargement · terminé", () => TourShow(Downloaded(), open: false)),
             ("couleur copiée · ouverte", () => { TourClear("tour.download"); TourShow(Colour(), open: true); }),
             ("note · ouverte", () => { TourClear("tour.color"); OpenNote(); }),
-            ("pomodoro · anneau", () => { _noteFeature.Dismiss(); TourClear(); _pomodoroFeature.Start(TimeSpan.FromSeconds(30)); }),
+            ("pomodoro · anneau", () => { _noteFeature.Dismiss(); TourClear("tour.timer", "tour.bluetooth"); _pomodoroFeature.Start(TimeSpan.FromSeconds(30)); }),
             ("ne pas déranger · lune", () => { _pomodoroFeature.Reset(); Quiet(); }),
             ("ne pas déranger · résumé", QuietOver),
             ("recherche · ouverte", () => { TourClear(NotificationFeature.QuietSummaryActivityId); OpenLauncher(); }),
@@ -321,7 +321,7 @@ public sealed partial class IslandWindow
             ("raccrochée", () => ReattachTo(NotchEdge.Top, 0.5)),
             ("présentation · premier lancement", () => { TourClear("tour.media", "tour.download"); ShowWelcome(); }),
             ("réglages", () => { TourClear(); OpenSettingsWindow(); }),
-            ("fin", () => { _settingsWindow?.Close(); TourClear(); })
+            ("fin", () => { _settingsWindow?.Close(); _quietOverride = 0; TourClear(); })
         ];
     }
 }

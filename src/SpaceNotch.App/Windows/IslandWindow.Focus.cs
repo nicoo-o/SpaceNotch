@@ -9,11 +9,11 @@ namespace SpaceNotch_App.Windows;
 
 /// <summary>
 /// Pomodoro autour de la silhouette (F11) : pendant une session de focus, un
-/// fil fin teinté suit l'intérieur du contour de la notch et se raccourcit à
-/// mesure que le temps passe. Il part du milieu du bord bas, dans le sens
-/// horaire. Rien ne se dessine autour de la notch : le fil est rentré dans la
-/// forme. Il n'existe que pour la notch attachée en haut, pendant une session
-/// qui avance.
+/// fil fin teinté suit l'intérieur du contour de la notch — un U ouvert vers
+/// l'écran — et ses deux bras raccourcissent ensemble vers le milieu du bas à
+/// mesure que le temps passe. Rien ne se dessine autour de la notch : le fil
+/// est rentré dans la forme. Il n'existe que pour la notch attachée en haut,
+/// pendant une session qui avance.
 /// </summary>
 public sealed partial class IslandWindow
 {
@@ -71,7 +71,7 @@ public sealed partial class IslandWindow
             geometry.Smoothing,
             geometry.ShoulderFor(current));
 
-        var trace = OutlineTrim.Trim(ring, remaining);
+        var trace = OutlineTrim.Centered(OutlineTrim.OpenTop(ring), remaining);
 
         if (trace.Count < 2)
         {

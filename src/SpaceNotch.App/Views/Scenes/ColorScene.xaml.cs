@@ -66,6 +66,7 @@ public sealed partial class ColorScene : UserControl, IIslandSceneView
         {
             Content = grid,
             Height = 24,
+            MinHeight = 0,
             Padding = new Thickness(8, 0, 8, 0),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch,

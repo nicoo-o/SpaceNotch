@@ -5,6 +5,7 @@ using System.Numerics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
+using Microsoft.UI.Xaml.Media;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch_App.Animations;
@@ -99,7 +100,7 @@ public sealed partial class NotificationScene : UserControl, IIslandSceneView
                 CornerRadius = new CornerRadius(9),
                 Padding = new Thickness(10, 3, 10, 3),
                 HorizontalAlignment = HorizontalAlignment.Left,
-                Background = CloseButton.Background,
+                Background = OpaqueCard(),
                 Child = text
             };
 
@@ -108,6 +109,26 @@ public sealed partial class NotificationScene : UserControl, IIslandSceneView
         }
 
         Fan(open: false, animate: false);
+    }
+
+    /// <summary>
+    /// Fond des cartes : la teinte des boutons, rendue opaque sur le noir de la
+    /// notch. Translucides, les cartes empilées laissaient lire le texte de
+    /// celle de dessous à travers celle du dessus.
+    /// </summary>
+    private SolidColorBrush OpaqueCard()
+    {
+        if (CloseButton.Background is SolidColorBrush { Color: var c })
+        {
+            double a = c.A / 255.0;
+            return new SolidColorBrush(global::Windows.UI.Color.FromArgb(
+                0xFF,
+                (byte)Math.Round(c.R * a),
+                (byte)Math.Round(c.G * a),
+                (byte)Math.Round(c.B * a)));
+        }
+
+        return new SolidColorBrush(global::Windows.UI.Color.FromArgb(0xFF, 0x1C, 0x1C, 0x1E));
     }
 
     private void OnHistoryPointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) => Fan(open: true, animate: true);

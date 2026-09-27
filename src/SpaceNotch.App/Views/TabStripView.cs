@@ -37,7 +37,7 @@ public sealed partial class TabStripView : Grid
         Visibility = Visibility.Collapsed;
         Children.Add(_pill);
         Children.Add(_tabs);
-        _tabs.LayoutUpdated += (_, _) => MovePill(animate: false, onlyIfUnplaced: true);
+        _tabs.LayoutUpdated += (_, _) => MovePill(animate: _slideNext, onlyIfUnplaced: true);
     }
 
     /// <summary>Un onglet est choisi : l'identifiant de son activité.</summary>
@@ -77,15 +77,23 @@ public sealed partial class TabStripView : Grid
         bool changed = !string.Equals(selectedId, _selected, StringComparison.Ordinal);
         _selected = selectedId;
 
+        // Seul l'onglet choisi porte son titre ; les autres, leur icône. La
+        // rangée tient ainsi dans la notch quel que soit le nombre d'activités.
         foreach ((string id, Button tab) in _items)
         {
             if (tab.Content is StackPanel content && content.Children.Count > 1 && content.Children[1] is TextBlock label)
             {
-                label.Foreground = string.Equals(id, selectedId, StringComparison.Ordinal) ? text : dim;
+                bool chosen = string.Equals(id, selectedId, StringComparison.Ordinal);
+                label.Foreground = chosen ? text : dim;
+                label.Visibility = chosen ? Visibility.Visible : Visibility.Collapsed;
+                content.Children[0].Opacity = chosen ? 1 : 0.55;
             }
         }
 
-        MovePill(animate: changed && Animate, onlyIfUnplaced: false);
+        // Les largeurs changent avec le titre montré : la pilule se place après
+        // la mise en page, sur le ressort si l'onglet a changé.
+        _slideNext = changed && Animate;
+        _placed = false;
     }
 
     private void Rebuild(IReadOnlyList<IslandActivity> activities, Brush? text)
@@ -101,7 +109,7 @@ public sealed partial class TabStripView : Grid
             {
                 Text = activity.Title,
                 FontSize = 11.5,
-                MaxWidth = 96,
+                MaxWidth = 140,
                 TextTrimming = TextTrimming.CharacterEllipsis,
                 VerticalAlignment = VerticalAlignment.Center
             });
@@ -110,6 +118,7 @@ public sealed partial class TabStripView : Grid
             {
                 Content = content,
                 Height = TabHeight,
+                MinHeight = 0,
                 Padding = new Thickness(10, 0, 10, 0),
                 Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
                 BorderThickness = new Thickness(0),
@@ -131,6 +140,9 @@ public sealed partial class TabStripView : Grid
     }
 
     private bool _placed;
+
+    /// <summary>La prochaine mise en place de la pilule glisse (changement d'onglet) plutôt que de sauter.</summary>
+    private bool _slideNext;
 
     /// <summary>La pilule rejoint l'onglet choisi, sur un ressort.</summary>
     private void MovePill(bool animate, bool onlyIfUnplaced)

@@ -61,6 +61,9 @@ public sealed class Wave5CoreTests
     [InlineData("A", "A", false)]
     [InlineData(null, "A", false)]
     [InlineData("", "A", false)]
+    [InlineData("07:42", "07:41", false)]
+    [InlineData("62 %", "63 %", false)]
+    [InlineData("Downloading", "Downloaded", true)]
     public void TextScramble_PlaysOnlyOnRealChanges(string? before, string after, bool expected)
         => Assert.Equal(expected, TextScramble.ShouldPlay(before, after));
 
@@ -216,6 +219,30 @@ public sealed class Wave5CoreTests
     }
 
     // F11 — pomodoro autour de la silhouette
+    [Fact]
+    public void TheFocusLevel_IsOpenAtTheTop_AndShrinksTowardTheBottom()
+    {
+        ShapePoint[] ring = OutlineTrim.Ring(300, 60, 24, IslandShape.Squircle, 12);
+        ShapePoint[] level = OutlineTrim.OpenTop(ring);
+        double top = OutlineTrim.RingInset;
+
+        Assert.NotEmpty(level);
+
+        // Seuls les deux bouts touchent le haut : aucun segment ne longe le bord de l'écran.
+        Assert.Equal(2, level.Count(p => p.Y <= top + 0.01));
+        Assert.True(level[0].Y <= top + 0.01 && level[^1].Y <= top + 0.01);
+
+        double full = OutlineTrim.Length(OutlineTrim.Centered(level, 1)) ;
+        var half = OutlineTrim.Centered(level, 0.5);
+        Assert.Empty(OutlineTrim.Centered(level, 0));
+
+        // Symétrique autour du milieu du bas.
+        Assert.Equal(300 - half[0].X, half[^1].X, 1);
+        Assert.Equal(half[0].Y, half[^1].Y, 1);
+        Assert.True(half.All(p => p.Y > top + 0.01));
+        Assert.True(full > 0);
+    }
+
     [Fact]
     public void TheFocusRing_StaysInsideTheNotch_AndStartsAtTheBottom()
     {

@@ -91,7 +91,7 @@
                 Opacity="{ThemeResource NfSpecularOpacity}"
                 IsHitTestVisible="False" />
 
-            <!-- Pomodoro autour de la silhouette (F11) : un fil rentré dans la forme, qui se raccourcit. -->
+            <!-- Pomodoro autour de la silhouette (F11) : un U rentré dans la forme, qui se raccourcit vers le bas. -->
             <Path
                 x:Name="FocusTrace"
                 HorizontalAlignment="Left"
@@ -100,7 +100,7 @@
                 StrokeStartLineCap="Round"
                 StrokeEndLineCap="Round"
                 StrokeLineJoin="Round"
-                Opacity="0.85"
+                Opacity="0.7"
                 Visibility="Collapsed"
                 IsHitTestVisible="False" />
 

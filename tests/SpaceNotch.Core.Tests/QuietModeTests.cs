@@ -32,18 +32,17 @@ public class QuietModeTests
         quiet = true;
         feature.RefreshQuiet();
 
-        IslandActivity moon = Assert.Single(activities.GetActiveActivities());
-        Assert.Equal(NotificationFeature.QuietActivityId, moon.Id);
-        Assert.Equal("Moon", moon.IconKey);
-        Assert.Null(moon.Metric);
+        // Un calme où rien n'arrive ne montre rien.
+        Assert.Empty(activities.GetActiveActivities());
 
         feature.Receive("Slack", "Alice", "Réunion ?");
         feature.Receive("Slack", "Bob", "Déploiement fait");
         feature.Receive("Mail", "Facture", "…");
 
         // Rien ne s'affiche : seule la lune, qui porte le compte.
-        moon = Assert.Single(activities.GetActiveActivities());
+        IslandActivity moon = Assert.Single(activities.GetActiveActivities());
         Assert.Equal(NotificationFeature.QuietActivityId, moon.Id);
+        Assert.Equal("Moon", moon.IconKey);
         Assert.Equal("3", moon.Metric);
 
         quiet = false;

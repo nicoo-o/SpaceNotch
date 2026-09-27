@@ -30,7 +30,11 @@ public sealed class NotificationFeature : IslandFeatureBase
     private readonly NotificationGroups _groups = new();
     private readonly object _gate = new();
 
-    /// <summary>Ne pas déranger (F9) : l'activité discrète — la lune — tant que Windows est au calme.</summary>
+    /// <summary>
+    /// Ne pas déranger (F9) : l'activité discrète — la lune et le compte —,
+    /// seulement quand au moins une notification a été retenue. Un calme où
+    /// rien n'arrive ne montre rien : la notch reste au repos.
+    /// </summary>
     public const string QuietActivityId = "feature.notifications.quiet";
 
     /// <summary>Le résumé montré à la sortie du calme.</summary>
@@ -111,7 +115,6 @@ public sealed class NotificationFeature : IslandFeatureBase
     public void RefreshQuiet()
     {
         bool now = _isQuiet();
-        IslandActivity? indicator = null;
         IslandActivity? summary = null;
         bool leaving = false;
 
@@ -124,21 +127,12 @@ public sealed class NotificationFeature : IslandFeatureBase
 
             _quiet = now;
 
-            if (now)
-            {
-                indicator = QuietIndicator();
-            }
-            else
+            if (!now)
             {
                 leaving = true;
                 summary = _held.Count > 0 ? QuietSummaryActivity(Lang.T("Pendant le calme", "While you were away"), QuietSummaryActivityId, ActivityPriority.Normal, ActivityPresentationPolicy.Temporary, SummaryLifetime) : null;
                 _held.Clear();
             }
-        }
-
-        if (indicator is not null)
-        {
-            PublishActivity(indicator);
         }
 
         if (leaving)
@@ -205,7 +199,7 @@ public sealed class NotificationFeature : IslandFeatureBase
 
     /// <summary>La lune, discrète : le nombre de notifications retenues à droite ; ouverte, le résumé en cours.</summary>
     private IslandActivity QuietIndicator()
-        => QuietSummaryActivity(Lang.T("Ne pas déranger", "Do not disturb"), QuietActivityId, ActivityPriority.Background, ActivityPresentationPolicy.Passive, null);
+        => QuietSummaryActivity(Lang.T("Ne pas déranger", "Do not disturb"), QuietActivityId, ActivityPriority.Normal, ActivityPresentationPolicy.Passive, null);
 
     private IslandActivity QuietSummaryActivity(
         string title,

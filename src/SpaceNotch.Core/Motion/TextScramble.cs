@@ -54,9 +54,27 @@ public static class TextScramble
     /// <summary>
     /// Vrai changement de titre ? Une même chaîne republiée ne rejoue rien ; un
     /// titre vide qui se remplit non plus (c'est une arrivée, pas un changement).
+    /// Un compte qui avance — « 07:42 » puis « 07:41 », « 62 % » puis « 63 % » —
+    /// non plus : seuls ses chiffres changent, et les chiffres roulent déjà.
     /// </summary>
     public static bool ShouldPlay(string? before, string? after)
         => !string.IsNullOrEmpty(before)
             && !string.IsNullOrEmpty(after)
-            && !string.Equals(before, after, StringComparison.Ordinal);
+            && !string.Equals(before, after, StringComparison.Ordinal)
+            && !string.Equals(WithoutDigits(before), WithoutDigits(after), StringComparison.Ordinal);
+
+    private static string WithoutDigits(string text)
+    {
+        var builder = new StringBuilder(text.Length);
+
+        foreach (char c in text)
+        {
+            if (!char.IsDigit(c))
+            {
+                builder.Append(c);
+            }
+        }
+
+        return builder.ToString();
+    }
 }
