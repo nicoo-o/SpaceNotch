@@ -91,6 +91,19 @@
                 Opacity="{ThemeResource NfSpecularOpacity}"
                 IsHitTestVisible="False" />
 
+            <!-- Pomodoro autour de la silhouette (F11) : un fil rentré dans la forme, qui se raccourcit. -->
+            <Path
+                x:Name="FocusTrace"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                StrokeThickness="1.5"
+                StrokeStartLineCap="Round"
+                StrokeEndLineCap="Round"
+                StrokeLineJoin="Round"
+                Opacity="0.85"
+                Visibility="Collapsed"
+                IsHitTestVisible="False" />
+
             <!-- Trame des scènes ouvertes (B3) : pixels teintés entre la surface et le contenu. -->
             <views:TrameView x:Name="SceneTrame" />
 
@@ -383,6 +396,7 @@
                 <scenes:InfoScene x:Name="InfoSceneView" Visibility="Collapsed" />
                 <scenes:ColorScene x:Name="ColorSceneView" Visibility="Collapsed" />
                 <scenes:NoteScene x:Name="NoteSceneView" Visibility="Collapsed" />
+                <scenes:QuietScene x:Name="QuietSceneView" Visibility="Collapsed" />
 
                 <!--
                     Cible de dépôt de fichiers. Pendant le survol d'un fichier, la

@@ -88,6 +88,16 @@ public sealed partial class IslandWindow
         }
     }
 
+    /// <summary>Ouvre une activité déjà publiée par une fonctionnalité.</summary>
+    private void TourOpen(string id)
+    {
+        _controller.RequestCollapse();
+        _activityManager.PinPresentation(id);
+        _tourOpen ??= CreateOneShotTimer(TimeSpan.FromMilliseconds(700), () => _controller.RequestExpand());
+        _tourOpen.Stop();
+        _tourOpen.Start();
+    }
+
     private void TourClear(params string[] ids)
     {
         _activityManager.PinPresentation(null);
@@ -211,6 +221,60 @@ public sealed partial class IslandWindow
             ])
         };
 
+        IslandActivity Downloaded() => new()
+        {
+            CreatedAt = Now(),
+            Id = "tour.download",
+            FeatureId = TourFeature,
+            SceneKey = IslandSceneCatalog.Card,
+            Title = Lang.T("Téléchargé", "Downloaded"),
+            Eyebrow = "ubuntu-24.04-desktop.iso",
+            IconKey = "Check",
+            State = IslandActivityState.DownloadActive,
+            Priority = ActivityPriority.Normal,
+            Policy = ActivityPresentationPolicy.Passive,
+            MotionState = ActivityMotionState.Completing
+        };
+
+        IslandActivity Colour()
+        {
+            var color = new ColorCode(0x7F, 0xE6, 0xFF);
+
+            return new()
+            {
+                CreatedAt = Now(),
+                Id = "tour.color",
+                FeatureId = TourFeature,
+                SceneKey = IslandSceneCatalog.Color,
+                Title = color.Hex,
+                Subtitle = Lang.T("Couleur copiée", "Colour copied"),
+                IconKey = "Palette",
+                Tint = new ActivityTint(color.R, color.G, color.B),
+                State = IslandActivityState.Idle,
+                Priority = ActivityPriority.Normal,
+                Policy = ActivityPresentationPolicy.Passive,
+                Payload = new ColorPayload(color)
+            };
+        }
+
+        void Quiet()
+        {
+            _forceQuiet = true;
+            _notificationFeature.RefreshQuiet();
+            _notificationFeature.Receive("Slack", "Alice", Lang.T("Réunion déplacée à 15 h", "Meeting moved to 3 pm"));
+            _notificationFeature.Receive("Slack", "Bob", Lang.T("Déploiement terminé", "Deploy finished"));
+            _notificationFeature.Receive("Mail", Lang.T("Facture de septembre", "September invoice"), "…");
+            _controller.RequestCollapse();
+            _activityManager.PinPresentation(NotificationFeature.QuietActivityId);
+        }
+
+        void QuietOver()
+        {
+            _forceQuiet = false;
+            _notificationFeature.RefreshQuiet();
+            TourOpen(NotificationFeature.QuietSummaryActivityId);
+        }
+
         IslandActivity Volume() => HudActivity.Build("tour.volume", TourFeature, IslandSceneCatalog.VolumeHud, "Volume", 72, 100, "VolumeHigh", Lang.T("Sortie principale", "Main output"), TimeSpan.FromSeconds(30));
 
         IslandActivity Discord()
@@ -239,7 +303,14 @@ public sealed partial class IslandWindow
             ("travail en cours · pastille", () => TourShow(Thinking(), open: false)),
             ("travail en cours · ouvert", () => TourShow(Thinking(), open: true)),
             ("presse-papier · ouvert", () => TourShow(Clipboard(), open: true)),
-            ("recherche · ouverte", () => { TourClear("tour.clipboard", "tour.thinking"); OpenLauncher(); }),
+            ("téléchargement · coche et rayons", () => { TourClear("tour.clipboard", "tour.thinking"); TourShow(Download(), open: false); }),
+            ("téléchargement · terminé", () => TourShow(Downloaded(), open: false)),
+            ("couleur copiée · ouverte", () => { TourClear("tour.download"); TourShow(Colour(), open: true); }),
+            ("note · ouverte", () => { TourClear("tour.color"); OpenNote(); }),
+            ("pomodoro · anneau", () => { _noteFeature.Dismiss(); TourClear(); _pomodoroFeature.Start(TimeSpan.FromSeconds(30)); }),
+            ("ne pas déranger · lune", () => { _pomodoroFeature.Reset(); Quiet(); }),
+            ("ne pas déranger · résumé", QuietOver),
+            ("recherche · ouverte", () => { TourClear(NotificationFeature.QuietSummaryActivityId); OpenLauncher(); }),
             ("menu rapide", () => { _controller.RequestCollapse(); ToggleQuickMenu(); }),
             ("pile · compteur +N", () => { CloseQuickMenu(); TourShow(Timer(), open: false); }),
             ("bulle · deux activités importantes", () => { TourClear("tour.timer", "tour.bluetooth"); _activityManager.PostActivity(Download()); TourShow(Music(), open: false); }),

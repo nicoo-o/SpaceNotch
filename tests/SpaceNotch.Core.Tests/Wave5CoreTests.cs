@@ -217,6 +217,27 @@ public sealed class Wave5CoreTests
 
     // F11 — pomodoro autour de la silhouette
     [Fact]
+    public void TheFocusRing_StaysInsideTheNotch_AndStartsAtTheBottom()
+    {
+        ShapePoint[] ring = OutlineTrim.Ring(300, 60, 24, IslandShape.Squircle, 12);
+
+        Assert.NotEmpty(ring);
+        Assert.All(ring, p =>
+        {
+            Assert.InRange(p.X, 12 + OutlineTrim.RingInset - 0.01, 300 - 12 - OutlineTrim.RingInset + 0.01);
+            Assert.InRange(p.Y, OutlineTrim.RingInset - 0.01, 60 - OutlineTrim.RingInset + 0.01);
+        });
+
+        var trace = OutlineTrim.Trim(ring, 0.25);
+        Assert.Equal(60 - OutlineTrim.RingInset, trace[0].Y, 3);
+        Assert.Equal(150, trace[0].X, 0);
+
+        // Dans le sens horaire : depuis le bas, le tracé part vers la gauche.
+        Assert.True(trace[1].X < trace[0].X);
+        Assert.Empty(OutlineTrim.Ring(30, 12, 6, IslandShape.Squircle, 4));
+    }
+
+    [Fact]
     public void OutlineTrim_ShrinksWithTheRemainingTime()
     {
         ShapePoint[] square = [new(0, 0), new(100, 0), new(100, 100), new(0, 100)];

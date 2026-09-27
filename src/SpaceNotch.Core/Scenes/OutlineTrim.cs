@@ -10,6 +10,56 @@ namespace SpaceNotch.Core.Scenes;
 /// </summary>
 public static class OutlineTrim
 {
+    /// <summary>Retrait de l'anneau par rapport au bord de la notch, en DIPs.</summary>
+    public const double RingInset = 5;
+
+    /// <summary>
+    /// L'anneau sur lequel le temps se lit : le corps de la notch — épaules
+    /// exclues — rentré de <paramref name="inset"/>, avec des congés du bas
+    /// rentrés d'autant. Il reste entièrement à l'intérieur : rien ne se dessine
+    /// autour de la notch. Même sens que la silhouette ; vide si la notch est
+    /// trop petite pour le porter.
+    /// </summary>
+    public static ShapePoint[] Ring(double width, double height, double radius, double smoothing, double shoulder, double inset = RingInset)
+    {
+        double s = IslandShape.EffectiveShoulder(width, height, shoulder);
+        double r = IslandShape.EffectiveRadius(width, height, radius, shoulder);
+        double w = width - (2 * s) - (2 * inset);
+        double h = height - (2 * inset);
+
+        if (w <= 2 * inset || h <= 2 * inset)
+        {
+            return [];
+        }
+
+        ShapePoint[] ring = IslandShape.Silhouette(w, h, Math.Max(0, r - inset), smoothing);
+
+        for (int i = 0; i < ring.Length; i++)
+        {
+            ring[i] = new ShapePoint(ring[i].X + s + inset, ring[i].Y + inset);
+        }
+
+        // Le fil part exactement du milieu du bord bas : ce point est ajouté
+        // sur le segment droit qui le traverse, s'il n'y est pas déjà.
+        double center = width / 2;
+        double bottom = height - inset;
+
+        for (int i = 0; i < ring.Length; i++)
+        {
+            ShapePoint a = ring[i], b = ring[(i + 1) % ring.Length];
+
+            if (Math.Abs(a.Y - bottom) < 0.01 && Math.Abs(b.Y - bottom) < 0.01
+                && Math.Min(a.X, b.X) < center - 0.01 && Math.Max(a.X, b.X) > center + 0.01)
+            {
+                var list = new List<ShapePoint>(ring);
+                list.Insert(i + 1, new ShapePoint(center, bottom));
+                return [.. list];
+            }
+        }
+
+        return ring;
+    }
+
     /// <summary>Longueur totale d'une polyligne fermée.</summary>
     public static double Length(IReadOnlyList<ShapePoint> outline)
     {

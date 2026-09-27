@@ -110,6 +110,7 @@ public sealed partial class IslandWindow : Window
     private readonly PomodoroFeature _pomodoroFeature;
     private readonly TimerFeature _timerFeature;
     private readonly NoteFeature _noteFeature;
+    private volatile bool _forceQuiet;
     private readonly LauncherFeature _launcherFeature;
     private readonly QuickMenuFeature _quickMenuFeature;
     private readonly ClipboardFeature _clipboardFeature;
@@ -309,7 +310,8 @@ public sealed partial class IslandWindow : Window
         _notificationListener.Log = message => MiniLogger.Log(message);
         _notificationFeature = new NotificationFeature(
             _activityManager, _eventBus, _notificationListener,
-            _settings.IsFeatureEnabled(NotificationFeature.FeatureKey))
+            _settings.IsFeatureEnabled(NotificationFeature.FeatureKey),
+            isQuiet: () => _forceQuiet || SpaceNotch.Platform.Windows.Notifications.FocusAssistProbe.IsQuiet())
         {
             IgnoredApps = _settings.IgnoredNotificationApps
         };
@@ -592,6 +594,7 @@ public sealed partial class IslandWindow : Window
         _scenes[IslandSceneCatalog.Welcome] = WelcomeSceneView;
         _scenes[IslandSceneCatalog.Color] = ColorSceneView;
         _scenes[IslandSceneCatalog.Note] = NoteSceneView;
+        _scenes[IslandSceneCatalog.Quiet] = QuietSceneView;
 
         // Luminosité et volume partagent la même vue : leur charge utile est
         // identique, seule la clé d'icône les distingue.
@@ -898,6 +901,7 @@ public sealed partial class IslandWindow : Window
         _lastPresentedId = activity?.Id;
         Celebrate(activity);
         UpdateTabs(activity, expanded);
+        UpdateFocusTrace();
         _lastRenderedState = _controller.State;
 
         // Le palier au repos ne dépend jamais de l'ouverture : il est résolu à
@@ -1563,6 +1567,7 @@ public sealed partial class IslandWindow : Window
         }
 
         SceneTrame.Resize(footprint.Width, footprint.Height, radius, shoulder);
+        UpdateFocusTrace(footprint);
 
         // Le reflet suit la même courbe, borné à sa bande. La borne est ce qui
         // l'empêche de mordre dans les congés sur les paliers bas : à 34 de haut,
@@ -2566,7 +2571,6 @@ public sealed partial class IslandWindow : Window
         OpenLauncher();
     }
 
-    /// <summary>Ouvre la grille de fonctions et la montre.</summary>
     /// <summary>Note éclair (F7) : la note s'ouvre dans la notch, curseur à la fin.</summary>
     private void OpenNote()
     {
@@ -2576,6 +2580,7 @@ public sealed partial class IslandWindow : Window
         RevealPresented();
     }
 
+    /// <summary>Ouvre la grille de fonctions et la montre.</summary>
     private void OpenLauncher()
     {
         _launcherFeature.Show();
