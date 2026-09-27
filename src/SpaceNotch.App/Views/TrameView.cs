@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Runtime.InteropServices.WindowsRuntime;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Imaging;
 using SpaceNotch.Core.Motion;
 using SpaceNotch.Infrastructure.Logging;
 using SpaceNotch.Platform.Windows.Audio;
@@ -16,9 +13,15 @@ using Color = Windows.UI.Color;
 namespace SpaceNotch_App.Views;
 
 /// <summary>
-/// La trame des scènes ouvertes (<see cref="TrameField"/>, choix B3) : une image
-/// de vrais pixels, calée sur les pixels physiques de l'écran, posée entre la
-/// surface noire et le contenu.
+/// La trame des scènes ouvertes (<see cref="TrameField"/>, choix B3) : un seul
+/// tracé fait d'un carré par pixel allumé, calé sur les pixels physiques de
+/// l'écran, posé entre la surface noire et le contenu.
+///
+/// <para>
+/// Un tracé plutôt qu'une image modifiable (<c>WriteableBitmap</c>) : l'image
+/// était remplie (le journal le montrait) mais restait invisible à l'écran au
+/// tournage ; un tracé XAML s'affiche, net, sans interopérabilité.
+/// </para>
 ///
 /// <para>
 /// Elle n'est calculée qu'une fois la forme posée : pendant que le ressort
@@ -32,12 +35,12 @@ public sealed partial class TrameView : Grid
     private static readonly TimeSpan SettleDelay = TimeSpan.FromMilliseconds(140);
     private static readonly TimeSpan MusicTick = TimeSpan.FromMilliseconds(100);
 
-    private readonly Image _image = new() { Stretch = Stretch.None, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, IsHitTestVisible = false };
+    private readonly Microsoft.UI.Xaml.Shapes.Path _path = new() { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, IsHitTestVisible = false };
+    private readonly SolidColorBrush _brush = new();
     private DispatcherQueueTimer? _settle;
     private DispatcherQueueTimer? _music;
     private AudioPeakMeter? _meter;
-    private WriteableBitmap? _bitmap;
-    private byte[] _pixels = [];
+    private int _logged = -1;
     private double _width, _height, _radius, _shoulder;
     private double _level;
     private Color? _tint;
@@ -51,7 +54,8 @@ public sealed partial class TrameView : Grid
         HorizontalAlignment = HorizontalAlignment.Left;
         VerticalAlignment = VerticalAlignment.Top;
         Opacity = 0;
-        Children.Add(_image);
+        _path.Fill = _brush;
+        Children.Add(_path);
         Unloaded += (_, _) => StopMusic();
     }
 
@@ -83,11 +87,6 @@ public sealed partial class TrameView : Grid
 
         if (!show)
         {
-            if (scene is not null)
-            {
-                MiniLogger.Log($"[TRAME] en attente : permise={IsAllowed}, teinte={(tint is null ? "aucune" : "oui")}, hauteur={_height:0}");
-            }
-
             Opacity = 0;
             StopMusic();
             return;
@@ -208,7 +207,6 @@ public sealed partial class TrameView : Grid
     {
         if (_scene is null || _tint is not { } tint || XamlRoot is null || _height < TrameField.MinimumHeightDip)
         {
-            MiniLogger.Log($"[TRAME] rien à dessiner : scène={_scene is not null}, teinte={_tint is not null}, racine={XamlRoot is not null}, hauteur={_height:0}");
             return;
         }
 
@@ -230,49 +228,27 @@ public sealed partial class TrameView : Grid
             Obstacles(scale),
             _musicOn ? _level : null);
 
-        if (_bitmap is null || _bitmap.PixelWidth != widthPx || _bitmap.PixelHeight != heightPx)
-        {
-            _bitmap = new WriteableBitmap(widthPx, heightPx);
-            _pixels = new byte[widthPx * heightPx * 4];
-            _image.Source = _bitmap;
-            _image.Width = widthPx / scale;
-            _image.Height = heightPx / scale;
-        }
-        else
-        {
-            Array.Clear(_pixels);
-        }
-
         // Un pixel d'écran d'écart entre deux cellules : la trame se lit en pixels, pas en aplat.
-        int size = (int)cell - (cell >= 3 ? 1 : 0);
+        double size = (cell - (cell >= 3 ? 1 : 0)) / scale;
+        var group = new GeometryGroup { FillRule = FillRule.Nonzero };
 
         foreach ((int column, int row) in cells)
         {
-            int x0 = (int)(column * cell), y0 = (int)(row * cell);
-
-            for (int y = y0; y < Math.Min(heightPx, y0 + size); y++)
+            group.Children.Add(new RectangleGeometry
             {
-                int offset = ((y * widthPx) + x0) * 4;
-
-                for (int x = 0; x < size && x0 + x < widthPx; x++, offset += 4)
-                {
-                    _pixels[offset] = tint.B;
-                    _pixels[offset + 1] = tint.G;
-                    _pixels[offset + 2] = tint.R;
-                    _pixels[offset + 3] = 255;
-                }
-            }
+                Rect = new global::Windows.Foundation.Rect(column * cell / scale, row * cell / scale, size, size)
+            });
         }
 
-        using (Stream stream = _bitmap.PixelBuffer.AsStream())
-        {
-            stream.Write(_pixels, 0, _pixels.Length);
-        }
+        _brush.Color = tint;
+        _path.Data = group;
 
-        _bitmap.Invalidate();
+        // Une ligne par scène dans le journal : assez pour diagnostiquer, sans le noyer.
+        int signature = HashCode.Combine(widthPx, heightPx, _scene.GetHashCode());
 
-        if (!_musicOn || cells.Count == 0)
+        if (signature != _logged)
         {
+            _logged = signature;
             MiniLogger.Log($"[TRAME] {widthPx}×{heightPx} px, cellule {cell}, {cells.Count} pixels allumés");
         }
     }
