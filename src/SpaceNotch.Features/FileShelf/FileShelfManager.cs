@@ -168,8 +168,8 @@ public sealed class FileShelfManager : IslandFeatureBase
         });
     }
 
-    private const double ShelfWidth = 380;
-    private const double ShelfChrome = 12 + 30 + 14;
+    private const double ShelfWidth = 332 + (2 * SceneInsets.Side) + (2 * NotchGeometry.DefaultShoulder);
+    private const double ShelfChrome = SceneInsets.Top + 30 + SceneInsets.Bottom;
     private const double ShelfRow = 40;
     private const int ShelfVisibleRows = 4;
 }

@@ -349,6 +349,31 @@ public class DesignLanguageTests
         Assert.True(inner < container, $"Le rayon interne ({inner}) atteint celui du conteneur de référence ({container}).");
     }
 
+    [Fact]
+    public void TheScenePadding_MatchesTheCoreRule()
+    {
+        // Le cœur calcule les encombrements avec SceneInsets, le XAML pose la
+        // marge avec NfScenePadding : s'ils divergeaient, le contenu serait
+        // coupé ou flotterait dans le noir.
+        Match match = Regex.Match(ReadTokensFile(), "x:Key=\"NfScenePadding\">([0-9.,]+)</Thickness>", RegexOptions.CultureInvariant);
+        Assert.True(match.Success);
+
+        Assert.Equal(
+            $"{SceneInsets.Side},{SceneInsets.Top},{SceneInsets.Side},{SceneInsets.Bottom}",
+            match.Groups[1].Value);
+    }
+
+    [Fact]
+    public void EveryOpenScene_KeepsItsContentAwayFromTheCurve()
+    {
+        // Un contenu posé dans l'angle du bas reste à au moins 12 DIPs du congé.
+        double radius = NotchGeometry.DefaultExpandedRadius;
+        double dx = radius - SceneInsets.Side, dy = radius - SceneInsets.Bottom;
+        double clearance = radius - Math.Sqrt((dx * dx) + (dy * dy));
+
+        Assert.True(clearance >= 12, $"Marge au congé : {clearance:0.0} DIPs");
+    }
+
     /// <summary>
     /// Chemin du fichier de jetons, résolu depuis la sortie de compilation.
     ///

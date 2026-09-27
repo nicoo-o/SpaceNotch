@@ -9,7 +9,7 @@
     mc:Ignorable="d">
 
     <!-- Appareil Bluetooth : icône, nom, état, anneau de batterie. -->
-    <Grid Padding="18,0,18,0" ColumnSpacing="12" VerticalAlignment="Center">
+    <Grid Padding="{StaticResource NfScenePadding}" ColumnSpacing="12" VerticalAlignment="Center">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />

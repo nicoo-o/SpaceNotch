@@ -14,7 +14,7 @@
         40 DIP par fichier : vraie icône, nom, taille, ✕ au survol. La liste ne
         touche jamais aux fichiers eux-mêmes. Voir w3-indicateurs.
     -->
-    <Grid Padding="12,12,12,14">
+    <Grid Padding="{StaticResource NfScenePadding}">
         <Grid.RowDefinitions>
             <RowDefinition Height="30" />
             <RowDefinition Height="*" />

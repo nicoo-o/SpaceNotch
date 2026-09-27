@@ -16,7 +16,7 @@
     -->
     <!-- Marge latérale : filets et pilule de sélection restent dans le noir
          de la notch, sans déborder sur ses flancs arrondis. -->
-    <Grid x:Name="RootGrid" Padding="12,0,12,10">
+    <Grid x:Name="RootGrid" Padding="{StaticResource NfLauncherPadding}">
         <Grid.RowDefinitions>
             <RowDefinition Height="52" />
             <RowDefinition Height="1" />

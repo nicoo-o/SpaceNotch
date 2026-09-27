@@ -12,7 +12,7 @@
         titre 16, deux lignes 12,5, pied (points, Passer, Suivant). Voir
         w3-bienvenue (visuel validé).
     -->
-    <Grid x:Name="RootGrid" Padding="18,18,18,14" KeyDown="OnKeyDown">
+    <Grid x:Name="RootGrid" Padding="{StaticResource NfScenePadding}" KeyDown="OnKeyDown">
         <Grid.RowDefinitions>
             <RowDefinition Height="96" />
             <RowDefinition Height="Auto" />

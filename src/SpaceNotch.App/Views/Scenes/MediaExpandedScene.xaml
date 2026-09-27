@@ -9,7 +9,7 @@
     xmlns:views="using:SpaceNotch_App.Views"
     mc:Ignorable="d">
 
-    <Grid Padding="14,10,18,14" ColumnSpacing="14">
+    <Grid Padding="{StaticResource NfScenePadding}" ColumnSpacing="14">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />

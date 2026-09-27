@@ -12,7 +12,7 @@
         QuickMenuLayout (cœur) : marge 4, en-tête 40, lignes 36, filets 9,
         rangée des bords 38, marge basse 10. Les lignes sont construites en code.
     -->
-    <Grid x:Name="RootGrid" Padding="10,4,10,10" KeyDown="OnMenuKeyDown">
+    <Grid x:Name="RootGrid" Padding="{StaticResource NfScenePadding}" KeyDown="OnMenuKeyDown">
         <Grid.RowDefinitions>
             <RowDefinition Height="40" />
             <RowDefinition Height="*" />

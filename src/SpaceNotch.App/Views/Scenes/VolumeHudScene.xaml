@@ -15,7 +15,7 @@
         en grand et un fil de niveau. La valeur défile vers sa cible au lieu de
         sauter, en chiffres à chasse fixe pour que sa largeur ne danse pas.
     -->
-    <Grid Padding="16,8,16,12" ColumnSpacing="14">
+    <Grid Padding="{StaticResource NfScenePadding}" ColumnSpacing="14">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />

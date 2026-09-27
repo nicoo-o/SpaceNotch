@@ -16,7 +16,7 @@
         Ce n'est pas une carte Windows : aucune surface dans la surface, aucune
         couleur d'accent — l'encre et la hiérarchie typographique suffisent.
     -->
-    <Grid Padding="16,8,14,12" ColumnSpacing="12">
+    <Grid Padding="{StaticResource NfScenePadding}" ColumnSpacing="12">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
