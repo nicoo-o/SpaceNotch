@@ -14,8 +14,11 @@ import time
 from ctypes import wintypes
 
 import pyautogui
+import threading
+
 import win32api
 import win32con
+import win32gui
 
 OUT = sys.argv[1]
 EXE = sys.argv[2]
@@ -91,6 +94,18 @@ subprocess.run(["reg", "add", r"HKCU\Software\Microsoft\Windows NT\CurrentVersio
 sw, sh = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 log(f"écran {sw}×{sh}")
 
+# Windows Server pops « System Properties » (paging file) at random: close it whenever it shows.
+def close_noise():
+    while True:
+        for title in ("System Properties", "Propriétés système"):
+            hwnd = win32gui.FindWindow(None, title)
+            if hwnd:
+                win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+        time.sleep(0.3)
+
+
+threading.Thread(target=close_noise, daemon=True).start()
+
 # ---------- record ----------
 rec = subprocess.Popen([FFMPEG, "-y", "-loglevel", "error", "-f", "gdigrab", "-framerate", "30", "-draw_mouse", "1",
                         "-i", "desktop", "-c:v", "libx264", "-preset", "ultrafast", "-crf", "10", "-pix_fmt", "yuv420p",
@@ -133,15 +148,17 @@ log("saisie 12*8")
 at(56.2); glide(cx + sw // 4, sh // 2, 0.8)
 at(58.0); pyautogui.press("escape"); log("Échap")
 
-# Pull the notch off the edge, let it float, then send it home.
-at(60.0); glide(cx, 8, 0.6); log("prise de la notch")
-at(60.9); pyautogui.mouseDown(); log("appui")
-glide(cx, 8 + sh // 3, 1.4); log("tirée vers le bas")
-at(62.8); pyautogui.mouseUp(); log("relâchée : flottante")
-at(63.4); glide(cx + sw // 4, sh // 2, 0.8)
-at(66.0); glide(cx, 8 + sh // 3 + 4, 0.6)
-at(66.9); pyautogui.doubleClick(); log("double-clic : retour au bord")
-at(67.8); glide(cx + sw // 4, sh // 2, 0.8)
+# Pull the notch off the edge: hover first (the lip wakes up under the pointer), then
+# press and pull slowly, let it float, and send it home with a double-click.
+at(59.5); glide(cx, 10, 0.6); log("survol de la notch")
+at(61.0); pyautogui.mouseDown(); log("appui")
+glide(cx, 22, 0.35)
+glide(cx, 10 + sh // 3, 1.6); log("tirée vers le bas")
+at(63.4); pyautogui.mouseUp(); log("relâchée : flottante")
+at(64.0); glide(cx + sw // 4, sh // 2, 0.8)
+at(66.5); glide(cx, 10 + sh // 3 + 4, 0.6)
+at(67.4); pyautogui.doubleClick(); log("double-clic : retour au bord")
+at(68.3); glide(cx + sw // 4, sh // 2, 0.8)
 
 rec.wait()
 probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
