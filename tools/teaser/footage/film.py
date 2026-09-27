@@ -146,7 +146,8 @@ for ch in "12*8":
     pyautogui.write(ch); time.sleep(0.18)
 log("saisie 12*8")
 at(56.2); glide(cx + sw // 4, sh // 2, 0.8)
-at(58.0); pyautogui.press("escape"); log("Échap")
+at(58.0); pyautogui.press("escape"); log("Échap : vide la recherche")
+at(58.5); pyautogui.press("escape"); log("Échap : la referme")
 
 # Pull the notch off the edge, once the search has fully folded back (a press during
 # that transition is ignored): hover, press, pull slowly, let it float, send it home.
