@@ -179,6 +179,12 @@ public sealed partial class IslandWindow
     /// </summary>
     private void BeginPress(PointerRoutedEventArgs e)
     {
+        // Retour visuel au clic (D4) : la notch s'enfonce sous le doigt.
+        if (UseSpringAnimations())
+        {
+            _controller.Press();
+        }
+
         _detachDisplay ??= ResolveDisplay();
 
         (double x, double y) = CursorDip();
@@ -244,6 +250,7 @@ public sealed partial class IslandWindow
     private void EndPress(bool click)
     {
         _pointerDown = false;
+        _controller.Release();
 
         if (_capturedPointer is not null)
         {

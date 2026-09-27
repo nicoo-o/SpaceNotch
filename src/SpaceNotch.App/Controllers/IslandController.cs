@@ -248,7 +248,7 @@ public sealed class IslandController : IDisposable
             // Une forme au repos qui change est un changement d'objet, pas un
             // effleurement : elle se pose avec la loi de l'ouverture.
             _animator.UpdateParameters(_motionParameters);
-            AnimateTo(footprint);
+            AnimateTo(FootprintForState());
         }
         else if (State == IslandState.Collapsing)
         {
@@ -302,6 +302,121 @@ public sealed class IslandController : IDisposable
         AnimateTo(FootprintForState());
     }
 
+    /// <summary>
+    /// Retour visuel au clic (D4) : appuyée, la forme compacte s'enfonce à
+    /// 97 % ; relâchée, elle rebondit avec le ressort de l'ouverture.
+    /// </summary>
+    public void Press()
+    {
+        if (State is not (IslandState.Closed or IslandState.Preview) || _dragTarget is not null)
+        {
+            return;
+        }
+
+        _pressed = true;
+        IslandFootprint rest = FootprintForState();
+        _animator.UpdateParameters(_hoverParameters);
+        AnimateTo(new IslandFootprint(rest.Width * PressScale, rest.Height * PressScale));
+    }
+
+    /// <summary>Relâchement : la forme rebondit à sa taille.</summary>
+    public void Release()
+    {
+        if (!_pressed)
+        {
+            return;
+        }
+
+        _pressed = false;
+
+        if (State is IslandState.Closed or IslandState.Preview)
+        {
+            _animator.UpdateParameters(_motionParameters);
+            AnimateTo(FootprintForState());
+        }
+    }
+
+    /// <summary>
+    /// Notch magnétique (U4) : à l'approche du curseur, la forme au repos
+    /// grossit à peine (jusqu'à 1,5 %). Une même valeur ne relance rien.
+    /// </summary>
+    public void Lean(double scale)
+    {
+        // Par pas de 0,25 % : la forme ne se redessine pas pour un mouvement
+        // de curseur qu'on ne verrait pas.
+        scale = 1 + (Math.Round((Math.Clamp(scale, 1, 1.05) - 1) / 0.0025) * 0.0025);
+
+        if (Math.Abs(scale - _lean) < 0.001)
+        {
+            return;
+        }
+
+        _lean = scale;
+
+        if (State == IslandState.Closed && !_pressed && _dragTarget is null)
+        {
+            _animator.UpdateParameters(_hoverParameters);
+            AnimateTo(FootprintForState());
+        }
+    }
+
+    /// <summary>
+    /// Passe par une forme intermédiaire pendant l'ouverture : la goutte du
+    /// menu liquide (U1), étirée et étroite, avant de devenir le menu.
+    /// </summary>
+    public void Via(IslandFootprint shape)
+    {
+        if (State is IslandState.Expanding or IslandState.Expanded)
+        {
+            _animator.UpdateParameters(_hoverParameters);
+            AnimateTo(shape);
+        }
+    }
+
+    /// <summary>Reprend la forme que l'état demande, avec le ressort de l'ouverture.</summary>
+    public void Resume()
+    {
+        _animator.UpdateParameters(_motionParameters);
+        AnimateTo(FootprintForState());
+    }
+
+    /// <summary>
+    /// Hauteur de la rangée d'onglets (U2) ajoutée à une scène ouverte quand
+    /// plusieurs activités tournent ; 0 sinon. Posée par la fenêtre.
+    /// </summary>
+    public double TabRowHeight
+    {
+        get => _tabRow;
+        set
+        {
+            if (Math.Abs(value - _tabRow) < 0.5)
+            {
+                return;
+            }
+
+            _tabRow = value;
+
+            if (State is IslandState.Expanded or IslandState.Expanding)
+            {
+                AnimateTo(FootprintForState());
+            }
+        }
+    }
+
+    private double _tabRow;
+
+    /// <summary>Forme ouverte d'une activité, onglets compris.</summary>
+    public IslandFootprint Opened(IslandActivity activity)
+    {
+        ArgumentNullException.ThrowIfNull(activity);
+        IslandFootprint scene = activity.Footprint;
+        return _tabRow > 0 ? new IslandFootprint(scene.Width, scene.Height + _tabRow) : scene;
+    }
+
+    private const double PressScale = 0.97;
+    private bool _pressed;
+    private double _lean = 1;
+
     /// <summary>Resserrement de la respiration : assez pour se voir, pas assez pour inquiéter.</summary>
     private const double PinchWidth = 0.9;
 
@@ -333,7 +448,7 @@ public sealed class IslandController : IDisposable
 
         _animator.UpdateParameters(_motionParameters);
         _stateManager.TryTransitionTo(IslandState.Expanding);
-        AnimateTo(_presented.Footprint);
+        AnimateTo(Opened(_presented));
     }
 
     public void RequestCollapse()
@@ -464,8 +579,9 @@ public sealed class IslandController : IDisposable
     /// <summary>Encombrement que l'état courant réclame.</summary>
     private IslandFootprint FootprintForState() => State switch
     {
-        IslandState.Expanded or IslandState.Expanding when _presented is not null => _presented.Footprint,
+        IslandState.Expanded or IslandState.Expanding when _presented is not null => Opened(_presented),
         IslandState.Preview when PreviewFootprint is not null => PreviewFootprint(),
+        IslandState.Closed when _lean > 1.0005 => new IslandFootprint(_collapsedFootprint.Width * _lean, _collapsedFootprint.Height * _lean),
         _ => _collapsedFootprint
     };
 
@@ -532,7 +648,7 @@ public sealed class IslandController : IDisposable
 
         if (State is IslandState.Expanded or IslandState.Expanding)
         {
-            AnimateTo(activity.Footprint);
+            AnimateTo(Opened(activity));
         }
     }
 

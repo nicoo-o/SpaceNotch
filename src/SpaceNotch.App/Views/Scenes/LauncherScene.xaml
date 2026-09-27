@@ -50,6 +50,15 @@
                 LostFocus="OnSearchLostFocus"
                 PreviewKeyDown="OnSearchPreviewKeyDown" />
 
+            <!-- La recherche éclate en pixels (S3) : les éclats tombent par-dessus le champ. -->
+            <Path
+                x:Name="ShatterPath"
+                Grid.Column="1"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                IsHitTestVisible="False"
+                Fill="{ThemeResource NfTextPrimaryBrush}" />
+
             <Border
                 x:Name="EscapeChip"
                 Grid.Column="2"

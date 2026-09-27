@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.Linq;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Presentation;
@@ -52,6 +53,32 @@ public sealed partial class IslandWindow
         // le temps d'être utilisé ; il rend la main en se refermant.
         _activityManager.PinPresentation(QuickMenuFeature.ActivityId);
         RevealPresented();
+
+        // Après la prise en compte de l'ouverture : la goutte part de la forme qui s'ouvre.
+        _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, Drip);
+    }
+
+    private DispatcherQueueTimer? _dripTimer;
+
+    /// <summary>
+    /// Menu liquide (U1) : la notch s'étire d'abord en goutte — étroite et
+    /// longue, comme de l'encre qui coule — puis s'élargit et devient le menu.
+    /// Les lignes arrivent ensuite en cascade.
+    /// </summary>
+    private void Drip()
+    {
+        if (!UseSpringAnimations() || UsesFloatingGeometry || UsesSideTab)
+        {
+            return;
+        }
+
+        IslandFootprint menu = IslandSceneCatalog.FootprintFor(IslandSceneCatalog.QuickMenu);
+        var drop = new IslandFootprint(Math.Max(_restFootprint.Width * 0.9, 120), menu.Height * 0.62);
+        _controller.Via(drop);
+
+        _dripTimer ??= CreateOneShotTimer(TimeSpan.FromMilliseconds(150), _controller.Resume);
+        _dripTimer.Stop();
+        _dripTimer.Start();
     }
 
     private bool HasActivity(string activityId)
@@ -88,6 +115,10 @@ public sealed partial class IslandWindow
 
             case QuickMenuFeature.ShelfAction:
                 PresentFromMenu(FileShelfManager.ShelfActivityId);
+                return true;
+
+            case QuickMenuFeature.NoteAction:
+                OpenNote();
                 return true;
 
             case QuickMenuFeature.DetachAction:

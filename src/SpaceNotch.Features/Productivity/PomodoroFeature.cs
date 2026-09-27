@@ -5,10 +5,11 @@ using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
+using SpaceNotch.Core.Localization;
+using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Productivity;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
-using SpaceNotch.Core.Localization;
 
 namespace SpaceNotch.Features.Productivity;
 
@@ -58,6 +59,13 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
     public TimeSpan Remaining => _clock.Value;
 
+    /// <summary>Durée de la session en cours : l'anneau autour de la notch (F11) se lit contre elle.</summary>
+    public TimeSpan SessionLength { get; private set; } = DefaultSessionLength;
+
+    /// <summary>Part du temps qui reste, de 1 au départ à 0 à la fin.</summary>
+    public double RemainingFraction
+        => SessionLength <= TimeSpan.Zero ? 0 : Math.Clamp(Remaining / SessionLength, 0, 1);
+
     public void Start(TimeSpan? duration = null)
     {
         if (!IsEnabled)
@@ -69,6 +77,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
         {
             bool wasRunning = _clock.IsRunning;
             _clock.Set(duration.Value, countsDown: true);
+            SessionLength = duration.Value;
 
             if (wasRunning)
             {
@@ -102,6 +111,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
     {
         StopTimer();
         _clock.Set(duration ?? DefaultSessionLength, countsDown: true);
+        SessionLength = duration ?? DefaultSessionLength;
         RemoveActivity(ActivityId);
     }
 
@@ -140,6 +150,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
         StopTimer();
         _clock.Set(DefaultSessionLength, countsDown: true);
+        SessionLength = DefaultSessionLength;
 
         PublishActivity(new IslandActivity
         {
@@ -152,6 +163,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
             IconKey = "Timer",
             State = IslandActivityState.TimerActive,
             Priority = ActivityPriority.High,
+            MotionState = ActivityMotionState.Completing,
             Duration = TimeSpan.FromSeconds(5)
         });
 

@@ -52,19 +52,35 @@
                     VerticalAlignment="Bottom" />
             </Grid>
 
-            <!-- Fil de niveau : une échelle, jamais une largeur recalculée. -->
-            <Grid
-                Height="3"
-                CornerRadius="1.5"
-                Background="{ThemeResource NfStrokeStrongBrush}">
-                <Border
+            <!-- Fader cranté (S4) : une graduation tous les 10 %, qui s'allume
+                 quand le curseur la franchit ; le curseur fait un micro-rebond. -->
+            <Grid x:Name="FaderHost" Height="14" SizeChanged="OnFaderSizeChanged">
+                <Canvas x:Name="FaderTicks" IsHitTestVisible="False" />
+                <Grid
+                    Height="3"
                     CornerRadius="1.5"
-                    Background="{ThemeResource NfTextPrimaryBrush}"
-                    RenderTransformOrigin="0,0.5">
-                    <Border.RenderTransform>
-                        <ScaleTransform x:Name="LevelScale" ScaleX="0.65" />
-                    </Border.RenderTransform>
-                </Border>
+                    VerticalAlignment="Center"
+                    Background="{ThemeResource NfStrokeStrongBrush}">
+                    <Border
+                        CornerRadius="1.5"
+                        Background="{ThemeResource NfTextPrimaryBrush}"
+                        RenderTransformOrigin="0,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform x:Name="LevelScale" ScaleX="0.65" />
+                        </Border.RenderTransform>
+                    </Border>
+                </Grid>
+                <Ellipse
+                    x:Name="FaderKnob"
+                    Width="10"
+                    Height="10"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Fill="{ThemeResource NfTextPrimaryBrush}">
+                    <Ellipse.RenderTransform>
+                        <TranslateTransform x:Name="KnobShift" />
+                    </Ellipse.RenderTransform>
+                </Ellipse>
             </Grid>
         </StackPanel>
     </Grid>

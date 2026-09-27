@@ -1,4 +1,5 @@
 using System;
+using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.State;
 
 namespace SpaceNotch.Core.Activities;
@@ -19,7 +20,13 @@ public enum TrailingKind
     Battery,
 
     /// <summary>Barres d'égaliseur qui dansent : une lecture en cours.</summary>
-    Equalizer
+    Equalizer,
+
+    /// <summary>Anneau de sept pixels qui tourne : un travail dont on ignore la fin (M2).</summary>
+    Spinner,
+
+    /// <summary>Les pixels du spinner ont glissé en coche : le travail a réussi (M2).</summary>
+    Check
 }
 
 /// <summary>
@@ -55,6 +62,10 @@ public readonly record struct CompactTrailing(TrailingKind Kind, double Value)
                 => new(TrailingKind.Equalizer, 0),
             { Progress: double progress }
                 => new(TrailingKind.Ring, Math.Clamp(progress, 0, 1)),
+            { MotionState: ActivityMotionState.Completing or ActivityMotionState.Complete, IconKey: "Check" }
+                => new(TrailingKind.Check, 1),
+            { Role: ActivityRole.Download, MotionState: ActivityMotionState.Working }
+                => new(TrailingKind.Spinner, 0),
             _ => None
         };
     }
@@ -78,7 +89,7 @@ public readonly record struct CompactTrailing(TrailingKind Kind, double Value)
         return trailing.Kind switch
         {
             TrailingKind.Battery => string.Create(System.Globalization.CultureInfo.CurrentCulture, $"{Math.Round(trailing.Value * 100):0} %"),
-            TrailingKind.Equalizer => null,
+            TrailingKind.Equalizer or TrailingKind.Check => null,
             _ => activity.TrailingMetric
         };
     }

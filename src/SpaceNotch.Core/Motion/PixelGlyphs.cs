@@ -603,6 +603,14 @@ public static class PixelGlyphs
             ".x.x.x.",
             "..x.x..",
             "...x..."),
+        ["Moon"] = Mask(
+            "..xxx..",
+            ".xx....",
+            "xx.....",
+            "xx.....",
+            "xx....x",
+            ".xx..xx",
+            "..xxxx."),
     };
 
     /// <summary>Clés disposant d'un motif.</summary>

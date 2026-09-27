@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
@@ -7,6 +8,8 @@ using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using SpaceNotch.Core.Activities;
+using SpaceNotch.Core.Motion;
+using Color = Windows.UI.Color;
 using Path = Microsoft.UI.Xaml.Shapes.Path;
 
 namespace SpaceNotch_App.Views;
@@ -32,6 +35,13 @@ public sealed partial class TrailingView : Grid
     private readonly Path _fill = new() { StrokeThickness = Stroke, StrokeStartLineCap = PenLineCap.Round, StrokeEndLineCap = PenLineCap.Round };
     private readonly StackPanel _bars = new() { Orientation = Orientation.Horizontal, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
     private readonly Rectangle[] _barCells = new Rectangle[3];
+    private readonly Canvas _spinner = new() { Width = DefaultSide, Height = DefaultSide, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+    private readonly Rectangle[] _spinnerPixels = new Rectangle[SpinnerCheck.Count];
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _spinTimer;
+    private DateTime _spinStart;
+    private DateTime _morphStart;
+    private double _frozenAt;
+    private bool _morphing;
     private CompactTrailing _shown = CompactTrailing.None;
     private Brush? _tint;
     private bool _dancing;
@@ -55,7 +65,20 @@ public sealed partial class TrailingView : Grid
         }
 
         Children.Add(_bars);
-        Unloaded += (_, _) => StopDancing();
+
+        for (int i = 0; i < _spinnerPixels.Length; i++)
+        {
+            _spinnerPixels[i] = new Rectangle { Width = SpinnerPixel, Height = SpinnerPixel, RadiusX = 0.4, RadiusY = 0.4 };
+            _spinner.Children.Add(_spinnerPixels[i]);
+        }
+
+        _spinner.Visibility = Visibility.Collapsed;
+        Children.Add(_spinner);
+        Unloaded += (_, _) =>
+        {
+            StopDancing();
+            _spinTimer?.Stop();
+        };
     }
 
     /// <summary>Teinte de l'activité : la partie pleine de l'anneau, les barres.</summary>
@@ -66,6 +89,14 @@ public sealed partial class TrailingView : Grid
         {
             _tint = value;
             _fill.Stroke = value;
+
+            if (!_morphing && _shown.Kind != TrailingKind.Check)
+            {
+                foreach (Rectangle pixel in _spinnerPixels)
+                {
+                    pixel.Fill = value;
+                }
+            }
 
             foreach (Rectangle bar in _barCells)
             {
@@ -102,27 +133,42 @@ public sealed partial class TrailingView : Grid
     /// <summary>Montre un élément vivant, ou se retire s'il n'y en a pas.</summary>
     public void Show(CompactTrailing trailing)
     {
-        bool visible = trailing.Kind is TrailingKind.Ring or TrailingKind.Battery or TrailingKind.Equalizer;
+        bool visible = trailing.Kind is TrailingKind.Ring or TrailingKind.Battery or TrailingKind.Equalizer or TrailingKind.Spinner or TrailingKind.Check;
         Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
 
         if (!visible)
         {
             StopDancing();
+            _spinTimer?.Stop();
             _shown = trailing;
             return;
         }
 
         bool equalizer = trailing.Kind == TrailingKind.Equalizer;
+        bool pixels = trailing.Kind is TrailingKind.Spinner or TrailingKind.Check;
         _bars.Visibility = equalizer ? Visibility.Visible : Visibility.Collapsed;
-        _track.Visibility = equalizer ? Visibility.Collapsed : Visibility.Visible;
-        _fill.Visibility = equalizer ? Visibility.Collapsed : Visibility.Visible;
+        _track.Visibility = equalizer || pixels ? Visibility.Collapsed : Visibility.Visible;
+        _fill.Visibility = equalizer || pixels ? Visibility.Collapsed : Visibility.Visible;
+        _spinner.Visibility = pixels ? Visibility.Visible : Visibility.Collapsed;
 
-        if (equalizer)
+        if (pixels)
         {
+            StopDancing();
+
+            // Une coche republiée ne rejoue pas la migration.
+            if (!(trailing.Kind == TrailingKind.Check && _shown.Kind == TrailingKind.Check))
+            {
+                ShowSpinner(trailing.Kind == TrailingKind.Check);
+            }
+        }
+        else if (equalizer)
+        {
+            _spinTimer?.Stop();
             StartDancing();
         }
         else
         {
+            _spinTimer?.Stop();
             StopDancing();
             double sweep = trailing.Kind == TrailingKind.Battery ? BatterySweep : 360;
             double start = trailing.Kind == TrailingKind.Battery ? 135 : -90;
@@ -136,6 +182,98 @@ public sealed partial class TrailingView : Grid
         }
 
         _shown = trailing;
+    }
+
+    /// <summary>Côté d'un pixel du spinner, en DIPs.</summary>
+    private const double SpinnerPixel = 2;
+
+    private static readonly Color CheckGreen = Microsoft.UI.ColorHelper.FromArgb(0xFF, 0x5F, 0xE0, 0x8A);
+
+    /// <summary>
+    /// Spinner qui devient une coche (M2) : les pixels tournent ; à la fin, ils
+    /// glissent en coche (380 ms) puis s'allument en vert. Un minuteur ne tourne
+    /// que tant que les pixels bougent.
+    /// </summary>
+    private void ShowSpinner(bool done)
+    {
+        bool wasSpinning = _shown.Kind == TrailingKind.Spinner;
+        _spinTimer ??= CreateSpinTimer();
+
+        if (!done)
+        {
+            _morphing = false;
+
+            if (!wasSpinning)
+            {
+                _spinStart = DateTime.UtcNow;
+            }
+
+            if (GlyphView.AnimationsEnabled)
+            {
+                _spinTimer.Start();
+            }
+
+            PlaceSpinner(SpinnerCheck.Ring((DateTime.UtcNow - _spinStart).TotalSeconds), _tint);
+            return;
+        }
+
+        // Fin sans avoir tourné, ou animations réduites : la coche d'emblée.
+        if (!wasSpinning || !GlyphView.AnimationsEnabled)
+        {
+            _spinTimer.Stop();
+            _morphing = false;
+            PlaceSpinner(SpinnerCheck.Done(), new SolidColorBrush(CheckGreen));
+            return;
+        }
+
+        _frozenAt = (DateTime.UtcNow - _spinStart).TotalSeconds;
+        _morphStart = DateTime.UtcNow;
+        _morphing = true;
+        _spinTimer.Start();
+    }
+
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer CreateSpinTimer()
+    {
+        Microsoft.UI.Dispatching.DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
+        timer.Interval = TimeSpan.FromMilliseconds(33);
+        timer.Tick += (_, _) =>
+        {
+            if (_morphing)
+            {
+                double p = (DateTime.UtcNow - _morphStart).TotalSeconds / SpinnerCheck.MorphSeconds;
+
+                if (p >= 1)
+                {
+                    _morphing = false;
+                    timer.Stop();
+                    PlaceSpinner(SpinnerCheck.Done(), new SolidColorBrush(CheckGreen));
+                    return;
+                }
+
+                PlaceSpinner(SpinnerCheck.Morph(_frozenAt, p), _tint);
+                return;
+            }
+
+            PlaceSpinner(SpinnerCheck.Ring((DateTime.UtcNow - _spinStart).TotalSeconds), _tint);
+        };
+
+        return timer;
+    }
+
+    private void PlaceSpinner(IReadOnlyList<(double X, double Y)> points, Brush? fill)
+    {
+        // Grille 7 × 7 posée dans le carré de l'élément, centrée.
+        double step = (_side - SpinnerPixel) / 7.0;
+        _spinner.Width = _side;
+        _spinner.Height = _side;
+
+        for (int i = 0; i < _spinnerPixels.Length && i < points.Count; i++)
+        {
+            Rectangle pixel = _spinnerPixels[i];
+            pixel.Fill = fill;
+            Canvas.SetLeft(pixel, Math.Round(points[i].X * step * 2) / 2);
+            Canvas.SetTop(pixel, Math.Round(points[i].Y * step * 2) / 2);
+        }
     }
 
     /// <summary>Arc de cercle centré, en degrés, 0° à droite, sens horaire.</summary>

@@ -109,6 +109,9 @@ public sealed partial class IslandWindow : Window
     private readonly FileShelfManager _shelfManager;
     private readonly PomodoroFeature _pomodoroFeature;
     private readonly TimerFeature _timerFeature;
+    private readonly NoteFeature _noteFeature;
+    /// <summary>Visite (--tour) : 0 = Windows décide, 1 = calme forcé, 2 = calme levé.</summary>
+    private volatile int _quietOverride;
     private readonly LauncherFeature _launcherFeature;
     private readonly QuickMenuFeature _quickMenuFeature;
     private readonly ClipboardFeature _clipboardFeature;
@@ -289,6 +292,10 @@ public sealed partial class IslandWindow : Window
             _activityManager, _eventBus, _settings.IsFeatureEnabled(PomodoroFeature.FeatureKey));
 
         _timerFeature = new TimerFeature(_activityManager, _eventBus);
+        _noteFeature = new NoteFeature(
+            _activityManager,
+            _eventBus,
+            System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SpaceNotch"));
         _launcherFeature = new LauncherFeature(
             _activityManager,
             _eventBus,
@@ -304,7 +311,8 @@ public sealed partial class IslandWindow : Window
         _notificationListener.Log = message => MiniLogger.Log(message);
         _notificationFeature = new NotificationFeature(
             _activityManager, _eventBus, _notificationListener,
-            _settings.IsFeatureEnabled(NotificationFeature.FeatureKey))
+            _settings.IsFeatureEnabled(NotificationFeature.FeatureKey),
+            isQuiet: () => _quietOverride switch { 1 => true, 2 => false, _ => SpaceNotch.Platform.Windows.Notifications.FocusAssistProbe.IsQuiet() })
         {
             IgnoredApps = _settings.IgnoredNotificationApps
         };
@@ -337,6 +345,7 @@ public sealed partial class IslandWindow : Window
                 _activityManager, _eventBus, _brightnessService,
                 _settings.IsFeatureEnabled(BrightnessHudFeature.FeatureKey)),
             _timerFeature,
+            _noteFeature,
             _launcherFeature,
             _quickMenuFeature,
             _welcomeFeature,
@@ -413,6 +422,8 @@ public sealed partial class IslandWindow : Window
         CardHeadline.IsTextTrimmedChanged += (label, _) => CatchUpTrimmed(label);
         WireEvents();
         WireSceneActions();
+        StartMagnet();
+        SceneTabs.TabInvoked += (_, id) => _controller.PresentActivity(id);
         ApplyBackdropMode();
 
         // Toute modification venue de la fenêtre de réglages est appliquée ici,
@@ -582,6 +593,9 @@ public sealed partial class IslandWindow : Window
         _scenes[IslandSceneCatalog.QuickMenu] = QuickMenuSceneView;
         _scenes[IslandSceneCatalog.Bluetooth] = BluetoothSceneView;
         _scenes[IslandSceneCatalog.Welcome] = WelcomeSceneView;
+        _scenes[IslandSceneCatalog.Color] = ColorSceneView;
+        _scenes[IslandSceneCatalog.Note] = NoteSceneView;
+        _scenes[IslandSceneCatalog.Quiet] = QuietSceneView;
 
         // Luminosité et volume partagent la même vue : leur charge utile est
         // identique, seule la clé d'icône les distingue.
@@ -694,6 +708,12 @@ public sealed partial class IslandWindow : Window
             {
                 _typingCapture = false;
                 WindowChrome.SetKeyboardCapture(_hWnd, enabled: false);
+            }
+
+            // La note se range à la fermeture ; son texte est déjà enregistré.
+            if (state == IslandState.Closed && _noteFeature.IsShown)
+            {
+                _noteFeature.Dismiss();
             }
 
             // Le lanceur ne vit que tant qu'il est ouvert — même quand une autre
@@ -880,6 +900,9 @@ public sealed partial class IslandWindow : Window
             && !string.Equals(activity.Id, _lastPresentedId, StringComparison.Ordinal);
         IslandState previousState = _lastRenderedState;
         _lastPresentedId = activity?.Id;
+        Celebrate(activity);
+        UpdateTabs(activity, expanded);
+        UpdateFocusTrace();
         _lastRenderedState = _controller.State;
 
         // Le palier au repos ne dépend jamais de l'ouverture : il est résolu à
@@ -939,13 +962,14 @@ public sealed partial class IslandWindow : Window
             // horloge à la minute dans un produit dont la promesse est de ne rien
             // faire au repos. Sans elle, la lèvre est vide — le point de veille
             // ne l'accompagne que pour lui donner un repère.
-            IdleClockText.Visibility = _settings.ShowClockAtRest && !UsesSideTab
+            IdleClock.Visibility = _settings.ShowClockAtRest && !UsesSideTab
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
-            IdleStatusDot.Visibility = IdleClockText.Visibility;
-
-            IdleClockText.Text = DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+            IdleStatusDot.Visibility = IdleClock.Visibility;
+            IdleClock.Animate = UseSpringAnimations();
+            IdleClock.Show(DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+            ArmClockTick(IdleClock.Visibility == Visibility.Visible);
             return;
         }
 
@@ -985,6 +1009,12 @@ public sealed partial class IslandWindow : Window
                 {
                     CaptureKeyboardForTyping();
                     DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, launcher.FocusSearch);
+                }
+                else if (scene is NoteScene note)
+                {
+                    // La note s'ouvre pour qu'on écrive : clavier et curseur tout de suite.
+                    CaptureKeyboardForTyping();
+                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, note.FocusNote);
                 }
                 else if (scene is WelcomeScene welcome)
                 {
@@ -1033,9 +1063,14 @@ public sealed partial class IslandWindow : Window
         else if (changedActivity)
         {
             // Une activité en remplace une autre : la forme respire, le contenu
-            // change sous le voile.
+            // se découvre sous une vague de pixels (A2) — sous le voile quand la
+            // forme n'est pas celle du bord ou que les animations sont réduites.
             Breathe();
-            PlayVeil();
+
+            if (!PlayDissolve(expanded ? _controller.Opened(activity!) : _restFootprint))
+            {
+                PlayVeil();
+            }
         }
         else if (_controller.State == IslandState.Preview
             && previousState == IslandState.Closed
@@ -1089,6 +1124,8 @@ public sealed partial class IslandWindow : Window
         {
             SignalGlyph.Key = activity.IconKey;
             SetText(SignalLabel, activity.Title, _signalWasVisible, veil: true);
+            ShimmerText.Set(SignalLabel, activity.MotionState == ActivityMotionState.Working, UseSpringAnimations());
+            ShimmerText.Set(CardHeadline, working: false, animate: false);
             SetText(SignalMetric, metric, _signalWasVisible, metric: true);
             SignalMetric.Visibility = metricVisibility;
 
@@ -1124,6 +1161,8 @@ public sealed partial class IslandWindow : Window
         // déjà visible se remplace sur place, par un fondu : la carte reste.
         SetText(CardSubhead, SubheadFor(activity), _cardWasVisible);
         SetText(CardHeadline, activity.Title, _cardWasVisible, veil: true);
+        ShimmerText.Set(CardHeadline, activity.MotionState == ActivityMotionState.Working, UseSpringAnimations());
+        ShimmerText.Set(SignalLabel, working: false, animate: false);
         SetText(CardMetric, metric, _cardWasVisible, metric: true);
         CardMetric.Visibility = metricVisibility;
         CardTrailing.Show(trailing);
@@ -1145,9 +1184,7 @@ public sealed partial class IslandWindow : Window
         SceneTrame.IsAllowed = _settings.ShowTrame && !_visualState.HighContrast && _settings.Appearance != IslandAppearance.Light;
         SceneTrame.Animate = UseSpringAnimations();
 
-        Color tint = activity.Tint is { } declared
-            ? Color.FromArgb(0xFF, declared.R, declared.G, declared.B)
-            : StatePalette.Tint(activity.State);
+        Color tint = DeclaredTint(activity) ?? StatePalette.Tint(activity.State);
 
         SceneTrame.Present(scene.Root, tint, music: scene is MediaExpandedScene && activity.State == IslandActivityState.MediaActive);
     }
@@ -1252,7 +1289,13 @@ public sealed partial class IslandWindow : Window
     {
         string next = value ?? string.Empty;
 
-        if (string.Equals(target.Text, next, StringComparison.Ordinal))
+        if (string.Equals(ScrambleText.FinalOf(target), next, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        // Un titre qui change vraiment se décode (A1) ; les autres textes changent sur place.
+        if (veil && visible && ScrambleText.Set(target, next, UseSpringAnimations()))
         {
             return;
         }
@@ -1480,7 +1523,11 @@ public sealed partial class IslandWindow : Window
     {
         IslandActivityState state = activity?.State ?? IslandActivityState.Idle;
 
-        Brush tint = StatePalette.Brush(_visualState.HighContrast ? IslandActivityState.Idle : state);
+        // La couleur de l'activité (pochette, logo — D2) colore l'icône et
+        // l'élément vivant ; sinon, celle de l'état. Jamais en contraste élevé.
+        Brush tint = !_visualState.HighContrast && activity is not null && DeclaredTint(activity) is { } declared
+            ? new SolidColorBrush(declared)
+            : StatePalette.Brush(_visualState.HighContrast ? IslandActivityState.Idle : state);
 
         IdleStatusDot.Fill = tint;
         SignalGlyph.Tint = tint;
@@ -1521,6 +1568,7 @@ public sealed partial class IslandWindow : Window
         }
 
         SceneTrame.Resize(footprint.Width, footprint.Height, radius, shoulder);
+        UpdateFocusTrace(footprint);
 
         // Le reflet suit la même courbe, borné à sa bande. La borne est ce qui
         // l'empêche de mordre dans les congés sur les paliers bas : à 34 de haut,
@@ -1961,6 +2009,123 @@ public sealed partial class IslandWindow : Window
     private string? OpenedActivityId()
         => _controller.State is IslandState.Expanding or IslandState.Expanded ? _controller.PresentedActivity?.Id : null;
 
+    private DispatcherQueueTimer? _clockTimer;
+
+    /// <summary>
+    /// Couleur propre d'une activité (D2) : celle qu'elle déclare (la pochette
+    /// d'un morceau), sinon celle du logo de l'application qui notifie, calculée
+    /// une fois puis gardée. <c>null</c> : la couleur de l'état fera l'affaire.
+    /// </summary>
+    private Color? DeclaredTint(IslandActivity activity)
+    {
+        if (activity.Tint is { } declared)
+        {
+            return Color.FromArgb(0xFF, declared.R, declared.G, declared.B);
+        }
+
+        if (activity.State == IslandActivityState.Notification
+            && ArtworkTint.Get(activity.Artwork, () => OnUiThread(RequestRender)) is { } logo)
+        {
+            return Color.FromArgb(0xFF, logo.R, logo.G, logo.B);
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Onglets glissants (U2) : notch ouverte et au moins deux activités qui
+    /// durent — pas un retour de volume, pas une notification qui passe —, une
+    /// rangée d'onglets s'ajoute en haut, dans l'ordre d'arrivée.
+    /// </summary>
+    private void UpdateTabs(IslandActivity? activity, bool expanded)
+    {
+        static bool Tabbable(IslandActivity a) => a.SceneKey is not (IslandSceneCatalog.QuickMenu or IslandSceneCatalog.Launcher or IslandSceneCatalog.Welcome);
+
+        // Quatre onglets au plus, dont toujours celui de l'activité ouverte :
+        // les autres, les plus récents, gardent leur ordre d'arrivée.
+        List<IslandActivity> tabs = expanded && activity is not null && Tabbable(activity) && !UsesSideTab
+            ? _activityManager.GetActiveActivities()
+                .Where(a => Tabbable(a) && a.Id != activity.Id && ActivityPolicies.Resolve(a) != ActivityPresentationPolicy.Temporary)
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(3)
+                .Append(activity)
+                .OrderBy(a => a.CreatedAt)
+                .ToList()
+            : [];
+
+        if (tabs.Count < 2)
+        {
+            tabs.Clear();
+        }
+
+        double row = tabs.Count >= 2 ? TabStripView.RowHeight : 0;
+        _controller.TabRowHeight = row;
+        ContentArea.Padding = new Thickness(0, row, 0, 0);
+        SceneTabs.Animate = UseSpringAnimations();
+        SceneTabs.Show(tabs, activity?.Id, (Brush)Application.Current.Resources["NfTextPrimaryBrush"], (Brush)Application.Current.Resources["NfTextTertiaryBrush"]);
+    }
+
+    /// <summary>Fondu en pixels (A2) sur la forme d'arrivée ; faux s'il ne peut pas jouer.</summary>
+    private bool PlayDissolve(IslandFootprint target)
+    {
+        if (!UseSpringAnimations() || UsesFloatingGeometry || UsesSideTab || SurfaceFill.Fill is not Brush surface)
+        {
+            return false;
+        }
+
+        ShapePoint[] outline = _settings.Geometry.Silhouette(target);
+        DissolveOverlay.Width = target.Width;
+        DissolveOverlay.Height = target.Height;
+        DissolveOverlay.Play(outline, target.Width, target.Height, surface);
+        return true;
+    }
+    private IslandActivity? _lastRenderedActivity;
+
+    /// <summary>
+    /// Rayons de réussite (M4) : une seule fois, au moment où une activité
+    /// passe à « terminé ». Jamais quand Windows réduit les animations.
+    /// </summary>
+    private void Celebrate(IslandActivity? activity)
+    {
+        IslandActivity? before = _lastRenderedActivity;
+        _lastRenderedActivity = activity;
+
+        if (activity is null || !SpaceNotch.Core.Motion.LightRays.Celebrates(before, activity) || !UseSpringAnimations() || UsesFloatingGeometry || UsesSideTab)
+        {
+            return;
+        }
+
+        Color tint = DeclaredTint(activity) ?? StatePalette.Tint(activity.State);
+
+        // Les rayons partent sous la forme où l'activité se pose.
+        IslandFootprint shape = _controller.State is IslandState.Expanded or IslandState.Expanding
+            ? _controller.Opened(activity)
+            : _restFootprint;
+
+        _atmosphere.PlayLightRays(tint, shape.Width, shape.Height);
+    }
+
+    /// <summary>
+    /// L'horloge au repos se met à jour à la minute exacte, et seulement quand
+    /// elle est affichée : aucun minuteur ne tourne pour une horloge cachée.
+    /// </summary>
+    private void ArmClockTick(bool visible)
+    {
+        if (!visible)
+        {
+            _clockTimer?.Stop();
+            return;
+        }
+
+        DateTime now = DateTime.Now;
+        TimeSpan untilNextMinute = TimeSpan.FromSeconds(60 - now.Second) - TimeSpan.FromMilliseconds(now.Millisecond) + TimeSpan.FromMilliseconds(20);
+
+        _clockTimer ??= CreateOneShotTimer(untilNextMinute, RequestRender);
+        _clockTimer.Interval = untilNextMinute;
+        _clockTimer.Stop();
+        _clockTimer.Start();
+    }
+
     private void RearmExpirationTimer()
     {
         TimeSpan? delay = _activityManager.GetTimeUntilNextExpiration(DateTimeOffset.UtcNow, OpenedActivityId());
@@ -2331,6 +2496,26 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
+        // Double-clic (F7) : le second clic arrive pendant que la notch s'ouvre ;
+        // au lieu de la refermer, il ouvre la note. Le premier clic n'attend rien.
+        if (properties.IsLeftButtonPressed
+            && Environment.TickCount64 - _lastClickAt < (long)DoubleClickDelay().TotalMilliseconds
+            && !UsesFloatingGeometry)
+        {
+            e.Handled = true;
+            _lastClickAt = 0;
+            OpenNote();
+            return;
+        }
+
+        // Clic du milieu (U3) : lecture ou pause, sans ouvrir la notch.
+        if (properties.IsMiddleButtonPressed)
+        {
+            e.Handled = true;
+            _ = SendMediaActionAsync(MediaFeature.PlayPauseAction);
+            return;
+        }
+
         // Forme compacte : l'appui ne décide encore rien. Relâché sur place,
         // c'est un clic ; tiré, c'est un glisser — l'arrachement au bord, ou le
         // déplacement d'une notch déjà détachée. Voir IslandWindow.Detach.
@@ -2355,8 +2540,12 @@ public sealed partial class IslandWindow : Window
     }
 
     /// <summary>Clic validé au relâcher, sur une forme compacte.</summary>
+    private long _lastClickAt;
+
     private void CommitClick()
     {
+        _lastClickAt = Environment.TickCount64;
+
         if (_pressOpensLauncher && _controller.PresentedActivity is null)
         {
             OpenLauncher();
@@ -2385,6 +2574,15 @@ public sealed partial class IslandWindow : Window
         }
 
         OpenLauncher();
+    }
+
+    /// <summary>Note éclair (F7) : la note s'ouvre dans la notch, curseur à la fin.</summary>
+    private void OpenNote()
+    {
+        _quickMenuFeature.Dismiss();
+        _noteFeature.Show();
+        _activityManager.PinPresentation(NoteFeature.ActivityId);
+        RevealPresented();
     }
 
     /// <summary>Ouvre la grille de fonctions et la montre.</summary>
@@ -2423,12 +2621,43 @@ public sealed partial class IslandWindow : Window
     /// Molette sur l'Island : parcourt la pile d'activités. C'est l'interaction
     /// qui donne accès à ce qui est en attente derrière l'activité présentée.
     /// </summary>
+    /// <summary>
+    /// Gestes sur la notch (U3) : la molette règle le volume (2 % par cran, le
+    /// fader cranté s'affiche), un balayage horizontal change de morceau.
+    /// Ctrl + molette parcourt toujours la pile d'activités.
+    /// </summary>
     private void OnIslandPointerWheelChanged(object sender, PointerRoutedEventArgs e)
     {
-        int delta = e.GetCurrentPoint(IslandBody).Properties.MouseWheelDelta;
+        PointerPointProperties properties = e.GetCurrentPoint(IslandBody).Properties;
+        int delta = properties.MouseWheelDelta;
 
         if (delta == 0)
         {
+            return;
+        }
+
+        bool ctrl = (e.KeyModifiers & global::Windows.System.VirtualKeyModifiers.Control) != 0;
+
+        if (properties.IsHorizontalMouseWheel)
+        {
+            // Pavé tactile : un balayage produit une rafale ; un seul morceau par geste.
+            long now = Environment.TickCount64;
+
+            if (now - _lastSwipe > 450)
+            {
+                _lastSwipe = now;
+                _ = SendMediaActionAsync(delta > 0 ? MediaFeature.NextAction : MediaFeature.PreviousAction);
+            }
+
+            e.Handled = true;
+            return;
+        }
+
+        if (!ctrl && _volumeListener.Level is float level)
+        {
+            _volumeListener.SetLevel((float)VolumeFader.Wheel(level, delta / 120.0));
+            _diagnostics.CountEvent();
+            e.Handled = true;
             return;
         }
 
@@ -2436,6 +2665,29 @@ public sealed partial class IslandWindow : Window
         {
             _diagnostics.CountEvent();
             e.Handled = true;
+        }
+    }
+
+    private long _lastSwipe;
+
+    /// <summary>Envoie une commande au lecteur en cours, s'il y en a un.</summary>
+    private async Task SendMediaActionAsync(string actionId)
+    {
+        IslandActivity? media = _activityManager.GetActiveActivities()
+            .FirstOrDefault(a => string.Equals(a.FeatureId, MediaFeature.FeatureKey, StringComparison.Ordinal));
+
+        if (media is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await _featureRegistry.HandleActionAsync(new IslandActionRequest(media.Id, actionId));
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log("[GESTE] Commande du lecteur impossible", ex);
         }
     }
 

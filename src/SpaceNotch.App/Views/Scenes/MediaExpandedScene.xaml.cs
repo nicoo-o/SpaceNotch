@@ -8,6 +8,7 @@ using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Localization;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Platform.Windows.Media;
+using SpaceNotch_App.Animations;
 using SpaceNotch_App.Views;
 
 namespace SpaceNotch_App.Views.Scenes;
@@ -46,6 +47,59 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         InitializeComponent();
     }
 
+    /// <summary>Inclinaison maximale de la pochette, en degrés.</summary>
+    private const double MaxTilt = 8;
+
+    /// <summary>
+    /// Pochette en 3D (S2) : sous le pointeur, elle s'incline vers lui et un
+    /// reflet glisse dessus comme sur du papier glacé.
+    /// </summary>
+    private void OnArtworkPointerMoved(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (!GlyphView.AnimationsEnabled || ArtworkBorder.ActualWidth <= 0)
+        {
+            return;
+        }
+
+        global::Windows.Foundation.Point p = e.GetCurrentPoint(ArtworkBorder).Position;
+        double nx = Math.Clamp(p.X / ArtworkBorder.ActualWidth, 0, 1) - 0.5;
+        double ny = Math.Clamp(p.Y / ArtworkBorder.ActualHeight, 0, 1) - 0.5;
+
+        _tiltBack?.Stop();
+        ArtworkTilt.RotationY = -nx * 2 * MaxTilt;
+        ArtworkTilt.RotationX = ny * 2 * MaxTilt;
+        ArtworkShineBrush.Center = new global::Windows.Foundation.Point(nx + 0.5, ny + 0.5);
+        ArtworkShineBrush.GradientOrigin = ArtworkShineBrush.Center;
+        ArtworkShine.Opacity = 1;
+    }
+
+    private Microsoft.UI.Xaml.Media.Animation.Storyboard? _tiltBack;
+
+    /// <summary>Le pointeur part : la pochette revient à plat, sur un ressort.</summary>
+    private void OnArtworkPointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        var ease = new Microsoft.UI.Xaml.Media.Animation.ElasticEase { Oscillations = 1, Springiness = 6, EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut };
+        _tiltBack = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+
+        foreach ((string property, double from) in new[] { ("RotationX", ArtworkTilt.RotationX), ("RotationY", ArtworkTilt.RotationY) })
+        {
+            var back = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+            {
+                From = from,
+                To = 0,
+                Duration = new Duration(TimeSpan.FromMilliseconds(GlyphView.AnimationsEnabled ? 420 : 1)),
+                EasingFunction = ease,
+                EnableDependentAnimation = true
+            };
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(back, ArtworkTilt);
+            Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(back, property);
+            _tiltBack.Children.Add(back);
+        }
+
+        _tiltBack.Begin();
+        ArtworkShine.Opacity = 0;
+    }
+
     public event EventHandler<IslandActionRequest>? ActionRequested;
 
     public FrameworkElement Root => this;
@@ -70,7 +124,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
 
         var track = activity.Payload as MediaTrackInfo;
 
-        TitleText.Text = track?.Title ?? activity.Title;
+        ScrambleText.Set(TitleText, track?.Title ?? activity.Title, GlyphView.AnimationsEnabled && IsLoaded);
         ArtistText.Text = track?.Artist ?? activity.Subtitle ?? string.Empty;
 
         bool playing = track?.IsPlaying ?? false;

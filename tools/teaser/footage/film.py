@@ -25,7 +25,7 @@ OUT = sys.argv[1]
 EXE = sys.argv[2]
 # « tour » : la visite de tous les états (--tour), filmée sans aucun geste.
 TOUR = len(sys.argv) > 3 and sys.argv[3] == "tour"
-DURATION = "140" if TOUR else "77"
+DURATION = "170" if TOUR else "77"
 HERE = os.path.dirname(os.path.abspath(__file__))
 FFMPEG = shutil.which("ffmpeg")
 user32 = ctypes.windll.user32

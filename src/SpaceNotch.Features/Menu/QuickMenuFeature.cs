@@ -26,6 +26,7 @@ public sealed class QuickMenuFeature : IslandFeatureBase
     public const string TimerAction = "menu.timer";
     public const string ClipboardAction = "menu.clipboard";
     public const string ShelfAction = "menu.shelf";
+    public const string NoteAction = "menu.note";
     public const string DetachAction = "menu.detach";
     public const string DockAction = "menu.dock";
     public const string DockExpandAction = "menu.dock.expand";

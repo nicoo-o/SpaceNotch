@@ -109,6 +109,9 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
 
         RowsPanel.Children.Add(TimerRow(payload.TimerRunning));
 
+        // Note éclair (F7) : aussi par un double-clic sur la notch.
+        RowsPanel.Children.Add(Row("Menu", French ? "Note" : "Note", QuickMenuFeature.NoteAction));
+
         RowsPanel.Children.Add(Row(
             "Clipboard",
             French ? "Presse-papier" : "Clipboard",

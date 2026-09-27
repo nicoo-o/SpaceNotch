@@ -91,6 +91,19 @@
                 Opacity="{ThemeResource NfSpecularOpacity}"
                 IsHitTestVisible="False" />
 
+            <!-- Pomodoro autour de la silhouette (F11) : un U rentré dans la forme, qui se raccourcit vers le bas. -->
+            <Path
+                x:Name="FocusTrace"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                StrokeThickness="1.5"
+                StrokeStartLineCap="Round"
+                StrokeEndLineCap="Round"
+                StrokeLineJoin="Round"
+                Opacity="0.7"
+                Visibility="Collapsed"
+                IsHitTestVisible="False" />
+
             <!-- Trame des scènes ouvertes (B3) : pixels teintés entre la surface et le contenu. -->
             <views:TrameView x:Name="SceneTrame" />
 
@@ -144,9 +157,10 @@
                     <!-- L'heure n'est pas un contenu de veille par défaut : elle
                          introduirait une horloge à la minute là où le produit
                          promet de ne rien faire au repos. -->
-                    <TextBlock
-                        x:Name="IdleClockText"
-                        Style="{StaticResource NfMicroTextStyle}"
+                    <!-- Horloge à palettes en pixels (M1) : la palette qui change bascule. -->
+                    <views:PixelClockView
+                        x:Name="IdleClock"
+                        Tint="{ThemeResource NfTextSecondaryBrush}"
                         VerticalAlignment="Center"
                         Visibility="Collapsed" />
                 </StackPanel>
@@ -380,6 +394,9 @@
                 <scenes:BluetoothScene x:Name="BluetoothSceneView" Visibility="Collapsed" />
                 <scenes:WelcomeScene x:Name="WelcomeSceneView" Visibility="Collapsed" />
                 <scenes:InfoScene x:Name="InfoSceneView" Visibility="Collapsed" />
+                <scenes:ColorScene x:Name="ColorSceneView" Visibility="Collapsed" />
+                <scenes:NoteScene x:Name="NoteSceneView" Visibility="Collapsed" />
+                <scenes:QuietScene x:Name="QuietSceneView" Visibility="Collapsed" />
 
                 <!--
                     Cible de dépôt de fichiers. Pendant le survol d'un fichier, la
@@ -433,6 +450,15 @@
                 VerticalAlignment="Top"
                 IsHitTestVisible="False"
                 Visibility="Collapsed" />
+
+            <!-- Onglets glissants (U2) : plusieurs activités à la fois, une pilule qui glisse. -->
+            <views:TabStripView
+                x:Name="SceneTabs"
+                Margin="0,8,0,0"
+                PillBrush="{ThemeResource NfSurfaceElevatedBrush}" />
+
+            <!-- Fondu en pixels (A2) : le nouveau contenu se découvre case par case. -->
+            <views:PixelDissolveView x:Name="DissolveOverlay" />
         </Grid>
     </Grid>
 </Window>

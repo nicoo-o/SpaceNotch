@@ -105,6 +105,48 @@ public sealed class CoreAudioVolumeListener : IDisposable
     }
 
     /// <summary>
+    /// Règle le volume de la sortie par défaut (0..1), et le démute s'il monte.
+    /// Sert à la molette sur la notch et au fader cranté. Faux si aucune sortie.
+    /// </summary>
+    public bool SetLevel(float level)
+    {
+        lock (_gate)
+        {
+            if (_endpointVolume is null)
+            {
+                return false;
+            }
+
+            Guid context = Guid.Empty;
+            float clamped = Math.Clamp(level, 0f, 1f);
+
+            if (_endpointVolume.SetMasterVolumeLevelScalar(clamped, ref context) != 0)
+            {
+                return false;
+            }
+
+            if (clamped > 0)
+            {
+                _endpointVolume.SetMute(false, ref context);
+            }
+
+            return true;
+        }
+    }
+
+    /// <summary>Volume actuel (0..1), ou <c>null</c> sans sortie.</summary>
+    public float? Level
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _endpointVolume is not null && _endpointVolume.GetMasterVolumeLevelScalar(out float level) == 0 ? level : null;
+            }
+        }
+    }
+
+    /// <summary>
     /// La sortie par défaut a changé. On ne se relie pas depuis le rappel lui-même
     /// — Windows le déconseille, l'appel se fait sur son propre fil — mais juste
     /// après, puis on annonce le volume de la nouvelle sortie.

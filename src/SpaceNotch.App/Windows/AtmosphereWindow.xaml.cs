@@ -331,6 +331,70 @@ public sealed partial class AtmosphereWindow : Window
     /// <summary>Intensité de l'ombre, réglable.</summary>
     public void SetShadowStrength(double opacity) => _shadow?.SetStrength(opacity);
 
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _raysTimer;
+    private DateTime _raysStart;
+    private double _raysWidth;
+
+    /// <summary>
+    /// Rayons de lumière en pixels (M4) : pour une vraie réussite, neuf rayons
+    /// partent du bas de la notch pendant 0,6 s, dans la teinte de l'activité,
+    /// puis tout redevient noir. Jamais pour une notch détachée ni quand
+    /// Windows réduit les animations (l'appelant en décide).
+    /// </summary>
+    public void PlayLightRays(Color tint, double notchWidthDip, double notchHeightDip)
+    {
+        if (_floating)
+        {
+            return;
+        }
+
+        _raysWidth = notchWidthDip;
+        _raysStart = DateTime.UtcNow;
+        RaysPath.Fill = new SolidColorBrush(tint);
+        RaysPath.Margin = new Thickness(0, notchHeightDip, 0, 0);
+
+        _raysTimer ??= CreateRaysTimer();
+        _raysTimer.Start();
+    }
+
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer CreateRaysTimer()
+    {
+        Microsoft.UI.Dispatching.DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
+        timer.Interval = TimeSpan.FromMilliseconds(16);
+        timer.Tick += (_, _) =>
+        {
+            double seconds = (DateTime.UtcNow - _raysStart).TotalSeconds;
+            var pixels = SpaceNotch.Core.Motion.LightRays.At(seconds, _raysWidth);
+
+            if (pixels.Count == 0)
+            {
+                timer.Stop();
+                RaysPath.Data = null;
+                return;
+            }
+
+            // Un seul tracé, un carré par pixel : l'opacité se porte par la
+            // taille (un pixel qui s'éteint rétrécit), la couleur reste pure.
+            var group = new GeometryGroup();
+            double half = _raysWidth / 2 + 40;
+
+            foreach (var p in pixels)
+            {
+                double size = SpaceNotch.Core.Motion.LightRays.PixelDip * Math.Clamp(p.Opacity, 0.3, 1);
+                group.Children.Add(new RectangleGeometry
+                {
+                    Rect = new global::Windows.Foundation.Rect(half + p.X - (size / 2), p.Y, size, size)
+                });
+            }
+
+            RaysPath.Width = half * 2;
+            RaysPath.Height = 40;
+            RaysPath.Data = group;
+        };
+
+        return timer;
+    }
+
     public void SetGlowColor(Color color)
     {
         if (ColorsEqual(color, _tintTarget))

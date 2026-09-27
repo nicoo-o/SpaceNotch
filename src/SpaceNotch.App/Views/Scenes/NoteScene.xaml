@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="SpaceNotch_App.Views.Scenes.NoteScene"
+    xmlns:l="using:SpaceNotch_App.Views"
+    xmlns:views="using:SpaceNotch_App.Views"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <!-- Note éclair (F7) : un bloc-notes dans la notch, enregistré tout seul. -->
+    <Grid Padding="{StaticResource NfScenePadding}" RowSpacing="6">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBox
+            x:Name="NoteBox"
+            Style="{StaticResource NfSearchFieldStyle}"
+            AcceptsReturn="True"
+            TextWrapping="Wrap"
+            FontSize="13"
+            VerticalAlignment="Stretch"
+            ScrollViewer.VerticalScrollBarVisibility="Auto"
+            PlaceholderText="{l:Loc Fr='Une idée, un numéro, une liste…', En='An idea, a number, a list…'}"
+            AutomationProperties.Name="{l:Loc Fr='Note', En='Note'}"
+            TextChanged="OnNoteChanged" />
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <views:GlyphView Key="Check" Size="10" Tint="{ThemeResource NfTextTertiaryBrush}" VerticalAlignment="Center" />
+            <TextBlock
+                x:Name="StatusText"
+                Text="{l:Loc Fr='Enregistrée toute seule · Échap pour fermer', En='Saved automatically · Esc to close'}"
+                Style="{StaticResource NfCaptionTextStyle}"
+                Foreground="{ThemeResource NfTextTertiaryBrush}" />
+        </StackPanel>
+    </Grid>
+</UserControl>

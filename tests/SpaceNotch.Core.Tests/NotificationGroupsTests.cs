@@ -57,7 +57,7 @@ public class NotificationGroupsTests
     }
 
     [Fact]
-    public void TheOpenedGroup_GrowsWithItsHistory_UpToThreeLines()
+    public void TheOpenedGroup_GrowsByOneFanRow_WhenItHasHistory()
     {
         var groups = new NotificationGroups();
         double scene = IslandSceneCatalog.FootprintFor(IslandSceneCatalog.Notification).Height;
@@ -72,7 +72,7 @@ public class NotificationGroupsTests
             many = groups.Add("f", "Discord", $"m{i}", "b", T0.AddSeconds(i + 1));
         }
 
-        Assert.Equal(scene + (NotificationGroups.VisibleHistory * 20), many.Footprint.Height);
+        Assert.Equal(scene + NotificationGroups.FanRow, many.Footprint.Height);
     }
 
     [Fact]

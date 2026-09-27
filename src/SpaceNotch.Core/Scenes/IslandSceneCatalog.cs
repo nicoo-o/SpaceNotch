@@ -25,6 +25,15 @@ public static class IslandSceneCatalog
     public const string Clipboard = "clipboard";
     public const string Launcher = "launcher";
 
+    /// <summary>Couleur copiée (F5) : la nuance et ses trois formats.</summary>
+    public const string Color = "color";
+
+    /// <summary>Note éclair (F7) : un petit bloc-notes dans la notch.</summary>
+    public const string Note = "note";
+
+    /// <summary>Retour du calme (F9) : ce qui est arrivé, groupé par application.</summary>
+    public const string Quiet = "quiet";
+
     /// <summary>Menu rapide : clic droit sur la notch, qui s'ouvre en menu.</summary>
     public const string QuickMenu = "quick-menu";
 
@@ -74,6 +83,15 @@ public static class IslandSceneCatalog
         [Pomodoro] = SceneInsets.Wrap(188, 96),
         [Timer] = SceneInsets.Wrap(188, 96),
         [Clipboard] = SceneInsets.Wrap(352, 208),
+
+        // Nuance de 56, trois formats à recopier.
+        [Color] = SceneInsets.Wrap(300, 76),
+
+        // Une zone de texte de quatre lignes et son pied.
+        [Note] = SceneInsets.Wrap(340, 120),
+
+        // Le résumé du calme : jusqu'à quatre applications, une ligne chacune.
+        [Quiet] = SceneInsets.Wrap(320, 112),
 
         // Le lanceur occupe la surface la plus large du répertoire : c'est la
         // seule scène qui présente une grille et un champ de recherche.
