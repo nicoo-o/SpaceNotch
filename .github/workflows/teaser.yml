@@ -1,0 +1,114 @@
+name: Teaser
+
+# Refait le teaser du README de bout en bout, sur la vraie notch :
+#   1. film  — sur Windows : bureau net, SpaceNotch en démo, gestes scriptés, enregistrement ;
+#   2. edit  — sur Linux : découpe, titres, bande-son, rendu MP4 + boucle WebP.
+# Résultat : l'artefact « teaser » (teaser.mp4, teaser.webp, teaser-poster.jpg,
+# contact.png), à copier dans docs/assets/readme/. Voir tools/teaser/README.md.
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "SpaceNotch filmé : build (cette branche) ou release (dernière version publiée)"
+        type: choice
+        options: [build, release]
+        default: build
+  push:
+    branches: ["claude/**"]
+    paths:
+      - "tools/teaser/**"
+      - ".github/workflows/teaser.yml"
+
+permissions:
+  contents: read
+
+env:
+  PROJECT: src/SpaceNotch.App/SpaceNotch.App.csproj
+
+jobs:
+  film:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        if: ${{ inputs.app != 'release' }}
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Construire SpaceNotch
+        if: ${{ inputs.app != 'release' }}
+        run: >
+          dotnet publish ${{ env.PROJECT }}
+          -c Release -p:Platform=x64 -r win-x64
+          --self-contained true
+          -p:WindowsPackageType=None
+          -p:WindowsAppSDKSelfContained=true
+          -p:EnableMsixTooling=true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:IncludeAllContentForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          --output "${{ runner.temp }}/app"
+
+      - name: Dernière version publiée
+        if: ${{ inputs.app == 'release' }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download --repo ${{ github.repository }} --pattern "SpaceNotch.exe" --dir "${{ runner.temp }}/app"
+
+      - name: Outils
+        shell: pwsh
+        run: |
+          if (-not (Get-Command ffmpeg -ErrorAction SilentlyContinue)) { choco install ffmpeg -y --no-progress | Out-Null }
+          python -m pip install --quiet pyautogui pywin32
+
+      - name: Tournage
+        shell: pwsh
+        run: |
+          $out = "${{ runner.temp }}/footage"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          $env:PATH = "C:\ProgramData\chocolatey\bin;$env:PATH"
+          $exe = Get-ChildItem "${{ runner.temp }}/app" -Filter "*.exe" | Select-Object -First 1
+          Copy-Item $exe.FullName "${{ runner.temp }}/app/SpaceNotch.exe" -Force -ErrorAction SilentlyContinue
+          python tools/teaser/footage/film.py "$out/footage.mp4" "${{ runner.temp }}/app/SpaceNotch.exe"
+          $log = Join-Path $env:LOCALAPPDATA "SpaceNotch\logs\spacenotch.log"
+          if (Test-Path $log) { Copy-Item $log "$out/spacenotch.log" }
+          Get-ChildItem $out
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: footage
+          path: ${{ runner.temp }}/footage
+
+  edit:
+    needs: film
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: footage
+          path: ${{ runner.temp }}/footage
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Outils
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
+          python3 -m pip install --quiet numpy pillow
+          npm install -g playwright@1 > /dev/null
+          npx playwright install --with-deps chromium > /dev/null
+
+      - name: Montage et rendu
+        run: tools/teaser/make.sh "${{ runner.temp }}/footage" "${{ runner.temp }}/teaser"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: teaser
+          path: ${{ runner.temp }}/teaser

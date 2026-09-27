@@ -1,0 +1,6 @@
+# Produced by make.sh
+src/
+timeline.json
+music.wav
+video.mp4
+still-*.png

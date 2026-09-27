@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="docs/assets/brand/spacenotch-logo-128.png" alt="Logo de SpaceNotch — une grille de pixels lumineuse 3×3" width="72">
+<img src="docs/assets/readme/teaser.webp" alt="Teaser de SpaceNotch, filmé sous Windows — la notch joue de la musique, montre le volume, des notifications Discord, un téléchargement, des AirPods et la grille au travail, puis ouvre la recherche avec Alt+Espace" width="100%">
 
-<img src="docs/assets/readme/hero-fr.svg" alt="SpaceNotch — une notch qui grandit depuis le haut de l'écran, avec une grille de pixels lumineuse" width="100%">
+<sub><a href="docs/assets/readme/teaser.mp4">▶&nbsp; Voir avec le son</a></sub>
 
 <br>
 

@@ -1,0 +1,148 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face { font-family: Inter; src: url(InterVariable.ttf); font-weight: 100 900; }
+html,body { margin:0; background:#000; overflow:hidden; }
+</style></head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// SpaceNotch teaser, cut from real footage of the app. Every frame is a pure function of t.
+const W = 1920, H = 1080, CX = W / 2;
+const c = document.getElementById('c'), ctx = c.getContext('2d');
+let TL = null;
+
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+const eio = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const eout = x => 1 - Math.pow(1 - x, 3);
+const eoutq = x => 1 - Math.pow(1 - x, 5);
+const T1 = 'rgba(255,255,255,0.94)', T2 = 'rgba(255,255,255,0.66)', T3 = 'rgba(255,255,255,0.45)';
+const CYAN = [0x7F, 0xE6, 0xFF];
+
+function roundRect(x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2);
+  ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+function text(str, x, y, { size = 64, weight = 600, color = T1, a = 1, blur = 0, dy = 0, track = 0, grad = false, shadow = false } = {}) {
+  if (a <= 0.005) return;
+  ctx.save(); ctx.globalAlpha = a;
+  if (blur > 0.2) ctx.filter = `blur(${blur}px)`;
+  ctx.font = `${weight} ${size}px Inter`; ctx.textAlign = 'center';
+  ctx.letterSpacing = `${track}px`;
+  if (shadow) { ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 30; }
+  if (grad) { const g = ctx.createLinearGradient(0, y - size, 0, y + size * .2); g.addColorStop(0, '#fff'); g.addColorStop(1, '#c3c9e0'); ctx.fillStyle = g; }
+  else ctx.fillStyle = color;
+  ctx.fillText(str, x, y + dy);
+  ctx.restore();
+}
+function caption(str, t, tin, tout, y, size, opts = {}) {
+  const i = eoutq(prog(t, tin, tin + .45)), o = eio(prog(t, tout, tout + .3));
+  text(str, CX, y, { size, a: i * (1 - o), blur: (1 - i) * 14 + o * 10, dy: (1 - i) * 22 - o * 10, ...opts });
+}
+
+// ---- footage ----
+const cache = new Map();
+function frameUrl(seg, k) { return `src/${seg.name}/${String(k + 1).padStart(4, '0')}.jpg`; }
+async function load(url) {
+  if (cache.has(url)) return cache.get(url);
+  const img = new Image(); img.src = url; await img.decode(); cache.set(url, img);
+  if (cache.size > 12) cache.delete(cache.keys().next().value);
+  return img;
+}
+function segAt(t) {
+  const out = [];
+  for (const s of TL.segments) {
+    const a = s.t0, b = s.t0 + s.dur + TL.xf;
+    if (t >= a && t < b) out.push(s);
+  }
+  return out;
+}
+
+// ---- logo tile (outro) ----
+const LOGO = [0.25, 1, 0.25, 1, 1, 1, 0.25, 1, 0.25];
+function logo(cx, cy, size, a, t) {
+  if (a <= 0) return;
+  const tw = size * 1.4;
+  ctx.save(); ctx.globalAlpha = a;
+  ctx.shadowColor = 'rgba(127,230,255,0.35)'; ctx.shadowBlur = 60;
+  roundRect(cx - tw / 2, cy - tw / 2, tw, tw, tw * .28); ctx.fillStyle = '#05070b'; ctx.fill();
+  ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = 2; ctx.stroke();
+  const gap = size * .1, cell = (size - 2 * gap) / 3, x0 = cx - size / 2, y0 = cy - size / 2;
+  const breathe = .85 + .15 * Math.sin(t * 3.2);
+  for (let i = 0; i < 9; i++) {
+    const col = i === 4 ? [255, 255, 255] : CYAN, v = LOGO[i] * (i === 4 ? 1 : breathe);
+    ctx.shadowColor = `rgba(${col},${.9 * v})`; ctx.shadowBlur = cell * .9;
+    roundRect(x0 + (i % 3) * (cell + gap), y0 + Math.floor(i / 3) * (cell + gap), cell, cell, cell * .22);
+    ctx.fillStyle = `rgba(${col},${v})`; ctx.fill();
+  }
+  ctx.restore();
+}
+
+async function render(t) {
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.filter = 'none'; ctx.globalAlpha = 1;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+
+  // Footage, crossfading between shots: same desk, same notch, so a dissolve reads as the notch changing.
+  const segs = segAt(t);
+  for (const s of segs) {
+    const local = t - s.t0;
+    const k = Math.min(s.frames - 1, Math.max(0, Math.round(local * TL.fps)));
+    const img = await load(frameUrl(s, k));
+    const fadeIn = s === TL.segments[0] ? eio(prog(local, 0, .5)) : eio(prog(local, 0, TL.xf));
+    // Slow push-in keeps real footage cinematic.
+    const z = 1 + 0.035 * clamp(local / (s.dur + TL.xf));
+    ctx.save(); ctx.globalAlpha = fadeIn;
+    ctx.translate(CX, 0); ctx.scale(z, z); ctx.translate(-CX, 0);
+    ctx.drawImage(img, 0, 0, W, H);
+    ctx.restore();
+  }
+  const last = TL.segments[TL.segments.length - 1];
+  const footageEnd = last.t0 + last.dur;
+  // Fade the desk to black for the outro.
+  const toBlack = eio(prog(t, footageEnd - .1, footageEnd + .5));
+  if (toBlack > 0) { ctx.fillStyle = `rgba(0,0,0,${toBlack})`; ctx.fillRect(0, 0, W, H); }
+
+  // Captions sit low, over empty desk, on a soft shade.
+  const shade = ctx.createLinearGradient(0, H * .55, 0, H);
+  shade.addColorStop(0, 'rgba(0,0,0,0)'); shade.addColorStop(1, 'rgba(0,0,0,0.5)');
+  ctx.fillStyle = shade; ctx.fillRect(0, H * .55, W, H * .45);
+
+  // Intro: black, one line.
+  caption('Windows never had a notch.', t, .35, TL.intro - .45, 580, 84, { grad: true, weight: 650 });
+
+  for (const s of TL.segments) {
+    const tin = s.t0 + .25, tout = s.t0 + s.dur - .25;
+    if (s.sub) {
+      caption(s.cap, t, tin, tout, 800, 124, { grad: true, weight: 700, track: -3, shadow: true });
+      caption(s.sub, t, tin + .3, tout, 876, 38, { weight: 450, color: T2, shadow: true });
+    } else {
+      caption(s.cap, t, tin, tout, 860, 76, { grad: true, weight: 650, shadow: true });
+    }
+  }
+
+  // Outro.
+  const o0 = footageEnd + .2;
+  const la = eout(prog(t, o0, o0 + .5));
+  logo(CX, 330, 150 * (0.86 + 0.14 * eoutq(prog(t, o0, o0 + .6))), la, t);
+  caption('SpaceNotch', t, o0 + .25, 99, 590, 124, { grad: true, weight: 700, track: -3 });
+  caption('The notch your Windows PC never had.', t, o0 + .5, 99, 662, 38, { weight: 450, color: T2 });
+  caption('FREE & OPEN SOURCE  ·  WINDOWS 11', t, o0 + .75, 99, 748, 22, { weight: 600, color: T3, track: 6 });
+  caption('github.com/nicoo-o/SpaceNotch', t, o0 + .9, 99, 816, 30, { weight: 550, color: `rgba(${CYAN},0.95)` });
+
+  // Vignette, then fade from/to black so the loop closes cleanly.
+  const v = ctx.createRadialGradient(CX, H * .45, H * .35, CX, H * .5, H);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.35)');
+  ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+  const edge = Math.min(prog(t, 0, .25), 1 - prog(t, TL.total - .35, TL.total));
+  if (edge < 1) { ctx.fillStyle = `rgba(0,0,0,${1 - edge})`; ctx.fillRect(0, 0, W, H); }
+}
+window.render = render;
+window.ready = (async () => {
+  TL = await (await fetch('timeline.json')).json();
+  window.DURATION = TL.total;
+  await document.fonts.load('600 40px Inter');
+})();
+</script>
+</body></html>
