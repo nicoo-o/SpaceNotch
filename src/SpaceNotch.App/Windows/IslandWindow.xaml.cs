@@ -175,6 +175,7 @@ public sealed partial class IslandWindow : Window
     private readonly TextBlock _measureSubhead = new();
     private readonly TextBlock _measureHeadline = new();
     private readonly TextBlock _measureMetric = new();
+    private readonly TextBlock _measureStack = new();
 
     /// <summary>Épaule appliquée en dernier à la zone de contenu, pour ne la redisposer qu'au changement.</summary>
     private double _contentShoulder = double.NaN;
@@ -1054,7 +1055,8 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        string? metric = activity.TrailingMetric;
+        CompactTrailing trailing = CompactTrailing.For(activity);
+        string? metric = CompactTrailing.MetricFor(activity, trailing);
         Visibility metricVisibility = metric is null ? Visibility.Collapsed : Visibility.Visible;
 
         if (shown == IslandPresentationTier.Signal)
@@ -1064,8 +1066,9 @@ public sealed partial class IslandWindow : Window
             SetText(SignalMetric, metric, _signalWasVisible, metric: true);
             SignalMetric.Visibility = metricVisibility;
 
-            SignalLevel.Visibility = activity.Progress is null ? Visibility.Collapsed : Visibility.Visible;
-            SignalLevelScale.ScaleX = Math.Clamp(activity.Progress ?? 0, 0, 1);
+            SignalLevel.Visibility = trailing.Kind == TrailingKind.Level ? Visibility.Visible : Visibility.Collapsed;
+            SignalLevelScale.ScaleX = trailing.Kind == TrailingKind.Level ? trailing.Value : 0;
+            SignalTrailing.Show(trailing);
             SignalRestView.Visibility = Visibility.Visible;
 
             _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
@@ -1097,6 +1100,7 @@ public sealed partial class IslandWindow : Window
         SetText(CardHeadline, activity.Title, _cardWasVisible, veil: true);
         SetText(CardMetric, metric, _cardWasVisible, metric: true);
         CardMetric.Visibility = metricVisibility;
+        CardTrailing.Show(trailing);
         CardRestView.Visibility = Visibility.Visible;
 
         _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
@@ -1249,12 +1253,15 @@ public sealed partial class IslandWindow : Window
         string detail = activity.Subtitle ?? activity.Source ?? string.Empty;
         string state = StatePalette.Label(activity.State);
 
+        // Une seule information par ligne : le détail s'il existe, sinon l'état.
+        // « Connecté · Batterie 84 % · Périphérique » disait trois fois la même
+        // chose que l'icône et l'arc de batterie.
         if (detail.Length == 0)
         {
             return state.Length == 0 ? "SpaceNotch" : state;
         }
 
-        return state.Length == 0 ? detail : $"{detail} · {state}";
+        return detail;
     }
 
     /// <summary>
@@ -1334,9 +1341,9 @@ public sealed partial class IslandWindow : Window
         // par un second objet posé à côté. Voir ADR-017.
         bool visible = StackIndicatorVisible();
 
-        // Des points plutôt qu'un nombre : la pile se constate, elle ne se lit
-        // pas. Au-delà de quatre, un point de plus n'apprendrait rien.
-        string text = visible ? string.Join(" ", Enumerable.Repeat("•", Math.Min(count, 4))) : string.Empty;
+        // Un nombre plutôt que des points : « +2 » se lit d'un coup d'œil, là
+        // où « • • • » demandait de compter.
+        string text = visible ? CompactTrailing.StackBadge(count) ?? string.Empty : string.Empty;
         Visibility state = visible ? Visibility.Visible : Visibility.Collapsed;
 
         SignalStackIndicator.Text = text;
@@ -1400,6 +1407,8 @@ public sealed partial class IslandWindow : Window
         IdleStatusDot.Fill = tint;
         SignalGlyph.Tint = tint;
         CardGlyph.Tint = tint;
+        SignalTrailing.Tint = tint;
+        CardTrailing.Tint = tint;
     }
 
     /// <summary>
@@ -1488,17 +1497,27 @@ public sealed partial class IslandWindow : Window
             return IslandFootprint.For(tier, _settings.Density);
         }
 
-        double stack = StackIndicatorVisible() ? 6 + (7 * Math.Min(_activityManager.Count, 4)) : 0;
+        double stack = 0;
 
-        if (activity.TrailingMetric is { } metric)
+        if (StackIndicatorVisible())
+        {
+            _measureStack.Style ??= SignalStackIndicator.Style;
+            stack += 6 + Measure(_measureStack, CompactTrailing.StackBadge(_activityManager.Count));
+        }
+
+        CompactTrailing trailing = CompactTrailing.For(activity);
+
+        if (CompactTrailing.MetricFor(activity, trailing) is { } metric)
         {
             _measureMetric.Style ??= SignalMetric.Style;
             stack += 8 + Measure(_measureMetric, metric);
         }
 
-        if (tier == IslandPresentationTier.Signal && activity.Progress is not null)
+        // Le fil de niveau n'existe que dans la pastille ; les formes carrées,
+        // dans les deux paliers.
+        if (trailing.Kind != TrailingKind.None && (trailing.Kind != TrailingKind.Level || tier == IslandPresentationTier.Signal))
         {
-            stack += 36 + 6;
+            stack += trailing.Width + 6;
         }
 
         double content = tier == IslandPresentationTier.Signal

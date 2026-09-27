@@ -85,8 +85,8 @@ public static class DemoScenario
         // 4. Un téléchargement : la grille « Process », la taille qui grandit.
         for (int i = 0; i <= 6; i++)
         {
-            string size = string.Create(System.Globalization.CultureInfo.CurrentCulture, $"{(i + 1) * 0.2:0.0} Go");
-            At(13 + i, now => Download(now, size, ActivityMotionState.Working, null));
+            double progress = (i + 1) / 7.0;
+            At(13 + i, now => Download(now, null, ActivityMotionState.Working, null, progress: progress));
         }
 
         At(20, now => Download(now, "✓", ActivityMotionState.Completing, TimeSpan.FromSeconds(5), "Téléchargé"));
@@ -99,8 +99,9 @@ public static class DemoScenario
             FeatureId = FeatureId,
             SceneKey = IslandSceneCatalog.Bluetooth,
             Title = "AirPods Pro",
-            Subtitle = "Connecté · Batterie 84 %",
+            Subtitle = "Connecté",
             IconKey = "Bluetooth",
+            Payload = new BluetoothPayload("AirPods Pro", true, 84, "audio"),
             State = IslandActivityState.DeviceActive,
             Priority = ActivityPriority.Normal,
             Duration = TimeSpan.FromSeconds(3)
@@ -119,7 +120,7 @@ public static class DemoScenario
         return steps;
     }
 
-    private static IslandActivity Download(DateTimeOffset now, string metric, ActivityMotionState state, TimeSpan? lifetime, string title = "Téléchargement")
+    private static IslandActivity Download(DateTimeOffset now, string? metric, ActivityMotionState state, TimeSpan? lifetime, string title = "Téléchargement", double? progress = null)
         => new()
         {
             CreatedAt = now,
@@ -129,6 +130,7 @@ public static class DemoScenario
             Title = title,
             Eyebrow = "ubuntu-24.04-desktop.iso",
             Metric = metric,
+            Progress = progress,
             IconKey = "Download",
             State = IslandActivityState.DownloadActive,
             Priority = ActivityPriority.Normal,

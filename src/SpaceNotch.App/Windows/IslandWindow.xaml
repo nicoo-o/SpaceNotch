@@ -197,7 +197,7 @@
                         VerticalAlignment="Center" />
 
                     <!-- Emplacement trailing : la mesure à droite de l'identité —
-                         « 62 % », « 12 Mo », « ✓ » — puis la pile. -->
+                         « 62 % », « 12 Mo », « ✓ » — son élément vivant, puis la pile. -->
                     <StackPanel
                         Grid.Column="2"
                         Orientation="Horizontal"
@@ -230,6 +230,9 @@
                             Style="{StaticResource NfMetricTextStyle}"
                             VerticalAlignment="Center"
                             Visibility="Collapsed" />
+
+                        <!-- Anneau, arc de batterie ou égaliseur : l'activité vit. -->
+                        <views:TrailingView x:Name="SignalTrailing" VerticalAlignment="Center" />
 
                         <TextBlock
                             x:Name="SignalStackIndicator"
@@ -307,6 +310,8 @@
                             Style="{StaticResource NfMetricTextStyle}"
                             VerticalAlignment="Center"
                             Visibility="Collapsed" />
+
+                        <views:TrailingView x:Name="CardTrailing" VerticalAlignment="Center" />
 
                         <TextBlock
                             x:Name="CardStackIndicator"

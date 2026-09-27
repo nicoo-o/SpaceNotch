@@ -58,8 +58,11 @@ public sealed class BluetoothFeature : IslandFeatureBase
         string subtitle = !change.IsConnected
             ? "Déconnecté"
             : payload.IsBatteryLow
-                ? $"Batterie faible · {change.BatteryPercent} %"
+                ? "Batterie faible"
                 : "Connecté";
+
+        // La batterie ne s'écrit plus dans la ligne : elle vit à droite de la
+        // forme compacte, en arc et en pourcentage (CompactTrailing).
 
         // Identifiant dérivé de l'appareil : rebrancher le même casque remplace
         // l'activité précédente au lieu d'en empiler une nouvelle.
