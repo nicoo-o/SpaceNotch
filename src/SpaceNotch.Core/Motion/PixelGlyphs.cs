@@ -627,6 +627,22 @@ public static class PixelGlyphs
             ".x...x.",
             "xxxxxxx",
             ".x.x.x."),
+        ["Calendar"] = Mask(
+            ".x...x.",
+            "xxxxxxx",
+            "x.....x",
+            "x.x.x.x",
+            "x.....x",
+            "x.x.x.x",
+            "xxxxxxx"),
+        ["Qr"] = Mask(
+            "xxx.xxx",
+            "x.x.x.x",
+            "xxx.xxx",
+            ".......",
+            "xxx.x.x",
+            "x.x..x.",
+            "xxx.x.x"),
         ["WeatherSun"] = Mask(
             "x..x..x",
             ".x.x.x.",

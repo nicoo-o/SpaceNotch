@@ -50,6 +50,8 @@
     <rescap:Capability Name="runFullTrust" />
     <rescap:Capability Name="unvirtualizedResources" />
     <uap3:Capability Name="userNotificationListener" />
+    <!-- Prochain rendez-vous (F2) : lecture seule du calendrier. Voir ADR-011. -->
+    <uap:Capability Name="appointments" />
   </Capabilities>
 
   <Applications>
