@@ -13,6 +13,19 @@ public readonly record struct RayPixel(double X, double Y, double Opacity);
 public static class LightRays
 {
     public const int Rays = 9;
+
+    /// <summary>
+    /// Vraie réussite à fêter ? Une activité qui passe à « terminé » — fichier
+    /// téléchargé, minuteur ou focus achevé. Une activité déjà terminée qu'on
+    /// republie ne rejoue rien : c'est rare, donc ça reste un plaisir.
+    /// </summary>
+    public static bool Celebrates(SpaceNotch.Core.Activities.IslandActivity? before, SpaceNotch.Core.Activities.IslandActivity? after)
+    {
+        static bool Done(SpaceNotch.Core.Activities.IslandActivity? a)
+            => a is { MotionState: ActivityMotionState.Completing or ActivityMotionState.Complete };
+
+        return Done(after) && !(Done(before) && string.Equals(before!.Id, after!.Id, StringComparison.Ordinal));
+    }
     public const double Seconds = 0.6;
     public const double PixelDip = 2;
 
@@ -20,7 +33,7 @@ public static class LightRays
     private const int Trail = 5;
 
     /// <summary>Portée maximale d'un rayon, en DIPs.</summary>
-    private const double Reach = 64;
+    private const double Reach = 28;
 
     /// <summary>
     /// Pixels à l'instant <paramref name="seconds"/>, pour une notch large de

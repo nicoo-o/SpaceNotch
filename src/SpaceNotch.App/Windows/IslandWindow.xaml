@@ -144,9 +144,10 @@
                     <!-- L'heure n'est pas un contenu de veille par défaut : elle
                          introduirait une horloge à la minute là où le produit
                          promet de ne rien faire au repos. -->
-                    <TextBlock
-                        x:Name="IdleClockText"
-                        Style="{StaticResource NfMicroTextStyle}"
+                    <!-- Horloge à palettes en pixels (M1) : la palette qui change bascule. -->
+                    <views:PixelClockView
+                        x:Name="IdleClock"
+                        Tint="{ThemeResource NfTextSecondaryBrush}"
                         VerticalAlignment="Center"
                         Visibility="Collapsed" />
                 </StackPanel>

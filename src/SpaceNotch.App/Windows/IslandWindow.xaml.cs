@@ -880,6 +880,7 @@ public sealed partial class IslandWindow : Window
             && !string.Equals(activity.Id, _lastPresentedId, StringComparison.Ordinal);
         IslandState previousState = _lastRenderedState;
         _lastPresentedId = activity?.Id;
+        Celebrate(activity);
         _lastRenderedState = _controller.State;
 
         // Le palier au repos ne dépend jamais de l'ouverture : il est résolu à
@@ -939,13 +940,14 @@ public sealed partial class IslandWindow : Window
             // horloge à la minute dans un produit dont la promesse est de ne rien
             // faire au repos. Sans elle, la lèvre est vide — le point de veille
             // ne l'accompagne que pour lui donner un repère.
-            IdleClockText.Visibility = _settings.ShowClockAtRest && !UsesSideTab
+            IdleClock.Visibility = _settings.ShowClockAtRest && !UsesSideTab
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
-            IdleStatusDot.Visibility = IdleClockText.Visibility;
-
-            IdleClockText.Text = DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture);
+            IdleStatusDot.Visibility = IdleClock.Visibility;
+            IdleClock.Animate = UseSpringAnimations();
+            IdleClock.Show(DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+            ArmClockTick(IdleClock.Visibility == Visibility.Visible);
             return;
         }
 
@@ -1960,6 +1962,56 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private string? OpenedActivityId()
         => _controller.State is IslandState.Expanding or IslandState.Expanded ? _controller.PresentedActivity?.Id : null;
+
+    private DispatcherQueueTimer? _clockTimer;
+    private IslandActivity? _lastRenderedActivity;
+
+    /// <summary>
+    /// Rayons de réussite (M4) : une seule fois, au moment où une activité
+    /// passe à « terminé ». Jamais quand Windows réduit les animations.
+    /// </summary>
+    private void Celebrate(IslandActivity? activity)
+    {
+        IslandActivity? before = _lastRenderedActivity;
+        _lastRenderedActivity = activity;
+
+        if (activity is null || !SpaceNotch.Core.Motion.LightRays.Celebrates(before, activity) || !UseSpringAnimations() || UsesFloatingGeometry || UsesSideTab)
+        {
+            return;
+        }
+
+        Color tint = activity.Tint is { } declared
+            ? Color.FromArgb(0xFF, declared.R, declared.G, declared.B)
+            : StatePalette.Tint(activity.State);
+
+        // Les rayons partent sous la forme où l'activité se pose.
+        IslandFootprint shape = _controller.State is IslandState.Expanded or IslandState.Expanding
+            ? activity.Footprint
+            : _restFootprint;
+
+        _atmosphere.PlayLightRays(tint, shape.Width, shape.Height);
+    }
+
+    /// <summary>
+    /// L'horloge au repos se met à jour à la minute exacte, et seulement quand
+    /// elle est affichée : aucun minuteur ne tourne pour une horloge cachée.
+    /// </summary>
+    private void ArmClockTick(bool visible)
+    {
+        if (!visible)
+        {
+            _clockTimer?.Stop();
+            return;
+        }
+
+        DateTime now = DateTime.Now;
+        TimeSpan untilNextMinute = TimeSpan.FromSeconds(60 - now.Second) - TimeSpan.FromMilliseconds(now.Millisecond) + TimeSpan.FromMilliseconds(20);
+
+        _clockTimer ??= CreateOneShotTimer(untilNextMinute, RequestRender);
+        _clockTimer.Interval = untilNextMinute;
+        _clockTimer.Stop();
+        _clockTimer.Start();
+    }
 
     private void RearmExpirationTimer()
     {

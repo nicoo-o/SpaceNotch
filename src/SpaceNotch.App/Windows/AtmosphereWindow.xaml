@@ -64,5 +64,12 @@
             Height="48"
             IsHitTestVisible="False"
             Visibility="Collapsed" />
+
+        <!-- Rayons de réussite (M4) : un seul tracé de pixels, une demi-seconde. -->
+        <Path
+            x:Name="RaysPath"
+            VerticalAlignment="Top"
+            HorizontalAlignment="Center"
+            IsHitTestVisible="False" />
     </Grid>
 </Window>

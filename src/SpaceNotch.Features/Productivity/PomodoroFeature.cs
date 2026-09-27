@@ -5,10 +5,11 @@ using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
+using SpaceNotch.Core.Localization;
+using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Productivity;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
-using SpaceNotch.Core.Localization;
 
 namespace SpaceNotch.Features.Productivity;
 
@@ -152,6 +153,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
             IconKey = "Timer",
             State = IslandActivityState.TimerActive,
             Priority = ActivityPriority.High,
+            MotionState = ActivityMotionState.Completing,
             Duration = TimeSpan.FromSeconds(5)
         });
 

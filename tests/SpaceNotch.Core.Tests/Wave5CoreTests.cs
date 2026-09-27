@@ -192,6 +192,29 @@ public sealed class Wave5CoreTests
         Assert.All(LightRays.At(0.3, 300), p => Assert.Equal(0, p.X % LightRays.PixelDip, 6));
     }
 
+    [Fact]
+    public void LightRays_CelebrateOnlyTheMomentOfSuccess()
+    {
+        var working = new IslandActivity { Id = "d", FeatureId = "t", SceneKey = "card", Title = "x", MotionState = ActivityMotionState.Working };
+        var done = new IslandActivity { Id = "d", FeatureId = "t", SceneKey = "card", Title = "x", MotionState = ActivityMotionState.Completing };
+
+        Assert.True(LightRays.Celebrates(working, done));
+        Assert.True(LightRays.Celebrates(null, done));
+        Assert.False(LightRays.Celebrates(done, done));
+        Assert.False(LightRays.Celebrates(done, working));
+    }
+
+    [Fact]
+    public void CompactTrailing_SpinsWhileDownloading_ThenShowsACheck()
+    {
+        var downloading = new IslandActivity { Id = "d", FeatureId = "t", SceneKey = "card", Title = "x", Role = ActivityRole.Download, MotionState = ActivityMotionState.Working };
+        var downloaded = new IslandActivity { Id = "d", FeatureId = "t", SceneKey = "card", Title = "x", IconKey = "Check", Metric = "✓", MotionState = ActivityMotionState.Completing };
+
+        Assert.Equal(TrailingKind.Spinner, CompactTrailing.For(downloading).Kind);
+        Assert.Equal(TrailingKind.Check, CompactTrailing.For(downloaded).Kind);
+        Assert.Null(CompactTrailing.MetricFor(downloaded, CompactTrailing.For(downloaded)));
+    }
+
     // F11 — pomodoro autour de la silhouette
     [Fact]
     public void OutlineTrim_ShrinksWithTheRemainingTime()
