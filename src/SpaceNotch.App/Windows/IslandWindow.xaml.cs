@@ -147,6 +147,8 @@ public sealed partial class IslandWindow : Window
     /// resserre avec son texte, comme dans la référence.
     /// </summary>
     private IslandFootprint _restFootprint = IslandFootprint.Idle;
+    private string? _fitSlackFor;
+    private double _fitSlack;
 
     /// <summary>Préréglage hypnotique en cours et instant où il a commencé, pour l'apaisement.</summary>
     private HypnoticPreset _runningPreset = HypnoticPreset.None;
@@ -406,6 +408,9 @@ public sealed partial class IslandWindow : Window
         _measureSignal.Style = SignalLabel.Style;
         _measureSubhead.Style = CardSubhead.Style;
         _measureHeadline.Style = CardHeadline.Style;
+        SignalLabel.IsTextTrimmedChanged += (label, _) => CatchUpTrimmed(label);
+        CardSubhead.IsTextTrimmedChanged += (label, _) => CatchUpTrimmed(label);
+        CardHeadline.IsTextTrimmedChanged += (label, _) => CatchUpTrimmed(label);
         WireEvents();
         WireSceneActions();
         ApplyBackdropMode();
@@ -668,7 +673,16 @@ public sealed partial class IslandWindow : Window
         // fil et lève un COMException au message vide — une panne d'autant plus
         // difficile à lire que rien ne la désigne.
         _controller.PresentedActivityChanged += (_, _) => RequestRender();
-        _controller.AnimationCompleted += (_, _) => RequestRender();
+        _controller.AnimationCompleted += (_, _) =>
+        {
+            RequestRender();
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                CatchUpTrimmed(SignalLabel);
+                CatchUpTrimmed(CardHeadline);
+                CatchUpTrimmed(CardSubhead);
+            });
+        };
         _controller.StateChanged += (_, state) =>
         {
             // Ouverte, l'activité présentée est épargnée ; refermée, elle
@@ -1594,7 +1608,53 @@ public sealed partial class IslandWindow : Window
                 Measure(_measureSubhead, SubheadFor(activity)),
                 Measure(_measureHeadline, activity.Title));
 
-        return IslandFootprint.Fit(tier, content + stack, _settings.Geometry.Shoulder, _settings.Density);
+        double slack = string.Equals(_fitSlackFor, activity.Id, StringComparison.Ordinal) ? _fitSlack : 0;
+
+        return IslandFootprint.Fit(tier, content + stack + slack, _settings.Geometry.Shoulder, _settings.Density);
+    }
+
+    /// <summary>
+    /// Filet de sécurité de la largeur au repos : un texte coupé alors que la
+    /// pastille pouvait encore grandir élargit la forme d'exactement ce qui
+    /// manque. La mesure hors arbre et le rendu peuvent différer de quelques
+    /// DIPs (police, mise à l'échelle du texte) ; « Volu… » ne doit jamais
+    /// s'afficher quand « Volume » tenait.
+    /// </summary>
+    private void CatchUpTrimmed(TextBlock label)
+    {
+        // Pendant que le ressort bouge, un texte coupé l'est en passant : on
+        // attend la forme posée (AnimationCompleted relance la vérification).
+        FrameworkElement view = ReferenceEquals(label, SignalLabel) ? SignalRestView : CardRestView;
+
+        if (!label.IsTextTrimmed
+            || view.Visibility != Visibility.Visible
+            || label.ActualWidth <= 0
+            || _controller.IsAnimating
+            || _controller.PresentedActivity is not { } activity
+            || _controller.State is not (IslandState.Closed or IslandState.Preview)
+            || _restFootprint.Width >= IslandFootprint.MaximumWidth(_tier) - 0.5)
+        {
+            return;
+        }
+
+        var probe = new TextBlock { Style = label.Style, Text = label.Text };
+        probe.Measure(new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+        double missing = Math.Ceiling(probe.DesiredSize.Width - label.ActualWidth) + 1;
+
+        if (missing <= 0)
+        {
+            return;
+        }
+
+        if (!string.Equals(_fitSlackFor, activity.Id, StringComparison.Ordinal))
+        {
+            _fitSlackFor = activity.Id;
+            _fitSlack = 0;
+        }
+
+        _fitSlack += missing;
+        MiniLogger.Log($"[FIT] texte coupé, la forme s'élargit de {missing} DIP ({label.Name})");
+        RequestRender();
     }
 
     private static double Measure(TextBlock text, string? value)
