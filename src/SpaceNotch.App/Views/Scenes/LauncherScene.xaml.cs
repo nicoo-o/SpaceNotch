@@ -98,6 +98,13 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
     /// <summary>Vrai tant que l'utilisateur tape : dans le champ ou dans le filtre des actions.</summary>
     public bool IsEditing => _searchFocused || _filterFocused;
 
+    /// <summary>Écrit dans le champ comme si on tapait (visite filmée).</summary>
+    public void Type(string text)
+    {
+        SearchBox.Text = text;
+        SearchBox.SelectionStart = text.Length;
+    }
+
     /// <summary>Met le focus dans le champ : on ouvre la recherche pour taper.</summary>
     public void FocusSearch()
     {
@@ -452,6 +459,12 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
     {
         LauncherResultKind.Calculation => French ? "Copier" : "Copy",
         LauncherResultKind.Web => French ? "Rechercher" : "Search",
+        LauncherResultKind.Command when LauncherCommands.TryRead(item.Target, out LauncherCommandKind kind, out _) => kind switch
+        {
+            LauncherCommandKind.Timer => French ? "Lancer" : "Start",
+            LauncherCommandKind.Volume => French ? "Régler" : "Set",
+            _ => French ? "Copier" : "Copy"
+        },
         _ => French ? "Ouvrir" : "Open"
     };
 

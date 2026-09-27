@@ -136,6 +136,12 @@ public sealed class LauncherFeature : IslandFeatureBase
     /// <summary>Vrai tant que la recherche est ouverte ou en attente dans la pile.</summary>
     public bool IsShown => _shown;
 
+    /// <summary>
+    /// Une commande tapée (F4) a été validée : minuteur, volume ou couleur.
+    /// L'application l'exécute — ces gestes touchent d'autres fonctionnalités.
+    /// </summary>
+    public event Action<LauncherCommandKind, string>? CommandInvoked;
+
     public void Dismiss()
     {
         _query = string.Empty;
@@ -203,6 +209,13 @@ public sealed class LauncherFeature : IslandFeatureBase
             .FirstOrDefault(r => string.Equals(r.Id, id, StringComparison.OrdinalIgnoreCase));
 
         string? target = result?.Target ?? id;
+
+        if (LauncherCommands.TryRead(target, out LauncherCommandKind kind, out string value))
+        {
+            Dismiss();
+            CommandInvoked?.Invoke(kind, value);
+            return true;
+        }
 
         if (string.IsNullOrWhiteSpace(target) || !LauncherShell.Open(target, admin))
         {

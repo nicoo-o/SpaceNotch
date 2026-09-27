@@ -275,6 +275,40 @@ public sealed partial class IslandWindow
             TourOpen(NotificationFeature.QuietSummaryActivityId);
         }
 
+        IslandActivity Gamepad() => new()
+        {
+            CreatedAt = Now(),
+            Id = "tour.gamepad",
+            FeatureId = TourFeature,
+            SceneKey = IslandSceneCatalog.Bluetooth,
+            Title = "Xbox Controller",
+            Subtitle = Lang.T("Connecté", "Connected"),
+            IconKey = "Gamepad",
+            State = IslandActivityState.DeviceActive,
+            Priority = ActivityPriority.Normal,
+            Policy = ActivityPresentationPolicy.Passive,
+            Payload = new BluetoothPayload("Xbox Controller", true, 67, "gamepad")
+        };
+
+        void CpuAlert()
+        {
+            DateTimeOffset t = DateTimeOffset.UtcNow;
+            var heaviest = new SpaceNotch.Platform.Windows.Power.HeavyProcess("blender", 7312, 88.4);
+            double[] loads = [62, 71, 88, 93, 96, 91, 94, 97, 95, 92, 96, 94];
+
+            for (int i = 0; i < loads.Length; i++)
+            {
+                _monitorFeature.Add(loads[i], t.AddSeconds(i * 2), heaviest);
+            }
+        }
+
+        void CpuCalm()
+        {
+            DateTimeOffset t = DateTimeOffset.UtcNow.AddMinutes(1);
+            _monitorFeature.Add(20, t);
+            _monitorFeature.Add(20, t.AddSeconds(10));
+        }
+
         IslandActivity Volume() => HudActivity.Build("tour.volume", TourFeature, IslandSceneCatalog.VolumeHud, "Volume", 72, 100, "VolumeHigh", Lang.T("Sortie principale", "Main output"), TimeSpan.FromSeconds(30));
 
         IslandActivity Discord()
@@ -310,7 +344,13 @@ public sealed partial class IslandWindow
             ("pomodoro · anneau", () => { _noteFeature.Dismiss(); TourClear("tour.timer", "tour.bluetooth"); _pomodoroFeature.Start(TimeSpan.FromSeconds(30)); }),
             ("ne pas déranger · lune", () => { _pomodoroFeature.Reset(); Quiet(); }),
             ("ne pas déranger · résumé", QuietOver),
-            ("recherche · ouverte", () => { TourClear(NotificationFeature.QuietSummaryActivityId); OpenLauncher(); }),
+            ("charge · branchement", () => { TourClear(NotificationFeature.QuietSummaryActivityId); _chargeFeature.Announce(64); }),
+            ("appareil · manette", () => { TourClear(); TourShow(Gamepad(), open: false); }),
+            ("moniteur · pastille", () => { TourClear("tour.gamepad"); CpuAlert(); }),
+            ("moniteur · ouvert", () => TourOpen(SpaceNotch.Features.Power.SystemMonitorFeature.ActivityId)),
+            ("commande · timer 10", () => { TourClear(); CpuCalm(); OpenLauncher(); LauncherSceneView.Type("timer 10"); }),
+            ("commande · couleur", () => LauncherSceneView.Type("#7FE6FF")),
+            ("recherche · ouverte", () => { LauncherSceneView.Type(string.Empty); }),
             ("menu rapide", () => { _controller.RequestCollapse(); ToggleQuickMenu(); }),
             ("pile · compteur +N", () => { CloseQuickMenu(); TourShow(Timer(), open: false); }),
             ("bulle · deux activités importantes", () => { TourClear("tour.timer", "tour.bluetooth"); _activityManager.PostActivity(Download()); TourShow(Music(), open: false); }),

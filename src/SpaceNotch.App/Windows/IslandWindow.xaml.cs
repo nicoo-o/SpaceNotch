@@ -307,6 +307,7 @@ public sealed partial class IslandWindow : Window
         };
 
         _quickMenuFeature = new QuickMenuFeature(_activityManager, _eventBus);
+        _launcherFeature.CommandInvoked += (kind, value) => OnUiThread(() => RunCommand(kind, value));
         _chargeFeature = new SpaceNotch.Features.Power.ChargeFeature(
             _activityManager, _eventBus, new SpaceNotch.Platform.Windows.Power.PowerWatcher(),
             _settings.IsFeatureEnabled(SpaceNotch.Features.Power.ChargeFeature.FeatureKey));
@@ -2103,6 +2104,13 @@ public sealed partial class IslandWindow : Window
         IslandActivity? before = _lastRenderedActivity;
         _lastRenderedActivity = activity;
 
+        if (activity is not null
+            && activity.SceneKey is IslandSceneCatalog.Timer or IslandSceneCatalog.Pomodoro
+            && SpaceNotch.Core.Motion.LightRays.Celebrates(before, activity))
+        {
+            PlayCue(SpaceNotch.Core.Sound.SoundCueKind.TimerDone);
+        }
+
         if (activity is null || !SpaceNotch.Core.Motion.LightRays.Celebrates(before, activity) || !UseSpringAnimations() || UsesFloatingGeometry || UsesSideTab)
         {
             return;
@@ -2565,7 +2573,13 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
+        bool opening = _controller.State is not (IslandState.Expanded or IslandState.Expanding);
         _controller.ToggleFromUser();
+
+        if (opening && _controller.State is IslandState.Expanded or IslandState.Expanding)
+        {
+            PlayCue(SpaceNotch.Core.Sound.SoundCueKind.Open);
+        }
     }
 
     /// <summary>
@@ -2836,6 +2850,7 @@ public sealed partial class IslandWindow : Window
             }
 
             FileShelfSceneView.UpdateItems(_shelfManager.GetItems());
+            PlayCue(SpaceNotch.Core.Sound.SoundCueKind.Drop);
 
             // Absorption : la matière converge et pulse, puis rend la main à
             // l'étagère. Sans animation, le geste se conclut immédiatement.
