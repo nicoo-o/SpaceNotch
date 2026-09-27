@@ -60,6 +60,7 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
     private bool _searchFocused;
     private bool _filterFocused;
     private bool _cascadePending = true;
+    private string? _shownResults;
 
     private LauncherResult? _actionsFor;
     private int _actionSelected;
@@ -202,6 +203,12 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
     private void BuildRows(IReadOnlyList<LauncherSection> sections)
     {
+        // Résultats en cascade (A4) : quand la liste change vraiment — d'autres
+        // résultats, pas les mêmes resurlignés — elle arrive ligne après ligne.
+        string results = string.Join('\u001f', sections.SelectMany(s => s.Items).Select(i => i.Id));
+        bool newResults = !string.Equals(results, _shownResults, StringComparison.Ordinal);
+        _shownResults = results;
+
         RowsPanel.Children.Clear();
         _rows.Clear();
 
@@ -241,7 +248,11 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
         if (_cascadePending && _rows.Count > 0)
         {
             _cascadePending = false;
-            PlayCascade();
+            PlayCascade(TimeSpan.FromMilliseconds(80));
+        }
+        else if (newResults && _rows.Count > 0)
+        {
+            PlayCascade(TimeSpan.Zero);
         }
     }
 
@@ -548,11 +559,11 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
     }
 
     /// <summary>
-    /// Cascade d'entrée : chaque ligne arrive 18 ms après la précédente, par un
-    /// fondu et une montée de 6 DIPs, après 80 ms — le temps que la forme ait
-    /// pris sa place.
+    /// Cascade d'entrée (A4) : chaque ligne arrive 25 ms après la précédente,
+    /// par un fondu, une montée de 6 DIPs et une mise au point (98 % → 100 %) ;
+    /// à l'ouverture, après 80 ms — le temps que la forme ait pris sa place.
     /// </summary>
-    private void PlayCascade()
+    private void PlayCascade(TimeSpan start)
     {
         if (!MotionSettings.AnimationsEnabled)
         {
@@ -563,7 +574,7 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
         foreach (UIElement child in RowsPanel.Children)
         {
-            TimeSpan delay = TimeSpan.FromMilliseconds(80 + (order * 18));
+            TimeSpan delay = start + TimeSpan.FromMilliseconds(order * 25);
             order = Math.Min(order + 1, 12);
 
             Visual visual = ElementCompositionPreview.GetElementVisual(child);
@@ -587,8 +598,21 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
             rise.DelayTime = delay;
             rise.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
 
+            Vector3KeyFrameAnimation focus = compositor.CreateVector3KeyFrameAnimation();
+            focus.InsertKeyFrame(0f, new Vector3(0.98f, 0.98f, 1));
+            focus.InsertKeyFrame(1f, Vector3.One, decelerate);
+            focus.Duration = duration;
+            focus.DelayTime = delay;
+            focus.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
+
+            if (child is FrameworkElement element)
+            {
+                visual.CenterPoint = new Vector3((float)(element.ActualWidth / 2), (float)(element.ActualHeight / 2), 0);
+            }
+
             visual.StartAnimation("Opacity", fade);
             visual.StartAnimation("Translation", rise);
+            visual.StartAnimation("Scale", focus);
         }
     }
 

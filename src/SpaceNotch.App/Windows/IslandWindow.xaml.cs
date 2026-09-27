@@ -413,6 +413,7 @@ public sealed partial class IslandWindow : Window
         CardHeadline.IsTextTrimmedChanged += (label, _) => CatchUpTrimmed(label);
         WireEvents();
         WireSceneActions();
+        StartMagnet();
         ApplyBackdropMode();
 
         // Toute modification venue de la fenêtre de réglages est appliquée ici,
@@ -1035,9 +1036,14 @@ public sealed partial class IslandWindow : Window
         else if (changedActivity)
         {
             // Une activité en remplace une autre : la forme respire, le contenu
-            // change sous le voile.
+            // se découvre sous une vague de pixels (A2) — sous le voile quand la
+            // forme n'est pas celle du bord ou que les animations sont réduites.
             Breathe();
-            PlayVeil();
+
+            if (!PlayDissolve(expanded ? activity!.Footprint : _restFootprint))
+            {
+                PlayVeil();
+            }
         }
         else if (_controller.State == IslandState.Preview
             && previousState == IslandState.Closed
@@ -1091,6 +1097,8 @@ public sealed partial class IslandWindow : Window
         {
             SignalGlyph.Key = activity.IconKey;
             SetText(SignalLabel, activity.Title, _signalWasVisible, veil: true);
+            ShimmerText.Set(SignalLabel, activity.MotionState == ActivityMotionState.Working, UseSpringAnimations());
+            ShimmerText.Set(CardHeadline, working: false, animate: false);
             SetText(SignalMetric, metric, _signalWasVisible, metric: true);
             SignalMetric.Visibility = metricVisibility;
 
@@ -1126,6 +1134,8 @@ public sealed partial class IslandWindow : Window
         // déjà visible se remplace sur place, par un fondu : la carte reste.
         SetText(CardSubhead, SubheadFor(activity), _cardWasVisible);
         SetText(CardHeadline, activity.Title, _cardWasVisible, veil: true);
+        ShimmerText.Set(CardHeadline, activity.MotionState == ActivityMotionState.Working, UseSpringAnimations());
+        ShimmerText.Set(SignalLabel, working: false, animate: false);
         SetText(CardMetric, metric, _cardWasVisible, metric: true);
         CardMetric.Visibility = metricVisibility;
         CardTrailing.Show(trailing);
@@ -1147,9 +1157,7 @@ public sealed partial class IslandWindow : Window
         SceneTrame.IsAllowed = _settings.ShowTrame && !_visualState.HighContrast && _settings.Appearance != IslandAppearance.Light;
         SceneTrame.Animate = UseSpringAnimations();
 
-        Color tint = activity.Tint is { } declared
-            ? Color.FromArgb(0xFF, declared.R, declared.G, declared.B)
-            : StatePalette.Tint(activity.State);
+        Color tint = DeclaredTint(activity) ?? StatePalette.Tint(activity.State);
 
         SceneTrame.Present(scene.Root, tint, music: scene is MediaExpandedScene && activity.State == IslandActivityState.MediaActive);
     }
@@ -1254,7 +1262,13 @@ public sealed partial class IslandWindow : Window
     {
         string next = value ?? string.Empty;
 
-        if (string.Equals(target.Text, next, StringComparison.Ordinal))
+        if (string.Equals(ScrambleText.FinalOf(target), next, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        // Un titre qui change vraiment se décode (A1) ; les autres textes changent sur place.
+        if (veil && visible && ScrambleText.Set(target, next, UseSpringAnimations()))
         {
             return;
         }
@@ -1482,7 +1496,11 @@ public sealed partial class IslandWindow : Window
     {
         IslandActivityState state = activity?.State ?? IslandActivityState.Idle;
 
-        Brush tint = StatePalette.Brush(_visualState.HighContrast ? IslandActivityState.Idle : state);
+        // La couleur de l'activité (pochette, logo — D2) colore l'icône et
+        // l'élément vivant ; sinon, celle de l'état. Jamais en contraste élevé.
+        Brush tint = !_visualState.HighContrast && activity is not null && DeclaredTint(activity) is { } declared
+            ? new SolidColorBrush(declared)
+            : StatePalette.Brush(_visualState.HighContrast ? IslandActivityState.Idle : state);
 
         IdleStatusDot.Fill = tint;
         SignalGlyph.Tint = tint;
@@ -1964,6 +1982,42 @@ public sealed partial class IslandWindow : Window
         => _controller.State is IslandState.Expanding or IslandState.Expanded ? _controller.PresentedActivity?.Id : null;
 
     private DispatcherQueueTimer? _clockTimer;
+
+    /// <summary>
+    /// Couleur propre d'une activité (D2) : celle qu'elle déclare (la pochette
+    /// d'un morceau), sinon celle du logo de l'application qui notifie, calculée
+    /// une fois puis gardée. <c>null</c> : la couleur de l'état fera l'affaire.
+    /// </summary>
+    private Color? DeclaredTint(IslandActivity activity)
+    {
+        if (activity.Tint is { } declared)
+        {
+            return Color.FromArgb(0xFF, declared.R, declared.G, declared.B);
+        }
+
+        if (activity.State == IslandActivityState.Notification
+            && ArtworkTint.Get(activity.Artwork, () => OnUiThread(RequestRender)) is { } logo)
+        {
+            return Color.FromArgb(0xFF, logo.R, logo.G, logo.B);
+        }
+
+        return null;
+    }
+
+    /// <summary>Fondu en pixels (A2) sur la forme d'arrivée ; faux s'il ne peut pas jouer.</summary>
+    private bool PlayDissolve(IslandFootprint target)
+    {
+        if (!UseSpringAnimations() || UsesFloatingGeometry || UsesSideTab || SurfaceFill.Fill is not Brush surface)
+        {
+            return false;
+        }
+
+        ShapePoint[] outline = _settings.Geometry.Silhouette(target);
+        DissolveOverlay.Width = target.Width;
+        DissolveOverlay.Height = target.Height;
+        DissolveOverlay.Play(outline, target.Width, target.Height, surface);
+        return true;
+    }
     private IslandActivity? _lastRenderedActivity;
 
     /// <summary>
@@ -1980,9 +2034,7 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        Color tint = activity.Tint is { } declared
-            ? Color.FromArgb(0xFF, declared.R, declared.G, declared.B)
-            : StatePalette.Tint(activity.State);
+        Color tint = DeclaredTint(activity) ?? StatePalette.Tint(activity.State);
 
         // Les rayons partent sous la forme où l'activité se pose.
         IslandFootprint shape = _controller.State is IslandState.Expanded or IslandState.Expanding

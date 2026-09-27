@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Presentation;
+using SpaceNotch_App.Animations;
 using SpaceNotch_App.Views;
 
 namespace SpaceNotch_App.Views.Scenes;
@@ -47,7 +48,7 @@ public sealed partial class NotificationScene : UserControl, IIslandSceneView
                 : string.Empty;
             CountText.Visibility = group.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
 
-            TitleText.Text = group.Items[0].Title;
+            ScrambleText.Set(TitleText, group.Items[0].Title, GlyphView.AnimationsEnabled && IsLoaded);
             BodyText.Text = group.Items[0].Body;
 
             RebuildHistory(group);

@@ -8,6 +8,7 @@ using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Localization;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Platform.Windows.Media;
+using SpaceNotch_App.Animations;
 using SpaceNotch_App.Views;
 
 namespace SpaceNotch_App.Views.Scenes;
@@ -70,7 +71,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
 
         var track = activity.Payload as MediaTrackInfo;
 
-        TitleText.Text = track?.Title ?? activity.Title;
+        ScrambleText.Set(TitleText, track?.Title ?? activity.Title, GlyphView.AnimationsEnabled && IsLoaded);
         ArtistText.Text = track?.Artist ?? activity.Subtitle ?? string.Empty;
 
         bool playing = track?.IsPlaying ?? false;

@@ -93,3 +93,26 @@ public static class OutlineTrim
         return best;
     }
 }
+
+/// <summary>Test d'appartenance d'un point à la silhouette (polygone fermé).</summary>
+public static class ShapeHit
+{
+    /// <summary>Le point est-il dans le polygone ? Règle pair-impair.</summary>
+    public static bool Contains(IReadOnlyList<ShapePoint> outline, double x, double y)
+    {
+        ArgumentNullException.ThrowIfNull(outline);
+        bool inside = false;
+
+        for (int i = 0, j = outline.Count - 1; i < outline.Count; j = i++)
+        {
+            ShapePoint a = outline[i], b = outline[j];
+
+            if ((a.Y > y) != (b.Y > y) && x < ((b.X - a.X) * (y - a.Y) / (b.Y - a.Y)) + a.X)
+            {
+                inside = !inside;
+            }
+        }
+
+        return inside;
+    }
+}

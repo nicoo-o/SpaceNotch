@@ -434,6 +434,9 @@
                 VerticalAlignment="Top"
                 IsHitTestVisible="False"
                 Visibility="Collapsed" />
+
+            <!-- Fondu en pixels (A2) : le nouveau contenu se découvre case par case. -->
+            <views:PixelDissolveView x:Name="DissolveOverlay" />
         </Grid>
     </Grid>
 </Window>
