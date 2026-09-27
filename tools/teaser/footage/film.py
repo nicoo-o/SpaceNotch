@@ -97,7 +97,7 @@ log(f"écran {sw}×{sh}")
 # Windows Server pops « System Properties » (paging file) at random: close it whenever it shows.
 def close_noise():
     while True:
-        for title in ("System Properties", "Propriétés système"):
+        for title in ("System Properties", "Propriétés système", "Performance Options", "Virtual Memory"):
             hwnd = win32gui.FindWindow(None, title)
             if hwnd:
                 win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)

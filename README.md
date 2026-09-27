@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/readme/teaser.webp" alt="SpaceNotch teaser — a notch drops from the top of the screen, plays music, shows a download, splits off a call, opens search and pulls off the edge" width="100%">
+<img src="docs/assets/readme/teaser.webp" alt="SpaceNotch teaser, filmed on Windows — the notch plays music, shows the volume, Discord notifications, a download, AirPods and a working grid, then opens search with Alt+Space" width="100%">
 
 <sub><a href="docs/assets/readme/teaser.mp4">▶&nbsp; Watch with sound</a></sub>
 
