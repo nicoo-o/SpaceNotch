@@ -44,14 +44,11 @@ public sealed partial class BluetoothScene : UserControl, IIslandSceneView
         }
 
         NameText.Text = payload.Name;
-        KindIcon.Glyph = payload.Kind switch
+        KindIcon.Key = payload.Kind switch
         {
-            "audio" => "",
-            "keyboard" => "",
-            "mouse" => "",
-            "phone" => "",
-            "gamepad" => "",
-            _ => ""
+            "audio" => "Music",
+            "phone" => "Call",
+            _ => "Bluetooth"
         };
 
         double dim = payload.IsConnected ? 1 : 0.5;

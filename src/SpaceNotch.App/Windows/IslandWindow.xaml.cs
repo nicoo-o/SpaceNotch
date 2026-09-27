@@ -265,6 +265,7 @@ public sealed partial class IslandWindow : Window
         WindowChrome.ApplyInteractiveSurface(_hWnd);
 
         _visualState = SystemVisualState.Read();
+        GlyphView.AnimationsEnabled = _visualState.UseSpringAnimations;
 
         // La couche décorative est créée avant le contrôleur : celui-ci applique
         // sa géométrie initiale dès sa construction (SnapTo), et la géométrie
@@ -1058,7 +1059,7 @@ public sealed partial class IslandWindow : Window
 
         if (shown == IslandPresentationTier.Signal)
         {
-            SignalGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
+            SignalGlyph.Key = activity.IconKey;
             SetText(SignalLabel, activity.Title, _signalWasVisible, veil: true);
             SetText(SignalMetric, metric, _signalWasVisible, metric: true);
             SignalMetric.Visibility = metricVisibility;
@@ -1086,7 +1087,7 @@ public sealed partial class IslandWindow : Window
 
         CardRestView.Margin = new Thickness(14, padding, 14, padding);
 
-        CardGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
+        CardGlyph.Key = activity.IconKey;
 
         // Le contexte d'abord, l'état ensuite : une activité qui déclare une
         // ligne de contexte — « Read app-sidebar.tsx · 219 lines » — la voit à
@@ -1107,8 +1108,8 @@ public sealed partial class IslandWindow : Window
     /// <summary>Languette latérale au repos : glyphe ou grille, jauge verticale.</summary>
     private void PresentTab(IslandActivity activity, HypnoticPreset preset)
     {
-        TabGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
-        TabGlyph.Foreground = StatePalette.Brush(activity.State);
+        TabGlyph.Key = activity.IconKey;
+        TabGlyph.Tint = StatePalette.Brush(activity.State);
 
         double? progress = activity.Progress;
         TabLevel.Visibility = progress is null ? Visibility.Collapsed : Visibility.Visible;
@@ -1397,8 +1398,8 @@ public sealed partial class IslandWindow : Window
         Brush tint = StatePalette.Brush(_visualState.HighContrast ? IslandActivityState.Idle : state);
 
         IdleStatusDot.Fill = tint;
-        SignalGlyph.Foreground = tint;
-        CardGlyph.Foreground = tint;
+        SignalGlyph.Tint = tint;
+        CardGlyph.Tint = tint;
     }
 
     /// <summary>
@@ -1778,6 +1779,7 @@ public sealed partial class IslandWindow : Window
         if (updated != _visualState)
         {
             _visualState = updated;
+            GlyphView.AnimationsEnabled = updated.UseSpringAnimations;
             ApplyBackdropMode();
 
             // L'atmosphère doit cesser d'animer si Windows demande la réduction

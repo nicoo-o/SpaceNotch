@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:winuiex="using:WinUIEx"
+    xmlns:views="using:SpaceNotch_App.Views"
     Title="SpaceNotch Bulle"
     mc:Ignorable="d">
 
@@ -54,10 +55,10 @@
                 Width="{StaticResource NfSignalGlyphSize}"
                 Height="{StaticResource NfSignalGlyphSize}">
 
-                <FontIcon
+                <views:GlyphView
                     x:Name="BubbleGlyph"
-                    FontSize="{StaticResource NfSignalGlyphSize}"
-                    Foreground="{ThemeResource NfTextPrimaryBrush}"
+                    Size="{StaticResource NfSignalGlyphSize}"
+                    Tint="{ThemeResource NfTextPrimaryBrush}"
                     HorizontalAlignment="Center"
                     VerticalAlignment="Center" />
 

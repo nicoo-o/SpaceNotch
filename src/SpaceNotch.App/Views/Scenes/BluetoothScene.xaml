@@ -5,6 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:views="using:SpaceNotch_App.Views"
     mc:Ignorable="d">
 
     <!-- Appareil Bluetooth : icône, nom, état, anneau de batterie. -->
@@ -21,7 +22,7 @@
             Height="34"
             CornerRadius="10"
             Background="{ThemeResource NfControlFillBrush}">
-            <FontIcon x:Name="KindIcon" Glyph="&#xE702;" FontSize="16" Foreground="{ThemeResource NfTextPrimaryBrush}" />
+            <views:GlyphView x:Name="KindIcon" Size="16" FallbackKey="Bluetooth" Tint="{ThemeResource NfTextPrimaryBrush}" />
         </Border>
 
         <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="1">

@@ -7,6 +7,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:winuiex="using:WinUIEx"
     xmlns:scenes="using:SpaceNotch_App.Views.Scenes"
+    xmlns:views="using:SpaceNotch_App.Views"
     Title="SpaceNotch"
     mc:Ignorable="d">
 
@@ -164,9 +165,9 @@
                          L'hôte hypnotique prend la taille du glyphe, et son halo
                          déborde dans la surface noire. -->
                     <Grid Grid.Column="0" VerticalAlignment="Center">
-                        <FontIcon
+                        <views:GlyphView
                             x:Name="SignalGlyph"
-                            FontSize="{StaticResource NfSignalGlyphSize}"
+                            Size="{StaticResource NfSignalGlyphSize}"
                             VerticalAlignment="Center" />
 
                         <!-- Image de l'activité — une pochette — à la place du glyphe :
@@ -259,9 +260,9 @@
                     </Grid.ColumnDefinitions>
 
                     <Grid Grid.Column="0" VerticalAlignment="Center">
-                        <FontIcon
+                        <views:GlyphView
                             x:Name="CardGlyph"
-                            FontSize="{StaticResource NfCardGlyphSize}"
+                            Size="{StaticResource NfCardGlyphSize}"
                             VerticalAlignment="Center" />
 
                         <Border
@@ -332,9 +333,9 @@
                         Width="{StaticResource NfSignalGlyphSize}"
                         Height="{StaticResource NfSignalGlyphSize}"
                         HorizontalAlignment="Center">
-                        <FontIcon
+                        <views:GlyphView
                             x:Name="TabGlyph"
-                            FontSize="{StaticResource NfSignalGlyphSize}" />
+                            Size="{StaticResource NfSignalGlyphSize}" />
                         <Grid
                             x:Name="TabHypnoticHost"
                             IsHitTestVisible="False"

@@ -58,7 +58,7 @@ public sealed partial class VolumeHudScene : UserControl, IIslandSceneView
         _muted = string.Equals(hud.ValueText, "Muet", StringComparison.Ordinal);
 
         VolumeLabel.Text = hud.Label;
-        VolumeIcon.Glyph = GlyphFor(hud.IconKey);
+        VolumeIcon.Key = hud.IconKey;
 
         _roller.RollTo(_muted ? 0 : Math.Clamp(hud.Value, 0, _maximum), AnimateValues);
     }
@@ -74,15 +74,4 @@ public sealed partial class VolumeHudScene : UserControl, IIslandSceneView
 
         LevelScale.ScaleX = ratio;
     }
-
-    /// <summary>
-    /// Traduction des clés d'icône logiques en glyphes.
-    ///
-    /// Le repli est le volume, et non l'information générique : un retour système
-    /// dont la clé serait inconnue reste un retour système, et afficher un « i »
-    /// à la place d'une icône de son donnerait à penser que la valeur affichée est
-    /// une explication.
-    /// </summary>
-    private static string GlyphFor(string? iconKey) => GlyphCatalog.Resolve(iconKey, "Volume");
 }
-

@@ -302,8 +302,8 @@ public sealed partial class BubbleWindow : Window
 
         BubbleHypnoticHost.Visibility = hypnotic ? Visibility.Visible : Visibility.Collapsed;
         BubbleGlyph.Visibility = hypnotic ? Visibility.Collapsed : Visibility.Visible;
-        BubbleGlyph.Glyph = GlyphCatalog.Resolve(activity.IconKey);
-        BubbleGlyph.Foreground = StatePalette.Brush(activity.State);
+        BubbleGlyph.Key = activity.IconKey;
+        BubbleGlyph.Tint = StatePalette.Brush(activity.State);
 
         _hypnotic?.SetPreset(hypnotic ? preset : HypnoticPreset.None, animateMotion);
 
