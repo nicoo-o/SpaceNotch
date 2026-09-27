@@ -2041,11 +2041,15 @@ public sealed partial class IslandWindow : Window
     {
         static bool Tabbable(IslandActivity a) => a.SceneKey is not (IslandSceneCatalog.QuickMenu or IslandSceneCatalog.Launcher or IslandSceneCatalog.Welcome);
 
+        // Quatre onglets au plus, dont toujours celui de l'activité ouverte :
+        // les autres, les plus récents, gardent leur ordre d'arrivée.
         List<IslandActivity> tabs = expanded && activity is not null && Tabbable(activity) && !UsesSideTab
             ? _activityManager.GetActiveActivities()
-                .Where(a => Tabbable(a) && (a.Id == activity.Id || ActivityPolicies.Resolve(a) != ActivityPresentationPolicy.Temporary))
+                .Where(a => Tabbable(a) && a.Id != activity.Id && ActivityPolicies.Resolve(a) != ActivityPresentationPolicy.Temporary)
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(3)
+                .Append(activity)
                 .OrderBy(a => a.CreatedAt)
-                .Take(4)
                 .ToList()
             : [];
 
