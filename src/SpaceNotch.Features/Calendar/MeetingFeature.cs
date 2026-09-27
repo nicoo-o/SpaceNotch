@@ -168,6 +168,9 @@ public sealed class MeetingFeature : IslandFeatureBase
             IconKey = "Calendar",
             Tint = Blue,
             Progress = soon ? MeetingCountdown.Remaining(meeting.Start, now) : null,
+
+            // L'anneau se vide ; à côté, le temps qui reste plutôt qu'un pourcentage.
+            Metric = soon ? MeetingCountdown.TimeLeft(meeting.Start, now) : null,
             State = IslandActivityState.Idle,
             Priority = soon ? ActivityPriority.Normal : ActivityPriority.High,
             Policy = ActivityPresentationPolicy.Passive,

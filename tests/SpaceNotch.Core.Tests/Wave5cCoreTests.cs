@@ -46,6 +46,8 @@ public class Wave5cCoreTests
         Assert.Equal(0.8, MeetingCountdown.Remaining(start, start.AddMinutes(-4)), 3);
         Assert.Equal("dans 4 min", MeetingCountdown.Label(start, start.AddMinutes(-3.5), french: true));
         Assert.Equal("in 30 s", MeetingCountdown.Label(start, start.AddSeconds(-30), french: false));
+        Assert.Equal("4 min", MeetingCountdown.TimeLeft(start, start.AddMinutes(-3.5)));
+        Assert.Equal("30 s", MeetingCountdown.TimeLeft(start, start.AddSeconds(-30)));
         Assert.Equal(start.AddMinutes(-5), MeetingCountdown.NextChange(start, end, start.AddMinutes(-20)));
         Assert.Equal(start, MeetingCountdown.NextChange(start, end, start.AddMinutes(-2)));
         Assert.Null(MeetingCountdown.NextChange(start, end, start.AddHours(1)));

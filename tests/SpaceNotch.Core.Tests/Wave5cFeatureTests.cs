@@ -26,6 +26,7 @@ public class Wave5cFeatureTests
         Assert.Equal("Point produit", soon.Title);
         Assert.StartsWith("dans 3 min", soon.Subtitle);
         Assert.Equal(0.6, soon.Progress!.Value, 3);
+        Assert.Equal("3 min", soon.TrailingMetric);
         Assert.Contains(soon.Actions, a => a.Id == MeetingFeature.JoinAction);
 
         now = start.AddMinutes(1);

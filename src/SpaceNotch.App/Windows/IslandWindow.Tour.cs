@@ -301,7 +301,9 @@ public sealed partial class IslandWindow
 
         void WeatherHover()
         {
-            TourClear();
+            // La météo vit au repos : la musique et le téléchargement de la
+            // visite s'effacent le temps de ce plan (la bulle les republie).
+            TourClear("tour.media", "tour.download");
             _weatherFeature.Inject(new SpaceNotch.Core.Weather.WeatherReport(14.6, 61, true), "Paris");
             _controller.RequestPreview();
         }

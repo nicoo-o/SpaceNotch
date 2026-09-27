@@ -59,6 +59,18 @@ public static class MeetingCountdown
             : (french ? $"dans {Math.Ceiling(left.TotalMinutes):0} min" : $"in {Math.Ceiling(left.TotalMinutes):0} min");
     }
 
+    /// <summary>Le temps restant, court, pour la droite de la pastille : « 4 min », « 30 s ».</summary>
+    public static string TimeLeft(DateTimeOffset start, DateTimeOffset now)
+    {
+        TimeSpan left = start - now;
+
+        return left <= TimeSpan.Zero
+            ? "0 s"
+            : left < TimeSpan.FromMinutes(1)
+                ? $"{Math.Ceiling(left.TotalSeconds):0} s"
+                : $"{Math.Ceiling(left.TotalMinutes):0} min";
+    }
+
     /// <summary>Prochain instant où la phase change : là où réveiller la notch, sans scruter.</summary>
     public static DateTimeOffset? NextChange(DateTimeOffset start, DateTimeOffset end, DateTimeOffset now)
     {
