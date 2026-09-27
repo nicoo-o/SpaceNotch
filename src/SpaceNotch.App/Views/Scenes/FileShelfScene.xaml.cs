@@ -84,6 +84,7 @@ public sealed partial class FileShelfScene : UserControl, IIslandSceneView
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(24) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var fallback = new FontIcon { Glyph = "", FontSize = 16, Foreground = Brush("NfTextSecondaryBrush") };
         var image = new Image { Width = 24, Height = 24 };
@@ -131,13 +132,33 @@ public sealed partial class FileShelfScene : UserControl, IIslandSceneView
         remove.OpacityTransition = new ScalarTransition { Duration = TimeSpan.FromMilliseconds(120) };
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(remove, French ? $"Retirer {item.FileName}" : $"Remove {item.FileName}");
         remove.Click += (_, _) => Raise(FileShelfManager.RemoveAction, item.Id);
-        Grid.SetColumn(remove, 2);
+        Grid.SetColumn(remove, 3);
         row.Children.Add(remove);
 
+        // Partager sur le téléphone (F8) : un QR code, au survol comme le ✕.
+        var share = new Button
+        {
+            Style = (Style)Application.Current.Resources["NfIconButtonStyle"],
+            Width = 22,
+            Height = 22,
+            CornerRadius = new CornerRadius(11),
+            Background = new SolidColorBrush(ColorHelper.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)),
+            Content = new GlyphView { Key = "Qr", Size = 10, Tint = Brush("NfTextPrimaryBrush") },
+            Opacity = 0,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        share.OpacityTransition = new ScalarTransition { Duration = TimeSpan.FromMilliseconds(120) };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(share, French ? $"Partager {item.FileName} sur le téléphone" : $"Share {item.FileName} to your phone");
+        ToolTipService.SetToolTip(share, French ? "Partager sur le téléphone" : "Share to your phone");
+        share.Click += (_, _) => Raise(FileShelfManager.ShareAction, item.Id);
+        Grid.SetColumn(share, 2);
+        row.Children.Add(share);
+
         Brush hover = Brush("NfSelectionBrush");
-        row.PointerEntered += (_, _) => { row.Background = hover; remove.Opacity = 1; };
-        row.PointerExited += (_, _) => { row.Background = new SolidColorBrush(Colors.Transparent); remove.Opacity = 0; };
+        row.PointerEntered += (_, _) => { row.Background = hover; remove.Opacity = 1; share.Opacity = 1; };
+        row.PointerExited += (_, _) => { row.Background = new SolidColorBrush(Colors.Transparent); remove.Opacity = 0; share.Opacity = 0; };
         remove.GotFocus += (_, _) => remove.Opacity = 1;
+        share.GotFocus += (_, _) => share.Opacity = 1;
 
         row.DragStarting += (_, e) => OfferFile(e, item.FilePath);
 

@@ -690,6 +690,21 @@
                             <ToggleSwitch x:Name="TrameToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnTrameToggled" AutomationProperties.Name="{l:Loc Fr='Trame', En='Pixel pattern'}" />
                         </Grid>
                     </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Météo ville température weather city">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="WeatherSun" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Météo', En='Weather'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="{l:Loc Fr='Au survol, la température à côté de l’heure. Vide : désactivée, rien n’est envoyé.', En='On hover, the temperature next to the time. Empty: off, nothing is sent.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <TextBox x:Name="WeatherCityBox" Grid.Column="2" Width="150" VerticalAlignment="Center" PlaceholderText="{l:Loc Fr='Ville', En='City'}" LostFocus="OnWeatherCityCommitted" KeyDown="OnWeatherCityKeyDown" AutomationProperties.Name="{l:Loc Fr='Ville de la météo', En='Weather city'}" />
+                        </Grid>
+                    </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Sons discrets son ouverture dépôt minuteur sounds">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
