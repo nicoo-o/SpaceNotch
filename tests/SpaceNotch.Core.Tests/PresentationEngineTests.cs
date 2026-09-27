@@ -176,31 +176,6 @@ public class PresentationEngineTests
         Assert.Equal(0, ambient.Pulse);
     }
 
-    [Fact]
-    public void TheRim_OnlyLightsWhileAnActivityLives()
-    {
-        Assert.Equal(0, AmbientState.RimOpacity(null, highContrast: false));
-
-        IslandActivity idle = Activity("clock");
-        Assert.Equal(0, AmbientState.RimOpacity(idle, highContrast: false));
-
-        IslandActivity downloading = Activity("download");
-        downloading.State = IslandActivityState.DownloadActive;
-        IslandActivity music = new()
-        {
-            Id = "m",
-            FeatureId = "music",
-            SceneKey = IslandSceneCatalog.Media,
-            Title = "Good Days",
-            State = IslandActivityState.MediaActive,
-            Tint = new ActivityTint(155, 123, 224)
-        };
-
-        Assert.True(AmbientState.RimOpacity(downloading, highContrast: false) > 0);
-        Assert.True(AmbientState.RimOpacity(music, highContrast: false) > AmbientState.RimOpacity(downloading, highContrast: false));
-        Assert.Equal(0, AmbientState.RimOpacity(music, highContrast: true));
-    }
-
     // ------------------------------------------------------------------
     // Mouvement
     // ------------------------------------------------------------------

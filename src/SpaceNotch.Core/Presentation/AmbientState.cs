@@ -1,7 +1,6 @@
 using System;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Motion;
-using SpaceNotch.Core.State;
 
 namespace SpaceNotch.Core.Presentation;
 
@@ -72,26 +71,5 @@ public readonly record struct AmbientState(
         }
 
         return new AmbientState(tint, intensity, tintOpacity, pulse);
-    }
-
-    /// <summary>
-    /// Opacité du liseré d'un pixel qui borde la notch, dans la teinte de
-    /// l'activité. Noir pur au repos : le liseré n'existe que lorsqu'une activité
-    /// vit, et il est plus présent quand l'activité déclare sa propre couleur —
-    /// une pochette, une application — que lorsqu'il reprend celle de l'état.
-    /// </summary>
-    public static double RimOpacity(IslandActivity? activity, bool highContrast)
-    {
-        if (activity is null || highContrast)
-        {
-            return 0;
-        }
-
-        if (activity.Tint is not null)
-        {
-            return 0.55;
-        }
-
-        return activity.State == IslandActivityState.Idle ? 0 : 0.40;
     }
 }
