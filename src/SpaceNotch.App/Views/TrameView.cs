@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
 using SpaceNotch.Core.Motion;
+using SpaceNotch.Infrastructure.Logging;
 using SpaceNotch.Platform.Windows.Audio;
 using Color = Windows.UI.Color;
 
@@ -82,6 +83,11 @@ public sealed partial class TrameView : Grid
 
         if (!show)
         {
+            if (scene is not null)
+            {
+                MiniLogger.Log($"[TRAME] en attente : permise={IsAllowed}, teinte={(tint is null ? "aucune" : "oui")}, hauteur={_height:0}");
+            }
+
             Opacity = 0;
             StopMusic();
             return;
@@ -126,8 +132,17 @@ public sealed partial class TrameView : Grid
         _settle ??= CreateTimer(SettleDelay, () =>
         {
             _settle!.Stop();
-            Draw();
-            FadeIn();
+
+            try
+            {
+                Draw();
+                FadeIn();
+            }
+            catch (Exception ex)
+            {
+                // Une trame qui échoue laisse le noir : c'est le repli correct, et il se journalise.
+                MiniLogger.Log("[TRAME] dessin impossible", ex);
+            }
         });
 
         _settle.Stop();
@@ -157,7 +172,15 @@ public sealed partial class TrameView : Grid
 
             if (_settle is null || !_settle.IsRunning)
             {
-                Draw();
+                try
+                {
+                    Draw();
+                }
+                catch (Exception ex)
+                {
+                    StopMusic();
+                    MiniLogger.Log("[TRAME] dessin impossible", ex);
+                }
             }
         });
 
@@ -185,6 +208,7 @@ public sealed partial class TrameView : Grid
     {
         if (_scene is null || _tint is not { } tint || XamlRoot is null || _height < TrameField.MinimumHeightDip)
         {
+            MiniLogger.Log($"[TRAME] rien à dessiner : scène={_scene is not null}, teinte={_tint is not null}, racine={XamlRoot is not null}, hauteur={_height:0}");
             return;
         }
 
@@ -246,6 +270,11 @@ public sealed partial class TrameView : Grid
         }
 
         _bitmap.Invalidate();
+
+        if (!_musicOn || cells.Count == 0)
+        {
+            MiniLogger.Log($"[TRAME] {widthPx}×{heightPx} px, cellule {cell}, {cells.Count} pixels allumés");
+        }
     }
 
     /// <summary>Tout ce qui se lit dans la scène garde sa marge noire.</summary>
