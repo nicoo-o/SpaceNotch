@@ -170,7 +170,7 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
         content.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         // Icône en pixels, comme les pastilles : le menu parle la langue de la notch.
-        content.Children.Add(new GlyphView { Key = glyph, Size = 14, Tint = Brush("NfTextSecondaryBrush"), VerticalAlignment = VerticalAlignment.Center });
+        content.Children.Add(new GlyphView { Key = glyph, Size = 16, Tint = Brush("NfTextSecondaryBrush"), VerticalAlignment = VerticalAlignment.Center });
 
         var text = new TextBlock { Text = label, FontSize = 13.5, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         Grid.SetColumn(text, 1);
@@ -191,7 +191,7 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
         }
         else if (chevron is not null)
         {
-            right = new GlyphView { Key = chevron, Size = 10, Tint = Brush("NfTextTertiaryBrush"), VerticalAlignment = VerticalAlignment.Center };
+            right = new GlyphView { Key = chevron, Size = 12, Tint = Brush("NfTextTertiaryBrush"), VerticalAlignment = VerticalAlignment.Center };
         }
         else if (trailing is not null)
         {

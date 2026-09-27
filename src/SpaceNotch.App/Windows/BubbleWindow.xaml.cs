@@ -305,7 +305,10 @@ public sealed partial class BubbleWindow : Window
         // l'icône ; l'égaliseur prend sa place.
         CompactTrailing live = CompactTrailing.For(activity);
         bool ring = live.Kind is TrailingKind.Ring or TrailingKind.Battery;
-        bool dancing = live.Kind == TrailingKind.Equalizer && !hypnotic;
+        // La musique danse : l'égaliseur l'emporte sur la grille, qui ne dirait
+        // rien de plus qu'une icône.
+        bool dancing = live.Kind == TrailingKind.Equalizer;
+        hypnotic &= !dancing;
         Brush tint = StatePalette.Brush(activity.State);
 
         BubbleLive.Diameter = ring ? 28 : 16;

@@ -682,9 +682,10 @@ public sealed partial class IslandWindow : Window
                 WindowChrome.SetKeyboardCapture(_hWnd, enabled: false);
             }
 
-            // Le lanceur ne vit que tant qu'il est ouvert.
-            if (state == IslandState.Closed
-                && _controller.PresentedActivity?.SceneKey == IslandSceneCatalog.Launcher)
+            // Le lanceur ne vit que tant qu'il est ouvert — même quand une autre
+            // scène (le menu rapide) l'a remplacé avant la fermeture : sinon il
+            // restait dans la pile et la pastille affichait « Rechercher ».
+            if (state == IslandState.Closed && _launcherFeature.IsShown)
             {
                 _launcherFeature.Dismiss();
             }

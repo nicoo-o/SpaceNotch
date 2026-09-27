@@ -250,6 +250,14 @@ public sealed class IslandController : IDisposable
             _animator.UpdateParameters(_motionParameters);
             AnimateTo(footprint);
         }
+        else if (State == IslandState.Collapsing)
+        {
+            // Une autre activité arrive pendant la fermeture : la notch se
+            // referme sur sa forme à elle, pas sur celle de l'activité quittée.
+            // Sans cela, la pastille gardait la largeur et la hauteur de
+            // l'ancienne et coupait son texte.
+            AnimateTo(footprint);
+        }
     }
 
     /// <summary>

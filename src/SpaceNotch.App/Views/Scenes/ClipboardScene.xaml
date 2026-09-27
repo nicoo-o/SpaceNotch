@@ -111,7 +111,7 @@
                             ToolTipService.ToolTip="{l:Loc Fr='Épingler', En='Pin'}"
                             AutomationProperties.Name="{l:Loc Fr='Épingler', En='Pin'}"
                             Click="OnPinClicked">
-                            <views:GlyphView x:Name="PinIcon" Key="Pin" Size="10" Tint="{ThemeResource NfTextTertiaryBrush}" />
+                            <views:GlyphView x:Name="PinIcon" Key="Pin" Size="14" Tint="{ThemeResource NfTextTertiaryBrush}" />
                         </Button>
 
                         <Button
@@ -126,7 +126,7 @@
                             ToolTipService.ToolTip="{l:Loc Fr='Supprimer', En='Delete'}"
                             AutomationProperties.Name="{l:Loc Fr='Supprimer', En='Delete'}"
                             Click="OnDeleteClicked">
-                            <views:GlyphView Key="Delete" Size="10" Tint="{ThemeResource NfTextTertiaryBrush}" />
+                            <views:GlyphView Key="Delete" Size="14" Tint="{ThemeResource NfTextTertiaryBrush}" />
                         </Button>
                     </Grid>
                     </Grid>

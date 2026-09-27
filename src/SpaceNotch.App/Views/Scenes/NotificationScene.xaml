@@ -88,7 +88,7 @@
             ToolTipService.ToolTip="{l:Loc Fr='Fermer', En='Close'}"
             AutomationProperties.Name="{l:Loc Fr='Fermer la notification', En='Dismiss notification'}"
             Click="OnCloseClicked">
-            <views:GlyphView Key="Close" Size="10" Tint="{ThemeResource NfTextSecondaryBrush}" />
+            <views:GlyphView Key="Close" Size="14" Tint="{ThemeResource NfTextSecondaryBrush}" />
         </Button>
     </Grid>
 </UserControl>
