@@ -142,7 +142,9 @@ at(62.4); pyautogui.doubleClick(); log("double-clic : retour au bord")
 at(63.5); glide(cx + sw // 4, sh // 2, 0.8)
 
 rec.wait()
-log("fin")
+probe = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height",
+                        "-of", "csv=p=0", OUT], capture_output=True, text=True)
+log(f"fin — vidéo {probe.stdout.strip()} (ffmpeg : {FFMPEG})")
 app.kill()
 with open(os.path.join(os.path.dirname(OUT), "actions.log"), "w", encoding="utf-8") as f:
     f.write("\n".join(log_lines) + "\n")
