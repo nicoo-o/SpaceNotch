@@ -17,7 +17,7 @@
         tiers n'aurait aucun moyen d'exposer un contrôle : l'API lui permettrait de
         déclarer une action que personne n'afficherait.
     -->
-    <StackPanel Padding="14,10,14,12" Spacing="8">
+    <StackPanel Padding="{StaticResource NfScenePadding}" Spacing="8">
 
         <Grid ColumnSpacing="12">
             <Grid.ColumnDefinitions>

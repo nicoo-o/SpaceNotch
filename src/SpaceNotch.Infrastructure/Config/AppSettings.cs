@@ -371,6 +371,12 @@ public sealed class AppSettings
     /// <summary>Fin contour autour de la notch, pour les fonds d'écran sombres.</summary>
     public bool ShowOutline { get; set; }
 
+    /// <summary>
+    /// Trame de pixels au bas des scènes ouvertes (et du menu des réglages).
+    /// Active par défaut ; certains préfèrent un noir pur.
+    /// </summary>
+    public bool ShowTrame { get; set; } = true;
+
     /// <summary>Opacité du contour, de 0,05 à 0,5.</summary>
     public double OutlineOpacity { get; set; } = 0.14;
 

@@ -75,7 +75,7 @@ public sealed class BluetoothFeature : IslandFeatureBase
             Title = change.Name,
             Subtitle = subtitle,
             Source = "Bluetooth",
-            IconKey = "Bluetooth",
+            IconKey = payload.IconKey,
             State = IslandActivityState.DeviceActive,
             Priority = ActivityPriority.Normal,
             Duration = change.IsConnected ? ConnectedLifetime : DisconnectedLifetime,

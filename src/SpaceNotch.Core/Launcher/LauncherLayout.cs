@@ -19,7 +19,7 @@ public static class LauncherLayout
     public const double Row = 40;
     public const double CalculationRow = 70;
     public const double Footer = 40;
-    public const double Bottom = 10;
+    public const double Bottom = SceneInsets.Bottom;
 
     /// <summary>Hauteur maximale : au-delà, la liste défile.</summary>
     public const double MaxHeight = 470;

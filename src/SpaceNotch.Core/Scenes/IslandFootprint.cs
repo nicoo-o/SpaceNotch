@@ -178,7 +178,7 @@ public readonly record struct IslandFootprint(double Width, double Height)
             return reference;
         }
 
-        double padding = tier == IslandPresentationTier.Signal ? 2 * 12 : 2 * 14;
+        double padding = 2 * SceneInsets.Compact;
         double width = Math.Ceiling(contentWidth + padding + (2 * Math.Max(0, shoulder)));
 
         return new IslandFootprint(Math.Clamp(width, MinimumWidth(tier), MaximumWidth(tier)), reference.Height);

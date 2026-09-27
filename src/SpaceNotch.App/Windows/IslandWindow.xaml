@@ -400,11 +400,11 @@
                         Height="{StaticResource NfHypnoticDropSize}"
                         HorizontalAlignment="Center">
 
-                        <FontIcon
+                        <views:GlyphView
                             x:Name="DropGlyph"
-                            Glyph="&#xE898;"
-                            FontSize="18"
-                            Foreground="{ThemeResource NfAccentBrush}"
+                            Key="Download"
+                            Size="21"
+                            Tint="{ThemeResource NfAccentBrush}"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center" />
 

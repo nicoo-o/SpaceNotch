@@ -2,13 +2,14 @@
 <UserControl
     x:Class="SpaceNotch_App.Views.Scenes.TimerScene"
     xmlns:l="using:SpaceNotch_App.Views"
+    xmlns:views="using:SpaceNotch_App.Views"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="16,8,16,12" RowSpacing="2">
+    <Grid Padding="{StaticResource NfScenePadding}" RowSpacing="2">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -61,11 +62,11 @@
                 BorderBrush="{ThemeResource NfStrokeStrongBrush}"
                 ToolTipService.ToolTip="{l:Loc Fr='Démarrer ou suspendre', En='Start or pause'}"
                 Click="OnToggleClicked">
-                <FontIcon
+                <views:GlyphView
                     x:Name="ToggleIcon"
-                    Glyph="&#xE768;"
-                    FontSize="11"
-                    Foreground="{ThemeResource NfTextPrimaryBrush}" />
+                    Key="Play"
+                    Size="14"
+                    Tint="{ThemeResource NfTextPrimaryBrush}" />
             </Button>
 
             <Button
@@ -80,10 +81,10 @@
                 BorderBrush="{ThemeResource NfStrokeSubtleBrush}"
                 ToolTipService.ToolTip="{l:Loc Fr='Remettre à zéro', En='Reset'}"
                 Click="OnResetClicked">
-                <FontIcon
-                    Glyph="&#xE777;"
-                    FontSize="11"
-                    Foreground="{ThemeResource NfTextSecondaryBrush}" />
+                <views:GlyphView
+                    Key="Reset"
+                    Size="14"
+                    Tint="{ThemeResource NfTextSecondaryBrush}" />
             </Button>
         </StackPanel>
     </Grid>

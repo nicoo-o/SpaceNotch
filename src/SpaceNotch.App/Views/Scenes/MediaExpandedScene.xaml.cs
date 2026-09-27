@@ -74,7 +74,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         ArtistText.Text = track?.Artist ?? activity.Subtitle ?? string.Empty;
 
         bool playing = track?.IsPlaying ?? false;
-        PlayPauseIcon.Glyph = playing ? "\uE769" : "\uE768";
+        PlayPauseIcon.Key = playing ? "Pause" : "Play";
 
         UpdateTimeline(track);
         _ = UpdateArtworkAsync(track);

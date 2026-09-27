@@ -119,6 +119,20 @@ public sealed record BluetoothPayload(string Name, bool IsConnected, int? Batter
     public const int LowBattery = 15;
 
     public bool IsBatteryLow => BatteryPercent is int level && level < LowBattery;
+
+    /// <summary>
+    /// Icône de l'appareil : un casque pour un casque, pas une note de musique ;
+    /// le logo Bluetooth pour ce qu'on ne sait pas nommer.
+    /// </summary>
+    public string IconKey => Kind switch
+    {
+        "audio" => "Headphones",
+        "keyboard" => "Keyboard",
+        "mouse" => "Mouse",
+        "gamepad" => "Gamepad",
+        "phone" => "Call",
+        _ => "Bluetooth"
+    };
 }
 
 /// <summary>Charge utile de la présentation du premier lancement.</summary>

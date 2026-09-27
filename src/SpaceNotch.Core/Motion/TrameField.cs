@@ -62,7 +62,9 @@ public static class TrameField
     /// Cellules allumées, en coordonnées de cellule (colonne, rangée), pour une
     /// scène de <paramref name="width"/> × <paramref name="height"/> pixels
     /// physiques. Les cellules hors de la silhouette (congés du bas, épaules) et
-    /// celles qui touchent le contenu restent éteintes.
+    /// celles qui touchent le contenu restent éteintes. La trame ne commence
+    /// que sous le plus bas des contenus (<paramref name="avoid"/>) : jamais à
+    /// côté d'un texte, seulement dessous.
     /// </summary>
     public static List<(int Column, int Row)> Cells(
         double width,
@@ -82,6 +84,13 @@ public static class TrameField
         }
 
         int columns = (int)(width / cell), rows = (int)(height / cell);
+        double floor = 0;
+
+        for (int i = 0; i < avoid.Count; i++)
+        {
+            floor = Math.Max(floor, avoid[i].Bottom);
+        }
+
         double bodyLeft = shoulder, bodyWidth = width - (2 * shoulder);
 
         for (int row = 0; row < rows; row++)
@@ -89,6 +98,12 @@ public static class TrameField
             for (int column = 0; column < columns; column++)
             {
                 double x = (column + 0.5) * cell, y = (row + 0.5) * cell;
+
+                if (y <= floor)
+                {
+                    continue;
+                }
+
                 double density = Density(x - bodyLeft, y, bodyWidth, height, level);
 
                 if (density * 16 <= Bayer[((row % 4) * 4) + (column % 4)] + 0.5)

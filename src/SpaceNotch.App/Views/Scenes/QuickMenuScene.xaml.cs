@@ -102,7 +102,7 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
         RowsPanel.Children.Clear();
 
         RowsPanel.Children.Add(Row(
-            "",
+            "Search",
             French ? "Rechercher" : "Search",
             QuickMenuFeature.SearchAction,
             keys: payload.Hotkey?.Replace("Win+", "⊞+", StringComparison.Ordinal).Split('+')));
@@ -110,14 +110,14 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
         RowsPanel.Children.Add(TimerRow(payload.TimerRunning));
 
         RowsPanel.Children.Add(Row(
-            "",
+            "Clipboard",
             French ? "Presse-papier" : "Clipboard",
             QuickMenuFeature.ClipboardAction,
             enabled: payload.HasClipboard,
             trailing: payload.HasClipboard ? null : (French ? "vide" : "empty")));
 
         RowsPanel.Children.Add(Row(
-            "",
+            "Folder",
             French ? "Étagère" : "Shelf",
             QuickMenuFeature.ShelfAction,
             enabled: payload.HasShelf,
@@ -126,15 +126,15 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
         RowsPanel.Children.Add(Separator());
 
         RowsPanel.Children.Add(payload.IsFloating
-            ? Row("", French ? "Raccrocher au bord" : "Reattach to edge", QuickMenuFeature.DockAction, value: payload.Edge.ToString())
-            : Row("", French ? "Détacher de l'écran" : "Detach from screen", QuickMenuFeature.DetachAction));
+            ? Row("Pin", French ? "Raccrocher au bord" : "Reattach to edge", QuickMenuFeature.DockAction, value: payload.Edge.ToString())
+            : Row("Detach", French ? "Détacher de l'écran" : "Detach from screen", QuickMenuFeature.DetachAction));
 
         RowsPanel.Children.Add(Row(
-            "",
+            "Dock",
             French ? "Accrocher à…" : "Dock to…",
             QuickMenuFeature.DockExpandAction,
             value: payload.DockExpanded ? "0" : "1",
-            chevron: payload.DockExpanded ? "" : ""));
+            chevron: payload.DockExpanded ? "ChevronDown" : "ChevronRight"));
 
         if (payload.DockExpanded)
         {
@@ -143,8 +143,8 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
 
         RowsPanel.Children.Add(Separator());
 
-        RowsPanel.Children.Add(Row("", French ? "Réglages" : "Settings", QuickMenuFeature.SettingsAction, keys: ["Ctrl", ","]));
-        RowsPanel.Children.Add(Row("", French ? "Quitter" : "Quit", QuickMenuFeature.QuitAction));
+        RowsPanel.Children.Add(Row("Settings", French ? "Réglages" : "Settings", QuickMenuFeature.SettingsAction, keys: ["Ctrl", ","]));
+        RowsPanel.Children.Add(Row("Power", French ? "Quitter" : "Quit", QuickMenuFeature.QuitAction));
 
         if (_cascadePending)
         {
@@ -169,7 +169,8 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
         content.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         content.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        content.Children.Add(new FontIcon { Glyph = glyph, FontSize = 14, Foreground = Brush("NfTextSecondaryBrush"), VerticalAlignment = VerticalAlignment.Center });
+        // Icône en pixels, comme les pastilles : le menu parle la langue de la notch.
+        content.Children.Add(new GlyphView { Key = glyph, Size = 16, Tint = Brush("NfTextSecondaryBrush"), VerticalAlignment = VerticalAlignment.Center });
 
         var text = new TextBlock { Text = label, FontSize = 13.5, VerticalAlignment = VerticalAlignment.Center, TextTrimming = TextTrimming.CharacterEllipsis };
         Grid.SetColumn(text, 1);
@@ -190,7 +191,7 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
         }
         else if (chevron is not null)
         {
-            right = new FontIcon { Glyph = chevron, FontSize = 10, Foreground = Brush("NfTextTertiaryBrush"), VerticalAlignment = VerticalAlignment.Center };
+            right = new GlyphView { Key = chevron, Size = 12, Tint = Brush("NfTextTertiaryBrush"), VerticalAlignment = VerticalAlignment.Center };
         }
         else if (trailing is not null)
         {
@@ -229,11 +230,11 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
 
         if (running)
         {
-            host.Children.Add(Row("", French ? "Arrêter le minuteur" : "Stop timer", QuickMenuFeature.TimerAction, value: "0"));
+            host.Children.Add(Row("Stop", French ? "Arrêter le minuteur" : "Stop timer", QuickMenuFeature.TimerAction, value: "0"));
             return host;
         }
 
-        Button row = Row("", French ? "Minuteur" : "Timer", QuickMenuFeature.TimerAction, value: "15", chevron: "");
+        Button row = Row("Timer", French ? "Minuteur" : "Timer", QuickMenuFeature.TimerAction, value: "15", chevron: "ChevronRight");
         host.Children.Add(row);
 
         var chips = new StackPanel

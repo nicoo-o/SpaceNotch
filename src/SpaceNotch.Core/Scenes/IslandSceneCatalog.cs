@@ -51,39 +51,45 @@ public static class IslandSceneCatalog
     /// </summary>
     private const double Shoulders = 2 * NotchGeometry.DefaultShoulder;
 
+    // Chaque scène se déclare par la taille de son contenu ; SceneInsets y
+    // ajoute la même marge partout, et les épaules.
     private static readonly Dictionary<string, IslandFootprint> Footprints = new()
     {
         // La clé « pill » ne désigne plus une forme propre : elle signifie « cette
         // activité n'a pas de scène déployée ». Ouverte, elle présente donc la
         // carte, seule forme qui accueille un titre et un sous-titre. La forme au
         // repos, elle, ne dépend pas de cette clé : voir IslandPresentation.
-        [Pill] = new IslandFootprint(240 + Shoulders, 52),
-        [Media] = new IslandFootprint(380 + Shoulders, 140),
-        [VolumeHud] = new IslandFootprint(300 + Shoulders, 70),
-        [BrightnessHud] = new IslandFootprint(300 + Shoulders, 70),
-        [Notification] = new IslandFootprint(360 + Shoulders, 80),
-        [Bluetooth] = new IslandFootprint(320 + Shoulders, 78),
-        [FileShelf] = new IslandFootprint(320 + Shoulders, 120),
+        [Pill] = SceneInsets.Wrap(212, 30),
+
+        // Pochette 76, titre, artiste, ligne de lecture et contrôles.
+        [Media] = SceneInsets.Wrap(356, 122),
+        [VolumeHud] = SceneInsets.Wrap(268, 50),
+        [BrightnessHud] = SceneInsets.Wrap(268, 50),
+        [Notification] = SceneInsets.Wrap(330, 60),
+        [Bluetooth] = SceneInsets.Wrap(284, 52),
+        [FileShelf] = SceneInsets.Wrap(296, 94),
         [DropZone] = new IslandFootprint(260 + Shoulders, 75),
-        [Pomodoro] = new IslandFootprint(220 + Shoulders, 78),
-        [Timer] = new IslandFootprint(220 + Shoulders, 78),
-        [Clipboard] = new IslandFootprint(380 + Shoulders, 230),
+
+        // Chiffres, mode, puis la rangée de contrôles.
+        [Pomodoro] = SceneInsets.Wrap(188, 96),
+        [Timer] = SceneInsets.Wrap(188, 96),
+        [Clipboard] = SceneInsets.Wrap(352, 208),
 
         // Le lanceur occupe la surface la plus large du répertoire : c'est la
         // seule scène qui présente une grille et un champ de recherche.
-        [Launcher] = new IslandFootprint(440 + Shoulders, 260),
+        [Launcher] = new IslandFootprint(SpaceNotch.Core.Launcher.LauncherLayout.Width, SpaceNotch.Core.Launcher.LauncherLayout.EmptyHeight),
+
+        // La présentation : illustration, titre, deux lignes, pied. Sans épaules.
+        [Welcome] = SceneInsets.Wrap(404, 204, shoulders: false),
 
         // Le menu rapide : sa hauteur exacte vient de QuickMenuLayout.
-        // La présentation : illustration, titre, deux lignes, pied — 440 × 236.
-        [Welcome] = new IslandFootprint(440, 236),
-
         [QuickMenu] = new IslandFootprint(SpaceNotch.Core.Menu.QuickMenuLayout.Width, SpaceNotch.Core.Menu.QuickMenuLayout.Height),
 
         // La carte générique est dimensionnée pour un titre, un sous-titre et une
         // rangée de deux ou trois contrôles. Elle est plus haute qu'un HUD : un
         // contenu tiers annonce souvent de quoi expliquer sa valeur, pas seulement
         // la valeur.
-        [Card] = new IslandFootprint(340 + Shoulders, 132)
+        [Card] = SceneInsets.Wrap(312, 110)
     };
 
     /// <summary>Clés déclarées, utile pour valider une activité en amont.</summary>

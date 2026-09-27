@@ -147,6 +147,8 @@ public sealed partial class IslandWindow : Window
     /// resserre avec son texte, comme dans la référence.
     /// </summary>
     private IslandFootprint _restFootprint = IslandFootprint.Idle;
+    private string? _fitSlackFor;
+    private double _fitSlack;
 
     /// <summary>Préréglage hypnotique en cours et instant où il a commencé, pour l'apaisement.</summary>
     private HypnoticPreset _runningPreset = HypnoticPreset.None;
@@ -406,6 +408,9 @@ public sealed partial class IslandWindow : Window
         _measureSignal.Style = SignalLabel.Style;
         _measureSubhead.Style = CardSubhead.Style;
         _measureHeadline.Style = CardHeadline.Style;
+        SignalLabel.IsTextTrimmedChanged += (label, _) => CatchUpTrimmed(label);
+        CardSubhead.IsTextTrimmedChanged += (label, _) => CatchUpTrimmed(label);
+        CardHeadline.IsTextTrimmedChanged += (label, _) => CatchUpTrimmed(label);
         WireEvents();
         WireSceneActions();
         ApplyBackdropMode();
@@ -668,9 +673,22 @@ public sealed partial class IslandWindow : Window
         // fil et lève un COMException au message vide — une panne d'autant plus
         // difficile à lire que rien ne la désigne.
         _controller.PresentedActivityChanged += (_, _) => RequestRender();
-        _controller.AnimationCompleted += (_, _) => RequestRender();
+        _controller.AnimationCompleted += (_, _) =>
+        {
+            RequestRender();
+            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            {
+                CatchUpTrimmed(SignalLabel);
+                CatchUpTrimmed(CardHeadline);
+                CatchUpTrimmed(CardSubhead);
+            });
+        };
         _controller.StateChanged += (_, state) =>
         {
+            // Ouverte, l'activité présentée est épargnée ; refermée, elle
+            // reprend son échéance. Le minuteur se recale dans les deux cas.
+            RearmExpirationTimer();
+
             // Refermée, la notch rend le clavier à l'application de l'utilisateur.
             if (state == IslandState.Closed && _typingCapture)
             {
@@ -678,9 +696,10 @@ public sealed partial class IslandWindow : Window
                 WindowChrome.SetKeyboardCapture(_hWnd, enabled: false);
             }
 
-            // Le lanceur ne vit que tant qu'il est ouvert.
-            if (state == IslandState.Closed
-                && _controller.PresentedActivity?.SceneKey == IslandSceneCatalog.Launcher)
+            // Le lanceur ne vit que tant qu'il est ouvert — même quand une autre
+            // scène (le menu rapide) l'a remplacé avant la fermeture : sinon il
+            // restait dans la pile et la pastille affichait « Rechercher ».
+            if (state == IslandState.Closed && _launcherFeature.IsShown)
             {
                 _launcherFeature.Dismiss();
             }
@@ -1123,7 +1142,7 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void PresentTrame(IslandActivity activity, IIslandSceneView scene)
     {
-        SceneTrame.IsAllowed = !_visualState.HighContrast && _settings.Appearance != IslandAppearance.Light;
+        SceneTrame.IsAllowed = _settings.ShowTrame && !_visualState.HighContrast && _settings.Appearance != IslandAppearance.Light;
         SceneTrame.Animate = UseSpringAnimations();
 
         Color tint = activity.Tint is { } declared
@@ -1370,11 +1389,20 @@ public sealed partial class IslandWindow : Window
         }
     }
 
-    private bool StackIndicatorVisible() => _settings.ShowActivityStack && _activityManager.Count > 1;
+    /// <summary>
+    /// Activités vraiment cachées : ni la présentée, ni celle de la bulle, ni
+    /// celle que la notch retrouvera sous un retour temporaire.
+    /// </summary>
+    private int HiddenActivityCount() => SplitPresentation.HiddenCount(
+        _controller.PresentedActivity,
+        _activityManager.GetActiveActivities(),
+        _settings.ShowSplitBubble ? SplitPresentation.BubbleFor(_controller.PresentedActivity, _activityManager.GetActiveActivities()) : null);
+
+    private bool StackIndicatorVisible() => _settings.ShowActivityStack && HiddenActivityCount() > 0;
 
     private void UpdateStackIndicator()
     {
-        int count = _activityManager.Count;
+        int count = HiddenActivityCount() + 1;
 
         // Une seule notch : la pile se signale dans la notch elle-même, jamais
         // par un second objet posé à côté. Voir ADR-017.
@@ -1507,7 +1535,9 @@ public sealed partial class IslandWindow : Window
 
         // Le contenu se mesure depuis les flancs, pas depuis les épaules : les
         // épaules appartiennent au bord de l'écran, aucun texte n'y a sa place.
-        if (Math.Abs(shoulder - _contentShoulder) > 0.25)
+        // « Pas proche » plutôt que « écart > 0,25 » : au départ la valeur est NaN,
+        // et toute comparaison avec NaN est fausse ; la marge ne se posait jamais.
+        if (!(Math.Abs(shoulder - _contentShoulder) <= 0.25))
         {
             _contentShoulder = shoulder;
             ContentArea.Margin = new Thickness(shoulder, 0, shoulder, 0);
@@ -1554,7 +1584,7 @@ public sealed partial class IslandWindow : Window
         if (StackIndicatorVisible())
         {
             _measureStack.Style ??= SignalStackIndicator.Style;
-            stack += 6 + Measure(_measureStack, CompactTrailing.StackBadge(_activityManager.Count));
+            stack += 6 + Measure(_measureStack, CompactTrailing.StackBadge(HiddenActivityCount() + 1));
         }
 
         CompactTrailing trailing = CompactTrailing.For(activity);
@@ -1578,7 +1608,53 @@ public sealed partial class IslandWindow : Window
                 Measure(_measureSubhead, SubheadFor(activity)),
                 Measure(_measureHeadline, activity.Title));
 
-        return IslandFootprint.Fit(tier, content + stack, _settings.Geometry.Shoulder, _settings.Density);
+        double slack = string.Equals(_fitSlackFor, activity.Id, StringComparison.Ordinal) ? _fitSlack : 0;
+
+        return IslandFootprint.Fit(tier, content + stack + slack, _settings.Geometry.Shoulder, _settings.Density);
+    }
+
+    /// <summary>
+    /// Filet de sécurité de la largeur au repos : un texte coupé alors que la
+    /// pastille pouvait encore grandir élargit la forme d'exactement ce qui
+    /// manque. La mesure hors arbre et le rendu peuvent différer de quelques
+    /// DIPs (police, mise à l'échelle du texte) ; « Volu… » ne doit jamais
+    /// s'afficher quand « Volume » tenait.
+    /// </summary>
+    private void CatchUpTrimmed(TextBlock label)
+    {
+        // Pendant que le ressort bouge, un texte coupé l'est en passant : on
+        // attend la forme posée (AnimationCompleted relance la vérification).
+        FrameworkElement view = ReferenceEquals(label, SignalLabel) ? SignalRestView : CardRestView;
+
+        if (!label.IsTextTrimmed
+            || view.Visibility != Visibility.Visible
+            || label.ActualWidth <= 0
+            || _controller.IsAnimating
+            || _controller.PresentedActivity is not { } activity
+            || _controller.State is not (IslandState.Closed or IslandState.Preview)
+            || _restFootprint.Width >= IslandFootprint.MaximumWidth(_tier) - 0.5)
+        {
+            return;
+        }
+
+        var probe = new TextBlock { Style = label.Style, Text = label.Text };
+        probe.Measure(new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+        double missing = Math.Ceiling(probe.DesiredSize.Width - label.ActualWidth) + 1;
+
+        if (missing <= 0)
+        {
+            return;
+        }
+
+        if (!string.Equals(_fitSlackFor, activity.Id, StringComparison.Ordinal))
+        {
+            _fitSlackFor = activity.Id;
+            _fitSlack = 0;
+        }
+
+        _fitSlack += missing;
+        MiniLogger.Log($"[FIT] texte coupé, la forme s'élargit de {missing} DIP ({label.Name})");
+        RequestRender();
     }
 
     private static double Measure(TextBlock text, string? value)
@@ -1878,9 +1954,16 @@ public sealed partial class IslandWindow : Window
     /// a plus rien à faire expirer. Aucune vérification périodique n'est donc
     /// effectuée en l'absence d'activité temporaire.
     /// </summary>
+    /// <summary>
+    /// Activité ouverte par l'utilisateur, épargnée par l'expiration : une
+    /// notification ouverte ne laisse pas place à la musique pendant qu'on la lit.
+    /// </summary>
+    private string? OpenedActivityId()
+        => _controller.State is IslandState.Expanding or IslandState.Expanded ? _controller.PresentedActivity?.Id : null;
+
     private void RearmExpirationTimer()
     {
-        TimeSpan? delay = _activityManager.GetTimeUntilNextExpiration(DateTimeOffset.UtcNow);
+        TimeSpan? delay = _activityManager.GetTimeUntilNextExpiration(DateTimeOffset.UtcNow, OpenedActivityId());
 
         if (delay is null)
         {
@@ -1901,7 +1984,7 @@ public sealed partial class IslandWindow : Window
 
     private void OnExpirationTick()
     {
-        int expired = _activityManager.ExpireOverdue(DateTimeOffset.UtcNow);
+        int expired = _activityManager.ExpireOverdue(DateTimeOffset.UtcNow, OpenedActivityId());
 
         if (expired > 0)
         {

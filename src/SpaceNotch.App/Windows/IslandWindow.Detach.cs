@@ -1098,7 +1098,7 @@ public sealed partial class IslandWindow
         IslandFootprint local = LocalOf(_edge, drawn);
         double s = IslandShape.EffectiveShoulder(local.Width, local.Height, shoulder);
 
-        if (Math.Abs(s - _contentShoulder) > 0.25)
+        if (!(Math.Abs(s - _contentShoulder) <= 0.25))
         {
             _contentShoulder = s;
             ContentArea.Margin = new Thickness(0, s, 0, s);

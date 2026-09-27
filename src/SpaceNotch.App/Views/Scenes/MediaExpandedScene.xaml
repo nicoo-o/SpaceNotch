@@ -9,7 +9,7 @@
     xmlns:views="using:SpaceNotch_App.Views"
     mc:Ignorable="d">
 
-    <Grid Padding="12,10,12,14" ColumnSpacing="14">
+    <Grid Padding="{StaticResource NfScenePadding}" ColumnSpacing="14">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition Width="*" />
@@ -26,11 +26,11 @@
             VerticalAlignment="Center">
             <Grid>
                 <Image x:Name="ArtworkImage" Stretch="UniformToFill" />
-                <FontIcon
+                <views:GlyphView
                     x:Name="ArtworkFallback"
-                    Glyph="&#xE8D6;"
-                    FontSize="32"
-                    Foreground="{ThemeResource NfTextTertiaryBrush}" />
+                    Key="Music"
+                    Size="28"
+                    Tint="{ThemeResource NfTextTertiaryBrush}" />
             </Grid>
         </Border>
 
@@ -114,7 +114,7 @@
                     ToolTipService.ToolTip="{l:Loc Fr='Piste précédente', En='Previous track'}"
                     AutomationProperties.Name="{l:Loc Fr='Piste précédente', En='Previous track'}"
                     Click="OnPrevClicked">
-                    <FontIcon Glyph="&#xE892;" FontSize="12" Foreground="{ThemeResource NfTextPrimaryBrush}" />
+                    <views:GlyphView Key="Previous" Size="14" Tint="{ThemeResource NfTextPrimaryBrush}" />
                 </Button>
 
                 <Button
@@ -129,7 +129,7 @@
                     ToolTipService.ToolTip="{l:Loc Fr='Lecture ou pause', En='Play or pause'}"
                     AutomationProperties.Name="{l:Loc Fr='Lecture ou pause', En='Play or pause'}"
                     Click="OnPlayPauseClicked">
-                    <FontIcon x:Name="PlayPauseIcon" Glyph="&#xE769;" FontSize="14" Foreground="{ThemeResource NfSurfaceBaseBrush}" />
+                    <views:GlyphView x:Name="PlayPauseIcon" Key="Pause" Size="14" Tint="{ThemeResource NfSurfaceBaseBrush}" />
                 </Button>
 
                 <Button
@@ -144,7 +144,7 @@
                     ToolTipService.ToolTip="{l:Loc Fr='Piste suivante', En='Next track'}"
                     AutomationProperties.Name="{l:Loc Fr='Piste suivante', En='Next track'}"
                     Click="OnNextClicked">
-                    <FontIcon Glyph="&#xE893;" FontSize="12" Foreground="{ThemeResource NfTextPrimaryBrush}" />
+                    <views:GlyphView Key="Next" Size="14" Tint="{ThemeResource NfTextPrimaryBrush}" />
                 </Button>
             </StackPanel>
         </StackPanel>

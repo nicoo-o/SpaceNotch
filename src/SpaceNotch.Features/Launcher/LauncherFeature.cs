@@ -133,6 +133,9 @@ public sealed class LauncherFeature : IslandFeatureBase
     /// Retire la recherche. Appelé quand la notch se referme : sans cela, elle
     /// restait l'activité présentée — devant la musique.
     /// </summary>
+    /// <summary>Vrai tant que la recherche est ouverte ou en attente dans la pile.</summary>
+    public bool IsShown => _shown;
+
     public void Dismiss()
     {
         _query = string.Empty;

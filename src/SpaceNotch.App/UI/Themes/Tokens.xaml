@@ -353,7 +353,7 @@
 
     <!-- Palier signal : un glyphe et un libellé court, sur une ligne. -->
     <x:Double x:Key="NfSignalGlyphSize">14</x:Double>
-    <Thickness x:Key="NfSignalPadding">12,0,12,2</Thickness>
+    <Thickness x:Key="NfSignalPadding">16,0,16,2</Thickness>
 
     <!-- Contrôles d'une carte : pilules au trait, jamais de surface remplie.
          C'est la conséquence directe du « sans hiérarchie » ci-dessus : un
@@ -366,7 +366,7 @@
     <!-- Palier carte : glyphe, légende et titre, sur deux lignes. -->
     <x:Double x:Key="NfCardGlyphSize">20</x:Double>
     <x:Double x:Key="NfCardLineGap">2</x:Double>
-    <Thickness x:Key="NfCardPadding">14,10,14,10</Thickness>
+    <Thickness x:Key="NfCardPadding">16,10,16,10</Thickness>
 
 
     <!-- Échelle d'espacement. Une seule progression, pas de valeur hors barème. -->
@@ -379,8 +379,12 @@
     <x:Double x:Key="NfSpace20">20</x:Double>
     <x:Double x:Key="NfSpace24">24</x:Double>
 
-    <Thickness x:Key="NfPillPadding">12,0,12,4</Thickness>
-    <Thickness x:Key="NfScenePadding">16,10,16,14</Thickness>
+    <Thickness x:Key="NfPillPadding">16,0,16,4</Thickness>
+    <!-- Marge noire entre le bord de la notch et le contenu d'une scène
+         ouverte : la même partout (SceneInsets côté cœur, un test veille). -->
+    <Thickness x:Key="NfScenePadding">22,12,22,18</Thickness>
+    <!-- Le lanceur : son champ touche le haut, le reste suit la règle. -->
+    <Thickness x:Key="NfLauncherPadding">22,0,22,18</Thickness>
 
     <!-- Hauteur du reflet spéculaire, en DIPs. Bornée à la forme : sur un palier
          de 28 de haut, une bande de 22 mordrait dans les congés et le reflet

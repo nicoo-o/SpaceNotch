@@ -59,6 +59,9 @@ public sealed partial class SetupWindow : Window
     /// <summary>Marge sous le contenu : les grands congés du bas mangent un peu d'espace.</summary>
     private const double BottomInset = 26;
 
+    /// <summary>Cyan du logo : la couleur de la trame de l'installeur.</summary>
+    private static readonly global::Windows.UI.Color LogoCyan = global::Windows.UI.Color.FromArgb(0xFF, 0x7F, 0xE6, 0xFF);
+
     /// <summary>Temps pendant lequel « C'est prêt » reste lisible avant la fermeture.</summary>
     private static readonly TimeSpan DoneHold = TimeSpan.FromMilliseconds(1700);
 
@@ -245,6 +248,12 @@ public sealed partial class SetupWindow : Window
         ShapePoint[] outline = NotchGeometry.Default.Silhouette(footprint);
         Surface.Data = IslandGeometryFactory.FromPolygons([outline], 0, 0);
         Surface.Margin = new Thickness((PanelWidth - footprint.Width) / 2, 0, 0, 0);
+
+        // La même trame que les scènes ouvertes : elle attend que le ressort
+        // se pose, puis s'allume sous le dernier contenu.
+        SetupTrame.Margin = Surface.Margin;
+        SetupTrame.Resize(footprint.Width, footprint.Height, NotchGeometry.Default.RadiusFor(footprint), NotchGeometry.Default.ShoulderFor(footprint));
+        SetupTrame.Present(ContentPanel, LogoCyan, music: false);
 
         // Le contenu n'existe que dans la matière : découpé à la hauteur de la
         // notch, et révélé à mesure qu'elle s'ouvre.

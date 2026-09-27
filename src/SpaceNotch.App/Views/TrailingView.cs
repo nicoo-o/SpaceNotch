@@ -22,7 +22,7 @@ namespace SpaceNotch_App.Views;
 /// </summary>
 public sealed partial class TrailingView : Grid
 {
-    private const double Side = 16;
+    private const double DefaultSide = 16;
     private const double Stroke = 2;
 
     /// <summary>Arc de batterie : ouvert en bas, sur trois quarts de tour.</summary>
@@ -35,11 +35,12 @@ public sealed partial class TrailingView : Grid
     private CompactTrailing _shown = CompactTrailing.None;
     private Brush? _tint;
     private bool _dancing;
+    private double _side = DefaultSide;
 
     public TrailingView()
     {
-        Width = Side;
-        Height = Side;
+        Width = _side;
+        Height = _side;
         IsHitTestVisible = false;
         Visibility = Visibility.Collapsed;
 
@@ -70,6 +71,31 @@ public sealed partial class TrailingView : Grid
             {
                 bar.Fill = value;
             }
+        }
+    }
+
+    /// <summary>
+    /// Diamètre de l'anneau, en DIPs : 16 dans une pastille ; plus grand dans
+    /// la bulle, où l'anneau entoure l'icône au lieu de se poser à côté.
+    /// </summary>
+    public double Diameter
+    {
+        get => _side;
+        set
+        {
+            if (Math.Abs(value - _side) < 0.1)
+            {
+                return;
+            }
+
+            _side = value;
+            Width = value;
+            Height = value;
+
+            // La piste est à redessiner à la nouvelle taille.
+            CompactTrailing shown = _shown;
+            _shown = CompactTrailing.None;
+            Show(shown);
         }
     }
 
@@ -113,15 +139,15 @@ public sealed partial class TrailingView : Grid
     }
 
     /// <summary>Arc de cercle centré, en degrés, 0° à droite, sens horaire.</summary>
-    private static PathGeometry? Arc(double startDegrees, double sweepDegrees)
+    private PathGeometry? Arc(double startDegrees, double sweepDegrees)
     {
         if (sweepDegrees <= 0.5)
         {
             return null;
         }
 
-        double radius = (Side - Stroke) / 2;
-        const double center = Side / 2;
+        double radius = (_side - Stroke) / 2;
+        double center = _side / 2;
 
         // Un tour complet ne se dessine pas en un seul arc : deux demi-tours.
         sweepDegrees = Math.Min(sweepDegrees, 359.9);

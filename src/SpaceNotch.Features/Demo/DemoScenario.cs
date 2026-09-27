@@ -101,7 +101,7 @@ public static class DemoScenario
             SceneKey = IslandSceneCatalog.Bluetooth,
             Title = "AirPods Pro",
             Subtitle = Lang.T("Connecté", "Connected"),
-            IconKey = "Bluetooth",
+            IconKey = "Headphones",
             Payload = new BluetoothPayload("AirPods Pro", true, 84, "audio"),
             State = IslandActivityState.DeviceActive,
             Priority = ActivityPriority.Normal,

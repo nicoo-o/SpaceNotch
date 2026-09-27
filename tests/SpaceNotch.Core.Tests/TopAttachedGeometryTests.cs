@@ -185,7 +185,7 @@ public class TopAttachedGeometryTests
 
         Assert.True(longText.Width > shortText.Width);
         Assert.Equal(IslandFootprint.Card.Height, longText.Height);
-        Assert.Equal(200 + 28 + 24, longText.Width);
+        Assert.Equal(200 + (2 * SceneInsets.Compact) + 24, longText.Width);
 
         // … sans jamais devenir une barre ni une grosse fenêtre.
         Assert.Equal(IslandFootprint.MinimumWidth(IslandPresentationTier.Signal), IslandFootprint.Fit(IslandPresentationTier.Signal, 10, 12).Width);

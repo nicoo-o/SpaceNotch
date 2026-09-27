@@ -49,13 +49,13 @@ public sealed partial class TimerScene : UserControl, IIslandSceneView
         // n'est rempli, par règle de matière. Ce qui change est le glyphe — pause
         // ou lecture — et l'intensité du trait, ce qui suffit à dire l'état sans
         // faire clignoter la carte à chaque battement.
-        ToggleIcon.Glyph = timer.IsRunning ? "\uE769" : "\uE768";
+        ToggleIcon.Key = timer.IsRunning ? "Pause" : "Play";
 
         ToggleButton.BorderBrush = Ink(
             timer.IsRunning ? "NfStrokeSubtleBrush" : "NfStrokeStrongBrush",
             timer.IsRunning ? (byte)0x14 : (byte)0x24);
 
-        ToggleIcon.Foreground = Ink(
+        ToggleIcon.Tint = Ink(
             timer.IsRunning ? "NfTextSecondaryBrush" : "NfTextPrimaryBrush",
             timer.IsRunning ? (byte)0x9E : (byte)0xF0);
     }

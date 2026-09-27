@@ -19,6 +19,7 @@ public class DetachSettingsTests
         Assert.True(settings.MagnetsEnabled && settings.GooEnabled && settings.MonitorResistance && settings.AllowSideEdges);
         Assert.Equal(((byte)255, (byte)0, (byte)0, (byte)0), settings.SurfaceColor());
         Assert.False(settings.ShowOutline);
+        Assert.True(settings.ShowTrame);
     }
 
     [Fact]
