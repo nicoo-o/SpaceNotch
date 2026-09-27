@@ -37,6 +37,9 @@ public static class IslandSceneCatalog
     /// <summary>Moniteur système (F6) : le processus gourmand, la courbe, la fermeture.</summary>
     public const string Monitor = "monitor";
 
+    /// <summary>Partage PC → téléphone (F8) : le QR code, le fichier, l'expiration.</summary>
+    public const string Share = "share";
+
     /// <summary>Menu rapide : clic droit sur la notch, qui s'ouvre en menu.</summary>
     public const string QuickMenu = "quick-menu";
 
@@ -96,6 +99,7 @@ public static class IslandSceneCatalog
         // Le résumé du calme : jusqu'à quatre applications, une ligne chacune.
         [Quiet] = SceneInsets.Wrap(320, 112),
         [Monitor] = SceneInsets.Wrap(320, 96),
+        [Share] = SceneInsets.Wrap(340, 136),
 
         // Le lanceur occupe la surface la plus large du répertoire : c'est la
         // seule scène qui présente une grille et un champ de recherche.

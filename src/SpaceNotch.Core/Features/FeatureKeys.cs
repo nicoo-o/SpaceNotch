@@ -39,4 +39,10 @@ public static class FeatureKeys
 
     /// <summary>Moniteur système (F6).</summary>
     public const string Monitor = "feature.monitor";
+
+    /// <summary>Prochain rendez-vous (F2).</summary>
+    public const string Meeting = "feature.meeting";
+
+    /// <summary>Partage PC → téléphone (F8).</summary>
+    public const string Share = "feature.share";
 }

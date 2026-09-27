@@ -216,6 +216,7 @@ public sealed partial class SettingsWindow : Window
         FeatureKeys.Downloads => ("Download", Lang.T("Téléchargements", "Downloads"), Lang.T("La progression de ce que tu télécharges.", "The progress of what you download.")),
         FeatureKeys.Charge => ("Bolt", Lang.T("Charge", "Charging"), Lang.T("La batterie qui se remplit quand tu branches le chargeur.", "The battery filling up when you plug in the charger.")),
         FeatureKeys.Monitor => ("Cpu", Lang.T("Moniteur système", "System monitor"), Lang.T("Une alerte quand le processeur sature, avec le coupable.", "An alert when the processor is maxed out, with the culprit.")),
+        FeatureKeys.Meeting => ("Calendar", Lang.T("Prochain rendez-vous", "Next meeting"), Lang.T("Un compte à rebours cinq minutes avant, puis « Rejoindre ».", "A countdown five minutes before, then “Join”.")),
         FeatureKeys.Privacy => ("Camera", Lang.T("Caméra et micro", "Camera and mic"), Lang.T("Un point quand une application les utilise.", "A dot when an app is using them.")),
         _ => ("Launcher", feature.DisplayName, string.Empty)
     };
@@ -340,6 +341,7 @@ public sealed partial class SettingsWindow : Window
             OutlineToggle.IsOn = settings.ShowOutline;
             TrameToggle.IsOn = settings.ShowTrame;
             SoundsToggle.IsOn = settings.PlaySounds;
+            WeatherCityBox.Text = settings.WeatherCity;
             OutlineSlider.Value = settings.OutlineOpacity * 100;
             BubbleSizeBox.SelectedIndex = (int)settings.BubbleSize;
             TabSizeBox.SelectedIndex = (int)settings.TabSize;
@@ -459,6 +461,19 @@ public sealed partial class SettingsWindow : Window
 
     private void OnOutlineToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.ShowOutline = OutlineToggle.IsOn);
+
+    /// <summary>La ville de la météo s'enregistre quand on quitte le champ ou qu'on valide.</summary>
+    private void OnWeatherCityCommitted(object sender, RoutedEventArgs e)
+        => Apply(s => s.WeatherCity = WeatherCityBox.Text.Trim());
+
+    private void OnWeatherCityKeyDown(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (e.Key == global::Windows.System.VirtualKey.Enter)
+        {
+            OnWeatherCityCommitted(sender, e);
+            e.Handled = true;
+        }
+    }
 
     private void OnSoundsToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.PlaySounds = SoundsToggle.IsOn);

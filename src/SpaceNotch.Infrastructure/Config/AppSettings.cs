@@ -491,6 +491,15 @@ public sealed class AppSettings
     /// </summary>
     public bool PlaySounds { get; set; }
 
+    /// <summary>Prochain rendez-vous (F2) : compte à rebours et « Rejoindre ».</summary>
+    public bool ShowMeeting { get; set; } = true;
+
+    /// <summary>
+    /// Ville de l'aperçu météo (F10). Vide : la météo est coupée et rien n'est
+    /// demandé au réseau (ADR-011).
+    /// </summary>
+    public string WeatherCity { get; set; } = string.Empty;
+
     /// <summary>Regroupe les activités d'arrière-plan au-delà de la première.</summary>
     public bool ShowActivityStack { get; set; } = true;
 
@@ -571,6 +580,7 @@ public sealed class AppSettings
         FeatureKeys.Privacy => ShowPrivacy,
         FeatureKeys.Charge => ShowCharge,
         FeatureKeys.Monitor => ShowMonitor,
+        FeatureKeys.Meeting => ShowMeeting,
         _ => true
     };
 
@@ -593,6 +603,7 @@ public sealed class AppSettings
         FeatureKeys.Privacy => true,
         FeatureKeys.Charge => true,
         FeatureKeys.Monitor => true,
+        FeatureKeys.Meeting => true,
         _ => false
     };
 
@@ -643,6 +654,10 @@ public sealed class AppSettings
 
             case FeatureKeys.Monitor:
                 ShowMonitor = enabled;
+                return true;
+
+            case FeatureKeys.Meeting:
+                ShowMeeting = enabled;
                 return true;
 
             default:

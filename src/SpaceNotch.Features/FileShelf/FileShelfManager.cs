@@ -45,6 +45,12 @@ public sealed class FileShelfManager : IslandFeatureBase
     /// <summary>Signalé lorsque le contenu de l'étagère change.</summary>
     public event EventHandler? ShelfUpdated;
 
+    /// <summary>« Partager sur le téléphone » (F8) : le chemin du fichier à servir.</summary>
+    public event Action<string>? ShareRequested;
+
+    /// <summary>Partage un fichier de l'étagère par QR code.</summary>
+    public const string ShareAction = "shelf.share";
+
     /// <summary>
     /// Désactiver la fonctionnalité retire les activités publiées, mais ne
     /// détruit pas les fichiers déposés : l'étagère reste en mémoire. Sa
@@ -119,6 +125,16 @@ public sealed class FileShelfManager : IslandFeatureBase
             case ClearAction:
                 Clear();
                 return Task.FromResult(true);
+
+            case ShareAction when request.Value is { Length: > 0 } shareId:
+                ShelfItem? item = GetItems().FirstOrDefault(i => i.Id == shareId);
+
+                if (item is not null)
+                {
+                    ShareRequested?.Invoke(item.FilePath);
+                }
+
+                return Task.FromResult(item is not null);
 
             default:
                 return Task.FromResult(false);

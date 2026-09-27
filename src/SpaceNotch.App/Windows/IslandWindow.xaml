@@ -163,6 +163,22 @@
                         Tint="{ThemeResource NfTextSecondaryBrush}"
                         VerticalAlignment="Center"
                         Visibility="Collapsed" />
+
+                    <!-- Aperçu météo (F10) : au survol du repos, l'icône vivante et la température. -->
+                    <views:GlyphView
+                        x:Name="WeatherGlyph"
+                        Size="12"
+                        Margin="6,0,0,0"
+                        VerticalAlignment="Center"
+                        Tint="{ThemeResource NfTextPrimaryBrush}"
+                        Visibility="Collapsed" />
+                    <TextBlock
+                        x:Name="WeatherText"
+                        FontSize="12"
+                        FontWeight="SemiBold"
+                        VerticalAlignment="Center"
+                        Foreground="{ThemeResource NfTextPrimaryBrush}"
+                        Visibility="Collapsed" />
                 </StackPanel>
 
                 <!-- ====================================================
@@ -398,6 +414,7 @@
                 <scenes:NoteScene x:Name="NoteSceneView" Visibility="Collapsed" />
                 <scenes:QuietScene x:Name="QuietSceneView" Visibility="Collapsed" />
                 <scenes:MonitorScene x:Name="MonitorSceneView" Visibility="Collapsed" />
+                <scenes:ShareScene x:Name="ShareSceneView" Visibility="Collapsed" />
 
                 <!--
                     Cible de dépôt de fichiers. Pendant le survol d'un fichier, la

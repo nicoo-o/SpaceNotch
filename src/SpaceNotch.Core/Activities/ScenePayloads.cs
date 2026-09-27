@@ -160,6 +160,13 @@ public sealed record QuietPayload(IReadOnlyList<QuietGroup> Groups, int Total);
 public sealed record ChargePayload(int Percent);
 
 /// <summary>
+/// Partage PC → téléphone (F8) : l'adresse, le fichier, le QR code (modules
+/// rangée par rangée, <paramref name="Size"/> × <paramref name="Size"/>, sans
+/// marge) et l'expiration.
+/// </summary>
+public sealed record SharePayload(string Url, string FileName, IReadOnlyList<bool> Modules, int Size, DateTimeOffset ExpiresAt, bool Sent = false);
+
+/// <summary>
 /// Moniteur système (F6) : la courbe récente du processeur (0..100), le
 /// processus le plus gourmand et sa part.
 /// </summary>

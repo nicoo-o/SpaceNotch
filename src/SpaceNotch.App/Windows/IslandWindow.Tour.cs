@@ -31,6 +31,7 @@ public sealed partial class IslandWindow
     private int _tourIndex;
     private DispatcherQueueTimer? _tourTimer;
     private DispatcherQueueTimer? _tourOpen;
+    private DispatcherQueueTimer? _tourPreview;
 
     /// <summary>Lance la visite des états.</summary>
     public void StartTour()
@@ -290,6 +291,29 @@ public sealed partial class IslandWindow
             Payload = new BluetoothPayload("Xbox Controller", true, 67, "gamepad")
         };
 
+        SpaceNotch.Platform.Windows.Calendar.CalendarMeeting Meeting(double minutesFromNow) => new(
+            "tour.meeting",
+            Lang.T("Point produit", "Product sync"),
+            DateTimeOffset.Now.AddMinutes(minutesFromNow),
+            DateTimeOffset.Now.AddMinutes(minutesFromNow + 30),
+            "Microsoft Teams",
+            "Rejoindre : https://teams.microsoft.com/l/meetup-join/19%3ameeting_tour/0",
+            null);
+
+        void WeatherHover()
+        {
+            // La météo vit au repos : la musique et le téléchargement de la
+            // visite s'effacent le temps de ce plan (la bulle les republie).
+            TourClear("tour.media", "tour.download");
+            _weatherFeature.Inject(new SpaceNotch.Core.Weather.WeatherReport(14.6, 61, true), "Paris");
+
+            // L'aperçu est refusé pendant la fermeture : on le demande une fois
+            // la notch revenue au repos, comme un vrai survol.
+            _tourPreview ??= CreateOneShotTimer(TimeSpan.FromMilliseconds(900), _controller.RequestPreview);
+            _tourPreview.Stop();
+            _tourPreview.Start();
+        }
+
         void CpuAlert()
         {
             DateTimeOffset t = DateTimeOffset.UtcNow;
@@ -345,7 +369,11 @@ public sealed partial class IslandWindow
             ("pomodoro · anneau", () => { _noteFeature.Dismiss(); TourClear("tour.timer", "tour.bluetooth"); _pomodoroFeature.Start(TimeSpan.FromSeconds(30)); }),
             ("ne pas déranger · lune", () => { _pomodoroFeature.Reset(); Quiet(); }),
             ("ne pas déranger · résumé", QuietOver),
-            ("charge · branchement", () => { TourClear(NotificationFeature.QuietSummaryActivityId); _chargeFeature.Announce(64); }),
+            ("rendez-vous · dans 3 min", () => { TourClear(NotificationFeature.QuietSummaryActivityId); _meetingFeature.Show(Meeting(3.2)); }),
+            ("rendez-vous · rejoindre", () => { _meetingFeature.Show(Meeting(-0.5)); TourOpen(SpaceNotch.Features.Calendar.MeetingFeature.ActivityId); }),
+            ("météo · survol du repos", () => { _meetingFeature.Show(null); WeatherHover(); }),
+            ("partage · QR code", () => { _controller.EndPreview(); _shareFeature.Preview("http://192.168.1.20:50123/AAECAwQFBgcICQoLDA0ODw/rapport-final.pdf", "rapport-final.pdf"); TourOpen(SpaceNotch.Features.Share.ShareFeature.ActivityId); }),
+            ("charge · branchement", () => { TourClear(SpaceNotch.Features.Share.ShareFeature.ActivityId); _chargeFeature.Announce(64); }),
             ("appareil · manette", () => { TourClear(); TourShow(Gamepad(), open: false); }),
             ("moniteur · pastille", () => { TourClear("tour.gamepad"); CpuAlert(); _activityManager.PinPresentation(SpaceNotch.Features.Power.SystemMonitorFeature.ActivityId); }),
             ("moniteur · ouvert", () => TourOpen(SpaceNotch.Features.Power.SystemMonitorFeature.ActivityId)),

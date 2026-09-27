@@ -5,4 +5,9 @@
     <ProjectReference Include="..\SpaceNotch.Platform.Windows\SpaceNotch.Platform.Windows.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Partage par QR (F8) : un encodeur éprouvé plutôt qu'un encodeur maison. -->
+    <PackageReference Include="QRCoder" />
+  </ItemGroup>
+
 </Project>

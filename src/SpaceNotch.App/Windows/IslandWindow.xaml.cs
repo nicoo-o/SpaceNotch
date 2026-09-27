@@ -112,6 +112,9 @@ public sealed partial class IslandWindow : Window
     private readonly NoteFeature _noteFeature;
     private readonly SpaceNotch.Features.Power.ChargeFeature _chargeFeature;
     private readonly SpaceNotch.Features.Power.SystemMonitorFeature _monitorFeature;
+    private readonly SpaceNotch.Features.Calendar.MeetingFeature _meetingFeature;
+    private readonly SpaceNotch.Features.Weather.WeatherFeature _weatherFeature;
+    private readonly SpaceNotch.Features.Share.ShareFeature _shareFeature;
     /// <summary>Visite (--tour) : 0 = Windows décide, 1 = calme forcé, 2 = calme levé.</summary>
     private volatile int _quietOverride;
     private readonly LauncherFeature _launcherFeature;
@@ -308,6 +311,12 @@ public sealed partial class IslandWindow : Window
 
         _quickMenuFeature = new QuickMenuFeature(_activityManager, _eventBus);
         _launcherFeature.CommandInvoked += (kind, value) => OnUiThread(() => RunCommand(kind, value));
+        _meetingFeature = new SpaceNotch.Features.Calendar.MeetingFeature(
+            _activityManager, _eventBus, new SpaceNotch.Platform.Windows.Calendar.CalendarReader(),
+            _settings.IsFeatureEnabled(SpaceNotch.Features.Calendar.MeetingFeature.FeatureKey));
+        _weatherFeature = new SpaceNotch.Features.Weather.WeatherFeature(_activityManager, _eventBus, _settings.WeatherCity);
+        _weatherFeature.Changed += () => OnUiThread(RequestRender);
+        _shareFeature = new SpaceNotch.Features.Share.ShareFeature(_activityManager, _eventBus);
         _chargeFeature = new SpaceNotch.Features.Power.ChargeFeature(
             _activityManager, _eventBus, new SpaceNotch.Platform.Windows.Power.PowerWatcher(),
             _settings.IsFeatureEnabled(SpaceNotch.Features.Power.ChargeFeature.FeatureKey));
@@ -366,7 +375,10 @@ public sealed partial class IslandWindow : Window
                 _settings.IsFeatureEnabled(PrivacyFeature.FeatureKey)),
             _clipboardFeature,
             _chargeFeature,
-            _monitorFeature
+            _monitorFeature,
+            _meetingFeature,
+            _weatherFeature,
+            _shareFeature
         };
 
         // Les greffons sont chargés avant la création du registre : ils en font
@@ -608,6 +620,7 @@ public sealed partial class IslandWindow : Window
         _scenes[IslandSceneCatalog.Note] = NoteSceneView;
         _scenes[IslandSceneCatalog.Quiet] = QuietSceneView;
         _scenes[IslandSceneCatalog.Monitor] = MonitorSceneView;
+        _scenes[IslandSceneCatalog.Share] = ShareSceneView;
 
         // Luminosité et volume partagent la même vue : leur charge utile est
         // identique, seule la clé d'icône les distingue.
@@ -778,6 +791,7 @@ public sealed partial class IslandWindow : Window
         _launcherFeature.Hotkey = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.RegisterLauncher(_hWnd);
         MiniLogger.Log($"Raccourci de recherche : {_launcherFeature.Hotkey ?? "aucun (les deux sont pris)"}");
 
+        _shelfManager.ShareRequested += path => OnUiThread(() => _shareFeature.Share(path));
         _shelfManager.ShelfUpdated += (_, _) =>
             OnUiThread(() => FileShelfSceneView.UpdateItems(_shelfManager.GetItems()));
 
@@ -979,6 +993,7 @@ public sealed partial class IslandWindow : Window
                 : Visibility.Collapsed;
 
             IdleStatusDot.Visibility = IdleClock.Visibility;
+            ShowRestWeather();
             IdleClock.Animate = UseSpringAnimations();
             IdleClock.Show(DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
             ArmClockTick(IdleClock.Visibility == Visibility.Visible);
@@ -1614,7 +1629,7 @@ public sealed partial class IslandWindow : Window
     private IslandFootprint ResolvePreviewFootprint()
         => UsesSideTab
             ? SideTab.Preview(_restFootprint)
-            : IslandFootprint.PreviewOf(_tier, _restFootprint);
+            : RestWeatherPreview() ?? IslandFootprint.PreviewOf(_tier, _restFootprint);
 
     /// <summary>Glyphe du palier signal, en DIPs (jeton NfSignalGlyphSize), et son écart au libellé.</summary>
     private const double SignalGlyphSpan = 14 + 8;
@@ -3236,6 +3251,7 @@ public sealed partial class IslandWindow : Window
 
         _settings = settings;
         _clipboardFeature.IgnoreSecrets = settings.ClipboardIgnoreSecrets;
+        _weatherFeature.SetCity(settings.WeatherCity);
         _notificationFeature.IgnoredApps = settings.IgnoredNotificationApps;
         _launcherFeature.WebSearchEngine = settings.WebSearchEngine;
 
