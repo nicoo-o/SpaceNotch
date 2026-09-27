@@ -347,7 +347,7 @@ public sealed partial class IslandWindow
             ("ne pas déranger · résumé", QuietOver),
             ("charge · branchement", () => { TourClear(NotificationFeature.QuietSummaryActivityId); _chargeFeature.Announce(64); }),
             ("appareil · manette", () => { TourClear(); TourShow(Gamepad(), open: false); }),
-            ("moniteur · pastille", () => { TourClear("tour.gamepad"); CpuAlert(); }),
+            ("moniteur · pastille", () => { TourClear("tour.gamepad"); CpuAlert(); _activityManager.PinPresentation(SpaceNotch.Features.Power.SystemMonitorFeature.ActivityId); }),
             ("moniteur · ouvert", () => TourOpen(SpaceNotch.Features.Power.SystemMonitorFeature.ActivityId)),
             ("commande · timer 10", () => { TourClear(); CpuCalm(); OpenLauncher(); LauncherSceneView.Type("timer 10"); }),
             ("commande · couleur", () => LauncherSceneView.Type("#7FE6FF")),

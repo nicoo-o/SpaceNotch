@@ -122,6 +122,7 @@ public sealed partial class GlyphView : Grid
     }
 
     private Microsoft.UI.Dispatching.DispatcherQueueTimer? _frameTimer;
+    private bool _visualDriven;
     private IReadOnlyList<bool[]>? _frames;
     private int _frame;
 
@@ -141,6 +142,7 @@ public sealed partial class GlyphView : Grid
 
         _frames = frames;
         _frame = 0;
+        _visualDriven = true;
 
         if (_frameTimer is null)
         {
@@ -177,13 +179,14 @@ public sealed partial class GlyphView : Grid
     {
         for (int i = 0; i < _cells.Length && i < mask.Count; i++)
         {
-            // L'allumage anime l'opacité du visuel : on l'arrête et on la remet
-            // à 1 d'abord, puis l'opacité de la case décide. Dans l'ordre
-            // inverse, le visuel écrasait la case et tout s'allumait.
+            // Une fois l'opacité du visuel écrite, XAML ne la pilote plus : la
+            // case n'obéit plus qu'au visuel. La scène écrit donc là, et la mise
+            // en page suivante aussi (_visualDriven).
             Visual visual = ElementCompositionPreview.GetElementVisual(_cells[i]);
             visual.StopAnimation("Opacity");
-            visual.Opacity = 1;
-            _cells[i].Opacity = mask[i] ? 1 : UnlitOpacity;
+            float opacity = mask[i] ? 1f : (float)UnlitOpacity;
+            _cells[i].Opacity = opacity;
+            visual.Opacity = opacity;
         }
     }
 
@@ -237,6 +240,13 @@ public sealed partial class GlyphView : Grid
             Canvas.SetLeft(cell, offset + (column * (cellPx + gapPx) / scale));
             Canvas.SetTop(cell, offset + (row * (cellPx + gapPx) / scale));
             cell.Opacity = _mask[i] ? 1 : UnlitOpacity;
+
+            if (_visualDriven)
+            {
+                Visual visual = ElementCompositionPreview.GetElementVisual(cell);
+                visual.StopAnimation("Opacity");
+                visual.Opacity = (float)cell.Opacity;
+            }
         }
     }
 

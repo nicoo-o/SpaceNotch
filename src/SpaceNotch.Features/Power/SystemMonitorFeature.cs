@@ -146,7 +146,9 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
             Tint = Red,
             Metric = load,
             State = IslandActivityState.Idle,
-            Priority = ActivityPriority.High,
+            // Normale, pas haute : la pastille se montre sans ouvrir la notch
+            // d'elle-même ; un clic l'ouvre.
+            Priority = ActivityPriority.Normal,
             Policy = ActivityPresentationPolicy.Passive,
             Payload = new MonitorPayload(_watch.History, name, process?.Id ?? 0, process?.Percent ?? 0),
             Actions = process is null

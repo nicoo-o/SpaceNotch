@@ -303,12 +303,15 @@ public sealed partial class TrameView : Grid
     }
 
     /// <summary>
-    /// Ce qui se lit : texte, image, contrôle, ou un fond coloré (la piste d'une
+    /// Ce qui se lit : texte, image, contrôle, dessin marqué, ou un fond coloré (la piste d'une
     /// barre de volume). Un panneau coloré qui couvre presque toute la scène
     /// n'est qu'un fond, pas un contenu.
     /// </summary>
     private bool IsContent(FrameworkElement element) => element switch
     {
+        // Un dessin qui se lit sans être du texte — la courbe du moniteur — le
+        // déclare par son étiquette.
+        { Tag: "trame-avoid" } => true,
         TextBlock or Image or ButtonBase or Slider or TextBox or FontIcon or GlyphView or TrailingView => true,
         Border { Background: SolidColorBrush { Color.A: > 0 } } => true,
         Panel { Background: SolidColorBrush { Color.A: > 0 } } panel => panel.ActualHeight < _height * 0.6,
