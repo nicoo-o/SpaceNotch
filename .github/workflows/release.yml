@@ -295,7 +295,7 @@ jobs:
           if ($uninstall.ExitCode -ne 0) { throw "Désinstallation silencieuse : code $($uninstall.ExitCode)." }
 
           # Le dossier est effacé par l'interpréteur de commandes, après la sortie.
-          for ($i = 0; $i -lt 20 -and (Test-Path $dir); $i++) { Start-Sleep -Seconds 1 }
+          for ($i = 0; $i -lt 30 -and (Test-Path $dir); $i++) { Start-Sleep -Seconds 1 }
           if (Test-Path $dir) {
             # Dire ce qui retient le dossier : fichiers restants, processus qui
             # en chargent un module, fenêtres ouvertes (une invite de Windows).
