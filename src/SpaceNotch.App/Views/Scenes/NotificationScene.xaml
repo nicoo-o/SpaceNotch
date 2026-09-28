@@ -37,6 +37,12 @@
                 Size="18"
                 Key="Notification"
                 Tint="{ThemeResource NfStateInfoBrush}" />
+            <!-- Identicône (A9) : une app sans logo reçoit un motif tiré de son nom. -->
+            <l:IdenticonView
+                x:Name="AppIdenticon"
+                Width="16"
+                Height="16"
+                Visibility="Collapsed" />
             <Border
                 x:Name="AppLogo"
                 CornerRadius="5"

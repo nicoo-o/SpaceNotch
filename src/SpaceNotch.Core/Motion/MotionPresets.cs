@@ -1,3 +1,4 @@
+using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Animation;
 
 namespace SpaceNotch.Core.Motion;
@@ -83,6 +84,41 @@ public static class MotionPresets
             open.ResponseSeconds * (0.36 / 0.42),
             Math.Max(open.DampingRatio, 0.9),
             open.Mass);
+
+    /// <summary>
+    /// Ressort selon l'importance (A7) : la physique porte le sens. Une
+    /// information qui s'ouvre d'elle-même sans être urgente se pose sans
+    /// dépasser ; une interruption (appel, alarme) s'ouvre avec un rebond franc.
+    /// On devine l'importance avant de lire.
+    ///
+    /// <para>
+    /// Le préréglage « Calme » est respecté : qui a choisi une notch sans rebond
+    /// n'en reçoit pas, même pour une alarme.
+    /// </para>
+    /// </summary>
+    public static SpringParameters ForPriority(SpringParameters chosen, ActivityPriority priority)
+    {
+        ArgumentNullException.ThrowIfNull(chosen);
+
+        if (chosen.DampingRatio >= 0.9)
+        {
+            return chosen;
+        }
+
+        return priority >= ActivityPriority.High
+            ? SpringParameters.FromResponse(chosen.ResponseSeconds, Math.Min(chosen.DampingRatio, UrgentDamping), chosen.Mass)
+            : SpringParameters.FromResponse(chosen.ResponseSeconds, 1.0, chosen.Mass);
+    }
+
+    /// <summary>Amortissement d'une ouverture urgente (A7).</summary>
+    public const double UrgentDamping = 0.55;
+
+    /// <summary>
+    /// Butée (A6) : arrivé au bout (volume à 100 %, fin de liste), le contenu
+    /// fait une micro-secousse. Déplacements successifs en DIP, un par image de
+    /// 30 ms : trois oscillations en 120 ms, amplitude 2 DIP qui décroît.
+    /// </summary>
+    public static IReadOnlyList<double> Bump { get; } = [2.4, -1.8, 1.0, -0.4, 0];
 
     /// <summary>
     /// Durée d'une transition temporelle, en millisecondes.

@@ -200,6 +200,8 @@ public sealed partial class IslandWindow
         // place exacte, aperçu compris.
         _caughtInFlight = UsesFloatingGeometry && _dragPhase == DragPhase.Settling;
 
+        _thrown = null;
+
         if (_caughtInFlight)
         {
             _pillSpring.SetVelocity(0, 0);
@@ -406,6 +408,54 @@ public sealed partial class IslandWindow
 
         _pillSpring.SetVelocity(velocity.X, velocity.Y);
         _dragPhase = DragPhase.Settling;
+
+        // Lancée fort (P3) : la pastille garde son élan et rebondit contre les
+        // bords avant que l'atterrissage habituel reprenne. Un raccrochage
+        // demandé par le geste n'attend pas : il part tout de suite.
+        double speed = Math.Sqrt((velocity.X * velocity.X) + (velocity.Y * velocity.Y));
+
+        if (_settings.BounceOnThrow && target.Landing != FloatingLanding.Reattach && speed >= Detachment.FlingSpeed * 2)
+        {
+            var centerBounds = new ScreenRect(
+                work.X + (pill.Width / 2),
+                work.Y + (pill.Height / 2),
+                Math.Max(0, work.Width - pill.Width),
+                Math.Max(0, work.Height - pill.Height));
+
+            _thrown = new NotchBody(_pillSpring.X, _pillSpring.Y, velocity.X, velocity.Y, centerBounds);
+        }
+    }
+
+    /// <summary>La pastille en vol libre (P3), ou null quand l'atterrissage a repris.</summary>
+    private NotchBody? _thrown;
+
+    /// <summary>
+    /// Un pas du vol libre : la pastille suit le corps lancé. L'élan épuisé,
+    /// elle se pose sur place ou file vers son aimant, depuis sa vitesse du
+    /// moment : le passage de l'un à l'autre ne se voit pas.
+    /// </summary>
+    private void StepThrown(double dt)
+    {
+        NotchBody body = _thrown!;
+        body.Step(dt);
+
+        // Snap déplace aussi la cible : on garde celle de l'atterrissage.
+        (double targetX, double targetY) = (_pillSpring.TargetX, _pillSpring.TargetY);
+        _pillSpring.Snap(body.X, body.Y);
+        _pillSpring.SetTarget(targetX, targetY);
+        _pillSpring.SetVelocity(body.VelocityX, body.VelocityY);
+
+        if (!body.IsSpent)
+        {
+            return;
+        }
+
+        _thrown = null;
+
+        if (_landing.Landing == FloatingLanding.Stay)
+        {
+            _pillSpring.SetTarget(body.X, body.Y);
+        }
     }
 
     /// <summary>La notch accrochée cède : elle devient une pastille, et une goutte la relie encore au bord.</summary>
@@ -961,7 +1011,11 @@ public sealed partial class IslandWindow
 
     private void StepFloating(double dt)
     {
-        if (_dragPhase is DragPhase.Dragging or DragPhase.Settling)
+        if (_thrown is not null && _dragPhase == DragPhase.Settling)
+        {
+            StepThrown(dt);
+        }
+        else if (_dragPhase is DragPhase.Dragging or DragPhase.Settling)
         {
             _pillSpring.Step(dt);
         }
@@ -1169,6 +1223,15 @@ public sealed partial class IslandWindow
             }
 
             double pop = _pop.Value;
+
+            // Écrasement au choc contre un bord (P3).
+            if (_thrown is { } thrown)
+            {
+                (double qx, double qy) = thrown.Squash;
+                sx *= qx;
+                sy *= qy;
+            }
+
             pill = ScreenRect.Centered(_pillSpring.X, _pillSpring.Y, size.Width * sx * pop, size.Height * sy * pop);
         }
         else

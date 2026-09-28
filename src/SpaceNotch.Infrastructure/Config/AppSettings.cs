@@ -511,6 +511,20 @@ public sealed class AppSettings
     /// </summary>
     public bool ShowClockAtRest { get; set; }
 
+    /// <summary>
+    /// Pixel (P1) : deux yeux de pixels dans la notch au repos, qui suivent le
+    /// curseur, clignent et dorment la nuit. Désactivé par défaut : il lit la
+    /// position du pointeur quelques fois par seconde, et la notch promet de ne
+    /// rien faire au repos tant qu'on ne le lui demande pas.
+    /// </summary>
+    public bool ShowPixel { get; set; }
+
+    /// <summary>
+    /// Rebonds (P3) : lancée fort, la notch détachée rebondit contre les bords
+    /// de l'écran avant de se poser.
+    /// </summary>
+    public bool BounceOnThrow { get; set; } = true;
+
     public bool EnableDiagnostics { get; set; } = true;
 
     /// <summary>Recherche : cibles épinglées en favoris, dans l'ordre d'épinglage.</summary>

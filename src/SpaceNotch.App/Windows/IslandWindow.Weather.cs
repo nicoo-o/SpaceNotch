@@ -55,7 +55,7 @@ public sealed partial class IslandWindow
         WeatherGlyph.Visibility = Visibility.Visible;
         WeatherText.Visibility = Visibility.Visible;
         WeatherGlyph.Key = report.IconKey;
-        WeatherText.Text = report.Temperature;
+        SpaceNotch_App.Views.InkRefresh.Set(WeatherText, report.Temperature, UseSpringAnimations());
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(
             WeatherText,
             $"{_weatherFeature.PlaceName} {report.Temperature} {WeatherCodes.Describe(report.Code, SpaceNotch.Core.Localization.Lang.French)}");

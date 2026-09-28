@@ -126,6 +126,42 @@ public sealed partial class TrameView : Grid
         Schedule();
     }
 
+    private (double X, double Y)? _spot;
+    private long _lastSpotDraw;
+
+    /// <summary>
+    /// Projecteur tramé (A4) : la trame s'éclaire autour de ce point (DIP,
+    /// repère de la notch), ou s'éteint là où elle n'a rien à dire avec
+    /// <c>null</c>. Redessinée au plus trente fois par seconde, seulement
+    /// quand la trame est déjà visible.
+    /// </summary>
+    public void Spotlight((double X, double Y)? at)
+    {
+        if (_scene is null || _tint is null || (at is null && _spot is null))
+        {
+            return;
+        }
+
+        _spot = at;
+        long now = Environment.TickCount64;
+
+        if (at is not null && now - _lastSpotDraw < 33)
+        {
+            return;
+        }
+
+        _lastSpotDraw = now;
+
+        try
+        {
+            Draw();
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log("[TRAME] projecteur impossible", ex);
+        }
+    }
+
     private void Schedule()
     {
         _settle ??= CreateTimer(SettleDelay, () =>
@@ -226,7 +262,9 @@ public sealed partial class TrameView : Grid
             _radius * scale,
             _shoulder * scale,
             Obstacles(scale),
-            _musicOn ? _level : null);
+            _musicOn ? _level : null,
+            _spot is { } spot ? (spot.X * scale, spot.Y * scale) : null,
+            TrameField.SpotRadiusDip * scale);
 
         // Un pixel d'écran d'écart entre deux cellules : la trame se lit en pixels, pas en aplat.
         double size = (cell - (cell >= 3 ? 1 : 0)) / scale;

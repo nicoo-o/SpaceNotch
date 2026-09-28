@@ -355,6 +355,7 @@ public sealed partial class SettingsWindow : Window
             FullscreenToggle.IsOn = settings.HideOverFullscreen;
             StackToggle.IsOn = settings.ShowActivityStack;
             ClockToggle.IsOn = settings.ShowClockAtRest;
+            PixelToggle.IsOn = settings.ShowPixel;
             DiagnosticsToggle.IsOn = settings.EnableDiagnostics;
             CompositionToggle.IsOn = settings.UseCompositionAtmosphere;
             ClipboardSecretsToggle.IsOn = settings.ClipboardIgnoreSecrets;
@@ -740,6 +741,9 @@ public sealed partial class SettingsWindow : Window
 
     private void OnClockToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.ShowClockAtRest = ClockToggle.IsOn);
+
+    private void OnPixelToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.ShowPixel = PixelToggle.IsOn);
 
     private void OnHoverToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.HoverToPreview = HoverToggle.IsOn);

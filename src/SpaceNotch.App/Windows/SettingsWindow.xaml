@@ -453,6 +453,21 @@
                             <ToggleSwitch x:Name="ClockToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnClockToggled" />
                         </Grid>
                     </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Pixel Deux yeux dans la notch au repos, qui suivent le curseur.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Eyes" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Pixel', En='Pixel'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="{l:Loc Fr='Deux yeux dans la notch au repos : ils suivent le curseur, clignent et dorment la nuit.', En='Two eyes in the notch at rest: they follow the pointer, blink and sleep at night.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="PixelToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnPixelToggled" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
                 <StackPanel x:Name="PageAppearance" Visibility="Collapsed">
                     <TextBlock Text="{l:Loc Fr='Apparence', En='Appearance'}" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />

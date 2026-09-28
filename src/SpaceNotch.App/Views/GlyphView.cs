@@ -104,6 +104,7 @@ public sealed partial class GlyphView : Grid
             }
 
             _key = value;
+            IReadOnlyList<bool>? previous = _mask;
             _mask = PixelGlyphs.Resolve(value) ?? (string.IsNullOrEmpty(value) ? PixelGlyphs.Resolve(_fallbackKey) : null);
 
             bool pixels = _mask is not null;
@@ -117,7 +118,13 @@ public sealed partial class GlyphView : Grid
             }
 
             Layout();
-            LightUp();
+
+            // Une icône qui en remplace une autre fait voyager ses pixels (P6) ;
+            // une icône qui apparaît s'allume du centre vers les bords.
+            if (previous is null || !Migrate(previous, _mask!))
+            {
+                LightUp();
+            }
         }
     }
 
@@ -247,6 +254,57 @@ public sealed partial class GlyphView : Grid
                 visual.StopAnimation("Opacity");
                 visual.Opacity = (float)cell.Opacity;
             }
+        }
+    }
+
+    /// <summary>
+    /// Glyphes qui migrent (P6) : chaque pixel de la nouvelle icône part de la
+    /// place d'un pixel de l'ancienne et y glisse, avec un léger décalage de
+    /// balayage. Faux si rien ne peut voyager (animations réduites, icône vide).
+    /// </summary>
+    private bool Migrate(IReadOnlyList<bool> from, IReadOnlyList<bool> to)
+    {
+        if (!AnimationsEnabled || _frames is not null || !IsLoaded)
+        {
+            return false;
+        }
+
+        IReadOnlyList<PixelMove> moves = GlyphMorph.Pair(from, to);
+
+        if (moves.Count == 0 || _cells.Length < 2)
+        {
+            return false;
+        }
+
+        double pitch = Canvas.GetLeft(_cells[1]) - Canvas.GetLeft(_cells[0]);
+
+        try
+        {
+            Compositor compositor = ElementCompositionPreview.GetElementVisual(_cells[0]).Compositor;
+            CompositionEasingFunction ease = compositor.CreateCubicBezierEasingFunction(new System.Numerics.Vector2(0.3f, 1.25f), new System.Numerics.Vector2(0.5f, 1f));
+
+            foreach (PixelMove move in moves)
+            {
+                Rectangle cell = _cells[move.To];
+                ElementCompositionPreview.SetIsTranslationEnabled(cell, true);
+                Visual visual = ElementCompositionPreview.GetElementVisual(cell);
+                (int dx, int dy) = GlyphMorph.Offset(move);
+
+                Vector3KeyFrameAnimation travel = compositor.CreateVector3KeyFrameAnimation();
+                travel.InsertKeyFrame(0f, new System.Numerics.Vector3((float)(dx * pitch), (float)(dy * pitch), 0));
+                travel.InsertKeyFrame(1f, System.Numerics.Vector3.Zero, ease);
+                travel.Duration = TimeSpan.FromMilliseconds(GlyphMorph.TravelMilliseconds);
+                travel.DelayTime = TimeSpan.FromMilliseconds(move.Order * GlyphMorph.StaggerMilliseconds);
+                travel.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
+                visual.StartAnimation("Translation", travel);
+            }
+
+            return true;
+        }
+        catch (Exception)
+        {
+            // Compositeur indisponible : l'icône est déjà posée à sa place.
+            return false;
         }
     }
 

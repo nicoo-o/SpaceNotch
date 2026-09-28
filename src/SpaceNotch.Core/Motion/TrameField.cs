@@ -73,7 +73,9 @@ public static class TrameField
         double bottomRadius,
         double shoulder,
         IReadOnlyList<TrameRect> avoid,
-        double? level = null)
+        double? level = null,
+        (double X, double Y)? spot = null,
+        double spotRadius = 0)
     {
         ArgumentNullException.ThrowIfNull(avoid);
         var lit = new List<(int, int)>();
@@ -99,12 +101,16 @@ public static class TrameField
             {
                 double x = (column + 0.5) * cell, y = (row + 0.5) * cell;
 
-                if (y <= floor)
+                // Au-dessus du plus bas des contenus, seul le projecteur (A4)
+                // allume la trame — et jamais contre un texte (voir Touches).
+                double lamp = Spot(x, y, spot, spotRadius);
+
+                if (y <= floor && lamp <= 0)
                 {
                     continue;
                 }
 
-                double density = Density(x - bodyLeft, y, bodyWidth, height, level);
+                double density = (y <= floor ? 0 : Density(x - bodyLeft, y, bodyWidth, height, level)) + lamp;
 
                 if (density * 16 <= Bayer[((row % 4) * 4) + (column % 4)] + 0.5)
                 {
@@ -121,6 +127,24 @@ public static class TrameField
         }
 
         return lit;
+    }
+
+    /// <summary>Rayon du projecteur (A4), en DIP.</summary>
+    public const double SpotRadiusDip = 70;
+
+    /// <summary>
+    /// Projecteur tramé (A4) : autour du curseur, la trame s'éclaire comme une
+    /// lampe de poche sur une grille de LED. Nul hors du disque.
+    /// </summary>
+    public static double Spot(double x, double y, (double X, double Y)? spot, double radius)
+    {
+        if (spot is not { } s || radius <= 0)
+        {
+            return 0;
+        }
+
+        double d = Math.Sqrt(((x - s.X) * (x - s.X)) + ((y - s.Y) * 1.2 * (y - s.Y) * 1.2)) / radius;
+        return d >= 1 ? 0 : Math.Pow(1 - d, 1.6) * 0.9;
     }
 
     /// <summary>

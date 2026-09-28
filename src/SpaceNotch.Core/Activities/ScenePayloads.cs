@@ -171,3 +171,14 @@ public sealed record SharePayload(string Url, string FileName, IReadOnlyList<boo
 /// processus le plus gourmand et sa part.
 /// </summary>
 public sealed record MonitorPayload(IReadOnlyList<double> History, string Process, int ProcessId, double Percent);
+
+/// <summary>
+/// Octets reçus par un travail sans taille connue — un téléchargement de
+/// navigateur. Le sablier de la carte (P4) en tire un pixel par mégaoctet,
+/// faute de pourcentage.
+/// </summary>
+public sealed record BytesPayload(long Bytes)
+{
+    /// <summary>Remplissage du sablier : un pixel par mégaoctet, au plus cent.</summary>
+    public double HeapPercent => Math.Clamp(Bytes / (1024.0 * 1024.0), 0, 100);
+}

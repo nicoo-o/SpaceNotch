@@ -439,14 +439,22 @@ public sealed class IslandController : IDisposable
     /// Ouvre l'Island sur la scène de l'activité présentée. Sans activité, il n'y
     /// a rien à ouvrir : c'est la scène qui fournit l'encombrement.
     /// </summary>
-    public void RequestExpand()
+    public void RequestExpand() => RequestExpand(null);
+
+    /// <summary>
+    /// Ouverture d'elle-même : le ressort dit l'importance (A7). Une
+    /// information se pose sans dépasser, une interruption rebondit.
+    /// </summary>
+    private void RequestExpand(ActivityPriority? priority)
     {
         if (_presented is null)
         {
             return;
         }
 
-        _animator.UpdateParameters(_motionParameters);
+        _animator.UpdateParameters(priority is { } p
+            ? SpaceNotch.Core.Motion.MotionPresets.ForPriority(_motionParameters, p)
+            : _motionParameters);
         _stateManager.TryTransitionTo(IslandState.Expanding);
         AnimateTo(Opened(_presented));
     }
@@ -642,7 +650,7 @@ public sealed class IslandController : IDisposable
 
         if (claimsAttention && _announcedActivities.Add(activity.Id))
         {
-            RequestExpand();
+            RequestExpand(activity.Priority);
             return;
         }
 
