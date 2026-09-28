@@ -123,6 +123,14 @@
                         </Border.RenderTransform>
                     </Border>
                 </Grid>
+
+                <!-- Barre à étapes (W1) : un segment par étape, rempli à son tour. -->
+                <Grid
+                    x:Name="StepsTrack"
+                    Height="3"
+                    Margin="0,4,0,0"
+                    ColumnSpacing="3"
+                    Visibility="Collapsed" />
             </StackPanel>
         </Grid>
 

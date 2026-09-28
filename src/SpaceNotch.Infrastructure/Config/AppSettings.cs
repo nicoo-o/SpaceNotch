@@ -495,6 +495,18 @@ public sealed class AppSettings
     public bool ShowMeeting { get; set; } = true;
 
     /// <summary>
+    /// Canal local (I4, W1) : les agents IA et les scripts annoncent leur
+    /// travail à la notch par un tube nommé réservé à l'utilisateur. Voir ADR-024.
+    /// </summary>
+    public bool ShowChannel { get; set; } = true;
+
+    /// <summary>
+    /// Écran de veille (P5) : un jeu de la vie en pixels dans la notch après cinq
+    /// minutes d'inactivité. Désactivé par défaut ; jamais sur batterie ni en plein écran.
+    /// </summary>
+    public bool ShowScreensaver { get; set; }
+
+    /// <summary>
     /// Ville de l'aperçu météo (F10). Vide : la météo est coupée et rien n'est
     /// demandé au réseau (ADR-011).
     /// </summary>
@@ -595,6 +607,7 @@ public sealed class AppSettings
         FeatureKeys.Charge => ShowCharge,
         FeatureKeys.Monitor => ShowMonitor,
         FeatureKeys.Meeting => ShowMeeting,
+        FeatureKeys.Channel => ShowChannel,
         _ => true
     };
 
@@ -618,6 +631,7 @@ public sealed class AppSettings
         FeatureKeys.Charge => true,
         FeatureKeys.Monitor => true,
         FeatureKeys.Meeting => true,
+        FeatureKeys.Channel => true,
         _ => false
     };
 
@@ -672,6 +686,10 @@ public sealed class AppSettings
 
             case FeatureKeys.Meeting:
                 ShowMeeting = enabled;
+                return true;
+
+            case FeatureKeys.Channel:
+                ShowChannel = enabled;
                 return true;
 
             default:

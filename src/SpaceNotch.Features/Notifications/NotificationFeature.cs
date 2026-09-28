@@ -54,6 +54,7 @@ public sealed class NotificationFeature : IslandFeatureBase
     private readonly QuietSummary _held = new();
     private readonly Timer _quietTimer;
     private bool _quiet;
+    private DateTimeOffset? _quietUntil;
 
     public NotificationFeature(
         IActivityManager activities,
@@ -80,6 +81,45 @@ public sealed class NotificationFeature : IslandFeatureBase
         }
     }
 
+    /// <summary>
+    /// Silence de réunion (W2) : les notifications sont retenues jusqu'à
+    /// <paramref name="until"/>, puis résumées. <c>null</c> lève le silence.
+    /// </summary>
+    public void QuietUntil(DateTimeOffset? until)
+    {
+        lock (_gate)
+        {
+            _quietUntil = until;
+        }
+
+        RefreshQuiet();
+
+        // La lune dit jusqu'à quand : on la republie avec son nouveau titre.
+        if (until is not null && IsQuiet)
+        {
+            IslandActivity indicator;
+
+            lock (_gate)
+            {
+                indicator = QuietIndicator();
+            }
+
+            PublishActivity(indicator);
+        }
+    }
+
+    /// <summary>Fin du silence de réunion en cours, ou <c>null</c>.</summary>
+    public DateTimeOffset? QuietEnd
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _quietUntil;
+            }
+        }
+    }
+
     protected override async Task OnStartAsync(CancellationToken cancellationToken)
     {
         _listener.NotificationReceived += OnNotificationReceived;
@@ -97,6 +137,7 @@ public sealed class NotificationFeature : IslandFeatureBase
         lock (_gate)
         {
             _quiet = false;
+            _quietUntil = null;
             _held.Clear();
         }
 
@@ -114,7 +155,19 @@ public sealed class NotificationFeature : IslandFeatureBase
     /// </summary>
     public void RefreshQuiet()
     {
-        bool now = _isQuiet();
+        DateTimeOffset? until;
+
+        lock (_gate)
+        {
+            if (_quietUntil is { } end && end <= DateTimeOffset.Now)
+            {
+                _quietUntil = null;
+            }
+
+            until = _quietUntil;
+        }
+
+        bool now = until is not null || _isQuiet();
         IslandActivity? summary = null;
         bool leaving = false;
 
@@ -199,7 +252,12 @@ public sealed class NotificationFeature : IslandFeatureBase
 
     /// <summary>La lune, discrète : le nombre de notifications retenues à droite ; ouverte, le résumé en cours.</summary>
     private IslandActivity QuietIndicator()
-        => QuietSummaryActivity(Lang.T("Ne pas déranger", "Do not disturb"), QuietActivityId, ActivityPriority.Normal, ActivityPresentationPolicy.Passive, null);
+        => QuietSummaryActivity(
+            _quietUntil is { } until ? SpaceNotch.Core.Calendar.MeetingQuiet.Label(until, Lang.French) : Lang.T("Ne pas déranger", "Do not disturb"),
+            QuietActivityId,
+            ActivityPriority.Normal,
+            ActivityPresentationPolicy.Passive,
+            null);
 
     private IslandActivity QuietSummaryActivity(
         string title,

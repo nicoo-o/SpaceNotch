@@ -153,6 +153,13 @@
                         x:Name="RestEyes"
                         Visibility="Collapsed" />
 
+                    <!-- Écran de veille (P5) : le jeu de la vie, après cinq minutes sans clavier ni souris. -->
+                    <views:LifeView
+                        x:Name="RestLife"
+                        Tint="{ThemeResource NfTextSecondaryBrush}"
+                        VerticalAlignment="Center"
+                        Visibility="Collapsed" />
+
                     <Ellipse
                         x:Name="IdleStatusDot"
                         Width="{StaticResource NfIdleDotSize}"

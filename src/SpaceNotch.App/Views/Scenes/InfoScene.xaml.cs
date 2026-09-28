@@ -112,12 +112,61 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
         MetricText.Text = metric ?? string.Empty;
         MetricText.Visibility = metric is null ? Visibility.Collapsed : Visibility.Visible;
 
-        ProgressTrack.Visibility = activity.Progress is null ? Visibility.Collapsed : Visibility.Visible;
+        bool steps = activity.Payload is ProgressStepsPayload { Segments.Count: > 1 };
+        ProgressTrack.Visibility = activity.Progress is null || steps ? Visibility.Collapsed : Visibility.Visible;
         ProgressScale.ScaleX = Math.Clamp(activity.Progress ?? 0, 0, 1);
+        ApplySteps(steps ? ((ProgressStepsPayload)activity.Payload!).Segments : null);
 
         ApplyBadge(activity);
 
         RebuildActions(activity.Actions);
+    }
+
+    /// <summary>
+    /// Barre à étapes (W1) : un segment par étape. Les segments sont recréés
+    /// seulement quand leur nombre change ; sinon, seule l'échelle bouge.
+    /// </summary>
+    private void ApplySteps(IReadOnlyList<double>? segments)
+    {
+        if (segments is null)
+        {
+            StepsTrack.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        if (StepsTrack.Children.Count != segments.Count)
+        {
+            StepsTrack.Children.Clear();
+            StepsTrack.ColumnDefinitions.Clear();
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                StepsTrack.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                var fill = new Border
+                {
+                    CornerRadius = new CornerRadius(1.5),
+                    Background = Ink("NfTextPrimaryBrush", 0xFF),
+                    RenderTransformOrigin = new global::Windows.Foundation.Point(0, 0.5),
+                    RenderTransform = new ScaleTransform { ScaleX = 0 }
+                };
+
+                var segment = new Grid { CornerRadius = new CornerRadius(1.5), Background = Ink("NfStrokeSubtleBrush", 0x24) };
+                segment.Children.Add(fill);
+                Grid.SetColumn(segment, i);
+                StepsTrack.Children.Add(segment);
+            }
+        }
+
+        for (int i = 0; i < segments.Count; i++)
+        {
+            if (StepsTrack.Children[i] is Grid { Children: [Border { RenderTransform: ScaleTransform scale }] })
+            {
+                scale.ScaleX = Math.Clamp(segments[i], 0, 1);
+            }
+        }
+
+        StepsTrack.Visibility = Visibility.Visible;
     }
 
     /// <summary>

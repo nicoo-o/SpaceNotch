@@ -378,8 +378,11 @@ public sealed partial class IslandWindow : Window
             _monitorFeature,
             _meetingFeature,
             _weatherFeature,
-            _shareFeature
+            _shareFeature,
+            CreateChannelFeature()
         };
+
+        WireWave6b();
 
         // Les greffons sont chargés avant la création du registre : ils en font
         // partie dès le démarrage et bénéficient donc exactement du même cycle de
@@ -974,6 +977,7 @@ public sealed partial class IslandWindow : Window
         CardRestView.Visibility = Visibility.Collapsed;
         TabRestView.Visibility = Visibility.Collapsed;
         ShowRestPixel(false);
+        ShowRestLife(atRest: false);
 
         UpdateStackIndicator();
         Announce(activity);
@@ -1002,6 +1006,7 @@ public sealed partial class IslandWindow : Window
             ShowRestWeather();
             IdleClock.Animate = UseSpringAnimations();
             IdleClock.Show(_tourClock ?? DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+            ShowRestLife(atRest: true);
             ArmClockTick(IdleClock.Visibility == Visibility.Visible);
             return;
         }
@@ -3130,11 +3135,16 @@ public sealed partial class IslandWindow : Window
             }
             else
             {
-                _pomodoroFeature.Start();
+                // Focus calé sur l'agenda (W3) : il finit avant la prochaine réunion.
+                _pomodoroFeature.StartFitted();
             }
 
             RevealPresented();
         };
+
+        // Capture de texte (W4) : aussi « ocr » ou « texte » dans la recherche.
+        var captureItem = new MenuFlyoutItem { Text = Lang.T("Capturer du texte", "Capture text") };
+        captureItem.Click += (_, _) => StartTextCapture();
 
         var demoItem = new MenuFlyoutItem { Text = Lang.T("Démonstration", "Demo") };
         demoItem.Click += (_, _) => StartDemo();
@@ -3145,6 +3155,7 @@ public sealed partial class IslandWindow : Window
         menu.Items.Add(timerItem);
         menu.Items.Add(stopwatchItem);
         menu.Items.Add(focusItem);
+        menu.Items.Add(captureItem);
 
         return menu;
     }
@@ -3304,6 +3315,9 @@ public sealed partial class IslandWindow : Window
         _weatherFeature.SetCity(settings.WeatherCity);
         _notificationFeature.IgnoredApps = settings.IgnoredNotificationApps;
         _launcherFeature.WebSearchEngine = settings.WebSearchEngine;
+
+        // Écran de veille (P5) : la vérification d'inactivité ne tourne que s'il est voulu.
+        ArmScreensaver();
 
         // Le détachement retiré, ou l'écran cible changé : la notch revient au
         // bord de l'écran qui est désormais le sien.

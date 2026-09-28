@@ -182,3 +182,9 @@ public sealed record BytesPayload(long Bytes)
     /// <summary>Remplissage du sablier : un pixel par mégaoctet, au plus cent.</summary>
     public double HeapPercent => Math.Clamp(Bytes / (1024.0 * 1024.0), 0, 100);
 }
+
+/// <summary>
+/// Barre à étapes (W1) : le remplissage de chaque segment, de 0 à 1. La carte
+/// dessine un segment par étape au lieu d'une barre continue.
+/// </summary>
+public sealed record ProgressStepsPayload(IReadOnlyList<double> Segments);
