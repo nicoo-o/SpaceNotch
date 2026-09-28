@@ -1001,7 +1001,7 @@ public sealed partial class IslandWindow : Window
             ShowRestPixel(PixelAtRest);
             ShowRestWeather();
             IdleClock.Animate = UseSpringAnimations();
-            IdleClock.Show(DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+            IdleClock.Show(_tourClock ?? DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
             ArmClockTick(IdleClock.Visibility == Visibility.Visible);
             return;
         }

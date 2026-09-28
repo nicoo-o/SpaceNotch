@@ -324,5 +324,11 @@ public class Wave6aCoreTests
 
         Assert.True(lit.Count > none.Count);
         Assert.All(none, c => Assert.Contains(c, lit));
+
+        // Au-dessus du contenu, le projecteur allume la trame, mais jamais contre un texte.
+        var text = new TrameRect(40, 30, 320, 90);
+        var high = TrameField.Cells(360, 120, 3, 24, 8, [text], spot: (180, 20), spotRadius: 70);
+        Assert.NotEmpty(high);
+        Assert.All(high, c => Assert.False(text.Inflate(0).Contains((c.Column + 0.5) * 3, (c.Row + 0.5) * 3)));
     }
 }

@@ -23,8 +23,14 @@ public sealed partial class IslandWindow
         Microsoft.UI.Dispatching.DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
         timer.Interval = TimeSpan.FromMilliseconds(milliseconds);
         timer.IsRepeating = false;
+
+        // Un minuteur que rien ne retient peut être ramassé avant de sonner :
+        // la visite les garde jusqu'à ce qu'ils aient joué.
+        _tourLater.Add(timer);
         timer.Tick += (_, _) =>
         {
+            _tourLater.Remove(timer);
+
             try
             {
                 action();
@@ -36,6 +42,11 @@ public sealed partial class IslandWindow
         };
         timer.Start();
     }
+
+    private readonly List<Microsoft.UI.Dispatching.DispatcherQueueTimer> _tourLater = [];
+
+    /// <summary>Visite : heure imposée à l'horloge du repos, pour filmer la rémanence.</summary>
+    private string? _tourClock;
 
     private IEnumerable<(string Label, Action Run)> Wave6aTour(Func<IslandActivity> discord, Func<IslandActivity> volume, Func<IslandActivity> clipboard, Func<IslandActivity> music)
     {
@@ -136,9 +147,10 @@ public sealed partial class IslandWindow
         {
             TourClear("tour.glyph");
             _settings.ShowClockAtRest = true;
-            TourLater(900, () => IdleClock.Show("12:58"));
-            TourLater(1900, () => IdleClock.Show("12:59"));
-            TourLater(2900, () => IdleClock.Show("13:00"));
+            _tourClock = "12:58";
+            TourLater(900, () => IdleClock.Show(_tourClock = "12:58"));
+            TourLater(1900, () => IdleClock.Show(_tourClock = "12:59"));
+            TourLater(2900, () => IdleClock.Show(_tourClock = "13:00"));
         });
 
         yield return ("encre · température", () =>
@@ -154,6 +166,7 @@ public sealed partial class IslandWindow
         {
             _controller.EndPreview();
             _settings.ShowClockAtRest = false;
+            _tourClock = null;
             TourShow(discord(), open: true);
             TourLater(2300, NotificationSceneView.DismissForTour);
         });
@@ -207,5 +220,18 @@ public sealed partial class IslandWindow
     }
 
     /// <summary>Visite : la pastille détachée est lancée vers la droite, fort.</summary>
-    private void TourThrow() => Release((2600, -700));
+    private void TourThrow()
+    {
+        if (!UsesFloatingGeometry)
+        {
+            return;
+        }
+
+        // Comme une main qui la reprend : la pastille part de sa place exacte,
+        // et la boucle d'images tourne pendant le vol.
+        SpaceNotch.Core.Presentation.ScreenRect rest = CurrentPillRect();
+        _pillSpring.Snap(rest.CenterX, rest.CenterY);
+        Release((2600, -1400));
+        HookDetachFrames();
+    }
 }

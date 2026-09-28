@@ -101,12 +101,16 @@ public static class TrameField
             {
                 double x = (column + 0.5) * cell, y = (row + 0.5) * cell;
 
-                if (y <= floor)
+                // Au-dessus du plus bas des contenus, seul le projecteur (A4)
+                // allume la trame — et jamais contre un texte (voir Touches).
+                double lamp = Spot(x, y, spot, spotRadius);
+
+                if (y <= floor && lamp <= 0)
                 {
                     continue;
                 }
 
-                double density = Density(x - bodyLeft, y, bodyWidth, height, level) + Spot(x, y, spot, spotRadius);
+                double density = (y <= floor ? 0 : Density(x - bodyLeft, y, bodyWidth, height, level)) + lamp;
 
                 if (density * 16 <= Bayer[((row % 4) * 4) + (column % 4)] + 0.5)
                 {

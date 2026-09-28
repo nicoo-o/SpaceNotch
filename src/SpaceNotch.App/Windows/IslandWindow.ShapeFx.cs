@@ -40,6 +40,11 @@ public sealed partial class IslandWindow
             return;
         }
 
+        if (_dropTarget <= 0)
+        {
+            SpaceNotch.Infrastructure.Logging.MiniLogger.Log("[FX] goutte vers un fichier");
+        }
+
         _dropX = double.IsNaN(_dropX) ? x : _dropX;
         _dropTarget = 1;
         _pendingDropX = x;
