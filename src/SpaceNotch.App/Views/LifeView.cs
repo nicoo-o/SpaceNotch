@@ -15,7 +15,7 @@ namespace SpaceNotch_App.Views;
 public sealed partial class LifeView : Canvas
 {
     /// <summary>Colonnes et rangées : de quoi tenir dans la lèvre sans l'élargir.</summary>
-    public const int Columns = 30;
+    public const int Columns = 22;
 
     public const int Rows = 5;
 

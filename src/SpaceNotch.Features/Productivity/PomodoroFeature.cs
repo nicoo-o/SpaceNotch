@@ -236,8 +236,39 @@ public sealed class PomodoroFeature : IslandFeatureBase
             Source = "Pomodoro",
             IconKey = "Timer",
             State = IslandActivityState.TimerActive,
-            Priority = ActivityPriority.Normal
+            Priority = ActivityPriority.Normal,
+
+            // La scène ouverte lit le temps ici : sans lui, elle montrait 25:00 à l'arrêt.
+            Payload = new TimerPayload(_clock.Value, _clock.IsRunning, "Focus")
         });
+    }
+
+    /// <summary>Les boutons de la scène ouverte : lecture / pause et remise à zéro.</summary>
+    public override Task<bool> HandleActionAsync(IslandActionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        switch (request.ActionId)
+        {
+            case TimerFeature.ToggleAction:
+                if (_clock.IsRunning)
+                {
+                    Pause();
+                }
+                else
+                {
+                    Start();
+                }
+
+                return Task.FromResult(true);
+
+            case TimerFeature.ResetAction:
+                Reset(SessionLength);
+                return Task.FromResult(true);
+
+            default:
+                return Task.FromResult(false);
+        }
     }
 
     private void StopTimer() => _tickTimer.Change(Timeout.Infinite, Timeout.Infinite);

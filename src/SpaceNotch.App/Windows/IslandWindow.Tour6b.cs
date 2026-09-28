@@ -46,7 +46,8 @@ public sealed partial class IslandWindow
 
         yield return ("agent · autorisé, puis terminé", () =>
         {
-            _ = _channelFeature?.HandleActionAsync(new IslandActionRequest(AgentActivity, ChannelFeature.AllowAction));
+            // Sans vrai terminal en attente, la réponse est jouée comme l'agent la verrait.
+            Channel(Thinking(Lang.T("Autorisé", "Allowed")));
             TourLater(1800, () => Channel(new AgentMessage(Agent, ClaudeHook.AgentName, "SpaceNotch", null, ChannelState.Done)));
         });
 
@@ -64,6 +65,10 @@ public sealed partial class IslandWindow
         yield return ("silence de réunion · proposé", () =>
         {
             TourClear(ChannelFeature.Prefix + Build);
+
+            // La machine de tournage peut être en « Ne pas déranger » : la proposition n'aurait pas lieu.
+            _quietOverride = 2;
+            _notificationFeature.RefreshQuiet();
             _meetingFeature.Show(meeting(3.2));
             TourOpen(MeetingFeature.ActivityId);
         });
@@ -112,6 +117,7 @@ public sealed partial class IslandWindow
         {
             _tourScreensaver = false;
             SetScreensaver(false);
+            _quietOverride = 0;
         });
     }
 
