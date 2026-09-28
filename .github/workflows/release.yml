@@ -296,7 +296,19 @@ jobs:
 
           # Le dossier est effacé par l'interpréteur de commandes, après la sortie.
           for ($i = 0; $i -lt 20 -and (Test-Path $dir); $i++) { Start-Sleep -Seconds 1 }
-          if (Test-Path $dir) { throw "Le dossier d'installation est resté." }
+          if (Test-Path $dir) {
+            # Dire ce qui retient le dossier : fichiers restants, processus qui
+            # en chargent un module, fenêtres ouvertes (une invite de Windows).
+            Write-Host "Fichiers restants :"
+            Get-ChildItem $dir -Recurse -File -ErrorAction SilentlyContinue | Select-Object -First 30 | ForEach-Object { Write-Host "  $($_.FullName)" }
+            Write-Host "Processus qui utilisent le dossier :"
+            Get-Process | Where-Object {
+              try { $_.Path -like "$dir*" -or ($_.Modules | Where-Object { $_.FileName -like "$dir*" }) } catch { $false }
+            } | ForEach-Object { Write-Host "  $($_.Id) $($_.ProcessName) $($_.Path)" }
+            Write-Host "Fenêtres ouvertes :"
+            Get-Process | Where-Object { $_.MainWindowTitle } | ForEach-Object { Write-Host "  $($_.Id) $($_.ProcessName) « $($_.MainWindowTitle) »" }
+            throw "Le dossier d'installation est resté."
+          }
           if (Test-Path $key) { throw "L'entrée de Paramètres › Applications est restée." }
           if (Get-AppxPackage -Name "SpaceNotch.Identity") { throw "Le paquet d'identité est resté." }
           if (Test-Path $menu) { throw "Le raccourci du menu Démarrer est resté." }
