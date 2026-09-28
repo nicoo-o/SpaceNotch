@@ -114,6 +114,7 @@ public sealed partial class PixelClockView : StackPanel
 
     private void Paint(Canvas palette, char c)
     {
+        palette.Tag = c;
         palette.Children.Clear();
         IReadOnlyList<bool> mask = PixelFont.Resolve(c);
 
@@ -139,6 +140,39 @@ public sealed partial class PixelClockView : StackPanel
         }
     }
 
+    /// <summary>Teinte de la rémanence : le cyan du logo, comme un phosphore.</summary>
+    private static readonly SolidColorBrush Phosphor = new(Microsoft.UI.ColorHelper.FromArgb(255, 0x7F, 0xE6, 0xFF));
+
+    /// <summary>
+    /// Rémanence phosphore (A1) : les pixels que le nouveau chiffre éteint
+    /// restent un instant en cyan, puis s'éteignent.
+    /// </summary>
+    private static void Glow(Canvas palette, char before, char after)
+    {
+        IReadOnlyList<int> fading = Afterglow.Fading(PixelFont.Resolve(before), PixelFont.Resolve(after));
+
+        foreach (int i in fading)
+        {
+            int row = i / PixelFont.Width, column = after == ':' || before == ':' ? 0 : i % PixelFont.Width;
+            var ghost = new Rectangle { Width = Cell, Height = Cell, Fill = Phosphor, Opacity = Afterglow.GlowOpacity, IsHitTestVisible = false };
+            Canvas.SetLeft(ghost, column * Cell);
+            Canvas.SetTop(ghost, row * Cell);
+            palette.Children.Add(ghost);
+
+            Visual visual = ElementCompositionPreview.GetElementVisual(ghost);
+            Compositor compositor = visual.Compositor;
+            ScalarKeyFrameAnimation fade = compositor.CreateScalarKeyFrameAnimation();
+            fade.InsertKeyFrame(0f, (float)Afterglow.GlowOpacity);
+            fade.InsertKeyFrame(1f, 0f, compositor.CreateCubicBezierEasingFunction(new Vector2(0.2f, 0.7f), new Vector2(0.3f, 1f)));
+            fade.Duration = TimeSpan.FromMilliseconds(Afterglow.GlowMilliseconds);
+
+            CompositionScopedBatch batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
+            visual.StartAnimation("Opacity", fade);
+            batch.End();
+            batch.Completed += (_, _) => ghost.DispatcherQueue.TryEnqueue(() => palette.Children.Remove(ghost));
+        }
+    }
+
     /// <summary>La palette se replie sur son axe horizontal, change de chiffre, se déplie.</summary>
     private void Flip(Canvas palette, char c)
     {
@@ -161,9 +195,11 @@ public sealed partial class PixelClockView : StackPanel
             CompositionScopedBatch batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
             visual.StartAnimation("Scale.Y", fold);
             batch.End();
+            char before = palette.Tag is char previous ? previous : ' ';
             batch.Completed += (_, _) => DispatcherQueue.TryEnqueue(() =>
             {
                 Paint(palette, c);
+                Glow(palette, before, c);
                 ScalarKeyFrameAnimation unfold = compositor.CreateScalarKeyFrameAnimation();
                 unfold.InsertKeyFrame(0f, 0f);
                 unfold.InsertKeyFrame(1f, 1f, compositor.CreateCubicBezierEasingFunction(new Vector2(0f, 0f), new Vector2(0.3f, 1.4f)));

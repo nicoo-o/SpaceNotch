@@ -27,7 +27,7 @@ public static class Afterglow
     public const double GlowOpacity = 0.9;
 
     /// <summary>Durée de l'inversion d'encre, en millisecondes.</summary>
-    public const int InkMilliseconds = 80;
+    public const int InkMilliseconds = 160;
 
     /// <summary>Pixels allumés dans <paramref name="before"/> et éteints dans <paramref name="after"/>.</summary>
     public static IReadOnlyList<int> Fading(IReadOnlyList<bool> before, IReadOnlyList<bool> after)

@@ -148,6 +148,11 @@
                     VerticalAlignment="Center"
                     HorizontalAlignment="Center">
 
+                    <!-- Pixel (P1) : deux yeux qui suivent le curseur, clignent et dorment la nuit. -->
+                    <views:PixelEyesView
+                        x:Name="RestEyes"
+                        Visibility="Collapsed" />
+
                     <Ellipse
                         x:Name="IdleStatusDot"
                         Width="{StaticResource NfIdleDotSize}"
@@ -353,6 +358,14 @@
                             VerticalAlignment="Center"
                             Visibility="Collapsed" />
                     </StackPanel>
+                
+                    <!-- Sablier de pixels (P4) : un pixel par pourcent, empilé au fond. -->
+                    <views:PixelHeapView
+                        x:Name="CardHeap"
+                        Grid.ColumnSpan="3"
+                        VerticalAlignment="Bottom"
+                        Margin="0,0,0,-9"
+                        Visibility="Collapsed" />
                 </Grid>
 
                 <!-- ====================================================

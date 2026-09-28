@@ -800,6 +800,7 @@ public sealed partial class IslandWindow : Window
         // propriétaire. La fenêtre n'appelle donc plus directement la session
         // média, ce qui était exactement le couplage qu'il fallait retirer.
         NotificationSceneView.DismissRequested += () => _controller.RequestCollapse();
+        HookInk();
 
         Closed += OnWindowClosed;
         Activated += OnWindowActivated;
@@ -972,11 +973,13 @@ public sealed partial class IslandWindow : Window
         SignalRestView.Visibility = Visibility.Collapsed;
         CardRestView.Visibility = Visibility.Collapsed;
         TabRestView.Visibility = Visibility.Collapsed;
+        ShowRestPixel(false);
 
         UpdateStackIndicator();
         Announce(activity);
         ApplyActivityTint(activity);
         ApplyStateTint(activity);
+        CrenelOnError(activity);
 
         if (activity is null)
         {
@@ -992,7 +995,10 @@ public sealed partial class IslandWindow : Window
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
-            IdleStatusDot.Visibility = IdleClock.Visibility;
+            // Pixel remplace le point de veille : deux repères au même endroit
+            // se feraient concurrence.
+            IdleStatusDot.Visibility = PixelAtRest ? Visibility.Collapsed : IdleClock.Visibility;
+            ShowRestPixel(PixelAtRest);
             ShowRestWeather();
             IdleClock.Animate = UseSpringAnimations();
             IdleClock.Show(DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
@@ -1196,11 +1202,34 @@ public sealed partial class IslandWindow : Window
         CardMetric.Visibility = metricVisibility;
         CardTrailing.Show(trailing);
         CardRestView.Visibility = Visibility.Visible;
+        PresentHeap(activity);
 
         _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
         ApplyHypnoticSlot(_cardHypnotic, CardHypnoticHost, CardGlyph, preset);
         ApplyRestArtwork(activity, CardArtwork, CardArtworkImage, CardGlyph, preset);
         SignalArtwork.Visibility = Visibility.Collapsed;
+    }
+
+    /// <summary>
+    /// Sablier de pixels (P4) : un travail en cours qui dit son avancement, ou
+    /// un téléchargement qui dit ses octets, empile ses pixels au fond de la carte.
+    /// </summary>
+    private void PresentHeap(IslandActivity activity)
+    {
+        double? percent = activity.MotionState != ActivityMotionState.Working
+            ? null
+            : activity.Progress is { } progress
+                ? Math.Clamp(progress, 0, 1) * 100
+                : (activity.Payload as BytesPayload)?.HeapPercent;
+
+        if (percent is null)
+        {
+            CardHeap.Clear();
+            return;
+        }
+
+        CardHeap.Animate = UseSpringAnimations();
+        CardHeap.Fill(activity.Id, percent.Value, StatePalette.Brush(activity.State));
     }
 
     /// <summary>
@@ -1585,7 +1614,7 @@ public sealed partial class IslandWindow : Window
         double radius = geometry.RadiusFor(footprint);
         double shoulder = geometry.ShoulderFor(footprint);
 
-        Geometry? silhouette = _shape.Build(footprint, radius, geometry.Smoothing, shoulder: shoulder);
+        Geometry? silhouette = DeformedSilhouette(footprint) ?? _shape.Build(footprint, radius, geometry.Smoothing, shoulder: shoulder);
         RememberOutline(() => geometry.Silhouette(footprint));
 
         // Une géométrie nulle signifie « identique à la précédente » : le tracé
@@ -2357,6 +2386,8 @@ public sealed partial class IslandWindow : Window
 
     private void OnIslandPointerEntered(object sender, PointerRoutedEventArgs e)
     {
+        _pixelHovered = true;
+
         // Une entrée annule la fermeture en attente : le pointeur qui revient
         // dans le délai de grâce retrouve l'aperçu au lieu de le faire renaître.
         _previewExitTimer?.Stop();
@@ -2441,6 +2472,9 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void OnIslandPointerExited(object sender, PointerRoutedEventArgs e)
     {
+        _pixelHovered = false;
+        SceneTrame.Spotlight(null);
+
         // Un passage trop bref n'a jamais été une intention : l'aperçu n'a pas
         // lieu du tout.
         _previewEnterTimer?.Stop();
@@ -2697,6 +2731,12 @@ public sealed partial class IslandWindow : Window
 
         if (!ctrl && _volumeListener.Level is float level)
         {
+            // Butée (A6) : pousser au-delà de 100 % ou sous zéro secoue la notch.
+            if ((level >= 0.999f && delta > 0) || (level <= 0.001f && delta < 0))
+            {
+                BumpContent();
+            }
+
             _volumeListener.SetLevel((float)VolumeFader.Wheel(level, delta / 120.0));
             _diagnostics.CountEvent();
             e.Handled = true;
@@ -2810,7 +2850,15 @@ public sealed partial class IslandWindow : Window
         e.AcceptedOperation = DataPackageOperation.Copy;
         e.DragUIOverride.Caption = Lang.T("Déposer dans la notch", "Drop into the notch");
 
-        // DragOver arrive en rafale : la mise en place n'a lieu qu'une fois.
+        // La goutte (P2) pend vers le fichier, et le suit.
+        HangDrop(e.GetPosition(IslandBody).X);
+
+        ShowDropTarget();
+    }
+
+    /// <summary>La notch devient une cible de dépôt. DragOver arrive en rafale : la mise en place n'a lieu qu'une fois.</summary>
+    private void ShowDropTarget()
+    {
         if (DropZoneView.Visibility == Visibility.Visible)
         {
             return;
@@ -2839,6 +2887,7 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
+        RetractDrop();
         ShowDropMatter(HypnoticPreset.None);
         DropZoneView.Visibility = Visibility.Collapsed;
         _controller.EndDragTarget();
@@ -2866,6 +2915,7 @@ public sealed partial class IslandWindow : Window
 
             FileShelfSceneView.UpdateItems(_shelfManager.GetItems());
             PlayCue(SpaceNotch.Core.Sound.SoundCueKind.Drop);
+            SwallowDrop();
 
             // Absorption : la matière converge et pulse, puis rend la main à
             // l'étagère. Sans animation, le geste se conclut immédiatement.

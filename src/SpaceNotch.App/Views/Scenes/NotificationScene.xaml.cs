@@ -42,11 +42,23 @@ public sealed partial class NotificationScene : UserControl, IIslandSceneView
     {
         ArgumentNullException.ThrowIfNull(activity);
 
+        // La carte éteinte (A2) se rallume pour la notification suivante.
+        if (_switchedOff)
+        {
+            _switchedOff = false;
+            Microsoft.UI.Composition.Visual visual = ElementCompositionPreview.GetElementVisual(this);
+            visual.StopAnimation("Scale");
+            visual.StopAnimation("Opacity");
+            visual.Scale = Vector3.One;
+            visual.Opacity = 1f;
+        }
+
         ApplyLogo(activity.Artwork);
 
         if (activity.Payload is NotificationGroupPayload group && group.Count > 0)
         {
             AppSourceText.Text = group.AppName;
+            ApplyIdenticon(activity.Artwork is { Length: > 0 } ? null : group.AppName);
             CountText.Text = group.Count > 1
                 ? group.Count.ToString(System.Globalization.CultureInfo.CurrentCulture)
                 : string.Empty;
@@ -181,12 +193,77 @@ public sealed partial class NotificationScene : UserControl, IIslandSceneView
         }
     }
 
+    /// <summary>Visite : la carte est ignorée comme par un clic sur « Fermer ».</summary>
+    public void DismissForTour() => OnCloseClicked(this, new RoutedEventArgs());
+
     private void OnCloseClicked(object sender, RoutedEventArgs e)
     {
-        DismissRequested?.Invoke();
+        if (!GlyphView.AnimationsEnabled || !SwitchOff())
+        {
+            DismissRequested?.Invoke();
+        }
+    }
+
+    /// <summary>
+    /// Extinction cathodique (A2) : la carte ignorée s'écrase en une ligne de
+    /// lumière, puis en un point qui s'éteint, comme un téléviseur qu'on coupe.
+    /// La notch se referme ensuite. Faux si le compositeur manque.
+    /// </summary>
+    private bool _switchedOff;
+
+    private bool SwitchOff()
+    {
+        try
+        {
+            Microsoft.UI.Composition.Visual visual = Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.GetElementVisual(this);
+            Microsoft.UI.Composition.Compositor compositor = visual.Compositor;
+            visual.CenterPoint = new System.Numerics.Vector3((float)(ActualWidth / 2), (float)(ActualHeight / 2), 0);
+
+            var ease = compositor.CreateCubicBezierEasingFunction(new System.Numerics.Vector2(0.6f, 0f), new System.Numerics.Vector2(1f, 1f));
+            Microsoft.UI.Composition.Vector3KeyFrameAnimation crush = compositor.CreateVector3KeyFrameAnimation();
+            crush.InsertKeyFrame(0f, System.Numerics.Vector3.One);
+            crush.InsertKeyFrame(0.55f, new System.Numerics.Vector3(1f, 0.03f, 1), ease);
+            crush.InsertKeyFrame(1f, new System.Numerics.Vector3(0.01f, 0.03f, 1), ease);
+            crush.Duration = System.TimeSpan.FromMilliseconds(160);
+
+            Microsoft.UI.Composition.ScalarKeyFrameAnimation fade = compositor.CreateScalarKeyFrameAnimation();
+            fade.InsertKeyFrame(0.7f, 1f);
+            fade.InsertKeyFrame(1f, 0f);
+            fade.Duration = System.TimeSpan.FromMilliseconds(240);
+
+            Microsoft.UI.Composition.CompositionScopedBatch batch = compositor.CreateScopedBatch(Microsoft.UI.Composition.CompositionBatchTypes.Animation);
+            visual.StartAnimation("Scale", crush);
+            visual.StartAnimation("Opacity", fade);
+            batch.End();
+            batch.Completed += (_, _) => DispatcherQueue.TryEnqueue(() => DismissRequested?.Invoke());
+            _switchedOff = true;
+
+            return true;
+        }
+        catch (System.Exception)
+        {
+            return false;
+        }
     }
 
     private byte[]? _logoBytes;
+
+    /// <summary>
+    /// Sans logo, une app nommée reçoit son identicône (A9) plutôt que la
+    /// cloche commune : on reconnaît ses outils sans lire leur nom.
+    /// </summary>
+    private void ApplyIdenticon(string? appName)
+    {
+        if (string.IsNullOrWhiteSpace(appName))
+        {
+            AppIdenticon.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        AppGlyph.Visibility = Visibility.Collapsed;
+        AppIdenticon.Visibility = Visibility.Visible;
+        AppIdenticon.Show(appName, AppGlyph.Tint ?? new Microsoft.UI.Xaml.Media.SolidColorBrush(Microsoft.UI.Colors.White), GlyphView.AnimationsEnabled && IsLoaded);
+    }
 
     /// <summary>Le vrai logo de l'application, ou la cloche en pixels.</summary>
     private void ApplyLogo(byte[]? bytes)
@@ -194,6 +271,7 @@ public sealed partial class NotificationScene : UserControl, IIslandSceneView
         bool logo = bytes is { Length: > 0 };
         AppLogo.Visibility = logo ? Visibility.Visible : Visibility.Collapsed;
         AppGlyph.Visibility = logo ? Visibility.Collapsed : Visibility.Visible;
+        AppIdenticon.Visibility = Visibility.Collapsed;
 
         if (logo && !ReferenceEquals(bytes, _logoBytes))
         {

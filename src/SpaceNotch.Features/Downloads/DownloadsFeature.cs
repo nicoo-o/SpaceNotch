@@ -235,6 +235,7 @@ public sealed class DownloadsFeature : IslandFeatureBase
             Title = active.Length == 1 ? Lang.T("Téléchargement", "Downloading") : Lang.T($"{active.Length} téléchargements", $"{active.Length} downloads"),
             Eyebrow = active.Length == 1 ? first.DisplayName : Lang.T($"{first.DisplayName} et {active.Length - 1} autre(s)", $"{first.DisplayName} and {active.Length - 1} more"),
             Metric = DownloadTracker.FormatSize(total),
+            Payload = new BytesPayload(total),
             Source = Lang.T("Téléchargements", "Downloads"),
             IconKey = "Download",
             State = IslandActivityState.DownloadActive,

@@ -309,4 +309,20 @@ public class Wave6aCoreTests
         Assert.True(Identicon.GrowDelay(0) > Identicon.GrowDelay(6));
         Assert.InRange(Identicon.PaletteIndex("build.ps1", 5), 0, 4);
     }
+
+    // ---------------- A4 Projecteur tramé ----------------
+
+    [Fact]
+    public void Spotlight_LightsTheTrameAroundThePointerOnly()
+    {
+        Assert.Equal(0, TrameField.Spot(10, 10, null, 70));
+        Assert.Equal(0, TrameField.Spot(200, 10, (10, 10), 70));
+        Assert.True(TrameField.Spot(12, 10, (10, 10), 70) > 0.8);
+
+        var none = TrameField.Cells(360, 120, 3, 24, 8, []);
+        var lit = TrameField.Cells(360, 120, 3, 24, 8, [], spot: (180, 100), spotRadius: 70);
+
+        Assert.True(lit.Count > none.Count);
+        Assert.All(none, c => Assert.Contains(c, lit));
+    }
 }

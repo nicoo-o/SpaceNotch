@@ -443,6 +443,22 @@ public static class PixelGlyphs
             "x.xxx..",
             "xx.x...",
             "....x.."),
+        ["Warning"] = Mask(
+            "...x...",
+            "..xxx..",
+            "..x.x..",
+            ".xx.xx.",
+            ".xxxxx.",
+            "xxx.xxx",
+            "xxxxxxx"),
+        ["Eyes"] = Mask(
+            ".......",
+            ".xx.xx.",
+            ".xx.xx.",
+            ".xx.xx.",
+            ".......",
+            ".......",
+            "......."),
         ["Clock"] = Mask(
             "..xxx..",
             ".x.x.x.",
