@@ -4,12 +4,16 @@ namespace SpaceNotch.Core.Setup;
 /// La désinstallation efface le dossier de l'exécutable qui la mène — qui ne
 /// peut pas s'effacer lui-même tant qu'il tourne. Elle confie donc la fin à
 /// l'interpréteur de commandes : attendre deux secondes que le processus soit
-/// sorti, puis supprimer — deux fois, la seconde rattrapant ce qu'un processus
-/// encore en train de se fermer retenait. C'est la technique classique des
-/// désinstalleurs sans service : rien ne reste, pas même une tâche planifiée.
+/// sorti, puis supprimer — et recommencer quelques fois, deux secondes plus
+/// tard, pour rattraper ce qu'un processus encore en train de se fermer
+/// retenait. C'est la technique classique des désinstalleurs sans service :
+/// rien ne reste, pas même une tâche planifiée.
 /// </summary>
 public static class SelfDelete
 {
+    /// <summary>Nouveaux essais d'effacement après le premier, deux secondes d'écart.</summary>
+    public const int Retries = 5;
+
     /// <summary>
     /// Arguments de <c>cmd.exe</c>. Un chemin contenant un guillemet ou vide est
     /// écarté : il casserait la commande, et n'est jamais un de nos dossiers.
@@ -37,7 +41,10 @@ public static class SelfDelete
         commands.AddRange(afterExit.Where(c => !string.IsNullOrWhiteSpace(c)));
         commands.AddRange(removals);
 
-        if (removals.Count > 0)
+        // Windows peut retenir un fichier quelques secondes de plus (retrait du
+        // paquet d'identité, antivirus) : on réessaie, sans jamais attendre
+        // plus d'une dizaine de secondes au total.
+        for (int retry = 0; removals.Count > 0 && retry < Retries; retry++)
         {
             commands.Add(Wait);
             commands.AddRange(removals);

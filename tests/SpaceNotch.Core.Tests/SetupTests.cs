@@ -333,6 +333,19 @@ public class SelfDeleteTests
         Assert.True(wait < identity && identity < removal);
     }
 
+    [Fact]
+    public void Retries_the_removal_a_few_times()
+    {
+        string arguments = SelfDelete.Arguments([@"C:\Users\ana\AppData\Local\Programs\SpaceNotch"]);
+
+        int removals = arguments.Split("rd /s /q", StringSplitOptions.None).Length - 1;
+        int waits = arguments.Split("ping -n 3", StringSplitOptions.None).Length - 1;
+
+        Assert.Equal(1 + SelfDelete.Retries, removals);
+        Assert.Equal(1 + SelfDelete.Retries, waits);
+        Assert.EndsWith("rd /s /q \"C:\\Users\\ana\\AppData\\Local\\Programs\\SpaceNotch\" 2> nul", arguments, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(@"C:\")]
     [InlineData(@"C:\Windows")]
