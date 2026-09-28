@@ -173,6 +173,7 @@ public sealed partial class IslandWindow
 
         yield return ("clic d'encre", () =>
         {
+            TourClear(NotificationGroups.ActivityIdFor("Discord"));
             TourShow(music(), open: true);
             TourLater(1500, () => PlayInk(new global::Windows.Foundation.Point(IslandBody.ActualWidth * 0.5, IslandBody.ActualHeight * 0.62)));
             TourLater(2500, () => PlayInk(new global::Windows.Foundation.Point(IslandBody.ActualWidth * 0.7, IslandBody.ActualHeight * 0.62)));
