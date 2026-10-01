@@ -74,7 +74,7 @@ public sealed class ShareFeature : IslandFeatureBase
 
         lock (_gate)
         {
-            _server.Start(link, path);
+            _server.Start(link, path, host);
             string url = link.Url(host, _server.Port);
             (bool[] modules, int size) = Encode(url);
             _shown = new SharePayload(url, link.FileName, modules, size, link.ExpiresAt);

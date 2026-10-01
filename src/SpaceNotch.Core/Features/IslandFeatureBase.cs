@@ -31,6 +31,7 @@ public abstract class IslandFeatureBase : IIslandFeature
 {
     private readonly IActivityManager _activities;
     private readonly IEventBus _events;
+    private readonly SemaphoreSlim _lifecycleGate = new(1, 1);
     private bool _disposed;
 
     protected IslandFeatureBase(
@@ -71,51 +72,69 @@ public abstract class IslandFeatureBase : IIslandFeature
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        if (_disposed || !IsEnabled || State is FeatureState.Running or FeatureState.Starting)
-        {
-            return;
-        }
-
-        TransitionTo(FeatureState.Starting, error: null);
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
 
         try
         {
-            await OnStartAsync(cancellationToken).ConfigureAwait(false);
-            TransitionTo(FeatureState.Running, error: null);
+            if (_disposed || !IsEnabled || State is FeatureState.Running or FeatureState.Starting)
+            {
+                return;
+            }
+
+            TransitionTo(FeatureState.Starting, error: null);
+
+            try
+            {
+                await OnStartAsync(cancellationToken).ConfigureAwait(false);
+                TransitionTo(FeatureState.Running, error: null);
+            }
+            catch (Exception ex)
+            {
+                // Isolation : une fonctionnalité en échec ne doit jamais empêcher
+                // l'Island de démarrer.
+                TransitionTo(FeatureState.Faulted, ex);
+            }
         }
-        catch (Exception ex)
+        finally
         {
-            // Isolation : une fonctionnalité en échec ne doit jamais empêcher
-            // l'Island de démarrer.
-            TransitionTo(FeatureState.Faulted, ex);
+            _lifecycleGate.Release();
         }
     }
 
     public async Task StopAsync()
     {
-        if (State is FeatureState.Stopped or FeatureState.Stopping)
-        {
-            return;
-        }
-
-        TransitionTo(FeatureState.Stopping, LastError);
+        await _lifecycleGate.WaitAsync().ConfigureAwait(false);
 
         try
         {
-            await OnStopAsync().ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            // L'erreur d'arrêt est consignée : elle n'empêche pas de considérer la
-            // fonctionnalité comme arrêtée, mais elle doit rester consultable.
-            LastError = ex;
+            if (State is FeatureState.Stopped or FeatureState.Stopping)
+            {
+                return;
+            }
+
+            TransitionTo(FeatureState.Stopping, LastError);
+
+            try
+            {
+                await OnStopAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // L'erreur d'arrêt est consignée : elle n'empêche pas de considérer la
+                // fonctionnalité comme arrêtée, mais elle doit rester consultable.
+                LastError = ex;
+            }
+            finally
+            {
+                // Une fonctionnalité arrêtée ne laisse aucune activité derrière elle :
+                // « inactive = zéro travail » vaut aussi pour les données.
+                _activities.RemoveActivitiesFrom(Id);
+                TransitionTo(FeatureState.Stopped, LastError);
+            }
         }
         finally
         {
-            // Une fonctionnalité arrêtée ne laisse aucune activité derrière elle :
-            // « inactive = zéro travail » vaut aussi pour les données.
-            _activities.RemoveActivitiesFrom(Id);
-            TransitionTo(FeatureState.Stopped, LastError);
+            _lifecycleGate.Release();
         }
     }
 

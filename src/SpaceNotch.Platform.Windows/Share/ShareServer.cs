@@ -53,13 +53,19 @@ public sealed class ShareServer : IDisposable
     }
 
     /// <summary>Commence à servir <paramref name="path"/> sous <paramref name="link"/>.</summary>
-    public void Start(ShareLink link, string path)
+    public void Start(ShareLink link, string path, string host)
     {
         ArgumentNullException.ThrowIfNull(link);
+        ArgumentException.ThrowIfNullOrWhiteSpace(host);
         Stop();
 
+        if (!IPAddress.TryParse(host, out IPAddress? address) || !IsPrivate(address))
+        {
+            throw new ArgumentException("Le partage exige une adresse IPv4 privée.", nameof(host));
+        }
+
         _stop = new CancellationTokenSource();
-        _listener = new TcpListener(IPAddress.Any, 0);
+        _listener = new TcpListener(address, 0);
         _listener.Start();
         Port = ((IPEndPoint)_listener.LocalEndpoint).Port;
 
@@ -102,7 +108,7 @@ public sealed class ShareServer : IDisposable
 
                 string requestLine = await ReadLineAsync(stream, token).ConfigureAwait(false);
 
-                if (!link.Accepts(requestLine, DateTimeOffset.UtcNow) || !File.Exists(path))
+                if (!File.Exists(path) || !link.TryClaim(requestLine, DateTimeOffset.UtcNow))
                 {
                     byte[] notFound = Encoding.ASCII.GetBytes(ShareLink.NotFound);
                     await stream.WriteAsync(notFound, token).ConfigureAwait(false);

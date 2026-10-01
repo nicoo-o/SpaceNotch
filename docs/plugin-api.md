@@ -7,11 +7,18 @@ Un greffon est une **fabrique**, pas une fonctionnalité :
 ```csharp
 public interface IIslandPlugin
 {
+    int ApiVersion { get; }
+
     string Name { get; }
 
     IEnumerable<IIslandFeature> CreateFeatures(IslandFeatureContext context);
 }
 ```
+
+Le contrat courant est la version **1** (`PluginContract.CurrentVersion`). Un greffon qui annonce
+une autre version est refusé au démarrage et son incompatibilité est journalisée. Une nouvelle
+version du contrat doit être accompagnée d'une migration documentée et d'une nouvelle version de
+`SpaceNotch.Core`.
 
 Pourquoi une fabrique ? Parce qu'un greffon a souvent besoin d'instancier ses propres dépendances
 internes avant de créer sa fonctionnalité. Et parce que le chargement devient *vérifiable* : un
@@ -174,9 +181,15 @@ implémentant `IIslandPlugin`. Les échecs sont **isolés et rapportés** : un g
 dépendance manquante ou un constructeur fautif produit une ligne de journal, pas un arrêt de
 l'application.
 
+L'empreinte SHA-256 est vérifiée lors de la découverte puis de nouveau immédiatement avant le
+chargement de l'assemblage. Un fichier remplacé entre l'approbation et le chargement est donc refusé.
+
 Les greffons sont chargés **avant** la création du registre : ils en font donc partie dès le
 démarrage et bénéficient exactement du même cycle de vie, des mêmes bascules et du même routage
 d'actions que les fonctionnalités intégrées.
+
+Dans une build Release de l'application, une signature Authenticode valide et non expirée est
+également exigée. En Debug, les plugins non signés restent utilisables pour le développement local.
 
 ## Vérification
 

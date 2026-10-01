@@ -12,6 +12,8 @@ namespace SpaceNotch.TestPlugin;
 /// </summary>
 public sealed class RecordingPlugin : IIslandPlugin
 {
+    public int ApiVersion => PluginContract.CurrentVersion;
+
     public string Name => "Greffon de test";
 
     public IEnumerable<IIslandFeature> CreateFeatures(IslandFeatureContext context)
@@ -63,6 +65,8 @@ public sealed class RecordingFeature : IslandFeatureBase
 /// </summary>
 public sealed class ExplodingPlugin : IIslandPlugin
 {
+    public int ApiVersion => PluginContract.CurrentVersion;
+
     public string Name => "Greffon défaillant";
 
     public IEnumerable<IIslandFeature> CreateFeatures(IslandFeatureContext context)

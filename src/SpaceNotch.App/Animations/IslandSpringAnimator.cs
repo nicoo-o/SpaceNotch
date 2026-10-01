@@ -46,6 +46,11 @@ public sealed class IslandSpringAnimator
     private double _initialHeightVelocity;
 
     private bool _isRunning;
+    private long _lastRenderTimestamp;
+    private double _maxFrameGapMilliseconds;
+    private double _measuredFrameMilliseconds;
+    private long _measuredFrameGaps;
+    private long _longFrameCount;
 
     public IslandSpringAnimator(
         SpringParameters parameters,
@@ -109,6 +114,18 @@ public sealed class IslandSpringAnimator
     /// </summary>
     public long RenderedFrames { get; private set; }
 
+    /// <summary>Plus grand intervalle observé entre deux images d'une transition.</summary>
+    public double MaxFrameGapMilliseconds => _maxFrameGapMilliseconds;
+
+    /// <summary>Nombre d'intervalles supérieurs à 25 ms, soit une image manquée à 60 Hz.</summary>
+    public long LongFrameCount => _longFrameCount;
+
+    /// <summary>Cadence moyenne observée pendant les transitions mesurées.</summary>
+    public double MeasuredFrameRate
+        => _measuredFrameMilliseconds <= 0
+            ? 0
+            : 1000.0 * _measuredFrameGaps / _measuredFrameMilliseconds;
+
     /// <summary>
     /// Oriente le ressort vers un nouvel encombrement en conservant la position
     /// et la vitesse courantes.
@@ -138,6 +155,7 @@ public sealed class IslandSpringAnimator
         if (!_isRunning)
         {
             _isRunning = true;
+            _lastRenderTimestamp = 0;
             CompositionTarget.Rendering += OnRendering;
         }
     }
@@ -162,6 +180,22 @@ public sealed class IslandSpringAnimator
 
     private void OnRendering(object? sender, object e)
     {
+        long now = Stopwatch.GetTimestamp();
+
+        if (_lastRenderTimestamp != 0)
+        {
+            double gapMilliseconds = (now - _lastRenderTimestamp) * 1000.0 / Stopwatch.Frequency;
+            _maxFrameGapMilliseconds = Math.Max(_maxFrameGapMilliseconds, gapMilliseconds);
+            _measuredFrameMilliseconds += gapMilliseconds;
+            _measuredFrameGaps++;
+
+            if (gapMilliseconds > 25)
+            {
+                _longFrameCount++;
+            }
+        }
+
+        _lastRenderTimestamp = now;
         double t = _stopwatch.Elapsed.TotalSeconds;
 
         (double width, double widthVelocity) = _solver.Evaluate(t, _fromWidth, _toWidth, _initialWidthVelocity);

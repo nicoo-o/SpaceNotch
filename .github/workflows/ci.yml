@@ -21,12 +21,12 @@ jobs:
 
     steps:
       - name: Récupérer le dépôt
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       # La version est lue depuis global.json plutôt que répétée ici, où elle
       # finirait par diverger de ce que la machine de développement utilise.
       - name: Installer le SDK .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           global-json-file: global.json
 
@@ -43,7 +43,7 @@ jobs:
       # diverger d'elle-même : la redondance coûte quelques secondes, la
       # divergence coûtait la construction.
       - name: Restaurer
-        run: dotnet restore -p:Platform=x64
+        run: dotnet restore -p:Platform=x64 -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
 
       # Release porte TreatWarningsAsErrors : cette étape échoue donc sur le
       # moindre avertissement. C'est délibéré — c'est la construction de référence.
@@ -55,12 +55,15 @@ jobs:
 
       # Les tests du cœur s'exécutent sans machine graphique : SpaceNotch.Core ne
       # référence aucune bibliothèque Windows.
-      - name: Tester
-        run: dotnet test -c Debug --logger "trx;LogFileName=resultats.trx"
+      - name: Auditer les dépendances NuGet
+        run: dotnet list SpaceNotch.sln package --vulnerable --include-transitive --no-restore
+
+      - name: Tester en Release
+        run: dotnet test -c Release --logger "trx;LogFileName=resultats.trx"
 
       - name: Publier les résultats de test
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: resultats-tests
           path: '**/resultats.trx'
@@ -79,7 +82,7 @@ jobs:
           --output "${{ runner.temp }}/spacenotch"
 
       - name: Conserver l'exécutable portable
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: spacenotch-portable-x64
           path: ${{ runner.temp }}/spacenotch
@@ -116,11 +119,11 @@ jobs:
 
       - name: Récupérer le dépôt
         if: steps.cert.outputs.disponible == 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Installer le SDK .NET
         if: steps.cert.outputs.disponible == 'true'
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           global-json-file: global.json
 
@@ -153,7 +156,7 @@ jobs:
 
       - name: Conserver le paquet
         if: steps.cert.outputs.disponible == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: spacenotch-msix-x64
           path: ${{ runner.temp }}/msix

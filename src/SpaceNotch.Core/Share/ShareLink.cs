@@ -12,6 +12,7 @@ namespace SpaceNotch.Core.Share;
 public sealed class ShareLink
 {
     public static readonly TimeSpan Lifetime = TimeSpan.FromMinutes(10);
+    private readonly object _gate = new();
 
     public ShareLink(string token, string fileName, DateTimeOffset createdAt)
     {
@@ -42,6 +43,29 @@ public sealed class ShareLink
     /// </summary>
     public bool Accepts(string? requestLine, DateTimeOffset now)
     {
+        lock (_gate)
+        {
+            return AcceptsCore(requestLine, now);
+        }
+    }
+
+    /// <summary>Réserve atomiquement le lien pour une seule requête valide.</summary>
+    public bool TryClaim(string? requestLine, DateTimeOffset now)
+    {
+        lock (_gate)
+        {
+            if (Used || !AcceptsCore(requestLine, now))
+            {
+                return false;
+            }
+
+            Used = true;
+            return true;
+        }
+    }
+
+    private bool AcceptsCore(string? requestLine, DateTimeOffset now)
+    {
         if (Used || now >= ExpiresAt || string.IsNullOrEmpty(requestLine))
         {
             return false;
@@ -55,10 +79,16 @@ public sealed class ShareLink
         }
 
         string[] path = parts[1].TrimStart('/').Split('/', 2);
-        return FixedTimeEquals(path[0], Token);
+        return path.Length > 0 && FixedTimeEquals(path[0], Token);
     }
 
-    public void MarkUsed() => Used = true;
+    public void MarkUsed()
+    {
+        lock (_gate)
+        {
+            Used = true;
+        }
+    }
 
     /// <summary>Jeton lisible dans une adresse, tiré de 16 octets aléatoires fournis par l'appelant.</summary>
     public static string TokenFrom(ReadOnlySpan<byte> random)

@@ -8,6 +8,7 @@ namespace SpaceNotch.Core.State;
 public sealed class IslandStateManager
 {
     private readonly object _lock = new();
+    private readonly object _transitionLock = new();
     private IslandState _currentState = IslandState.Closed;
 
     public IslandState CurrentState
@@ -28,26 +29,29 @@ public sealed class IslandStateManager
     /// </summary>
     public bool TryTransitionTo(IslandState targetState)
     {
-        IslandState oldState;
-
-        lock (_lock)
+        lock (_transitionLock)
         {
-            if (_currentState == targetState)
+            IslandState oldState;
+
+            lock (_lock)
             {
-                return false;
+                if (_currentState == targetState)
+                {
+                    return false;
+                }
+
+                if (!IsValidTransition(_currentState, targetState))
+                {
+                    return false;
+                }
+
+                oldState = _currentState;
+                _currentState = targetState;
             }
 
-            if (!IsValidTransition(_currentState, targetState))
-            {
-                return false;
-            }
-
-            oldState = _currentState;
-            _currentState = targetState;
+            StateChanged?.Invoke(this, new IslandStateChangedEventArgs(oldState, targetState));
+            return true;
         }
-
-        StateChanged?.Invoke(this, new IslandStateChangedEventArgs(oldState, targetState));
-        return true;
     }
 
     private static bool IsValidTransition(IslandState current, IslandState target)

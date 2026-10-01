@@ -105,6 +105,8 @@ public sealed class WeatherPlugin : IIslandPlugin
 {
     private WeatherConfiguration? _configuration;
 
+    public int ApiVersion => PluginContract.CurrentVersion;
+
     /// <summary>Nom lisible, utilisé par les diagnostics et les réglages.</summary>
     public string Name => "Météo locale (exemple)";
 

@@ -113,7 +113,7 @@ public sealed partial class IslandWindow
     {
         if (_fxTimer is null)
         {
-            _fxTimer = DispatcherQueue.CreateTimer();
+            _fxTimer = TrackTimer(DispatcherQueue.CreateTimer());
             _fxTimer.Interval = FxFrame;
             _fxTimer.IsRepeating = true;
             _fxTimer.Tick += (_, _) => FxTick();

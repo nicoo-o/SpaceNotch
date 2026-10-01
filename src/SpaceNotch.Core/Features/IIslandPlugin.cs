@@ -4,6 +4,11 @@ using SpaceNotch.Core.Events;
 
 namespace SpaceNotch.Core.Features;
 
+public static class PluginContract
+{
+    public const int CurrentVersion = 1;
+}
+
 /// <summary>
 /// Dépendances que l'hôte met à disposition d'une fonctionnalité.
 ///
@@ -25,6 +30,9 @@ public sealed record IslandFeatureContext(IActivityManager Activities, IEventBus
 /// </summary>
 public interface IIslandPlugin
 {
+    /// <summary>Version du contrat contre laquelle le greffon a été compilé.</summary>
+    int ApiVersion { get; }
+
     /// <summary>Nom lisible, utilisé dans les diagnostics et les réglages.</summary>
     string Name { get; }
 

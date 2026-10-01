@@ -30,6 +30,16 @@ public class Wave6aCoreTests
         Assert.Equal((0.0, 0.0), PixelGaze.Look(double.NaN, 3));
     }
 
+    [Theory]
+    [InlineData(4, false)]
+    [InlineData(5, true)]
+    public void IdleThreshold_IsFiveMinutes(int minutes, bool expected)
+        => Assert.Equal(expected, PixelGaze.IsIdle(TimeSpan.FromMinutes(minutes)));
+
+    [Fact]
+    public void IdleThreshold_DoesNotTriggerJustBeforeFiveMinutes()
+        => Assert.False(PixelGaze.IsIdle(PixelGaze.IdleThreshold - TimeSpan.FromTicks(1)));
+
     [Fact]
     public void Mood_NotificationWinsOverHoverAndSleep()
     {

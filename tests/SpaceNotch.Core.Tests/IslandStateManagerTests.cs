@@ -1,4 +1,7 @@
 using SpaceNotch.Core.State;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace SpaceNotch.Core.Tests;
@@ -39,5 +42,47 @@ public class IslandStateManagerTests
         bool transitioned = manager.TryTransitionTo(IslandState.Expanded);
         Assert.False(transitioned);
         Assert.Equal(IslandState.Closed, manager.CurrentState);
+    }
+
+    [Fact]
+    public async Task StateManager_ConcurrentTransitions_NotifyInCommitOrder()
+    {
+        var manager = new IslandStateManager();
+        using var firstNotificationStarted = new ManualResetEventSlim();
+        using var releaseFirstNotification = new ManualResetEventSlim();
+        using var secondTransitionStarted = new ManualResetEventSlim();
+        using var secondNotificationDelivered = new ManualResetEventSlim();
+        var notifications = new List<IslandState>();
+
+        manager.StateChanged += (_, args) =>
+        {
+            notifications.Add(args.NewState);
+
+            if (args.NewState == IslandState.Preview)
+            {
+                firstNotificationStarted.Set();
+                releaseFirstNotification.Wait();
+            }
+            else if (args.NewState == IslandState.Expanding)
+            {
+                secondNotificationDelivered.Set();
+            }
+        };
+
+        Task first = Task.Run(() => manager.TryTransitionTo(IslandState.Preview));
+        Assert.True(firstNotificationStarted.Wait(TimeSpan.FromSeconds(1)));
+
+        Task second = Task.Run(() =>
+        {
+            secondTransitionStarted.Set();
+            return manager.TryTransitionTo(IslandState.Expanding);
+        });
+        Assert.True(secondTransitionStarted.Wait(TimeSpan.FromSeconds(1)));
+        Assert.False(secondNotificationDelivered.Wait(TimeSpan.FromMilliseconds(100)));
+
+        releaseFirstNotification.Set();
+        await Task.WhenAll(first, second);
+
+        Assert.Equal(new[] { IslandState.Preview, IslandState.Expanding }, notifications);
     }
 }

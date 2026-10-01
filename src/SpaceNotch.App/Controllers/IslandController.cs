@@ -96,7 +96,7 @@ public sealed class IslandController : IDisposable
             },
             Settle);
 
-        _stateManager.StateChanged += (_, e) => StateChanged?.Invoke(this, e.NewState);
+        _stateManager.StateChanged += (_, e) => Post(() => StateChanged?.Invoke(this, e.NewState));
         _activityManager.ActiveActivityChanged += OnActiveActivityChanged;
         _activityManager.ActivityRemoved += OnActivityRemoved;
 
@@ -162,6 +162,12 @@ public sealed class IslandController : IDisposable
 
     /// <summary>Images rendues depuis le démarrage, utilisé par les diagnostics.</summary>
     public long RenderedFrames => _animator.RenderedFrames;
+
+    public double MaxFrameGapMilliseconds => _animator.MaxFrameGapMilliseconds;
+
+    public long LongFrameCount => _animator.LongFrameCount;
+
+    public double MeasuredFrameRate => _animator.MeasuredFrameRate;
 
     /// <summary>
     /// Activité à présenter. La fenêtre s'y abonne pour résoudre la scène par sa

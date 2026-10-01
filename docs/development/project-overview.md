@@ -111,10 +111,10 @@ dotnet build -c Debug
 dotnet test
 ```
 
-```bash
-EXE="src/SpaceNotch.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64/SpaceNotch.App.exe"
-"$EXE"
-```
+Pour un build local non empaqueté, l'identité de développement est nécessaire : le lancement
+expliqué dans le [guide de construction](building.md#lancer-build-local-non-empaqueté) utilise
+`winapp run` et `Package.appxmanifest`. Un lancement direct du `.exe` local échoue faute d'identité
+de paquet ; cela ne concerne pas les exécutables distribués, préparés par l'installeur.
 
 L'application démarre sans console. Pour l'observer : *Diagnostics* dans le menu de la zone de
 notification, ou `%LocalAppData%\SpaceNotch\logs\spacenotch.log`.

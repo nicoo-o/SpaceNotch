@@ -146,6 +146,24 @@ public static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetCursorPos(out POINT lpPoint);
 
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LASTINPUTINFO
+    {
+        public uint cbSize;
+        public uint dwTime;
+    }
+
+    /// <summary>Instant du dernier événement souris/clavier global de la session.</summary>
+    [LibraryImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetLastInputInfo(ref LASTINPUTINFO plii);
+
+    [LibraryImport("kernel32.dll")]
+    private static partial uint NativeGetTickCount();
+
+    /// <summary>Compteur de millisecondes système modulo 2³².</summary>
+    public static uint GetTickCount() => NativeGetTickCount();
+
     [LibraryImport("shcore.dll", SetLastError = true)]
     public static partial int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
 

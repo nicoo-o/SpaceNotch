@@ -32,17 +32,19 @@ Minuteur → Vérification → Vérification → Vérification → …
 
 ## Les minuteurs qui existent, et pourquoi
 
-Il y en a exactement trois, tous bornés et à usage unique :
+Les principaux minuteurs d'interface sont :
 
 | Minuteur | Rôle | Particularité |
 |---|---|---|
 | Ressort | Évaluation de l'animation | Se termine sur un critère mathématique, pas sur une durée arbitraire |
 | Expiration des activités | Retrait des activités échues | Armé pour la **prochaine** échéance, désarmé quand il n'y a plus rien |
 | Coalescence d'environnement | Regroupe les rafales de messages de moniteur | Un changement de résolution en produit plusieurs ; un seul recalcul suffit |
+| Pixel | Suit le pointeur éveillé (80 ms), vérifie le réveil endormi (5 s), cligne | Arrêté quand ses yeux ne sont pas visibles |
 
-Le minuteur de persistance des réglages en est un quatrième, et il ne se déclenche que sur action
-utilisateur : un curseur déplacé produit des dizaines de valeurs par seconde, écrire le fichier à
-chaque pixel serait du travail inutile. Les écritures sont regroupées sur 300 ms.
+Le minuteur de persistance des réglages ne se déclenche que sur action utilisateur : un curseur
+déplacé produit des dizaines de valeurs par seconde, écrire le fichier à chaque pixel serait du
+travail inutile. Les écritures sont regroupées sur 300 ms. Pixel, lui, n'a un minuteur actif que
+lorsque ses yeux sont visibles.
 
 ## Mesures
 
@@ -94,11 +96,14 @@ autres.
 
 ```bash
 dotnet build -c Release
-EXE="src/SpaceNotch.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64/SpaceNotch.App.exe"
-
-"$EXE" &            # ou lancer depuis l'Explorateur
+WINAPP="$HOME/.nuget/packages/microsoft.windows.sdk.buildtools.winapp/0.6.1/tools/win-x64/winapp.exe"
+"$WINAPP" run src/SpaceNotch.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64 \\
+  --manifest src/SpaceNotch.App/Package.appxmanifest --exe SpaceNotch.App.exe --detach
 sleep 18            # stabilisation : le démarrage domine sinon la mesure
 ```
+
+Le build local est non empaqueté : pour le lancer avec l'identité de développement, suivre la
+procédure `winapp run` du [guide de construction](development/building.md#lancer-build-local-non-empaqueté).
 
 Puis, dans le menu de la zone de notification, **Diagnostics** affiche l'état, la mémoire, le nombre
 d'images rendues et le temps de repos. Pour une mesure CPU fiable, relever deux fois le temps

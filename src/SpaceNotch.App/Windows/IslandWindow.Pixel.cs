@@ -9,13 +9,13 @@ namespace SpaceNotch_App.Windows;
 /// <summary>
 /// Pixel (P1) : les yeux de la notch au repos. Le regard lit la position du
 /// pointeur une douzaine de fois par seconde, et seulement tant que les yeux
-/// sont visibles et éveillés ; endormi, Pixel ne regarde plus que l'heure,
-/// toutes les trente secondes.
+/// sont visibles et éveillés ; endormi, Pixel vérifie son réveil toutes les
+/// cinq secondes.
 /// </summary>
 public sealed partial class IslandWindow
 {
     private static readonly TimeSpan GazeInterval = TimeSpan.FromMilliseconds(80);
-    private static readonly TimeSpan SleepCheckInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan SleepCheckInterval = TimeSpan.FromSeconds(5);
 
     private DispatcherQueueTimer? _gazeTimer;
     private DispatcherQueueTimer? _blinkTimer;
@@ -42,7 +42,10 @@ public sealed partial class IslandWindow
         _gazeTimer ??= CreateRepeatingTimer(GazeInterval, PixelTick);
         PixelTick();
         _gazeTimer.Start();
-        ArmBlink();
+        if (RestEyes.Mood != PixelMood.Asleep)
+        {
+            ArmBlink();
+        }
     }
 
     /// <summary>Une notification arrive : les yeux s'arrondissent un instant.</summary>
@@ -58,11 +61,13 @@ public sealed partial class IslandWindow
 
     private void PixelTick()
     {
+        TimeOnly time = _pixelNight ?? TimeOnly.FromDateTime(DateTime.Now);
         PixelMood mood = PixelGaze.MoodFor(
             DateTime.UtcNow < _pixelSurpriseUntil,
             _pixelHovered,
-            idle: false,
-            _pixelNight ?? TimeOnly.FromDateTime(DateTime.Now));
+            PixelGaze.IsIdle(LastInputIdle()),
+            time);
+        bool wasAsleep = RestEyes.Mood == PixelMood.Asleep;
 
         RestEyes.SetMood(mood);
 
@@ -73,7 +78,13 @@ public sealed partial class IslandWindow
 
         if (mood == PixelMood.Asleep)
         {
+            _blinkTimer?.Stop();
             return;
+        }
+
+        if (wasAsleep)
+        {
+            ArmBlink();
         }
 
         if (_pixelLook is { } forced)
@@ -92,6 +103,25 @@ public sealed partial class IslandWindow
         double centerY = _appWindow.Position.Y + (_appWindow.Size.Height / 2.0);
         (double x, double y) = PixelGaze.Look((cursor.X - centerX) / scale, (cursor.Y - centerY) / scale);
         RestEyes.Look(x, y);
+    }
+
+    /// <summary>Temps écoulé depuis la dernière saisie/souris, sans sondage plus rapide que le sommeil de Pixel.</summary>
+    private static TimeSpan LastInputIdle()
+    {
+        var info = new NativeMethods.LASTINPUTINFO
+        {
+            cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf<NativeMethods.LASTINPUTINFO>()
+        };
+
+        if (!NativeMethods.GetLastInputInfo(ref info))
+        {
+            return TimeSpan.Zero;
+        }
+
+        // GetTickCount et LASTINPUTINFO.dwTime sont deux uint millisecondes ;
+        // la soustraction non signée reste correcte au débordement (~49,7 jours).
+        uint elapsed = unchecked(NativeMethods.GetTickCount() - info.dwTime);
+        return TimeSpan.FromMilliseconds(elapsed);
     }
 
     private void ArmBlink()
@@ -115,7 +145,13 @@ public sealed partial class IslandWindow
         DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
         timer.Interval = interval;
         timer.IsRepeating = true;
-        timer.Tick += (_, _) => tick();
-        return timer;
+        timer.Tick += (_, _) =>
+        {
+            if (!_isClosed)
+            {
+                tick();
+            }
+        };
+        return TrackTimer(timer);
     }
 }

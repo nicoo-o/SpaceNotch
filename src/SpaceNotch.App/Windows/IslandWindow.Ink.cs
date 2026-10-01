@@ -69,7 +69,7 @@ public sealed partial class IslandWindow
 
         if (_inkTimer is null)
         {
-            _inkTimer = DispatcherQueue.CreateTimer();
+            _inkTimer = TrackTimer(DispatcherQueue.CreateTimer());
             _inkTimer.Interval = TimeSpan.FromMilliseconds(InkRing.DurationMilliseconds / InkRing.Frames);
             _inkTimer.IsRepeating = true;
             _inkTimer.Tick += (_, _) => InkTick();

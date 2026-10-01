@@ -34,12 +34,20 @@ dotnet test
 Les tests du cœur s'exécutent sans machine Windows graphique : `SpaceNotch.Core` ne référence aucune
 bibliothèque Windows. C'est ce qui permet à la suite de tourner en une fraction de seconde.
 
-## Lancer
+## Lancer (build local non empaqueté)
+
+L'exécutable local ne peut pas être lancé directement : son manifeste demande une identité de
+paquet, absente d'un build non empaqueté. Utiliser `winapp` avec le manifeste de développement
+(identité temporaire, distincte de l'identité distribuée) :
 
 ```bash
-EXE="src/SpaceNotch.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64/SpaceNotch.App.exe"
-"$EXE"
+WINAPP="$HOME/.nuget/packages/microsoft.windows.sdk.buildtools.winapp/0.6.1/tools/win-x64/winapp.exe"
+"$WINAPP" run src/SpaceNotch.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64 --manifest src/SpaceNotch.App/Package.appxmanifest --exe SpaceNotch.App.exe --args "--settings" --detach
 ```
+
+`--settings` ouvre Réglages pour vérifier la fenêtre ; remplacer cet argument par `--tour` pour
+rejouer la visite, ou l'omettre pour le démarrage normal. Ne pas installer le paquet de développement
+par-dessus le paquet distribué : l'identité de développement est réservée aux essais locaux.
 
 L'application démarre sans console. Deux façons d'observer ce qu'elle fait :
 

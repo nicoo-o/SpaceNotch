@@ -51,6 +51,12 @@ public sealed class RuntimeDiagnostics : IDisposable
     /// <summary>Images rendues par le moteur de ressort depuis le démarrage.</summary>
     public long RenderedFrames => _controller.RenderedFrames;
 
+    public double MaxFrameGapMilliseconds => _controller.MaxFrameGapMilliseconds;
+
+    public long LongFrameCount => _controller.LongFrameCount;
+
+    public double MeasuredFrameRate => _controller.MeasuredFrameRate;
+
     /// <summary>
     /// Temps écoulé depuis la dernière image. C'est la mesure directe du repos :
     /// elle doit croître indéfiniment sur une Island inutilisée.
@@ -126,6 +132,9 @@ public sealed class RuntimeDiagnostics : IDisposable
         builder.Append(_controller.IsAnimating
             ? $" · animation en cours ({RenderedFrames} images)"
             : $" · repos depuis {IdleFor.TotalSeconds:0} s");
+
+        builder.Append(CultureInfo.InvariantCulture,
+            $" · cadence {MeasuredFrameRate:0.0} Hz · trou max {MaxFrameGapMilliseconds:0.0} ms · images longues {LongFrameCount}");
 
         builder.Append(CultureInfo.InvariantCulture, $" · événements : {EventCount}");
         builder.Append(CultureInfo.InvariantCulture, $" · dissolution : {Describe(AtmospherePath)}");

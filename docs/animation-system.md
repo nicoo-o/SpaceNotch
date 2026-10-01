@@ -43,8 +43,10 @@ peut pas produire une Island qui tremble indéfiniment ou n'arrive jamais.
 
 ## Boucle d'animation
 
-Le ressort est évalué sur un fil dédié, à **60 images par seconde**, et **uniquement pendant une
-transition**. La boucle se termine par une auto-déclaration de repos :
+Le ressort est évalué par `CompositionTarget.Rendering`, donc au rythme réel du compositeur de la
+machine — 60 Hz, 120 Hz ou une cadence variable — et **uniquement pendant une transition**. La
+physique reste indépendante de cette cadence, car elle est évaluée analytiquement à l'instant écoulé.
+La boucle se termine par une auto-déclaration de repos :
 
 ```
 HasSettled(t, départ, cible)
@@ -54,9 +56,11 @@ HasSettled(t, départ, cible)
 Ce critère est ce qui rend le repos mesurable : il n'y a pas de « continue à tourner pour voir », il
 y a une condition d'arrêt mathématique. Une fois satisfaite, le ressort cesse d'être évalué.
 
-`RuntimeDiagnostics.RenderedFrames` compte les images réellement appliquées, et `IdleFor` mesure le
-temps écoulé depuis la dernière. Sur une Island inutilisée, `IdleFor` croît indéfiniment — c'est la
-définition opérationnelle du repos.
+`RuntimeDiagnostics.RenderedFrames` compte les images réellement appliquées. Les diagnostics exposent
+aussi la cadence moyenne mesurée, le plus grand intervalle entre deux images et le nombre d'intervalles
+supérieurs à 25 ms — indicateur d'une image manquée à 60 Hz. `IdleFor` mesure le temps écoulé depuis la
+dernière image. Sur une Island inutilisée, `IdleFor` croît indéfiniment — c'est la définition
+opérationnelle du repos.
 
 ## Géométrie
 

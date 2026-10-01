@@ -224,9 +224,10 @@ public sealed partial class IslandWindow : Window
 
     /// <summary>Ouverture différée de l'aperçu : l'intention de survol.</summary>
     private DispatcherQueueTimer? _previewEnterTimer;
+    private readonly HashSet<DispatcherQueueTimer> _ownedTimers = [];
 
     private SettingsWindow? _settingsWindow;
-
+    private IDisposable? _notificationPixelSubscription;
 
     private SystemVisualState _visualState = SystemVisualState.Permissive;
     private bool _isClosed;
@@ -389,9 +390,18 @@ public sealed partial class IslandWindow : Window
 
         // Seuls les greffons approuvés (nom et empreinte) sont chargés ; les
         // autres attendent dans Réglages › À propos.
+        PluginLoadOptions pluginOptions = new(
+#if SPACENOTCH_RELEASE
+            RequireAuthenticodeSignature: true
+#else
+            RequireAuthenticodeSignature: false
+#endif
+        );
+
         PluginLoadResult plugins = _pluginLoader.LoadAll(
             new IslandFeatureContext(_activityManager, _eventBus),
-            new PluginAllowlist(_settings.ApprovedPlugins));
+            new PluginAllowlist(_settings.ApprovedPlugins),
+            pluginOptions);
 
         foreach (string pending in plugins.Pending ?? [])
         {
@@ -771,6 +781,17 @@ public sealed partial class IslandWindow : Window
         // Les défaillances d'abonnés ne sont plus silencieuses.
         _eventBus.HandlerFailed = (eventType, exception) =>
             MiniLogger.Log($"[BUS] Abonné défaillant pour {eventType.Name}", exception);
+
+        // Les notifications du système (ainsi que les alertes métier publiées
+        // sur le même contrat) surprennent Pixel, mais uniquement lorsqu'il est
+        // visible. L'événement peut venir d'un fil de rappel Windows.
+        _notificationPixelSubscription = _eventBus.Subscribe<NotificationPostedEvent>(_ => OnUiThread(() =>
+        {
+            if (!_isClosed && PixelAtRest && RestEyes.Visibility == Visibility.Visible)
+            {
+                SurprisePixel();
+            }
+        }));
 
         _screenWatcher.Changed += OnEnvironmentChanged;
 
@@ -2226,16 +2247,35 @@ public sealed partial class IslandWindow : Window
 
     private DispatcherQueueTimer CreateOneShotTimer(TimeSpan interval, Action onTick)
     {
-        DispatcherQueueTimer timer = _dispatcherQueue.CreateTimer();
+        DispatcherQueueTimer timer = TrackTimer(_dispatcherQueue.CreateTimer());
         timer.IsRepeating = false;
         timer.Interval = interval;
         timer.Tick += (_, _) =>
         {
             timer.Stop();
-            onTick();
+            if (!_isClosed)
+            {
+                onTick();
+            }
         };
 
         return timer;
+    }
+
+    private DispatcherQueueTimer TrackTimer(DispatcherQueueTimer timer)
+    {
+        _ownedTimers.Add(timer);
+        return timer;
+    }
+
+    private void StopOwnedTimers()
+    {
+        foreach (DispatcherQueueTimer timer in _ownedTimers)
+        {
+            timer.Stop();
+        }
+
+        _ownedTimers.Clear();
     }
 
     // ------------------------------------------------------------------
@@ -2426,21 +2466,9 @@ public sealed partial class IslandWindow : Window
             }
         }
 
-        // Le clavier n'est capté que tant que l'utilisateur désigne l'Island : le
-        // reste du temps, la fenêtre ne peut pas être activée et ne perturbère en
-        // rien la frappe dans l'application au premier plan.
-        // Aucun journal ici : le pointeur entre et sort en rafale lorsque la
-        // géométrie change, et journaliser chaque passage noierait le journal sous
-        // un bruit sans information.
-        WindowChrome.SetKeyboardCapture(_hWnd, enabled: true);
-
-        // Le focus n'est pris que s'il n'est pas déjà dans la notch : le
-        // pointeur entre et sort en rafale, et chaque entrée arrachait le focus
-        // au champ de recherche.
-        if (!IsTyping())
-        {
-            IslandBody.Focus(FocusState.Programmatic);
-        }
+        // Le survol ne capture ni focus ni clavier : l'utilisateur peut traverser
+        // la zone sans interrompre la saisie dans l'application active. La
+        // capture est réservée aux commandes explicites qui ouvrent une saisie.
     }
 
     /// <summary>Vrai quand une zone de texte de la notch a le focus : on y tape.</summary>
@@ -3509,6 +3537,11 @@ public sealed partial class IslandWindow : Window
         }
 
         _isClosed = true;
+        StopOwnedTimers();
+        _notificationPixelSubscription?.Dispose();
+        _notificationPixelSubscription = null;
+        _gazeTimer?.Stop();
+        _blinkTimer?.Stop();
 
         _geometryTimer?.Stop();
         _expirationTimer?.Stop();

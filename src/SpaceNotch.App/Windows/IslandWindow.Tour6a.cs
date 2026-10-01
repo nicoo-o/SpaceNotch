@@ -20,7 +20,7 @@ public sealed partial class IslandWindow
     /// <summary>Lance une action un peu plus tard, dans la même étape de visite.</summary>
     private void TourLater(int milliseconds, Action action)
     {
-        Microsoft.UI.Dispatching.DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
+        Microsoft.UI.Dispatching.DispatcherQueueTimer timer = TrackTimer(DispatcherQueue.CreateTimer());
         timer.Interval = TimeSpan.FromMilliseconds(milliseconds);
         timer.IsRepeating = false;
 
@@ -33,7 +33,10 @@ public sealed partial class IslandWindow
 
             try
             {
-                action();
+                if (!_isClosed)
+                {
+                    action();
+                }
             }
             catch (Exception ex)
             {

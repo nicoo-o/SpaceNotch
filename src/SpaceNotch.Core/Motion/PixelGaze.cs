@@ -52,6 +52,12 @@ public static class PixelGaze
     /// <summary>Heure à laquelle Pixel se réveille.</summary>
     public const int WakeHour = 7;
 
+    /// <summary>Inactivité avant que Pixel s'endorme en journée.</summary>
+    public static readonly TimeSpan IdleThreshold = TimeSpan.FromMinutes(5);
+
+    /// <summary>Vrai après une période sans saisie ni déplacement du pointeur.</summary>
+    public static bool IsIdle(TimeSpan sinceLastInput) => sinceLastInput >= IdleThreshold;
+
     /// <summary>
     /// Décalage des yeux vers le curseur. Le regard suit sans jamais sortir de
     /// l'orbite : il sature doucement, comme un œil qui a atteint le coin.

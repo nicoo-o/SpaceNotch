@@ -28,7 +28,7 @@ on:
       - "v*"
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   DOTNET_NOLOGO: true
@@ -40,13 +40,15 @@ jobs:
   build:
     name: Construire SpaceNotch (win-x64)
     runs-on: windows-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Récupérer le dépôt
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Installer le SDK .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
         with:
           global-json-file: global.json
 
@@ -66,8 +68,14 @@ jobs:
 
       # Les tests passent avant toute publication : un .exe qui sortirait d'un cœur
       # cassé ne mérite pas d'être distribué.
-      - name: Tester
-        run: dotnet test tests/SpaceNotch.Core.Tests -c Release
+      - name: Restaurer avec audit NuGet
+        run: dotnet restore SpaceNotch.sln -p:Platform=x64 -p:NuGetAuditMode=all -p:TreatWarningsAsErrors=true
+
+      - name: Auditer les dépendances NuGet
+        run: dotnet list SpaceNotch.sln package --vulnerable --include-transitive --no-restore
+
+      - name: Tester toute la solution en Release
+        run: dotnet test SpaceNotch.sln -c Release --no-restore
 
       # Exécutable unique. Les réglages viennent de Microsoft pour une application
       # WinUI 3 non empaquetée :
@@ -174,6 +182,14 @@ jobs:
 
           # Sans resources.pri, aucune fenêtre XAML ne se charge (WindowsAppSDK#6720).
           if (-not (Test-Path "${{ runner.temp }}/folder/resources.pri")) { throw "resources.pri absent de la publication." }
+
+      - name: Générer les empreintes SHA-256
+        shell: pwsh
+        run: |
+          $dist = "${{ runner.temp }}/dist"
+          Get-ChildItem $dist -File | Get-FileHash -Algorithm SHA256 |
+            ForEach-Object { "{0}  {1}" -f $_.Hash.ToLowerInvariant(), [IO.Path]::GetFileName($_.Path) } |
+            Set-Content "$dist/SHA256SUMS.txt" -Encoding ascii
 
       # Essai de démarrage : l'exécutable unique est lancé en mode démonstration ; la
       # notch doit s'être réellement ouverte et tourner encore après quelques secondes.
@@ -318,28 +334,28 @@ jobs:
 
       - name: Conserver le journal de démarrage
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: journaux-demarrage
           path: ~/AppData/Local/SpaceNotch/logs
           if-no-files-found: ignore
 
       - name: Conserver SpaceNotch.exe
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: SpaceNotch-${{ steps.version.outputs.value }}-exe
           path: ${{ runner.temp }}/dist/SpaceNotch.exe
           if-no-files-found: error
 
       - name: Conserver l'installeur
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: SpaceNotch-${{ steps.version.outputs.value }}-setup
           path: ${{ runner.temp }}/dist/SpaceNotch-Setup.exe
           if-no-files-found: error
 
       - name: Conserver le dossier zippé
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: SpaceNotch-${{ steps.version.outputs.value }}-zip
           path: ${{ runner.temp }}/dist/SpaceNotch-win-x64.zip
@@ -347,9 +363,16 @@ jobs:
 
       # Deux chemins vers une Release : pousser un tag v*, ou cocher « publish » sur le
       # bouton manuel — le tag v<version> est alors créé sur le commit construit.
+      - name: Conserver les empreintes
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: SpaceNotch-${{ steps.version.outputs.value }}-checksums
+          path: ${{ runner.temp }}/dist/SHA256SUMS.txt
+          if-no-files-found: error
+
       - name: Créer la Release
         if: github.ref_type == 'tag' || github.event.inputs.publish == 'true'
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: v${{ steps.version.outputs.value }}
           target_commitish: ${{ github.sha }}

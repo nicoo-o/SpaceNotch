@@ -105,7 +105,10 @@ public sealed class PluginLoader : IDisposable
     /// Greffons approuvés. <c>null</c> charge tout : réservé aux tests ; l'application
     /// passe toujours sa liste.
     /// </param>
-    public PluginLoadResult LoadAll(IslandFeatureContext context, PluginAllowlist? allowlist = null)
+    public PluginLoadResult LoadAll(
+        IslandFeatureContext context,
+        PluginAllowlist? allowlist = null,
+        PluginLoadOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(context);
 
@@ -128,7 +131,7 @@ public sealed class PluginLoader : IDisposable
 
             try
             {
-                LoadFromPath(assemblyPath, context, features, failures);
+                LoadFromPath(assemblyPath, context, features, failures, allowlist, options);
             }
             catch (Exception ex)
             {
@@ -209,8 +212,23 @@ public sealed class PluginLoader : IDisposable
         string assemblyPath,
         IslandFeatureContext context,
         List<IIslandFeature> features,
-        List<string> failures)
+        List<string> failures,
+        PluginAllowlist? allowlist,
+        PluginLoadOptions? options)
     {
+        if (allowlist is not null && !allowlist.IsAllowed(assemblyPath))
+        {
+            failures.Add($"{Path.GetFileName(assemblyPath)} : l'empreinte a changé avant le chargement.");
+            return;
+        }
+
+        if (options?.RequireAuthenticodeSignature == true
+            && !PluginSignatureVerifier.HasValidSignature(assemblyPath))
+        {
+            failures.Add($"{Path.GetFileName(assemblyPath)} : signature Authenticode absente ou invalide.");
+            return;
+        }
+
         var pluginContext = new PluginLoadContext(assemblyPath);
 
         Assembly assembly;
@@ -267,6 +285,12 @@ public sealed class PluginLoader : IDisposable
                 if (Activator.CreateInstance(pluginType) is not IIslandPlugin plugin)
                 {
                     failures.Add($"{pluginType.Name} : constructeur public sans paramètre requis.");
+                    continue;
+                }
+
+                if (plugin.ApiVersion != PluginContract.CurrentVersion)
+                {
+                    failures.Add($"{plugin.Name} : contrat incompatible (v{plugin.ApiVersion}, attendu v{PluginContract.CurrentVersion}).");
                     continue;
                 }
 

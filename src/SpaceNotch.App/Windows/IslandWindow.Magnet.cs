@@ -33,7 +33,7 @@ public sealed partial class IslandWindow
         timer.Interval = MagnetFar;
         timer.IsRepeating = true;
         timer.Tick += (_, _) => StepMagnet(timer);
-        return timer;
+        return TrackTimer(timer);
     }
 
     private void StepMagnet(DispatcherQueueTimer timer)

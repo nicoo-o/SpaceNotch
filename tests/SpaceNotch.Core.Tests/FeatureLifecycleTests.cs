@@ -54,6 +54,10 @@ public class FeatureLifecycleTests
         /// </summary>
         public int LiveListeners { get; private set; }
 
+        public TaskCompletionSource<bool>? StartGate { get; set; }
+
+        public TaskCompletionSource<bool> StartEntered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
         public void Raise(
             string activityId = "fake.activity",
             string sceneKey = IslandSceneCatalog.Pill,
@@ -77,8 +81,8 @@ public class FeatureLifecycleTests
 
             StartCount++;
             LiveListeners++;
-
-            return Task.CompletedTask;
+            StartEntered.TrySetResult(true);
+            return StartGate?.Task ?? Task.CompletedTask;
         }
 
         protected override Task OnStopAsync()
@@ -121,6 +125,27 @@ public class FeatureLifecycleTests
         Assert.Equal(1, feature.StartCount);
         Assert.Equal(1, feature.LiveListeners);
         Assert.Equal(FeatureState.Running, feature.State);
+    }
+
+    [Fact]
+    public async Task StopAsync_ConcurrentWithStart_WaitsAndLeavesFeatureStopped()
+    {
+        (FakeFeature feature, _, _) = Create();
+        feature.StartGate = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        Task start = feature.StartAsync();
+        await feature.StartEntered.Task.WaitAsync(TimeSpan.FromSeconds(1));
+
+        Task stop = feature.StopAsync();
+        Assert.False(stop.IsCompleted);
+
+        feature.StartGate.SetResult(true);
+        await Task.WhenAll(start, stop);
+
+        Assert.Equal(FeatureState.Stopped, feature.State);
+        Assert.Equal(0, feature.LiveListeners);
+        Assert.Equal(1, feature.StartCount);
+        Assert.Equal(1, feature.StopCount);
     }
 
     [Fact]
