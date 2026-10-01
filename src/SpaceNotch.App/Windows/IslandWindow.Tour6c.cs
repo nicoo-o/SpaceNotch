@@ -71,6 +71,8 @@ public sealed partial class IslandWindow
 
         yield return ("copie · actions proposées", () =>
         {
+            // Le rappel échu (prioritaire) masquerait la proposition, discrète par nature.
+            _reminderFeature?.Clear();
             TourClear();
 
             if (_copyAssistFeature is null)
