@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
+using SpaceNotch.Core.Assistant;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Localization;
@@ -169,6 +170,8 @@ public sealed class NotificationFeature : IslandFeatureBase
 
         bool now = until is not null || _isQuiet();
         IslandActivity? summary = null;
+        IReadOnlyList<HeldNotification>? heldItems = null;
+        Digest? digest = null;
         bool leaving = false;
 
         lock (_gate)
@@ -183,7 +186,15 @@ public sealed class NotificationFeature : IslandFeatureBase
             if (!now)
             {
                 leaving = true;
-                summary = _held.Count > 0 ? QuietSummaryActivity(Lang.T("Pendant le calme", "While you were away"), QuietSummaryActivityId, ActivityPriority.Normal, ActivityPresentationPolicy.Temporary, SummaryLifetime) : null;
+
+                if (_held.Count > 0)
+                {
+                    // Résumé (I1) : ce qui te concerne d'abord, par des règles locales.
+                    heldItems = _held.Items;
+                    digest = NotificationDigest.Summarize(heldItems, UserName, Lang.French);
+                    summary = QuietSummaryActivity(digest.Headline, QuietSummaryActivityId, ActivityPriority.Normal, ActivityPresentationPolicy.Temporary, SummaryLifetime, digest);
+                }
+
                 _held.Clear();
             }
         }
@@ -196,6 +207,39 @@ public sealed class NotificationFeature : IslandFeatureBase
         if (summary is not null)
         {
             PublishActivity(summary);
+
+            // Un modèle, s'il est choisi, ajoute une phrase de synthèse par-dessus.
+            if (Ask is { } ask && heldItems is not null && digest is not null)
+            {
+                _ = AddSentenceAsync(ask, summary, heldItems, digest);
+            }
+        }
+    }
+
+    /// <summary>Prénom de l'utilisateur : une notification qui le nomme le concerne.</summary>
+    public string? UserName { get; set; }
+
+    /// <summary>Le modèle de langage choisi, ou <c>null</c> : le résumé reste alors fait de règles.</summary>
+    public Func<AssistantRequest, Task<string?>>? Ask { get; set; }
+
+    private async Task AddSentenceAsync(Func<AssistantRequest, Task<string?>> ask, IslandActivity summary, IReadOnlyList<HeldNotification> items, Digest digest)
+    {
+        try
+        {
+            string? sentence = NotificationDigest.CleanSentence(await ask(NotificationDigest.Prompt(items, UserName, Lang.French)).ConfigureAwait(false));
+
+            // Le résumé a pu partir entre-temps : on ne le fait pas revenir.
+            if (sentence is null || !Activities.GetActiveActivities().Any(a => ReferenceEquals(a, summary) || a.Id == QuietSummaryActivityId))
+            {
+                return;
+            }
+
+            IslandActivity updated = QuietSummaryActivity(digest.Headline, QuietSummaryActivityId, ActivityPriority.Normal, ActivityPresentationPolicy.Temporary, SummaryLifetime, digest, sentence, summary.Payload as QuietPayload);
+            PublishActivity(updated);
+        }
+        catch (Exception ex)
+        {
+            ReportError(ex);
         }
     }
 
@@ -233,7 +277,7 @@ public sealed class NotificationFeature : IslandFeatureBase
             {
                 // Au calme, rien ne s'affiche : la notification est comptée, et
                 // la lune porte le compte.
-                _held.Hold(appName, string.IsNullOrWhiteSpace(title) ? body : title, DateTimeOffset.UtcNow);
+                _held.Hold(appName, title, body, DateTimeOffset.UtcNow);
                 activity = QuietIndicator();
             }
             else
@@ -264,10 +308,13 @@ public sealed class NotificationFeature : IslandFeatureBase
         string id,
         ActivityPriority priority,
         ActivityPresentationPolicy policy,
-        TimeSpan? duration)
+        TimeSpan? duration,
+        Digest? digest = null,
+        string? sentence = null,
+        QuietPayload? previous = null)
     {
-        IReadOnlyList<QuietGroup> groups = _held.Groups();
-        int total = _held.Count;
+        IReadOnlyList<QuietGroup> groups = previous?.Groups ?? _held.Groups();
+        int total = previous?.Total ?? _held.Count;
 
         return new IslandActivity
         {
@@ -275,9 +322,11 @@ public sealed class NotificationFeature : IslandFeatureBase
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Quiet,
             Title = title,
-            Subtitle = total == 0
+            Subtitle = sentence ?? (total == 0
                 ? Lang.T("Les notifications attendent", "Notifications will wait")
-                : Lang.T($"{total} notification(s) retenue(s)", $"{total} notification(s) held"),
+                : digest is not null
+                    ? Lang.T("Pendant le calme", "While you were away")
+                    : Lang.T($"{total} notification(s) retenue(s)", $"{total} notification(s) held")),
             Source = Lang.T("Ne pas déranger", "Do not disturb"),
             Metric = total > 0 ? total.ToString(System.Globalization.CultureInfo.CurrentCulture) : null,
             IconKey = "Moon",
@@ -285,7 +334,7 @@ public sealed class NotificationFeature : IslandFeatureBase
             Priority = priority,
             Policy = policy,
             Duration = duration,
-            Payload = new QuietPayload(groups, total)
+            Payload = new QuietPayload(groups, total, digest)
         };
     }
 }

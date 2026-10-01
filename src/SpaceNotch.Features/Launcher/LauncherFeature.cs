@@ -142,6 +142,9 @@ public sealed class LauncherFeature : IslandFeatureBase
     /// </summary>
     public event Action<LauncherCommandKind, string>? CommandInvoked;
 
+    /// <summary>Nom du modèle de langage choisi (I2), ou <c>null</c> sans modèle.</summary>
+    public string? AskModelName { get; set; }
+
     public void Dismiss()
     {
         _query = string.Empty;
@@ -284,6 +287,23 @@ public sealed class LauncherFeature : IslandFeatureBase
         candidates.AddRange(_files);
 
         IReadOnlyList<LauncherSection> sections = LauncherSearch.Build(_query, candidates, _history, _text, CultureInfo.CurrentCulture, WebSearchEngine);
+
+        // Langage naturel (I2) : ce que la grammaire n'a pas compris peut être
+        // demandé au modèle choisi — une ligne de plus, jamais d'envoi sans Entrée.
+        if (AskModelName is { } model
+            && _query.Trim().Length >= 8
+            && _query.Contains(' ', StringComparison.Ordinal)
+            && !sections.Any(s => s.Items.Any(i => i.Kind == LauncherResultKind.Command)))
+        {
+            LauncherCommand ask = LauncherCommands.AskCommand(_query.Trim(), model, _french);
+            var list = sections.ToList();
+            list.Insert(Math.Max(0, list.Count - 1), new LauncherSection(_text.Command,
+            [
+                new LauncherResult(ask.Target, LauncherResultKind.Command, ask.Title, ask.Subtitle, ask.Target, [], Glyph: "✦")
+            ]));
+            sections = list;
+        }
+
         _lastSections = sections;
 
         bool loading = Volatile.Read(ref _loading) == 1 && _apps.Count == 0;

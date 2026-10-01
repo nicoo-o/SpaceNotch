@@ -154,7 +154,7 @@ public sealed record ColorPayload(ColorCode Color);
 public sealed record NotePayload(string Text);
 
 /// <summary>Retour du calme (F9) : ce qui est arrivé pendant « Ne pas déranger ».</summary>
-public sealed record QuietPayload(IReadOnlyList<QuietGroup> Groups, int Total);
+public sealed record QuietPayload(IReadOnlyList<QuietGroup> Groups, int Total, SpaceNotch.Core.Assistant.Digest? Digest = null);
 
 /// <summary>Branchement du chargeur (F1) : le niveau, pour remplir la batterie en pixels.</summary>
 public sealed record ChargePayload(int Percent);

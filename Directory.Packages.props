@@ -13,6 +13,8 @@
     <PackageVersion Include="WinUIEx" Version="2.9.3" />
     <PackageVersion Include="System.Management" Version="10.0.12" />
     <PackageVersion Include="QRCoder" Version="1.6.0" />
+    <!-- Assistant (vague 6c) : SDK officiel d'Anthropic pour Claude. Voir ADR-025. -->
+    <PackageVersion Include="Anthropic" Version="12.53.0" />
   </ItemGroup>
 
   <ItemGroup>

@@ -19,6 +19,11 @@ public sealed partial class IslandWindow
     {
         try
         {
+            if (RunAssistantCommand(kind, value))
+            {
+                return;
+            }
+
             switch (kind)
             {
                 case LauncherCommandKind.Timer when int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int seconds):

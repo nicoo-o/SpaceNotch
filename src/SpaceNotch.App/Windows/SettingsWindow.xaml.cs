@@ -291,6 +291,9 @@ public sealed partial class SettingsWindow : Window
         ClawdStyleBox.ItemsSource = new[] { Lang.T("A · fidèle", "A · faithful"), Lang.T("C · entre les deux", "C · in between"), Lang.T("B · SpaceNotch", "B · SpaceNotch") };
         ClawdPreview.Pitch = 1.4;
 
+        // L'ordre suit l'énumération AssistantSource.
+        AssistantSourceBox.ItemsSource = new[] { Lang.T("Aucun", "None"), Lang.T("Windows (sur l’appareil)", "Windows (on device)"), "Claude" };
+
         DensityBox.ItemsSource = new[] { Lang.T("Compacte", "Compact"), Lang.T("Confortable", "Comfortable"), Lang.T("Aérée", "Airy") };
         CutoutBox.ItemsSource = new[] { Lang.T("Aucune", "None"), Lang.T("Centrée", "Centred"), Lang.T("À gauche", "Left"), Lang.T("À droite", "Right"), Lang.T("Personnalisée", "Custom") };
 
@@ -364,6 +367,9 @@ public sealed partial class SettingsWindow : Window
             PixelToggle.IsOn = settings.ShowPixel;
             ScreensaverToggle.IsOn = settings.ShowScreensaver;
             UpdateAgentHooksButton();
+            AssistantSourceBox.SelectedIndex = (int)settings.AssistantSource;
+            ClaudeModelBox.Text = settings.ClaudeModel;
+            UpdateAssistantStatus(settings.AssistantSource);
             DiagnosticsToggle.IsOn = settings.EnableDiagnostics;
             CompositionToggle.IsOn = settings.UseCompositionAtmosphere;
             ClipboardSecretsToggle.IsOn = settings.ClipboardIgnoreSecrets;
@@ -824,6 +830,69 @@ public sealed partial class SettingsWindow : Window
         }
 
         UpdateAgentHooksButton();
+    }
+
+    // ---- Assistant (I1 à I3) : le modèle et la clé ----------------------------
+
+    private void OnAssistantSourceChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var source = (SpaceNotch.Core.Assistant.AssistantSource)Math.Max(0, AssistantSourceBox.SelectedIndex);
+        UpdateAssistantStatus(source);
+        Apply(s => s.AssistantSource = source);
+    }
+
+    /// <summary>Ce que le choix donnera vraiment sur ce PC : prêt, à télécharger, indisponible, clé manquante.</summary>
+    private void UpdateAssistantStatus(SpaceNotch.Core.Assistant.AssistantSource source)
+    {
+        bool hasKey = SpaceNotch_App.Assistant.AssistantKeys.HasKey;
+        ClaudeKeyButton.Content = hasKey ? Lang.T("Retirer", "Remove") : Lang.T("Enregistrer", "Save");
+        ClaudeKeyBox.IsEnabled = !hasKey;
+        ClaudeKeyText.Text = hasKey
+            ? Lang.T("Une clé est enregistrée dans le coffre de Windows.", "A key is stored in the Windows vault.")
+            : Lang.T("Gardée dans le coffre de Windows, jamais dans les réglages.", "Kept in the Windows vault, never in the settings file.");
+
+        string? status = source switch
+        {
+            SpaceNotch.Core.Assistant.AssistantSource.Local => SpaceNotch_App.Assistant.WindowsLocalModel.State() switch
+            {
+                Microsoft.Windows.AI.AIFeatureReadyState.Ready => Lang.T("Phi Silica est prêt sur ce PC : rien ne quitte la machine.", "Phi Silica is ready on this PC: nothing leaves the machine."),
+                Microsoft.Windows.AI.AIFeatureReadyState.NotReady => Lang.T("Phi Silica sera préparé par Windows à la première demande.", "Windows will prepare Phi Silica on first use."),
+                _ => Lang.T("Ce PC n’a pas de modèle Windows (PC Copilot+ requis) : les règles locales répondent.", "This PC has no Windows model (Copilot+ PC required): local rules answer.")
+            },
+            SpaceNotch.Core.Assistant.AssistantSource.Claude => hasKey
+                ? Lang.T("Claude répond avec ta clé. Seul le texte concerné est envoyé, jamais un mot de passe.", "Claude answers with your key. Only the text at hand is sent, never a password.")
+                : Lang.T("Ajoute ta clé Claude ci-dessous pour l’activer.", "Add your Claude key below to turn it on."),
+            _ => null
+        };
+
+        AssistantStatusText.Text = status ?? Lang.T(
+            "Sans modèle, la notch résume et comprend les rappels avec ses propres règles. Windows : sur l’appareil, rien ne sort. Claude : avec ta clé, seul le texte concerné est envoyé.",
+            "Without a model, the notch summarizes and understands reminders with its own rules. Windows: on the device, nothing leaves. Claude: with your key, only the text at hand is sent.");
+    }
+
+    private void OnClaudeKeyClicked(object sender, RoutedEventArgs e)
+    {
+        if (SpaceNotch_App.Assistant.AssistantKeys.HasKey)
+        {
+            SpaceNotch_App.Assistant.AssistantKeys.Remove();
+        }
+        else if (!string.IsNullOrWhiteSpace(ClaudeKeyBox.Password))
+        {
+            SpaceNotch_App.Assistant.AssistantKeys.Save(ClaudeKeyBox.Password.Trim());
+        }
+
+        ClaudeKeyBox.Password = string.Empty;
+        var source = (SpaceNotch.Core.Assistant.AssistantSource)Math.Max(0, AssistantSourceBox.SelectedIndex);
+        UpdateAssistantStatus(source);
+
+        // Ré-appliqué pour que la notch prenne ou lâche le modèle tout de suite.
+        Apply(s => s.AssistantSource = source);
+    }
+
+    private void OnClaudeModelCommitted(object sender, RoutedEventArgs e)
+    {
+        string model = ClaudeModelBox.Text.Trim();
+        Apply(s => s.ClaudeModel = model);
     }
 
     private void OnHoverToggled(object sender, RoutedEventArgs e)

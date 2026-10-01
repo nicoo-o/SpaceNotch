@@ -513,6 +513,20 @@ public sealed class AppSettings
     public SpaceNotch.Core.Motion.ClawdStyle ClawdStyle { get; set; } = SpaceNotch.Core.Motion.ClawdStyle.Faithful;
 
     /// <summary>
+    /// Assistant (vague 6c) : aucun modèle par défaut — le résumé et la grammaire
+    /// du lanceur marchent alors par règles locales. « Local » : Phi Silica sur
+    /// PC Copilot+. « Claude » : la clé de l'utilisateur, gardée dans le coffre de
+    /// Windows, jamais ici. Voir ADR-025.
+    /// </summary>
+    public SpaceNotch.Core.Assistant.AssistantSource AssistantSource { get; set; } = SpaceNotch.Core.Assistant.AssistantSource.Off;
+
+    /// <summary>Modèle Claude choisi ; vide : le modèle par défaut.</summary>
+    public string ClaudeModel { get; set; } = string.Empty;
+
+    /// <summary>Actions sur copie (I3) : désactivées par défaut, rien n'est lu sans accord.</summary>
+    public bool CopyActions { get; set; }
+
+    /// <summary>
     /// Ville de l'aperçu météo (F10). Vide : la météo est coupée et rien n'est
     /// demandé au réseau (ADR-011).
     /// </summary>
@@ -614,6 +628,7 @@ public sealed class AppSettings
         FeatureKeys.Monitor => ShowMonitor,
         FeatureKeys.Meeting => ShowMeeting,
         FeatureKeys.Channel => ShowChannel,
+        FeatureKeys.CopyAssist => CopyActions,
         _ => true
     };
 
@@ -638,6 +653,7 @@ public sealed class AppSettings
         FeatureKeys.Monitor => true,
         FeatureKeys.Meeting => true,
         FeatureKeys.Channel => true,
+        FeatureKeys.CopyAssist => true,
         _ => false
     };
 
@@ -696,6 +712,10 @@ public sealed class AppSettings
 
             case FeatureKeys.Channel:
                 ShowChannel = enabled;
+                return true;
+
+            case FeatureKeys.CopyAssist:
+                CopyActions = enabled;
                 return true;
 
             default:
@@ -759,6 +779,18 @@ public sealed class AppSettings
         WebSearchEngine = WebSearchEngine is "bing" or "google" or "duckduckgo" ? WebSearchEngine : "bing";
         LauncherRecents ??= [];
         LauncherLaunches ??= [];
+
+        if (!Enum.IsDefined(AssistantSource))
+        {
+            AssistantSource = SpaceNotch.Core.Assistant.AssistantSource.Off;
+        }
+
+        ClaudeModel = (ClaudeModel ?? string.Empty).Trim();
+
+        if (ClaudeModel.Length > 64 || ClaudeModel.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '-' or '.' or '_')))
+        {
+            ClaudeModel = string.Empty;
+        }
 
         if (!Enum.IsDefined(ClawdStyle))
         {

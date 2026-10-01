@@ -61,7 +61,12 @@ internal static class GlyphCatalog
         ["Deny"] = "\uE711",
         ["Agent"] = "\uE99A",
         ["Progress"] = "\uE9F5",
-        ["Text"] = "\uE8D2"
+        ["Text"] = "\uE8D2",
+        ["Globe"] = "\uE774",
+        ["Message"] = "\uE8BD",
+        ["Clock"] = "\uE823",
+        ["Command"] = "\uE756",
+        ["Warning"] = "\uE7BA"
     };
 
     /// <summary>
