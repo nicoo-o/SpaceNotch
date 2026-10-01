@@ -498,6 +498,52 @@
                             <Button x:Name="AgentHooksButton" Grid.Column="2" VerticalAlignment="Center" Click="OnAgentHooksClicked" />
                         </Grid>
                     </Border>
+                    <TextBlock Text="{l:Loc Fr='ASSISTANT', En='ASSISTANT'}" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Assistant modèle Phi Silica Claude résumé rappels langage naturel">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Agent" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Modèle', En='Model'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock x:Name="AssistantStatusText" Text="{l:Loc Fr='Sans modèle, la notch résume et comprend les rappels avec ses propres règles. Windows : sur l’appareil, rien ne sort. Claude : avec ta clé, seul le texte concerné est envoyé.', En='Without a model, the notch summarizes and understands reminders with its own rules. Windows: on the device, nothing leaves. Claude: with your key, only the text at hand is sent.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="AssistantSourceBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="170" SelectionChanged="OnAssistantSourceChanged" AutomationProperties.Name="{l:Loc Fr='Modèle de l’assistant', En='Assistant model'}" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Clé Claude API Anthropic coffre">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Lock" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Clé Claude', En='Claude key'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock x:Name="ClaudeKeyText" Text="{l:Loc Fr='Gardée dans le coffre de Windows, jamais dans les réglages.', En='Kept in the Windows vault, never in the settings file.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><PasswordBox x:Name="ClaudeKeyBox" Width="170" PlaceholderText="sk-ant-…" AutomationProperties.Name="{l:Loc Fr='Clé Claude', En='Claude key'}" /><Button x:Name="ClaudeKeyButton" Click="OnClaudeKeyClicked" /></StackPanel>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Modèle Claude version">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Settings" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Modèle Claude', En='Claude model'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="{l:Loc Fr='Vide : le modèle par défaut.', En='Empty: the default model.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <TextBox x:Name="ClaudeModelBox" Grid.Column="2" Width="170" VerticalAlignment="Center" PlaceholderText="claude-opus-5-5" LostFocus="OnClaudeModelCommitted" AutomationProperties.Name="{l:Loc Fr='Modèle Claude', En='Claude model'}" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
                 <StackPanel x:Name="PageAppearance" Visibility="Collapsed">
                     <TextBlock Text="{l:Loc Fr='Apparence', En='Appearance'}" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />

@@ -22,7 +22,8 @@
   xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
   xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
-  IgnorableNamespaces="uap uap3 uap10 rescap">
+  xmlns:systemai="http://schemas.microsoft.com/appx/manifest/systemai/windows10"
+  IgnorableNamespaces="uap uap3 uap10 rescap systemai">
 
   <Identity
     Name="SpaceNotch.Identity"
@@ -52,6 +53,8 @@
     <uap3:Capability Name="userNotificationListener" />
     <!-- Prochain rendez-vous (F2) : lecture seule du calendrier. Voir ADR-011. -->
     <uap:Capability Name="appointments" />
+    <!-- Modèle local de Windows (Phi Silica, PC Copilot+) pour le résumé et les actions sur copie. Voir ADR-025. -->
+    <systemai:Capability Name="systemAIModels" />
   </Capabilities>
 
   <Applications>

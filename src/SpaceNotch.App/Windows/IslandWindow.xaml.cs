@@ -382,7 +382,9 @@ public sealed partial class IslandWindow : Window
             CreateChannelFeature()
         };
 
+        features.AddRange(CreateWave6cFeatures());
         WireWave6b();
+        WireWave6c();
 
         // Les greffons sont chargés avant la création du registre : ils en font
         // partie dès le démarrage et bénéficient donc exactement du même cycle de
@@ -3322,6 +3324,7 @@ public sealed partial class IslandWindow : Window
         _weatherFeature.SetCity(settings.WeatherCity);
         _notificationFeature.IgnoredApps = settings.IgnoredNotificationApps;
         _launcherFeature.WebSearchEngine = settings.WebSearchEngine;
+        ApplyAssistant();
 
         // Écran de veille (P5) : la vérification d'inactivité ne tourne que s'il est voulu.
         ArmScreensaver();

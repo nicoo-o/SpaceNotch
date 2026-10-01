@@ -48,4 +48,10 @@ public static class FeatureKeys
 
     /// <summary>Canal local : agents IA (I4) et progressions de scripts (W1).</summary>
     public const string Channel = "feature.channel";
+
+    /// <summary>Actions sur ce qu'on copie (I3) : désactivées par défaut.</summary>
+    public const string CopyAssist = "feature.copy-assist";
+
+    /// <summary>Rappels posés en langage naturel (I2).</summary>
+    public const string Reminders = "feature.reminders";
 }

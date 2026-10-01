@@ -13,6 +13,10 @@ public sealed partial class ClipboardMonitor : IDisposable
     private IntPtr _hWnd;
     private bool _isListening;
 
+    // Plusieurs fonctionnalités partagent l'écoute (historique, actions sur copie) :
+    // une seule inscription auprès de Windows, retirée quand la dernière s'arrête.
+    private int _users;
+
     public event Action? ClipboardUpdated;
 
     /// <summary>Vrai tant que les notifications de presse-papier sont reçues.</summary>
@@ -34,6 +38,7 @@ public sealed partial class ClipboardMonitor : IDisposable
     {
         if (_isListening)
         {
+            _users++;
             return;
         }
 
@@ -53,6 +58,7 @@ public sealed partial class ClipboardMonitor : IDisposable
         }
 
         _isListening = true;
+        _users = 1;
     }
 
     public void OnClipboardMessageReceived()
@@ -62,6 +68,14 @@ public sealed partial class ClipboardMonitor : IDisposable
 
     public void Stop()
     {
+        if (_users > 1)
+        {
+            _users--;
+            return;
+        }
+
+        _users = 0;
+
         if (_isListening && _hWnd != IntPtr.Zero)
         {
             RemoveClipboardFormatListener(_hWnd);
@@ -71,6 +85,7 @@ public sealed partial class ClipboardMonitor : IDisposable
 
     public void Dispose()
     {
+        _users = 0;
         Stop();
     }
 

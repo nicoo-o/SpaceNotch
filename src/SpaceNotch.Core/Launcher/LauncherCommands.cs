@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
 using SpaceNotch.Core.Activities;
+using SpaceNotch.Core.Assistant;
 
 namespace SpaceNotch.Core.Launcher;
 
@@ -17,7 +18,16 @@ public enum LauncherCommandKind
     Color,
 
     /// <summary>Capture de texte (W4) : tracer un rectangle, le texte part au presse-papier.</summary>
-    Capture
+    Capture,
+
+    /// <summary>Un rappel compris dans une phrase (I2).</summary>
+    Reminder,
+
+    /// <summary>Ne pas déranger jusqu'à une heure (I2).</summary>
+    Quiet,
+
+    /// <summary>Demander au modèle ce que la grammaire n'a pas compris (I2).</summary>
+    Ask
 }
 
 /// <summary>Une commande reconnue, avec ce que la ligne de résultat en montre.</summary>
@@ -37,7 +47,7 @@ public static partial class LauncherCommands
     /// <summary>Durée maximale d'un minuteur lancé ainsi.</summary>
     public static readonly TimeSpan MaxTimer = TimeSpan.FromHours(24);
 
-    public static bool TryParse(string? query, bool french, out LauncherCommand command)
+    public static bool TryParse(string? query, bool french, out LauncherCommand command, DateTimeOffset? now = null)
     {
         command = null!;
         string q = (query ?? string.Empty).Trim();
@@ -105,6 +115,13 @@ public static partial class LauncherCommands
             return true;
         }
 
+        // Langage naturel (I2) : « rappelle-moi d'appeler Paul à 17 h ».
+        if (NaturalCommand.Parse(q, now ?? DateTimeOffset.Now) is { } intent)
+        {
+            command = FromIntent(intent, french, now ?? DateTimeOffset.Now);
+            return true;
+        }
+
         if (CapturePattern().IsMatch(q))
         {
             command = new LauncherCommand(
@@ -117,6 +134,47 @@ public static partial class LauncherCommands
 
         return false;
     }
+
+    /// <summary>La ligne de résultat d'une phrase comprise : ce qui sera fait, et quand.</summary>
+    public static LauncherCommand FromIntent(NaturalIntent intent, bool french, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(intent);
+
+        string chips = string.Join(" · ", intent.Chips(french, now).Select(c => c.Value));
+        string enter = french ? "Entrée pour valider" : "Enter to confirm";
+
+        return intent.Kind switch
+        {
+            NaturalKind.Reminder => new LauncherCommand(
+                LauncherCommandKind.Reminder,
+                (french ? "Rappel : " : "Reminder: ") + intent.Text,
+                chips + " · " + enter,
+                Prefix + "reminder:" + intent.At!.Value.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) + "|" + intent.Text),
+            NaturalKind.Quiet => new LauncherCommand(
+                LauncherCommandKind.Quiet,
+                french ? "Ne pas déranger" : "Do not disturb",
+                chips + " · " + enter,
+                Prefix + "quiet:" + intent.At!.Value.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture)),
+            NaturalKind.Timer => new LauncherCommand(
+                LauncherCommandKind.Timer,
+                (french ? "Minuteur " : "Timer ") + chips,
+                enter,
+                Prefix + "timer:" + ((int)intent.Duration!.Value.TotalSeconds).ToString(CultureInfo.InvariantCulture)),
+            _ => new LauncherCommand(
+                LauncherCommandKind.Volume,
+                $"Volume {intent.Level} %",
+                enter,
+                Prefix + "volume:" + intent.Level!.Value.ToString(CultureInfo.InvariantCulture))
+        };
+    }
+
+    /// <summary>La ligne « Demander à … » quand un modèle est choisi et que rien d'autre n'a compris.</summary>
+    public static LauncherCommand AskCommand(string query, string modelName, bool french)
+        => new(
+            LauncherCommandKind.Ask,
+            (french ? "Demander à " : "Ask ") + modelName,
+            query,
+            Prefix + "ask:" + query);
 
     /// <summary>Lit une cible <c>cmd:</c> : le genre et sa valeur.</summary>
     public static bool TryRead(string? target, out LauncherCommandKind kind, out string value)
@@ -143,6 +201,9 @@ public static partial class LauncherCommands
             case "volume": kind = LauncherCommandKind.Volume; return true;
             case "color": kind = LauncherCommandKind.Color; return true;
             case "capture": kind = LauncherCommandKind.Capture; return true;
+            case "reminder": kind = LauncherCommandKind.Reminder; return true;
+            case "quiet": kind = LauncherCommandKind.Quiet; return true;
+            case "ask": kind = LauncherCommandKind.Ask; return true;
             default: return false;
         }
     }

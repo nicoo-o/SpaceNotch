@@ -23,6 +23,9 @@ pourquoi la première avait été retenue.
 | [ADR-020](ADR-020-bords-et-ecrans.md) | Trois bords (haut, gauche, droite), passage d'un écran à l'autre, double-clic, matière réglable | Accepté |
 | [ADR-021](ADR-021-transitions-et-distribution.md) | Transitions entre les états (voile de flou, respiration, bulle en goutte) et .exe produit par GitHub | Accepté |
 | [ADR-022](ADR-022-installeur-et-logo.md) | Logo (la grille hypnotique) et installeur sur mesure : l'installeur est la notch | Accepté |
+| [ADR-023](ADR-023-identite-de-paquet.md) | Identité de paquet signée, pour l'accès aux notifications | Accepté |
+| [ADR-024](ADR-024-canal-local-et-capture.md) | Canal local (tube nommé), hooks de Claude Code, capture de texte | Accepté |
+| [ADR-025](ADR-025-assistant-local-ou-distant.md) | Assistant : règles locales d'abord, Phi Silica sur l'appareil ou Claude avec ta clé | Accepté |
 
 ## Format
 

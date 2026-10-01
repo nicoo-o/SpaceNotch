@@ -85,6 +85,7 @@
     <PackageReference Include="Microsoft.WindowsAppSDK" />
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" />
     <PackageReference Include="WinUIEx" />
+    <PackageReference Include="Anthropic" />
   </ItemGroup>
 
   <ItemGroup>

@@ -48,13 +48,30 @@ public sealed partial class QuietScene : UserControl, IIslandSceneView
         _shown = payload.Groups;
         Groups.Children.Clear();
 
+        // Résumé (I1) : ce qui te concerne d'abord, puis le reste sur une ligne.
+        if (payload.Digest is { } digest)
+        {
+            foreach (SpaceNotch.Core.Assistant.DigestLine line in digest.Important)
+            {
+                Groups.Children.Add(Row(line.App, line.Line, null, primary: true));
+            }
+
+            if (digest.Rest is { } rest && Groups.Children.Count < MaxGroups + 1)
+            {
+                Groups.Children.Add(Row(string.Empty, rest, null, primary: false));
+            }
+
+            return;
+        }
+
         for (int i = 0; i < payload.Groups.Count && i < MaxGroups; i++)
         {
-            Groups.Children.Add(GroupRow(payload.Groups[i]));
+            QuietGroup group = payload.Groups[i];
+            Groups.Children.Add(Row(group.App, group.Latest, group.Count.ToString(CultureInfo.CurrentCulture), primary: false));
         }
     }
 
-    private static Grid GroupRow(QuietGroup group)
+    private static Grid Row(string appName, string text, string? countText, bool primary)
     {
         var row = new Grid { ColumnSpacing = 8, Height = 20 };
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(92) });
@@ -63,7 +80,7 @@ public sealed partial class QuietScene : UserControl, IIslandSceneView
 
         var app = new TextBlock
         {
-            Text = group.App,
+            Text = appName,
             FontSize = 11.5,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
             TextTrimming = TextTrimming.CharacterEllipsis,
@@ -73,22 +90,24 @@ public sealed partial class QuietScene : UserControl, IIslandSceneView
 
         var latest = new TextBlock
         {
-            Text = group.Latest,
+            Text = text,
             FontSize = 11.5,
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center,
-            Foreground = Brush("NfTextSecondaryBrush")
+            Foreground = Brush(primary ? "NfTextPrimaryBrush" : "NfTextSecondaryBrush")
         };
 
         var count = new TextBlock
         {
-            Text = group.Count.ToString(CultureInfo.CurrentCulture),
+            Text = countText ?? string.Empty,
             FontSize = 11,
             VerticalAlignment = VerticalAlignment.Center,
             Foreground = Brush("NfTextTertiaryBrush")
         };
 
-        Grid.SetColumn(latest, 1);
+        // Sans application (la ligne « Et 9 autres »), le texte prend toute la largeur.
+        Grid.SetColumn(latest, appName.Length == 0 ? 0 : 1);
+        Grid.SetColumnSpan(latest, appName.Length == 0 ? 2 : 1);
         Grid.SetColumn(count, 2);
         row.Children.Add(app);
         row.Children.Add(latest);
