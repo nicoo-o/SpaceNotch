@@ -55,6 +55,8 @@
     <uap:Capability Name="appointments" />
     <!-- Modèle local de Windows (Phi Silica, PC Copilot+) pour le résumé et les actions sur copie. Voir ADR-025. -->
     <systemai:Capability Name="systemAIModels" />
+    <!-- Miroir avant une réunion (W5) : la webcam, seulement au survol de « Rejoindre ». Voir ADR-026. -->
+    <DeviceCapability Name="webcam" />
   </Capabilities>
 
   <Applications>

@@ -66,7 +66,14 @@ internal static class GlyphCatalog
         ["Message"] = "\uE8BD",
         ["Clock"] = "\uE823",
         ["Command"] = "\uE756",
-        ["Warning"] = "\uE7BA"
+        ["Warning"] = "\uE7BA",
+        ["Scooter"] = "\uE804",
+        ["Car"] = "\uE804",
+        ["Parcel"] = "\uE7B8",
+        ["Heart"] = "\uEB51",
+        ["Queue"] = "\uE8FD",
+        ["MicrophoneOff"] = "\uEC54",
+        ["Headphones"] = "\uE7F6"
     };
 
     /// <summary>

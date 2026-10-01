@@ -384,8 +384,10 @@ public sealed partial class IslandWindow : Window
         };
 
         features.AddRange(CreateWave6cFeatures());
+        features.AddRange(CreateWave6dFeatures());
         WireWave6b();
         WireWave6c();
+        WireWave6d();
 
         // Les greffons sont chargés avant la création du registre : ils en font
         // partie dès le démarrage et bénéficient donc exactement du même cycle de
@@ -1111,6 +1113,7 @@ public sealed partial class IslandWindow : Window
 
         _visibleSceneRoot = null;
         InfoSceneView.Rest();
+        RestMirror();
         SceneTrame.Present(null, null, music: false);
 
         PresentResting(activity);
@@ -3353,6 +3356,7 @@ public sealed partial class IslandWindow : Window
         _notificationFeature.IgnoredApps = settings.IgnoredNotificationApps;
         _launcherFeature.WebSearchEngine = settings.WebSearchEngine;
         ApplyAssistant();
+        ApplyDiscord();
 
         // Écran de veille (P5) : la vérification d'inactivité ne tourne que s'il est voulu.
         ArmScreensaver();

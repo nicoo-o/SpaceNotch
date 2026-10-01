@@ -69,6 +69,25 @@
                 TextTrimming="CharacterEllipsis"
                 MaxLines="1" />
 
+            <!-- Paroles synchronisées (T4) : la ligne chantée, puis ce qui vient ensuite. -->
+            <TextBlock
+                x:Name="LyricsText"
+                FontSize="12.5"
+                FontWeight="SemiBold"
+                Foreground="{ThemeResource NfTextPrimaryBrush}"
+                TextTrimming="CharacterEllipsis"
+                MaxLines="1"
+                Margin="0,4,0,0"
+                Visibility="Collapsed" />
+
+            <TextBlock
+                x:Name="NextText"
+                FontSize="10.5"
+                Foreground="{ThemeResource NfTextTertiaryBrush}"
+                TextTrimming="CharacterEllipsis"
+                MaxLines="1"
+                Visibility="Collapsed" />
+
             <!--
                 Timeline interactive : la progression est présentée par la
                 fonctionnalité, et tout déplacement volontaire lui est renvoyé sous
@@ -161,6 +180,23 @@
                     AutomationProperties.Name="{l:Loc Fr='Piste suivante', En='Next track'}"
                     Click="OnNextClicked">
                     <views:GlyphView Key="Next" Size="14" Tint="{ThemeResource NfTextPrimaryBrush}" />
+                </Button>
+
+                <!-- « J'aime » sur Spotify (T4), seulement une fois connecté. -->
+                <Button
+                    Style="{StaticResource NfSecondaryButtonStyle}"
+                    x:Name="LikeButton"
+                    Width="32"
+                    Height="32"
+                    CornerRadius="16"
+                    Padding="0"
+                    Background="{ThemeResource NfSurfaceElevatedBrush}"
+                    BorderThickness="0"
+                    Visibility="Collapsed"
+                    ToolTipService.ToolTip="{l:Loc Fr='J’aime sur Spotify', En='Like on Spotify'}"
+                    AutomationProperties.Name="{l:Loc Fr='J’aime sur Spotify', En='Like on Spotify'}"
+                    Click="OnLikeClicked">
+                    <views:GlyphView x:Name="LikeIcon" Key="Heart" Size="14" Tint="{ThemeResource NfTextSecondaryBrush}" />
                 </Button>
             </StackPanel>
         </StackPanel>

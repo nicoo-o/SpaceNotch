@@ -54,4 +54,10 @@ public static class FeatureKeys
 
     /// <summary>Rappels posés en langage naturel (I2).</summary>
     public const string Reminders = "feature.reminders";
+
+    /// <summary>Appels et livraisons relayés par Lien avec Windows (T1, T2).</summary>
+    public const string Phone = "feature.phone";
+
+    /// <summary>Salle vocale Discord, par le RPC local (T3).</summary>
+    public const string Discord = "feature.discord";
 }
