@@ -145,6 +145,13 @@ public static partial class CopyActions
         DateTimeOffset date = now.Date.AddDays(before ? ahead - 1 : ahead);
         var when = new DateTimeOffset(date.Year, date.Month, date.Day, before ? 17 : 9, 0, 0, now.Offset);
 
+        // La veille est déjà passée (« avant vendredi », lu jeudi soir) : le jour même au matin.
+        if (before && when <= now)
+        {
+            DateTimeOffset day0 = now.Date.AddDays(ahead);
+            when = new DateTimeOffset(day0.Year, day0.Month, day0.Day, 9, 0, 0, now.Offset);
+        }
+
         return when > now ? new NaturalIntent(NaturalKind.Reminder, subject, when, null, null) : null;
     }
 

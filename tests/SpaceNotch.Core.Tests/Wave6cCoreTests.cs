@@ -147,6 +147,9 @@ public class Wave6cCoreTests
 
         // Vendredi sans « avant » : le jour même, 9 h.
         Assert.Equal(new DateTimeOffset(2026, 10, 2, 9, 0, 0, Now.Offset), CopyActions.ReminderFrom("Rendu du dossier vendredi", Now)?.At);
+
+        // Lu jeudi soir, après 17 h : « avant vendredi » devient vendredi matin.
+        Assert.Equal(new DateTimeOffset(2026, 10, 2, 9, 0, 0, Now.Offset), CopyActions.ReminderFrom("before Friday please", Now.Date.AddHours(23).AddMinutes(40) is var late ? new DateTimeOffset(late, Now.Offset) : Now)?.At);
     }
 
     [Fact]
