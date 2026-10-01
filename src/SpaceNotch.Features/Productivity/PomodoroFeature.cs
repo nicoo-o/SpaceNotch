@@ -66,6 +66,57 @@ public sealed class PomodoroFeature : IslandFeatureBase
     public double RemainingFraction
         => SessionLength <= TimeSpan.Zero ? 0 : Math.Clamp(Remaining / SessionLength, 0, 1);
 
+    /// <summary>
+    /// Prochain rendez-vous (W3) : son heure et son titre, ou <c>null</c>.
+    /// Fourni par l'hôte, qui connaît le calendrier.
+    /// </summary>
+    public Func<(DateTimeOffset Start, string? Subject)?> NextMeeting { get; set; } = () => null;
+
+    private string? _fittedNote;
+
+    /// <summary>
+    /// Focus calé sur l'agenda (W3) : la session finit deux minutes avant la
+    /// prochaine réunion. Renvoie ce qui a été décidé ; une durée nulle veut
+    /// dire que la réunion est trop proche et qu'aucun focus n'est lancé.
+    /// </summary>
+    public SpaceNotch.Core.Calendar.FocusFit StartFitted(TimeSpan? requested = null, DateTimeOffset? now = null)
+    {
+        var next = NextMeeting();
+        var fit = SpaceNotch.Core.Calendar.FocusPlan.Fit(requested ?? DefaultSessionLength, now ?? DateTimeOffset.Now, next?.Start, next?.Subject);
+
+        if (fit.Duration <= TimeSpan.Zero)
+        {
+            PublishActivity(new IslandActivity
+            {
+                Id = ActivityId,
+                FeatureId = FeatureKey,
+                SceneKey = IslandSceneCatalog.Card,
+                Title = Lang.T("Pas de focus", "No focus"),
+                Subtitle = Lang.T("La réunion commence bientôt", "Your meeting starts soon"),
+                Eyebrow = fit.Meeting,
+                Source = "Pomodoro",
+                IconKey = "Timer",
+                State = IslandActivityState.TimerActive,
+                Priority = ActivityPriority.Normal,
+                Duration = TimeSpan.FromSeconds(5)
+            });
+
+            return fit;
+        }
+
+        if (_clock.IsRunning)
+        {
+            Reset(fit.Duration);
+        }
+
+        _fittedNote = fit.Shortened && fit.MeetingStart is { } start
+            ? Lang.T($"{(int)fit.Duration.TotalMinutes} min · avant {start.ToLocalTime():HH:mm}", $"{(int)fit.Duration.TotalMinutes} min · before {start.ToLocalTime():HH:mm}")
+            : null;
+
+        Start(fit.Duration);
+        return fit;
+    }
+
     public void Start(TimeSpan? duration = null)
     {
         if (!IsEnabled)
@@ -112,6 +163,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
         StopTimer();
         _clock.Set(duration ?? DefaultSessionLength, countsDown: true);
         SessionLength = duration ?? DefaultSessionLength;
+        _fittedNote = null;
         RemoveActivity(ActivityId);
     }
 
@@ -180,12 +232,43 @@ public sealed class PomodoroFeature : IslandFeatureBase
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Pomodoro,
             Title = _clock.Value.ToString(@"mm\:ss", CultureInfo.InvariantCulture),
-            Subtitle = subtitle,
+            Subtitle = _clock.IsRunning && _fittedNote is not null ? _fittedNote : subtitle,
             Source = "Pomodoro",
             IconKey = "Timer",
             State = IslandActivityState.TimerActive,
-            Priority = ActivityPriority.Normal
+            Priority = ActivityPriority.Normal,
+
+            // La scène ouverte lit le temps ici : sans lui, elle montrait 25:00 à l'arrêt.
+            Payload = new TimerPayload(_clock.Value, _clock.IsRunning, "Focus")
         });
+    }
+
+    /// <summary>Les boutons de la scène ouverte : lecture / pause et remise à zéro.</summary>
+    public override Task<bool> HandleActionAsync(IslandActionRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+
+        switch (request.ActionId)
+        {
+            case TimerFeature.ToggleAction:
+                if (_clock.IsRunning)
+                {
+                    Pause();
+                }
+                else
+                {
+                    Start();
+                }
+
+                return Task.FromResult(true);
+
+            case TimerFeature.ResetAction:
+                Reset(SessionLength);
+                return Task.FromResult(true);
+
+            default:
+                return Task.FromResult(false);
+        }
     }
 
     private void StopTimer() => _tickTimer.Change(Timeout.Infinite, Timeout.Infinite);

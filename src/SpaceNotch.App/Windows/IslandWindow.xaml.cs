@@ -378,8 +378,11 @@ public sealed partial class IslandWindow : Window
             _monitorFeature,
             _meetingFeature,
             _weatherFeature,
-            _shareFeature
+            _shareFeature,
+            CreateChannelFeature()
         };
+
+        WireWave6b();
 
         // Les greffons sont chargés avant la création du registre : ils en font
         // partie dès le démarrage et bénéficient donc exactement du même cycle de
@@ -974,6 +977,11 @@ public sealed partial class IslandWindow : Window
         CardRestView.Visibility = Visibility.Collapsed;
         TabRestView.Visibility = Visibility.Collapsed;
         ShowRestPixel(false);
+        ShowRestLife(atRest: false);
+
+        // Clawd ne bat que là où il est montré : la branche qui le montre le rallume.
+        SignalClawd.Visibility = Visibility.Collapsed;
+        CardClawd.Visibility = Visibility.Collapsed;
 
         UpdateStackIndicator();
         Announce(activity);
@@ -1002,6 +1010,7 @@ public sealed partial class IslandWindow : Window
             ShowRestWeather();
             IdleClock.Animate = UseSpringAnimations();
             IdleClock.Show(_tourClock ?? DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+            ShowRestLife(atRest: true);
             ArmClockTick(IdleClock.Visibility == Visibility.Visible);
             return;
         }
@@ -1015,6 +1024,7 @@ public sealed partial class IslandWindow : Window
             if (scene is InfoScene generic)
             {
                 generic.AnimateHypnotic = AnimateHypnotic();
+                generic.ClawdStyle = _settings.ClawdStyle;
             }
             else if (scene is VolumeHudScene hud)
             {
@@ -1172,6 +1182,7 @@ public sealed partial class IslandWindow : Window
             ApplyHypnoticSlot(_signalHypnotic, SignalHypnoticHost, SignalGlyph, preset);
             ApplyRestArtwork(activity, SignalArtwork, SignalArtworkImage, SignalGlyph, preset);
             CardArtwork.Visibility = Visibility.Collapsed;
+            ApplyClawd(activity, SignalClawd, SignalClawdPitch, _signalHypnotic, SignalHypnoticHost, SignalGlyph, SignalArtwork);
             return;
         }
 
@@ -1208,6 +1219,7 @@ public sealed partial class IslandWindow : Window
         ApplyHypnoticSlot(_cardHypnotic, CardHypnoticHost, CardGlyph, preset);
         ApplyRestArtwork(activity, CardArtwork, CardArtworkImage, CardGlyph, preset);
         SignalArtwork.Visibility = Visibility.Collapsed;
+        ApplyClawd(activity, CardClawd, CardClawdPitch, _cardHypnotic, CardHypnoticHost, CardGlyph, CardArtwork);
     }
 
     /// <summary>
@@ -3130,11 +3142,16 @@ public sealed partial class IslandWindow : Window
             }
             else
             {
-                _pomodoroFeature.Start();
+                // Focus calé sur l'agenda (W3) : il finit avant la prochaine réunion.
+                _pomodoroFeature.StartFitted();
             }
 
             RevealPresented();
         };
+
+        // Capture de texte (W4) : aussi « ocr » ou « texte » dans la recherche.
+        var captureItem = new MenuFlyoutItem { Text = Lang.T("Capturer du texte", "Capture text") };
+        captureItem.Click += (_, _) => StartTextCapture();
 
         var demoItem = new MenuFlyoutItem { Text = Lang.T("Démonstration", "Demo") };
         demoItem.Click += (_, _) => StartDemo();
@@ -3145,6 +3162,7 @@ public sealed partial class IslandWindow : Window
         menu.Items.Add(timerItem);
         menu.Items.Add(stopwatchItem);
         menu.Items.Add(focusItem);
+        menu.Items.Add(captureItem);
 
         return menu;
     }
@@ -3304,6 +3322,9 @@ public sealed partial class IslandWindow : Window
         _weatherFeature.SetCity(settings.WeatherCity);
         _notificationFeature.IgnoredApps = settings.IgnoredNotificationApps;
         _launcherFeature.WebSearchEngine = settings.WebSearchEngine;
+
+        // Écran de veille (P5) : la vérification d'inactivité ne tourne que s'il est voulu.
+        ArmScreensaver();
 
         // Le détachement retiré, ou l'écran cible changé : la notch revient au
         // bord de l'écran qui est désormais le sien.

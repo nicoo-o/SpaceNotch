@@ -14,7 +14,10 @@ public enum LauncherCommandKind
     Volume,
 
     /// <summary>Copie une couleur (et l'affiche, par le presse-papier).</summary>
-    Color
+    Color,
+
+    /// <summary>Capture de texte (W4) : tracer un rectangle, le texte part au presse-papier.</summary>
+    Capture
 }
 
 /// <summary>Une commande reconnue, avec ce que la ligne de résultat en montre.</summary>
@@ -102,6 +105,16 @@ public static partial class LauncherCommands
             return true;
         }
 
+        if (CapturePattern().IsMatch(q))
+        {
+            command = new LauncherCommand(
+                LauncherCommandKind.Capture,
+                french ? "Capturer du texte" : "Capture text",
+                french ? "Tracer un rectangle · le texte est copié" : "Draw a rectangle · the text is copied",
+                Prefix + "capture:text");
+            return true;
+        }
+
         return false;
     }
 
@@ -129,9 +142,13 @@ public static partial class LauncherCommands
             case "timer": kind = LauncherCommandKind.Timer; return true;
             case "volume": kind = LauncherCommandKind.Volume; return true;
             case "color": kind = LauncherCommandKind.Color; return true;
+            case "capture": kind = LauncherCommandKind.Capture; return true;
             default: return false;
         }
     }
+
+    [GeneratedRegex(@"^(?:ocr|texte|text|capture|capturer(?: du)? texte|capture text|copier (?:le )?texte)$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
+    private static partial Regex CapturePattern();
 
     [GeneratedRegex(@"^(?:timer|minuteur|min)\s+(?<n>\d{1,4}(?:[.,]\d+)?)\s*(?<u>s|sec|secondes?|seconds?|m|min|minutes?|h|heures?|hours?)?$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex TimerPattern();

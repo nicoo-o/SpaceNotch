@@ -468,6 +468,36 @@
                             <ToggleSwitch x:Name="PixelToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnPixelToggled" />
                         </Grid>
                     </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Écran de veille jeu de la vie inactivité screensaver">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Stack" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Écran de veille', En='Screensaver'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="{l:Loc Fr='Après cinq minutes sans clavier ni souris, un jeu de la vie en pixels dans la notch. Jamais sur batterie ni en plein écran.', En='After five minutes without keyboard or mouse, a pixel Game of Life in the notch. Never on battery or in full screen.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="ScreensaverToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnScreensaverToggled" AutomationProperties.Name="{l:Loc Fr='Écran de veille', En='Screensaver'}" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Agents IA Claude Code hooks autoriser refuser progression canal">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Agent" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Agents IA', En='AI agents'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock x:Name="AgentHooksDescription" Text="{l:Loc Fr='Claude Code dans la notch : il réfléchit, il demande, tu autorises ou refuses d’un clic. Ajoute des hooks à ~/.claude/settings.json (une copie est gardée).', En='Claude Code in the notch: it thinks, it asks, you allow or deny with a click. Adds hooks to ~/.claude/settings.json (a backup is kept).'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <Button x:Name="AgentHooksButton" Grid.Column="2" VerticalAlignment="Center" Click="OnAgentHooksClicked" />
+                        </Grid>
+                    </Border>
                 </StackPanel>
                 <StackPanel x:Name="PageAppearance" Visibility="Collapsed">
                     <TextBlock Text="{l:Loc Fr='Apparence', En='Appearance'}" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
@@ -751,6 +781,24 @@
                                 <TextBlock Text="{l:Loc Fr='Intensité du contour', En='Outline strength'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
                             <TextBlock x:Name="OutlineValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="OutlineSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="50" Minimum="5" StepFrequency="1" ValueChanged="OnOutlineChanged" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="{l:Loc Fr='CLAWD', En='CLAWD'}" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Clawd mascotte Claude Code style pixels fidèle arrondi SpaceNotch">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Agent" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Style de Clawd', En='Clawd style'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="{l:Loc Fr='La mascotte de Claude Code dans la notch, pendant que l’agent travaille. SpaceNotch n’est pas affilié à Anthropic.', En='Claude Code’s mascot in the notch while the agent works. SpaceNotch is not affiliated with Anthropic.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <views:ClawdView x:Name="ClawdPreview" Grid.Column="2" VerticalAlignment="Center" />
+                            <ComboBox x:Name="ClawdStyleBox" Grid.Column="3" VerticalAlignment="Center" MinWidth="170" SelectionChanged="OnClawdStyleChanged" AutomationProperties.Name="{l:Loc Fr='Style de Clawd', En='Clawd style'}" />
                         </Grid>
                     </Border>
                     <TextBlock Text="{l:Loc Fr='FORMES', En='SHAPES'}" Style="{StaticResource NfSettingsGroupStyle}" />

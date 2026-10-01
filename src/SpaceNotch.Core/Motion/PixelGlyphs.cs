@@ -715,6 +715,32 @@ public static class PixelGlyphs
             ".x.....",
             "x..xxxx",
             "......."),
+
+        // Vague 6b : l'étincelle d'un agent IA, la barre à étapes, le texte capturé.
+        ["Agent"] = Mask(
+            "...x...",
+            "...x...",
+            "..xxx..",
+            "xxx.xxx",
+            "..xxx..",
+            "...x...",
+            "...x..."),
+        ["Progress"] = Mask(
+            ".......",
+            ".......",
+            "xx.xx.x",
+            "xx.xx.x",
+            ".......",
+            ".......",
+            "......."),
+        ["Text"] = Mask(
+            "xxxxxxx",
+            "x..x..x",
+            "...x...",
+            "...x...",
+            "...x...",
+            "...x...",
+            "..xxx.."),
     };
 
     /// <summary>Clés disposant d'un motif.</summary>

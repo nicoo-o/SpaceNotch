@@ -346,6 +346,7 @@ public sealed partial class IslandWindow
         return
         [
             ("repos", () => TourClear()),
+            .. Wave6bTour(Meeting),
             ("musique · pastille", () => TourShow(Music(), open: false)),
             ("musique · aperçu au survol", () => _controller.RequestPreview()),
             ("musique · ouverte", () => { _controller.EndPreview(); TourShow(Music(), open: true); }),
