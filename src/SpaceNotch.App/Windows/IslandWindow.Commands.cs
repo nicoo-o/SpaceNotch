@@ -34,6 +34,10 @@ public sealed partial class IslandWindow
                     package.SetText("#" + value);
                     global::Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
                     break;
+
+                case LauncherCommandKind.Capture:
+                    StartTextCapture();
+                    break;
             }
         }
         catch (Exception ex)

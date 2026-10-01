@@ -287,6 +287,10 @@ public sealed partial class SettingsWindow : Window
         BubbleSizeBox.ItemsSource = new[] { Lang.T("Petite", "Small"), Lang.T("Normale", "Normal"), Lang.T("Grande", "Large") };
         TabSizeBox.ItemsSource = new[] { Lang.T("Petite", "Small"), Lang.T("Normale", "Normal"), Lang.T("Grande", "Large") };
         DetachFeelBox.ItemsSource = new[] { Lang.T("Souple", "Soft"), Lang.T("Naturelle", "Natural"), Lang.T("Ferme", "Firm") };
+        // L'ordre suit l'énumération ClawdStyle : l'index sélectionné en est la valeur.
+        ClawdStyleBox.ItemsSource = new[] { Lang.T("A · fidèle", "A · faithful"), Lang.T("C · entre les deux", "C · in between"), Lang.T("B · SpaceNotch", "B · SpaceNotch") };
+        ClawdPreview.Pitch = 1.4;
+
         DensityBox.ItemsSource = new[] { Lang.T("Compacte", "Compact"), Lang.T("Confortable", "Comfortable"), Lang.T("Aérée", "Airy") };
         CutoutBox.ItemsSource = new[] { Lang.T("Aucune", "None"), Lang.T("Centrée", "Centred"), Lang.T("À gauche", "Left"), Lang.T("À droite", "Right"), Lang.T("Personnalisée", "Custom") };
 
@@ -315,6 +319,8 @@ public sealed partial class SettingsWindow : Window
             CutoutBox.SelectedIndex = (int)settings.CutoutMode;
 
             DensityBox.SelectedIndex = (int)settings.Density;
+            ClawdStyleBox.SelectedIndex = (int)settings.ClawdStyle;
+            ClawdPreview.PixelStyle = settings.ClawdStyle;
             RadiusSlider.Value = settings.CornerRadiusBottom;
             ExpandedRadiusSlider.Value = settings.CornerRadiusExpanded;
             ShoulderSlider.Value = settings.ShoulderRadius;
@@ -356,6 +362,8 @@ public sealed partial class SettingsWindow : Window
             StackToggle.IsOn = settings.ShowActivityStack;
             ClockToggle.IsOn = settings.ShowClockAtRest;
             PixelToggle.IsOn = settings.ShowPixel;
+            ScreensaverToggle.IsOn = settings.ShowScreensaver;
+            UpdateAgentHooksButton();
             DiagnosticsToggle.IsOn = settings.EnableDiagnostics;
             CompositionToggle.IsOn = settings.UseCompositionAtmosphere;
             ClipboardSecretsToggle.IsOn = settings.ClipboardIgnoreSecrets;
@@ -667,6 +675,13 @@ public sealed partial class SettingsWindow : Window
     private void OnCutoutChanged(object sender, SelectionChangedEventArgs e)
         => Apply(s => s.CutoutMode = (CameraCutoutMode)Math.Max(0, CutoutBox.SelectedIndex));
 
+    private void OnClawdStyleChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var style = (SpaceNotch.Core.Motion.ClawdStyle)Math.Max(0, ClawdStyleBox.SelectedIndex);
+        ClawdPreview.PixelStyle = style;
+        Apply(s => s.ClawdStyle = style);
+    }
+
     private void OnDensityChanged(object sender, SelectionChangedEventArgs e)
         => Apply(s => s.Density = (IslandContentDensity)Math.Max(0, DensityBox.SelectedIndex));
 
@@ -744,6 +759,72 @@ public sealed partial class SettingsWindow : Window
 
     private void OnPixelToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.ShowPixel = PixelToggle.IsOn);
+
+    private void OnScreensaverToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.ShowScreensaver = ScreensaverToggle.IsOn);
+
+    // ---- Agents IA (I4) : les hooks de Claude Code ---------------------------
+
+    private static string ClaudeSettingsPath
+        => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "settings.json");
+
+    private static string? ReadClaudeSettings()
+    {
+        try
+        {
+            return System.IO.File.Exists(ClaudeSettingsPath) ? System.IO.File.ReadAllText(ClaudeSettingsPath) : null;
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    private void UpdateAgentHooksButton()
+    {
+        bool installed = SpaceNotch.Core.Channel.ClaudeHook.IsInstalled(ReadClaudeSettings());
+        AgentHooksButton.Content = installed ? Lang.T("Retirer", "Remove") : Lang.T("Installer", "Install");
+    }
+
+    /// <summary>
+    /// Installe ou retire les hooks. Le fichier d'origine est d'abord copié à
+    /// côté (<c>settings.json.spacenotch.bak</c>) ; les autres hooks sont gardés.
+    /// Rien n'est touché si le fichier existant n'est pas un JSON lisible.
+    /// </summary>
+    private void OnAgentHooksClicked(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string? current = ReadClaudeSettings();
+            bool installed = SpaceNotch.Core.Channel.ClaudeHook.IsInstalled(current);
+            string path = ClaudeSettingsPath;
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path)!);
+
+            // Barres obliques : le hook est lancé par bash (Git Bash) comme par cmd.
+            string executable = (Environment.ProcessPath ?? "SpaceNotch.exe").Replace('\\', '/');
+
+            // Calculé d'abord : un fichier illisible lève ici, avant toute écriture.
+            string next = installed
+                ? SpaceNotch.Core.Channel.ClaudeHook.Uninstall(current!)
+                : SpaceNotch.Core.Channel.ClaudeHook.Install(current, executable);
+
+            if (current is not null)
+            {
+                System.IO.File.Copy(path, path + ".spacenotch.bak", overwrite: true);
+            }
+
+            string temporary = path + ".spacenotch.tmp";
+            System.IO.File.WriteAllText(temporary, next);
+            System.IO.File.Move(temporary, path, overwrite: true);
+        }
+        catch (Exception ex)
+        {
+            SpaceNotch.Infrastructure.Logging.MiniLogger.Log("[HOOKS] Modification impossible", ex);
+            AgentHooksDescription.Text = Lang.T("Impossible de modifier ~/.claude/settings.json : ", "Could not change ~/.claude/settings.json: ") + ex.Message;
+        }
+
+        UpdateAgentHooksButton();
+    }
 
     private void OnHoverToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.HoverToPreview = HoverToggle.IsOn);

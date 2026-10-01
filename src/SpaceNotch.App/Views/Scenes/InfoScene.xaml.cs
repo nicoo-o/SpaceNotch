@@ -42,6 +42,9 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     /// </summary>
     public bool AnimateHypnotic { get; set; } = true;
 
+    /// <summary>Rendu de Clawd choisi dans les réglages ; renseigné par la fenêtre.</summary>
+    public ClawdStyle ClawdStyle { get; set; } = ClawdStyle.Faithful;
+
     private HypnoticSurface? _hypnotic;
     private byte[]? _artworkBytes;
 
@@ -60,6 +63,24 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     private void ApplyBadge(IslandActivity activity)
     {
         _hypnotic ??= HypnoticSurface.TryAttach(SceneHypnoticHost);
+
+        // Claude Code : Clawd, sa mascotte, occupe toute la pastille.
+        if (activity.Payload is ClawdPayload clawd)
+        {
+            _hypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+            SceneHypnoticHost.Visibility = Visibility.Collapsed;
+            SceneIcon.Visibility = Visibility.Collapsed;
+            SceneArtwork.Visibility = Visibility.Collapsed;
+
+            SceneClawd.Pitch = 1.4;
+            SceneClawd.PixelStyle = ClawdStyle;
+            SceneClawd.Animate = AnimateHypnotic;
+            SceneClawd.Mood = clawd.Mood;
+            SceneClawd.Visibility = Visibility.Visible;
+            return;
+        }
+
+        SceneClawd.Visibility = Visibility.Collapsed;
 
         HypnoticPreset preset = HypnoticField.Resolve(activity.MotionState, activity.MotionPreset);
         bool hypnotic = _hypnotic is not null && preset != HypnoticPreset.None;
@@ -93,7 +114,11 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     }
 
     /// <summary>Arrête la grille quand la scène est masquée : rien ne tourne hors de la vue.</summary>
-    public void Rest() => _hypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+    public void Rest()
+    {
+        _hypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+        SceneClawd.Visibility = Visibility.Collapsed;
+    }
 
     public void Apply(IslandActivity activity)
     {
@@ -112,12 +137,61 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
         MetricText.Text = metric ?? string.Empty;
         MetricText.Visibility = metric is null ? Visibility.Collapsed : Visibility.Visible;
 
-        ProgressTrack.Visibility = activity.Progress is null ? Visibility.Collapsed : Visibility.Visible;
+        bool steps = activity.Payload is ProgressStepsPayload { Segments.Count: > 1 };
+        ProgressTrack.Visibility = activity.Progress is null || steps ? Visibility.Collapsed : Visibility.Visible;
         ProgressScale.ScaleX = Math.Clamp(activity.Progress ?? 0, 0, 1);
+        ApplySteps(steps ? ((ProgressStepsPayload)activity.Payload!).Segments : null);
 
         ApplyBadge(activity);
 
         RebuildActions(activity.Actions);
+    }
+
+    /// <summary>
+    /// Barre à étapes (W1) : un segment par étape. Les segments sont recréés
+    /// seulement quand leur nombre change ; sinon, seule l'échelle bouge.
+    /// </summary>
+    private void ApplySteps(IReadOnlyList<double>? segments)
+    {
+        if (segments is null)
+        {
+            StepsTrack.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        if (StepsTrack.Children.Count != segments.Count)
+        {
+            StepsTrack.Children.Clear();
+            StepsTrack.ColumnDefinitions.Clear();
+
+            for (int i = 0; i < segments.Count; i++)
+            {
+                StepsTrack.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                var fill = new Border
+                {
+                    CornerRadius = new CornerRadius(1.5),
+                    Background = Ink("NfTextPrimaryBrush", 0xFF),
+                    RenderTransformOrigin = new global::Windows.Foundation.Point(0, 0.5),
+                    RenderTransform = new ScaleTransform { ScaleX = 0 }
+                };
+
+                var segment = new Grid { CornerRadius = new CornerRadius(1.5), Background = Ink("NfStrokeSubtleBrush", 0x24) };
+                segment.Children.Add(fill);
+                Grid.SetColumn(segment, i);
+                StepsTrack.Children.Add(segment);
+            }
+        }
+
+        for (int i = 0; i < segments.Count; i++)
+        {
+            if (StepsTrack.Children[i] is Grid { Children: [Border { RenderTransform: ScaleTransform scale }] })
+            {
+                scale.ScaleX = Math.Clamp(segments[i], 0, 1);
+            }
+        }
+
+        StepsTrack.Visibility = Visibility.Visible;
     }
 
     /// <summary>

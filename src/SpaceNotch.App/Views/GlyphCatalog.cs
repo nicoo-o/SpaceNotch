@@ -55,7 +55,13 @@ internal static class GlyphCatalog
         ["Call"] = "\uE717",
         ["Search"] = "\uE721",
         ["Check"] = "\uE73E",
-        ["Info"] = "\uE946"
+        ["Info"] = "\uE946",
+        ["Moon"] = "\uE708",
+        ["Allow"] = "\uE8FB",
+        ["Deny"] = "\uE711",
+        ["Agent"] = "\uE99A",
+        ["Progress"] = "\uE9F5",
+        ["Text"] = "\uE8D2"
     };
 
     /// <summary>

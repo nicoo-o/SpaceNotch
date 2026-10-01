@@ -45,4 +45,7 @@ public static class FeatureKeys
 
     /// <summary>Partage PC → téléphone (F8).</summary>
     public const string Share = "feature.share";
+
+    /// <summary>Canal local : agents IA (I4) et progressions de scripts (W1).</summary>
+    public const string Channel = "feature.channel";
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Threading;
@@ -36,6 +37,9 @@ public sealed class MeetingFeature : IslandFeatureBase
 
     public const string JoinAction = "meeting.join";
 
+    /// <summary>Silence de réunion (W2) : couper les notifications jusqu'à la fin du rendez-vous.</summary>
+    public const string QuietAction = "meeting.quiet";
+
     public static readonly ActivityTint Blue = new(0x7F, 0xB8, 0xFF);
 
     private static readonly TimeSpan Rescan = TimeSpan.FromMinutes(10);
@@ -46,6 +50,15 @@ public sealed class MeetingFeature : IslandFeatureBase
     private readonly Timer _timer;
     private CalendarMeeting? _meeting;
     private Uri? _link;
+
+    /// <summary>Demande de silence jusqu'à l'heure donnée (W2). L'hôte la transmet aux notifications.</summary>
+    public event Action<DateTimeOffset>? QuietRequested;
+
+    /// <summary>Vrai si les notifications sont déjà coupées : la proposition n'a alors pas lieu d'être.</summary>
+    public Func<bool> IsQuiet { get; set; } = () => false;
+
+    /// <summary>Le rendez-vous montré, pour le focus calé sur l'agenda (W3).</summary>
+    public CalendarMeeting? Current => _meeting;
 
     public MeetingFeature(IActivityManager activities, IEventBus events, CalendarReader? reader, bool isEnabled = true, Func<DateTimeOffset>? now = null)
         : base(FeatureKey, "Rendez-vous", activities, events, isEnabled)
@@ -133,6 +146,13 @@ public sealed class MeetingFeature : IslandFeatureBase
     {
         ArgumentNullException.ThrowIfNull(request);
 
+        if (request.ActionId == QuietAction && _meeting is { } meeting)
+        {
+            QuietRequested?.Invoke(MeetingQuiet.Until(meeting.Start, meeting.End));
+            Show(meeting);
+            return Task.FromResult(true);
+        }
+
         if (request.ActionId != JoinAction || _link is null)
         {
             return Task.FromResult(false);
@@ -174,9 +194,24 @@ public sealed class MeetingFeature : IslandFeatureBase
             State = IslandActivityState.Idle,
             Priority = soon ? ActivityPriority.Normal : ActivityPriority.High,
             Policy = ActivityPresentationPolicy.Passive,
-            Actions = _link is null
-                ? []
-                : [new ActivityAction(JoinAction, Lang.T("Rejoindre", "Join"), "Call", ActivityActionKind.Invoke, IsPrimary: true)]
+            Actions = Actions(meeting, now)
         });
+    }
+
+    private List<ActivityAction> Actions(CalendarMeeting meeting, DateTimeOffset now)
+    {
+        var actions = new List<ActivityAction>();
+
+        if (_link is not null)
+        {
+            actions.Add(new ActivityAction(JoinAction, Lang.T("Rejoindre", "Join"), "Call", ActivityActionKind.Invoke, IsPrimary: true));
+        }
+
+        if (MeetingQuiet.Offer(meeting.Start, meeting.End, now, IsQuiet()))
+        {
+            actions.Add(new ActivityAction(QuietAction, Lang.T("Silence", "Quiet"), "Moon"));
+        }
+
+        return actions;
     }
 }
