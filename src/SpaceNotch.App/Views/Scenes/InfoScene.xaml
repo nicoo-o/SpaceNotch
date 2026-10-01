@@ -61,6 +61,13 @@
                         Height="20"
                         IsHitTestVisible="False"
                         Visibility="Collapsed" />
+
+                    <!-- Clawd (I4) : la mascotte de Claude Code dans la pastille ouverte. -->
+                    <views:ClawdView
+                        x:Name="SceneClawd"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Visibility="Collapsed" />
                 </Grid>
             </Border>
 

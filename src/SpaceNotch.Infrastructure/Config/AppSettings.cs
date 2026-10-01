@@ -507,6 +507,12 @@ public sealed class AppSettings
     public bool ShowScreensaver { get; set; }
 
     /// <summary>
+    /// Clawd, la mascotte de Claude Code (I4) : son rendu en pixels. Par défaut
+    /// fidèle au terminal (carrés pleins) ; « entre les deux » ou matière SpaceNotch au choix.
+    /// </summary>
+    public SpaceNotch.Core.Motion.ClawdStyle ClawdStyle { get; set; } = SpaceNotch.Core.Motion.ClawdStyle.Faithful;
+
+    /// <summary>
     /// Ville de l'aperçu météo (F10). Vide : la météo est coupée et rien n'est
     /// demandé au réseau (ADR-011).
     /// </summary>
@@ -753,6 +759,11 @@ public sealed class AppSettings
         WebSearchEngine = WebSearchEngine is "bing" or "google" or "duckduckgo" ? WebSearchEngine : "bing";
         LauncherRecents ??= [];
         LauncherLaunches ??= [];
+
+        if (!Enum.IsDefined(ClawdStyle))
+        {
+            ClawdStyle = SpaceNotch.Core.Motion.ClawdStyle.Faithful;
+        }
 
         if (!Enum.IsDefined(Density))
         {

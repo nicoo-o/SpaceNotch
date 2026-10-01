@@ -233,6 +233,12 @@
                             Height="{StaticResource NfSignalGlyphSize}"
                             IsHitTestVisible="False"
                             Visibility="Collapsed" />
+
+                        <!-- Clawd (I4) : la mascotte de Claude Code, à la place de la grille. -->
+                        <views:ClawdView
+                            x:Name="SignalClawd"
+                            VerticalAlignment="Center"
+                            Visibility="Collapsed" />
                     </Grid>
 
                     <TextBlock
@@ -328,6 +334,11 @@
                             Width="{StaticResource NfCardGlyphSize}"
                             Height="{StaticResource NfCardGlyphSize}"
                             IsHitTestVisible="False"
+                            Visibility="Collapsed" />
+
+                        <views:ClawdView
+                            x:Name="CardClawd"
+                            VerticalAlignment="Center"
                             Visibility="Collapsed" />
                     </Grid>
 

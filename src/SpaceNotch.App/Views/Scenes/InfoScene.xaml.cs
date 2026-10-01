@@ -42,6 +42,9 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     /// </summary>
     public bool AnimateHypnotic { get; set; } = true;
 
+    /// <summary>Rendu de Clawd choisi dans les réglages ; renseigné par la fenêtre.</summary>
+    public ClawdStyle ClawdStyle { get; set; } = ClawdStyle.Faithful;
+
     private HypnoticSurface? _hypnotic;
     private byte[]? _artworkBytes;
 
@@ -60,6 +63,24 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     private void ApplyBadge(IslandActivity activity)
     {
         _hypnotic ??= HypnoticSurface.TryAttach(SceneHypnoticHost);
+
+        // Claude Code : Clawd, sa mascotte, occupe toute la pastille.
+        if (activity.Payload is ClawdPayload clawd)
+        {
+            _hypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+            SceneHypnoticHost.Visibility = Visibility.Collapsed;
+            SceneIcon.Visibility = Visibility.Collapsed;
+            SceneArtwork.Visibility = Visibility.Collapsed;
+
+            SceneClawd.Pitch = 1.4;
+            SceneClawd.PixelStyle = ClawdStyle;
+            SceneClawd.Animate = AnimateHypnotic;
+            SceneClawd.Mood = clawd.Mood;
+            SceneClawd.Visibility = Visibility.Visible;
+            return;
+        }
+
+        SceneClawd.Visibility = Visibility.Collapsed;
 
         HypnoticPreset preset = HypnoticField.Resolve(activity.MotionState, activity.MotionPreset);
         bool hypnotic = _hypnotic is not null && preset != HypnoticPreset.None;
@@ -93,7 +114,11 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     }
 
     /// <summary>Arrête la grille quand la scène est masquée : rien ne tourne hors de la vue.</summary>
-    public void Rest() => _hypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+    public void Rest()
+    {
+        _hypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+        SceneClawd.Visibility = Visibility.Collapsed;
+    }
 
     public void Apply(IslandActivity activity)
     {

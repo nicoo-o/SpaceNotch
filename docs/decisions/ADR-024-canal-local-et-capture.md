@@ -57,3 +57,16 @@
   n'aboutit qu'à un clic de l'utilisateur.
 - Le `Main` manuel reproduit celui que XAML génère ; une évolution du modèle WinUI
   devra y être reportée.
+
+## Complément — Clawd, la mascotte de Claude Code
+
+- Pour Claude Code, la notch montre **Clawd** à la place de la grille qui tourne
+  (`SpaceNotch.Core.Motion.Clawd`) : la silhouette de la bannière du terminal, rangées
+  doublées (un pixel du terminal est deux fois plus haut que large), yeux de 2 × 2.
+  Quatre humeurs : réfléchit, demande, terminé, erreur ou réponse attendue dans le terminal.
+- Trois rendus au choix dans Réglages › Apparence › Clawd : **A · fidèle** (carrés pleins,
+  par défaut), **C · entre les deux** (coins arrondis, joint presque invisible),
+  **B · matière SpaceNotch** (pixels ronds, filigrane).
+- Clawd appartient à Anthropic et n'a pas de licence publique. SpaceNotch est gratuit,
+  ne vend rien à son effigie, n'utilise aucun logo d'Anthropic et dit dans les réglages
+  qu'il n'est pas affilié à Anthropic. Les autres agents gardent la grille.

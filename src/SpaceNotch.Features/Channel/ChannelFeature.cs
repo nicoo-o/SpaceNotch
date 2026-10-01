@@ -203,6 +203,9 @@ public sealed class ChannelFeature : IslandFeatureBase
                 _ => ActivityMotionState.Working
             },
             MotionPreset = m.State == ChannelState.Working ? HypnoticPreset.Think : HypnoticPreset.None,
+
+            // Claude Code a sa mascotte : Clawd remplace la grille, dans l'humeur de l'agent.
+            Payload = IsClaudeCode(m.Name) ? new ClawdPayload(MoodOf(m.State, asks)) : null,
             Priority = asks ? ActivityPriority.High : ActivityPriority.Normal,
             Policy = asks ? null : ActivityPresentationPolicy.Passive,
             Duration = m.State switch
@@ -220,6 +223,22 @@ public sealed class ChannelFeature : IslandFeatureBase
                 : []
         };
     }
+
+    private static bool IsClaudeCode(string name)
+        => string.Equals(name, ClaudeHook.AgentName, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// L'humeur de Clawd. Une attente sans question — Claude Code attend une
+    /// saisie dans le terminal — se montre comme une erreur : il faut y aller.
+    /// </summary>
+    public static ClawdMood MoodOf(ChannelState state, bool asks) => state switch
+    {
+        ChannelState.Waiting when asks => ClawdMood.Asking,
+        ChannelState.Waiting => ClawdMood.Error,
+        ChannelState.Done => ClawdMood.Done,
+        ChannelState.Error => ClawdMood.Error,
+        _ => ClawdMood.Thinking
+    };
 
     private IslandActivity Progress(ProgressMessage m)
     {

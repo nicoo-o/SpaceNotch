@@ -65,6 +65,44 @@ public sealed partial class IslandWindow
         ArmScreensaver();
     }
 
+    // ---- Clawd (I4) -------------------------------------------------------
+
+    /// <summary>Un pixel de Clawd dans la pastille : il remplit sa hauteur (≈ 20 DIP).</summary>
+    private const double SignalClawdPitch = 1.15;
+
+    private const double CardClawdPitch = 1.3;
+
+    /// <summary>
+    /// Claude Code a sa mascotte : quand l'activité porte un <see cref="ClawdPayload"/>,
+    /// Clawd prend la place du glyphe, de la pochette et de la grille qui tourne.
+    /// </summary>
+    private void ApplyClawd(
+        IslandActivity activity,
+        SpaceNotch_App.Views.ClawdView view,
+        double pitch,
+        SpaceNotch_App.Composition.HypnoticSurface? surface,
+        FrameworkElement host,
+        FrameworkElement glyph,
+        FrameworkElement artwork)
+    {
+        if (activity.Payload is not ClawdPayload clawd)
+        {
+            view.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        surface?.SetPreset(HypnoticPreset.None, animate: false);
+        host.Visibility = Visibility.Collapsed;
+        glyph.Visibility = Visibility.Collapsed;
+        artwork.Visibility = Visibility.Collapsed;
+
+        view.Pitch = pitch;
+        view.PixelStyle = _settings.ClawdStyle;
+        view.Animate = UseSpringAnimations();
+        view.Mood = clawd.Mood;
+        view.Visibility = Visibility.Visible;
+    }
+
     // ---- Capture de texte (W4) --------------------------------------------
 
     /// <summary>Fige l'écran, laisse tracer un rectangle, copie le texte lu.</summary>

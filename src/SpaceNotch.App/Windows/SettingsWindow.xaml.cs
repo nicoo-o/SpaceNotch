@@ -287,6 +287,10 @@ public sealed partial class SettingsWindow : Window
         BubbleSizeBox.ItemsSource = new[] { Lang.T("Petite", "Small"), Lang.T("Normale", "Normal"), Lang.T("Grande", "Large") };
         TabSizeBox.ItemsSource = new[] { Lang.T("Petite", "Small"), Lang.T("Normale", "Normal"), Lang.T("Grande", "Large") };
         DetachFeelBox.ItemsSource = new[] { Lang.T("Souple", "Soft"), Lang.T("Naturelle", "Natural"), Lang.T("Ferme", "Firm") };
+        // L'ordre suit l'énumération ClawdStyle : l'index sélectionné en est la valeur.
+        ClawdStyleBox.ItemsSource = new[] { Lang.T("A · fidèle", "A · faithful"), Lang.T("C · entre les deux", "C · in between"), Lang.T("B · SpaceNotch", "B · SpaceNotch") };
+        ClawdPreview.Pitch = 1.4;
+
         DensityBox.ItemsSource = new[] { Lang.T("Compacte", "Compact"), Lang.T("Confortable", "Comfortable"), Lang.T("Aérée", "Airy") };
         CutoutBox.ItemsSource = new[] { Lang.T("Aucune", "None"), Lang.T("Centrée", "Centred"), Lang.T("À gauche", "Left"), Lang.T("À droite", "Right"), Lang.T("Personnalisée", "Custom") };
 
@@ -315,6 +319,8 @@ public sealed partial class SettingsWindow : Window
             CutoutBox.SelectedIndex = (int)settings.CutoutMode;
 
             DensityBox.SelectedIndex = (int)settings.Density;
+            ClawdStyleBox.SelectedIndex = (int)settings.ClawdStyle;
+            ClawdPreview.PixelStyle = settings.ClawdStyle;
             RadiusSlider.Value = settings.CornerRadiusBottom;
             ExpandedRadiusSlider.Value = settings.CornerRadiusExpanded;
             ShoulderSlider.Value = settings.ShoulderRadius;
@@ -668,6 +674,13 @@ public sealed partial class SettingsWindow : Window
 
     private void OnCutoutChanged(object sender, SelectionChangedEventArgs e)
         => Apply(s => s.CutoutMode = (CameraCutoutMode)Math.Max(0, CutoutBox.SelectedIndex));
+
+    private void OnClawdStyleChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var style = (SpaceNotch.Core.Motion.ClawdStyle)Math.Max(0, ClawdStyleBox.SelectedIndex);
+        ClawdPreview.PixelStyle = style;
+        Apply(s => s.ClawdStyle = style);
+    }
 
     private void OnDensityChanged(object sender, SelectionChangedEventArgs e)
         => Apply(s => s.Density = (IslandContentDensity)Math.Max(0, DensityBox.SelectedIndex));

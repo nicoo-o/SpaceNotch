@@ -188,3 +188,9 @@ public sealed record BytesPayload(long Bytes)
 /// dessine un segment par étape au lieu d'une barre continue.
 /// </summary>
 public sealed record ProgressStepsPayload(IReadOnlyList<double> Segments);
+
+/// <summary>
+/// Agent Claude Code (I4) : la notch montre Clawd, sa mascotte, dans l'humeur
+/// donnée, à la place de la grille qui tourne.
+/// </summary>
+public sealed record ClawdPayload(SpaceNotch.Core.Motion.ClawdMood Mood);

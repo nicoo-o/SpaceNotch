@@ -979,6 +979,10 @@ public sealed partial class IslandWindow : Window
         ShowRestPixel(false);
         ShowRestLife(atRest: false);
 
+        // Clawd ne bat que là où il est montré : la branche qui le montre le rallume.
+        SignalClawd.Visibility = Visibility.Collapsed;
+        CardClawd.Visibility = Visibility.Collapsed;
+
         UpdateStackIndicator();
         Announce(activity);
         ApplyActivityTint(activity);
@@ -1020,6 +1024,7 @@ public sealed partial class IslandWindow : Window
             if (scene is InfoScene generic)
             {
                 generic.AnimateHypnotic = AnimateHypnotic();
+                generic.ClawdStyle = _settings.ClawdStyle;
             }
             else if (scene is VolumeHudScene hud)
             {
@@ -1177,6 +1182,7 @@ public sealed partial class IslandWindow : Window
             ApplyHypnoticSlot(_signalHypnotic, SignalHypnoticHost, SignalGlyph, preset);
             ApplyRestArtwork(activity, SignalArtwork, SignalArtworkImage, SignalGlyph, preset);
             CardArtwork.Visibility = Visibility.Collapsed;
+            ApplyClawd(activity, SignalClawd, SignalClawdPitch, _signalHypnotic, SignalHypnoticHost, SignalGlyph, SignalArtwork);
             return;
         }
 
@@ -1213,6 +1219,7 @@ public sealed partial class IslandWindow : Window
         ApplyHypnoticSlot(_cardHypnotic, CardHypnoticHost, CardGlyph, preset);
         ApplyRestArtwork(activity, CardArtwork, CardArtworkImage, CardGlyph, preset);
         SignalArtwork.Visibility = Visibility.Collapsed;
+        ApplyClawd(activity, CardClawd, CardClawdPitch, _cardHypnotic, CardHypnoticHost, CardGlyph, CardArtwork);
     }
 
     /// <summary>
