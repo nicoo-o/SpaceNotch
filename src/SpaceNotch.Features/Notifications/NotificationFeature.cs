@@ -233,7 +233,7 @@ public sealed class NotificationFeature : IslandFeatureBase
             {
                 // Au calme, rien ne s'affiche : la notification est comptée, et
                 // la lune porte le compte.
-                _held.Hold(appName, string.IsNullOrWhiteSpace(title) ? body : title, DateTimeOffset.UtcNow);
+                _held.Hold(appName, title, body, DateTimeOffset.UtcNow);
                 activity = QuietIndicator();
             }
             else
