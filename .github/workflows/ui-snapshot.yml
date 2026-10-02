@@ -35,6 +35,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download --repo ${{ github.repository }} --pattern "SpaceNotch-Setup.exe" --dir "${{ runner.temp }}/released"
+          gh release download --repo ${{ github.repository }} --pattern "SpaceNotch.exe" --dir "${{ runner.temp }}/released"
           Get-ChildItem "${{ runner.temp }}/released"
 
       - name: Construire la branche
@@ -50,7 +51,21 @@ jobs:
           -p:IncludeAllContentForSelfExtract=true
           -p:EnableCompressionInSingleFile=true
           -p:Version=99.0.0
-          --output "${{ runner.temp }}/built"
+          --output "${{ runner.temp }}/built-app"
+
+          dotnet publish ${{ env.PROJECT }}
+          -c Release -p:Platform=x64 -r win-x64
+          --self-contained true
+          -p:WindowsPackageType=None
+          -p:WindowsAppSDKSelfContained=true
+          -p:EnableMsixTooling=true
+          -p:SetupBuild=true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:IncludeAllContentForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:Version=99.0.0
+          --output "${{ runner.temp }}/built-setup"
 
       - name: Captures
         shell: pwsh
@@ -58,9 +73,12 @@ jobs:
           $shots = "${{ runner.temp }}/shots"
           $capture = "./tools/ui-snapshot/capture.ps1"
           $released = "${{ runner.temp }}/released/SpaceNotch-Setup.exe"
-          $built = Get-ChildItem "${{ runner.temp }}/built" -Filter "*.exe" | Select-Object -First 1
-          Copy-Item $built.FullName "${{ runner.temp }}/built/SpaceNotch-Setup.exe"
-          $builtSetup = "${{ runner.temp }}/built/SpaceNotch-Setup.exe"
+          $built = Get-ChildItem "${{ runner.temp }}/built-app" -Filter "*.exe" | Select-Object -First 1
+          $builtSetupExe = Get-ChildItem "${{ runner.temp }}/built-setup" -Filter "*.exe" | Select-Object -First 1
+          if (-not $built -or -not $builtSetupExe) { throw "Les deux exécutables doivent être construits." }
+          Copy-Item $built.FullName "${{ runner.temp }}/built-setup/SpaceNotch.exe"
+          $builtSetup = Join-Path "${{ runner.temp }}/built-setup" "SpaceNotch-Setup.exe"
+          Copy-Item $builtSetupExe.FullName $builtSetup
 
           function Shoot($exe, $arguments, $name, $wait = 5000, $count = 3) {
             $p = if ($arguments) { Start-Process -FilePath $exe -ArgumentList $arguments -PassThru } else { Start-Process -FilePath $exe -PassThru }
@@ -80,15 +98,15 @@ jobs:
           # Installer la version publiée, puis ouvrir la branche : écran de mise à jour.
           Start-Process -FilePath $released -ArgumentList "--quiet","--startup=off","--desktop=off" -Wait
           Get-Process SpaceNotch* -ErrorAction SilentlyContinue | Stop-Process -Force
-          Shoot $released $null "avant-reinstallation"
+          # L'ancien Setup publié porte encore l'identité de l'application : après
+          # installation, seule la nouvelle version sans identité doit être lancée.
           Shoot $builtSetup $null "apres-mise-a-jour"
 
           # La notch elle-même.
           Shoot (Join-Path $env:LOCALAPPDATA "Programs\SpaceNotch\SpaceNotch.exe") @("--demo") "avant-notch" 8000 3
-          Copy-Item $built.FullName "${{ runner.temp }}/built/SpaceNotch.exe" -Force
           $log = Join-Path $env:LOCALAPPDATA "SpaceNotch\logs\spacenotch.log"
           Remove-Item $log -ErrorAction SilentlyContinue
-          Shoot "${{ runner.temp }}/built/SpaceNotch.exe" @("--demo") "apres-notch" 8000 4
+          Shoot $built.FullName @("--demo") "apres-notch" 8000 4
           if (Test-Path $log) { Copy-Item $log (Join-Path $shots "apres-notch.log"); Get-Content $log | Select-Object -Last 60 }
 
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

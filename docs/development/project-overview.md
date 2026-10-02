@@ -61,11 +61,11 @@ et de WinUI 3 est réel. La mesure est publiée telle quelle — voir
 
 ## Télécharger
 
-Onglet **Releases** du dépôt : `SpaceNotch-Setup.exe` (l'installeur, qui est la notch
-elle-même — ADR-022), `SpaceNotch.exe` (un seul fichier, rien à installer) ou
-`SpaceNotch-win-x64.zip`. Installation scriptée : `SpaceNotch-Setup.exe --quiet
+Onglet **Releases** du dépôt : `SpaceNotch-Setup.exe` et `SpaceNotch.exe` (à garder côte à côte ;
+le Setup est la notch elle-même — ADR-022), ou `SpaceNotch-win-x64.zip`. Installation scriptée :
+`SpaceNotch-Setup.exe --quiet
 [--scope=user|machine] [--startup=on|off] [--desktop=on|off]` ; désinstallation :
-`SpaceNotch.exe --uninstall --quiet [--remove-settings]`. Pour une construction à la demande : onglet **Actions** › **Release** ›
+`SpaceNotch-Setup.exe --uninstall --quiet [--remove-settings]`. Pour une construction à la demande : onglet **Actions** › **Release** ›
 **Run workflow**, puis les fichiers dans les *Artifacts* de l'exécution. Pour publier une
 version : pousser un tag `v1.0.0` (ADR-021).
 

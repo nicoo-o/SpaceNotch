@@ -11,8 +11,8 @@ L'utilisateur demande un installeur personnalisé, à l'identité de l'applicati
 Réponses aux questions interactives :
 
 - logo : **la grille 3×3 seule**, **cyan avec le pixel central blanc** ;
-- installeur : **sur mesure**, qui **est la notch elle-même** — elle descend du haut de l'écran,
-  s'ouvre sur ses choix, et se referme en notch ;
+- installeur : **sur mesure**, dont l'interface **est la notch elle-même** — elle descend du haut
+  de l'écran, s'ouvre sur ses choix, et se referme en notch ;
 - portée : **au choix pendant l'installation** (pour moi / pour tous) ;
 - options : **lancer au démarrage**, **raccourci bureau + menu Démarrer**, **désinstalleur
   assorti**, et **garder le .exe portable** ;
@@ -41,11 +41,12 @@ Réponses aux questions interactives :
    des pixels entiers de l'écran. Généré par `tools/brand/make_icons.py` : `.ico` (16 à 256), tuiles,
    et `docs/assets/brand`. Relié à l'exe (`ApplicationIcon`) et posé sur les fenêtres
    (`AppIcon.ApplyTo`), dont la zone de notification.
-2. **Un seul exécutable.** `SpaceNotch-Setup.exe` est `SpaceNotch.exe` renommé : un nom contenant
-   « setup » (ou `--install`) démarre l'installeur au lieu de l'Island. L'installeur se copie
-   lui-même sous le nom de l'application : rien n'est empaqueté deux fois, et ce qui s'installe est
-   exactement ce qui a été essayé.
-3. **L'installeur est la notch** (`SetupWindow`) : même silhouette, même noir, même ressort que
+2. **Deux exécutables distincts.** `SpaceNotch-Setup.exe` porte l'interface d'installation,
+   mais pas l'identité MSIX de l'application ; `SpaceNotch.exe` la porte pour les notifications.
+   Le Setup trouve et copie l'application située à côté. Cette séparation est nécessaire : Windows
+   refuse de démarrer depuis Téléchargements un exécutable dont l'identité est déjà enregistrée
+   pour l'application installée. Le workflow vérifie le lancement du Setup avec cette identité présente.
+3. **L'interface de l'installeur est la notch** (`SetupWindow`) : même silhouette, même noir, même ressort que
    l'Island. Elle naît au repos en haut de l'écran principal, s'ouvre à la hauteur de ce qu'elle a
    à dire, change de hauteur à chaque étape (choix, travail, fin), la grille jouant *lire*,
    *traiter*, *achevé* ou *échec*. À la fin, elle se referme au repos et la vraie notch est lancée
@@ -69,10 +70,11 @@ Réponses aux questions interactives :
    réglages et journaux. Les greffons restent : ce sont les fichiers de l'utilisateur.
 9. **Silencieux** : `--quiet` (avec `--scope=`, `--startup=`, `--desktop=`) installe ou désinstalle
    sans fenêtre, codes de sortie de Windows Installer (0, 1602, 1603).
-10. **Release** : `SpaceNotch-Setup.exe`, `SpaceNotch.exe`, `SpaceNotch-win-x64.zip`. L'exécutable
-    unique est compressé (`EnableCompressionInSingleFile`). Le workflow installe en silence,
-    vérifie fichier, raccourcis, entrée et démarrage, lance la notch installée, désinstalle, et
-    vérifie que rien ne reste.
+10. **Release** : `SpaceNotch-Setup.exe`, `SpaceNotch.exe`, `SpaceNotch-win-x64.zip`. Les deux
+    exécutables sont publiés séparément et doivent rester côte à côte au lancement du Setup. Le
+    workflow vérifie l'installation silencieuse, le démarrage de la notch avec son identité, le
+    lancement du Setup après enregistrement de cette identité, puis désinstalle et vérifie que rien
+    ne reste.
 
 ## Conséquences
 
@@ -80,5 +82,5 @@ Réponses aux questions interactives :
   version portable.
 - La plateforme élevée tourne sans interface : un échec s'y lit dans le journal
   (`%LocalAppData%\SpaceNotch\logs`) et se traduit par « L'installation n'a pas abouti ».
-- Le dossier zippé n'est pas un installeur : renommer son `SpaceNotch.exe` en « Setup » installerait
-  un exécutable privé de ses bibliothèques. L'installeur est l'exécutable unique.
+- `SpaceNotch-Setup.exe` ne peut pas être lancé seul : `SpaceNotch.exe` doit se trouver à côté.
+  Le dossier zippé reste une option d'installation manuelle, sans cette contrainte de lancement.

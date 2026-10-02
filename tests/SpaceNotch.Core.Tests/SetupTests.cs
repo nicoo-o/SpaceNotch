@@ -31,6 +31,15 @@ public class SetupCommandTests
         Assert.Equal(SetupMode.Uninstall, SetupCommand.ModeFromFileName(@"C:\x\SpaceNotch-Uninstall.exe"));
     }
 
+    [Theory]
+    [InlineData(@"C:\Downloads\SpaceNotch-Setup.exe", @"C:\Downloads\SpaceNotch.exe")]
+    [InlineData(@"C:\Downloads\SpaceNotch-Setup (1).exe", @"C:\Downloads\SpaceNotch.exe")]
+    [InlineData(@"C:\Program Files\SpaceNotch\SpaceNotch.exe", @"C:\Program Files\SpaceNotch\SpaceNotch.exe")]
+    public void Installer_uses_the_adjacent_application_as_its_install_payload(string executable, string expected)
+    {
+        Assert.Equal(expected, SetupCommand.InstallPayloadPath(executable));
+    }
+
     [Fact]
     public void Explicit_argument_wins_over_file_name()
     {
@@ -127,6 +136,7 @@ public class InstallLayoutTests
 
         Assert.Equal(@"C:\Users\ana\AppData\Local\Programs\SpaceNotch", layout.Directory);
         Assert.Equal(@"C:\Users\ana\AppData\Local\Programs\SpaceNotch\SpaceNotch.exe", layout.Executable);
+        Assert.Equal(@"C:\Users\ana\AppData\Local\Programs\SpaceNotch\SpaceNotch-Setup.exe", layout.SetupExecutable);
         Assert.Equal(@"C:\Users\ana\Desktop\SpaceNotch.lnk", layout.DesktopShortcut);
         Assert.EndsWith(@"Start Menu\Programs\SpaceNotch.lnk", layout.StartMenuShortcut, StringComparison.Ordinal);
         Assert.StartsWith(@"C:\Users\ana\AppData\Roaming", layout.StartMenuShortcut, StringComparison.Ordinal);
@@ -196,11 +206,17 @@ public class UninstallEntryTests
         Assert.Equal("1.2.0", values["DisplayVersion"].Text);
         Assert.Equal("20260924", values["InstallDate"].Text);
         Assert.Equal(
-            "\"C:\\Users\\ana\\AppData\\Local\\Programs\\SpaceNotch\\SpaceNotch.exe\" --uninstall",
+            "\"C:\\Users\\ana\\AppData\\Local\\Programs\\SpaceNotch\\SpaceNotch-Setup.exe\" --uninstall",
             values["UninstallString"].Text);
-        Assert.EndsWith("--uninstall --quiet", values["QuietUninstallString"].Text, StringComparison.Ordinal);
+        Assert.EndsWith("SpaceNotch-Setup.exe\" --uninstall --quiet", values["QuietUninstallString"].Text, StringComparison.Ordinal);
         Assert.Equal(300 * 1024, values["EstimatedSize"].Number);
         Assert.Equal(1, values["NoModify"].Number);
+        Assert.Contains("SpaceNotch-Setup.exe", values["UninstallString"].Text, StringComparison.Ordinal);
+
+        Dictionary<string, RegistryValue> custom = UninstallEntry
+            .Values(Layout, options, "1.2.0", 1, new DateOnly(2026, 9, 24), @"C:\Tools\SpaceNotch-Setup.exe")
+            .ToDictionary(v => v.Name);
+        Assert.Equal("\"C:\\Tools\\SpaceNotch-Setup.exe\" --uninstall", custom["UninstallString"].Text);
     }
 
     [Fact]

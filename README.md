@@ -6,7 +6,7 @@
 
 <br>
 
-<a href="https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe"><img src="https://img.shields.io/badge/Download_for_Windows-000000?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows" height="44"></a>
+<a href="https://github.com/nicoo-o/SpaceNotch/releases/latest"><img src="https://img.shields.io/badge/Download_for_Windows-000000?style=for-the-badge&logo=windows11&logoColor=white" alt="Download for Windows" height="44"></a>
 
 <br><br>
 
@@ -103,8 +103,8 @@ flows back home.
 
 ## Get started
 
-1. **[Download SpaceNotch-Setup.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe)**.
-2. Run it. Windows may say it *protected your PC*: choose **More info › Run anyway** (the app isn't code-signed yet).
+1. Download **[SpaceNotch-Setup.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe)** and **[SpaceNotch.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch.exe)** from the same release. Keep both files in the same folder.
+2. Run `SpaceNotch-Setup.exe`. Windows may say it *protected your PC*: choose **More info › Run anyway** (the app isn't code-signed yet).
 3. The installer is the notch itself: it drops from the top of your screen and opens on a few
    choices — just you or everyone, start with Windows, a desktop shortcut. Press **Install**, and it
    folds back into your notch. Windows asks once for administrator approval: it lets SpaceNotch read

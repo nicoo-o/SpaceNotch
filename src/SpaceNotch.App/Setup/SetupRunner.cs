@@ -35,9 +35,15 @@ internal static class SetupRunner
                 case SetupMode.InstallWorker:
                 {
                     InstallLayout layout = InstallLayout.For(command.Options.Scope, WindowsSetup.Folders());
-                    string source = Environment.ProcessPath ?? throw new InvalidOperationException("Exécutable introuvable.");
+                    string launcher = Environment.ProcessPath ?? throw new InvalidOperationException("Exécutable introuvable.");
+                    string source = SetupCommand.InstallPayloadPath(launcher);
 
-                    await Task.Run(() => WindowsSetup.InstallFiles(layout, command.Options, source, version, null, Log)).ConfigureAwait(false);
+                    if (!System.IO.File.Exists(source))
+                    {
+                        throw new System.IO.FileNotFoundException("SpaceNotch.exe doit être présent à côté de SpaceNotch-Setup.exe.", source);
+                    }
+
+                    await Task.Run(() => WindowsSetup.InstallFiles(layout, command.Options, source, version, null, Log, launcher)).ConfigureAwait(false);
                     return Succeeded;
                 }
 

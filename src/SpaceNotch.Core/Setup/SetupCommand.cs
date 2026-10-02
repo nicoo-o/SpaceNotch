@@ -56,11 +56,10 @@ public sealed record InstallOptions(InstallScope Scope, bool StartWithWindows, b
 /// Le mode d'installation lu dans la ligne de commande et le nom du fichier.
 ///
 /// <para>
-/// Un seul exécutable sert à tout : <c>SpaceNotch.exe</c> est l'application,
-/// <c>SpaceNotch-Setup.exe</c> — le même fichier, renommé — est l'installeur.
-/// L'installeur se copie lui-même sous le nom de l'application : rien n'est
-/// empaqueté deux fois, et ce qui s'installe est exactement ce qui a été
-/// essayé. Voir ADR-022.
+/// L'application (<c>SpaceNotch.exe</c>) et l'installeur (<c>SpaceNotch-Setup.exe</c>)
+/// sont deux exécutables distincts : seul le premier porte l'identité de paquet Windows.
+/// L'installeur exige l'application à côté de lui et copie celle-ci à l'installation.
+/// Voir ADR-022 et ADR-023.
 /// </para>
 /// </summary>
 /// <param name="Mode">Ce que le lancement doit faire.</param>
@@ -183,6 +182,19 @@ public sealed record SetupCommand(
             || name.Contains("install", StringComparison.OrdinalIgnoreCase)
             ? SetupMode.Install
             : SetupMode.None;
+    }
+
+    /// <summary>
+    /// Chemin de l'application à installer : pour un Setup, l'exécutable voisin ;
+    /// pour une commande lancée depuis SpaceNotch.exe, cet exécutable lui-même.
+    /// </summary>
+    public static string InstallPayloadPath(string executablePath)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(executablePath);
+
+        return ModeFromFileName(executablePath) == SetupMode.Install
+            ? Path.Combine(Path.GetDirectoryName(executablePath) ?? string.Empty, SetupIdentity.ExecutableName)
+            : executablePath;
     }
 
     /// <summary>Arguments qui redonnent cette commande — pour relancer en processus élevé.</summary>

@@ -114,9 +114,9 @@ public static class WindowsSetup
     }
 
     /// <summary>
-    /// Installe. Pour tous et sans droits, relance ce même exécutable élevé
-    /// pour le travail d'administrateur, puis termine ici ce qui appartient à
-    /// l'utilisateur.
+    /// Installe le payload SpaceNotch.exe. Pour tous et sans droits, relance
+    /// l'installeur élevé pour le travail d'administrateur, puis termine ici ce
+    /// qui appartient à l'utilisateur.
     /// </summary>
     /// <param name="options">Choix de l'installeur.</param>
     /// <param name="version">Version installée.</param>
@@ -131,16 +131,22 @@ public static class WindowsSetup
         ArgumentNullException.ThrowIfNull(options);
 
         InstallLayout layout = InstallLayout.For(options.Scope, Folders());
-        string source = Environment.ProcessPath ?? throw new InvalidOperationException("Exécutable introuvable.");
+        string launcher = Environment.ProcessPath ?? throw new InvalidOperationException("Exécutable introuvable.");
+        string source = SetupCommand.InstallPayloadPath(launcher);
 
         try
         {
+            if (!File.Exists(source))
+            {
+                throw new FileNotFoundException("SpaceNotch.exe doit se trouver dans le même dossier que SpaceNotch-Setup.exe.", source);
+            }
+
             if (layout.RequiresElevation && !IsElevated)
             {
                 progress?.Report(new SetupProgress(InstallStep.Preparing, Indeterminate: true));
 
                 var worker = new SetupCommand(SetupMode.InstallWorker, options, Quiet: true);
-                int? exit = await RunElevatedAsync(source, worker.ToCommandLine()).ConfigureAwait(false);
+                int? exit = await RunElevatedAsync(launcher, worker.ToCommandLine()).ConfigureAwait(false);
 
                 if (exit is null)
                 {
@@ -157,7 +163,7 @@ public static class WindowsSetup
             }
             else
             {
-                await Task.Run(() => InstallFiles(layout, options, source, version, progress, log)).ConfigureAwait(false);
+                await Task.Run(() => InstallFiles(layout, options, source, version, progress, log, launcher)).ConfigureAwait(false);
             }
 
             // Identité de paquet (notifications), pour l'utilisateur lui-même :
@@ -165,7 +171,7 @@ public static class WindowsSetup
             // qui pourrait appartenir à un autre compte. Un échec n'empêche pas
             // l'installation : SpaceNotch tourne, sans les notifications Windows.
             progress?.Report(new SetupProgress(InstallStep.Registering));
-            await TrustIdentityCertificateAsync(layout, source, log).ConfigureAwait(false);
+            await TrustIdentityCertificateAsync(layout, launcher, log).ConfigureAwait(false);
             await IdentityPackage.RegisterAsync(
                 layout.Directory,
                 Path.Combine(layout.Directory, IdentityPackage.FileName),
@@ -227,13 +233,15 @@ public static class WindowsSetup
     /// processus élevé d'une installation pour tous, et le processus de
     /// l'utilisateur pour une installation personnelle.
     /// </summary>
+    /// <param name="setupExecutable">Installeur distinct à conserver à côté de l'application.</param>
     public static void InstallFiles(
         InstallLayout layout,
         InstallOptions options,
         string source,
         string version,
         IProgress<SetupProgress>? progress,
-        Action<string>? log = null)
+        Action<string>? log = null,
+        string? setupExecutable = null)
     {
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(options);
@@ -246,6 +254,23 @@ public static class WindowsSetup
 
         progress?.Report(new SetupProgress(InstallStep.Copying));
         CopyExecutable(source, layout.Executable, within => progress?.Report(new SetupProgress(InstallStep.Copying, within)));
+
+        // L'installeur sans identité est conservé à côté de l'application :
+        // Paramètres peut le lancer même quand l'identité de SpaceNotch est en
+        // panne. Le worker élevé le copie lui aussi depuis le dossier de release.
+        string? setupSource = setupExecutable;
+        if (string.IsNullOrWhiteSpace(setupSource))
+        {
+            string adjacent = Path.Combine(Path.GetDirectoryName(source) ?? string.Empty, SetupIdentity.SetupExecutableName);
+            setupSource = File.Exists(adjacent) ? adjacent : null;
+        }
+
+        if (!string.IsNullOrWhiteSpace(setupSource)
+            && File.Exists(setupSource)
+            && SetupCommand.ModeFromFileName(setupSource) == SetupMode.Install)
+        {
+            CopyExecutable(setupSource, layout.SetupExecutable, _ => { });
+        }
 
         // Le paquet d'identité voyage avec l'exécutable : on le garde dans le
         // dossier d'installation, où l'enregistrement — et un réenregistrement
@@ -281,7 +306,8 @@ public static class WindowsSetup
         using RegistryKey key = root.CreateSubKey(SetupIdentity.UninstallKeyPath, writable: true)
             ?? throw new InvalidOperationException("Clé de désinstallation inaccessible.");
 
-        foreach (RegistryValue value in UninstallEntry.Values(layout, options, version, size, DateOnly.FromDateTime(DateTime.Now)))
+        string uninstaller = File.Exists(layout.SetupExecutable) ? layout.SetupExecutable : layout.Executable;
+        foreach (RegistryValue value in UninstallEntry.Values(layout, options, version, size, DateOnly.FromDateTime(DateTime.Now), uninstaller))
         {
             if (value.Number is int number)
             {
@@ -316,7 +342,10 @@ public static class WindowsSetup
 
             if (product.Options.Scope == InstallScope.AllUsers && !IsElevated)
             {
-                string self = Environment.ProcessPath ?? product.Executable;
+                InstallLayout layout = InstallLayout.For(product.Options.Scope, Folders());
+                string self = File.Exists(layout.SetupExecutable)
+                    ? layout.SetupExecutable
+                    : Environment.ProcessPath ?? product.Executable;
                 var worker = new SetupCommand(SetupMode.UninstallWorker, product.Options, Quiet: true, removeSettings, Environment.ProcessId);
                 int? exit = await RunElevatedAsync(self, worker.ToCommandLine()).ConfigureAwait(false);
 
@@ -361,6 +390,11 @@ public static class WindowsSetup
         }
 
         StopRunning(log, callerProcessId);
+
+        // La portée "pour tous" peut laisser SpaceNotch.exe et son paquet
+        // enregistrés si seul le Setup sans identité a été lancé. Retirer
+        // l'identité pour l'utilisateur courant, avant de détruire ses fichiers.
+        IdentityPackage.RemoveAsync(log).GetAwaiter().GetResult();
 
         ShellLink.Delete(layout.StartMenuShortcut);
         ShellLink.Delete(layout.DesktopShortcut);

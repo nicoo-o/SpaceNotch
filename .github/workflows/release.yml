@@ -1,10 +1,10 @@
 name: Release
 
 # Produit SpaceNotch pour Windows, en trois formes :
-#   - SpaceNotch-Setup.exe, l'installeur : la notch elle-même, qui s'ouvre sur ses choix
-#     (ADR-022). C'est le même exécutable que la version portable, renommé : son nom
-#     suffit à le faire démarrer en installeur ;
-#   - SpaceNotch.exe, l'exécutable unique et portable — double-cliquer, rien à installer ;
+#   - SpaceNotch-Setup.exe, l'installeur, sans identité de paquet : il peut donc
+#     démarrer même quand une version de SpaceNotch est déjà installée ;
+#   - SpaceNotch.exe, l'application autonome, avec identité de paquet pour les
+#     notifications Windows — à garder à côté du Setup lors du téléchargement ;
 #   - SpaceNotch-win-x64.zip, le dossier complet (démarrage un peu plus rapide).
 #
 # Deux déclencheurs :
@@ -77,7 +77,7 @@ jobs:
       - name: Tester toute la solution en Release
         run: dotnet test SpaceNotch.sln -c Release --no-restore
 
-      # Exécutable unique. Les réglages viennent de Microsoft pour une application
+      # Application installable. Les réglages viennent de Microsoft pour une application
       # WinUI 3 non empaquetée :
       #   - WindowsAppSDKSelfContained + SelfContained : aucun runtime à installer ;
       #   - EnableMsixTooling=true : sans lui, le fichier de ressources n'est pas
@@ -151,6 +151,27 @@ jobs:
           -p:IdentityThumbprint=${{ env.IDENTITY_THUMBPRINT }}
           --output "${{ runner.temp }}/single"
 
+      # Installeur distinct : même interface et même empreinte approuvée, mais sans
+      # le manifeste MSIX de l'application. Sans ce manifeste, Windows ne bloque pas
+      # le lancement du Setup quand SpaceNotch.Identity est déjà enregistré.
+      - name: Publier l'installeur sans identité
+        run: >
+          dotnet publish ${{ env.PROJECT }}
+          -c Release -p:Platform=x64 -r win-x64
+          --self-contained true
+          -p:WindowsPackageType=None
+          -p:WindowsAppSDKSelfContained=true
+          -p:EnableMsixTooling=true
+          -p:SetupBuild=true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:IncludeAllContentForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          -p:PublishReadyToRun=true
+          -p:Version=${{ steps.version.outputs.value }}
+          -p:IdentityThumbprint=${{ env.IDENTITY_THUMBPRINT }}
+          --output "${{ runner.temp }}/setup"
+
       - name: Publier le dossier complet
         run: >
           dotnet publish ${{ env.PROJECT }}
@@ -171,10 +192,12 @@ jobs:
           New-Item -ItemType Directory -Force -Path $out | Out-Null
 
           $exe = Get-ChildItem "${{ runner.temp }}/single" -Filter "*.exe" | Select-Object -First 1
-          if (-not $exe) { throw "Aucun exécutable produit par la publication unique." }
+          $setup = Get-ChildItem "${{ runner.temp }}/setup" -Filter "*.exe" | Select-Object -First 1
+          if (-not $exe) { throw "Aucun exécutable produit pour SpaceNotch." }
+          if (-not $setup) { throw "Aucun exécutable produit pour le Setup." }
+          if ((Get-FileHash $exe.FullName).Hash -eq (Get-FileHash $setup.FullName).Hash) { throw "Le Setup doit être un exécutable distinct de SpaceNotch.exe." }
           Copy-Item $exe.FullName "$out/SpaceNotch.exe"
-          # L'installeur est le même fichier : « Setup » dans le nom suffit.
-          Copy-Item $exe.FullName "$out/SpaceNotch-Setup.exe"
+          Copy-Item $setup.FullName "$out/SpaceNotch-Setup.exe"
 
           Compress-Archive -Path "${{ runner.temp }}/folder/*" -DestinationPath "$out/SpaceNotch-win-x64.zip" -Force
 
@@ -182,6 +205,7 @@ jobs:
 
           # Sans resources.pri, aucune fenêtre XAML ne se charge (WindowsAppSDK#6720).
           if (-not (Test-Path "${{ runner.temp }}/folder/resources.pri")) { throw "resources.pri absent de la publication." }
+          if (-not (Test-Path (Join-Path "${{ runner.temp }}/setup" "resources.pri"))) { throw "resources.pri absent du Setup." }
 
       - name: Générer les empreintes SHA-256
         shell: pwsh
@@ -191,7 +215,7 @@ jobs:
             ForEach-Object { "{0}  {1}" -f $_.Hash.ToLowerInvariant(), [IO.Path]::GetFileName($_.Path) } |
             Set-Content "$dist/SHA256SUMS.txt" -Encoding ascii
 
-      # Essai de démarrage : l'exécutable unique est lancé en mode démonstration ; la
+      # Essai de démarrage : l'application est lancée en mode démonstration ; la
       # notch doit s'être réellement ouverte et tourner encore après quelques secondes.
       # « Le processus tourne » ne suffit pas : la v1.0.0 tournait sans aucune fenêtre,
       # chaque XAML échouant faute de resources.pri. Bloquant : une version qui
@@ -226,10 +250,8 @@ jobs:
           }
           Write-Host "La notch s'est ouverte et tourne toujours après 12 s."
 
-      # Essai de l'installeur avec sa fenêtre : c'est ce que lance un double-clic.
-      # La fenêtre doit encore être là après quelques secondes, sans avoir rien
-      # installé (personne ne clique). En cas d'échec : journal de l'application
-      # et erreurs .NET du journal d'événements de Windows.
+      # Essai de l'installeur avec sa fenêtre sur une machine propre : c'est ce que
+      # lance un double-clic. La fenêtre doit rester ouverte sans rien installer.
       - name: Essai de l'installeur (fenêtre)
         shell: pwsh
         run: |
@@ -254,10 +276,9 @@ jobs:
           }
           Write-Host "La fenêtre de l'installeur est toujours ouverte après 12 s."
 
-      # Essai de l'installeur, de bout en bout, en mode silencieux : installer pour
-      # l'utilisateur, vérifier fichier, raccourcis et entrée de Paramètres ›
-      # Applications, lancer la notch installée, puis désinstaller et vérifier que
-      # rien ne reste. Un installeur cassé ne doit jamais être publié.
+      # Essai de l'installeur avec l'application livrée à côté : installer, vérifier
+      # fichiers/raccourcis/entrée, relancer le Setup avec l'identité présente,
+      # démarrer SpaceNotch puis désinstaller. Une régression ne doit jamais être publiée.
       - name: Essai de l'installeur
         shell: pwsh
         run: |
@@ -279,9 +300,35 @@ jobs:
           if (-not $identity) { throw "Paquet d'identité absent après l'installation." }
           Write-Host "Identité : $($identity.PackageFullName) — emplacement externe : $($identity.InstallLocation)"
 
+          # Régression v1.13.1 : le Setup doit encore démarrer quand l'identité
+          # SpaceNotch.Identity est déjà enregistrée, comme sur un poste en mise à jour.
+          $log = Join-Path $env:LOCALAPPDATA "SpaceNotch\logs\spacenotch.log"
+          Get-Process SpaceNotch -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep -Seconds 1
+          Remove-Item $log -ErrorAction SilentlyContinue
+          $updateSetup = Start-Process -FilePath $setup -PassThru
+          Start-Sleep -Seconds 12
+          $setupAlive = -not $updateSetup.HasExited
+          if ($setupAlive) { Stop-Process -Id $updateSetup.Id -Force }
+          Start-Sleep -Seconds 1
+          $setupJournal = if (Test-Path $log) { Get-Content $log -Raw } else { "" }
+          if (-not $setupAlive -or $setupJournal -match "\[FATAL\]" -or $setupJournal -notmatch "Installeur ouvert") {
+            Write-Host $setupJournal
+            throw "Le Setup ne démarre pas avec une identité existante."
+          }
+          Write-Host "Le Setup démarre malgré l'identité SpaceNotch déjà enregistrée."
+
           $entry = Get-ItemProperty $key
           Write-Host "Paramètres › Applications : $($entry.DisplayName) $($entry.DisplayVersion) — $($entry.UninstallString)"
           if ($entry.DisplayVersion -ne "${{ steps.version.outputs.value }}") { throw "Version inscrite inattendue : $($entry.DisplayVersion)." }
+
+          $installedSetup = Join-Path $dir "SpaceNotch-Setup.exe"
+          if (-not (Test-Path $installedSetup)) { throw "SpaceNotch-Setup.exe absent du dossier d'installation." }
+          $installedSetupHash = (Get-FileHash $installedSetup).Hash
+          $releaseSetupHash = (Get-FileHash $setup).Hash
+          if ($installedSetupHash -ne $releaseSetupHash) { throw "Le Setup sans identité installé ne correspond pas à celui de la release." }
+          if ($entry.UninstallString -ne "`"$installedSetup`" --uninstall") { throw "Désinstalleur Windows inattendu : $($entry.UninstallString)." }
+          if ($entry.QuietUninstallString -ne "`"$installedSetup`" --uninstall --quiet") { throw "Désinstalleur silencieux inattendu : $($entry.QuietUninstallString)." }
 
           $run = (Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run").SpaceNotch
           if ($run -ne "`"$exe`" --startup") { throw "Lancement au démarrage inattendu : $run." }
@@ -307,7 +354,7 @@ jobs:
           Write-Host "La notch installée tourne avec son identité après 12 s."
 
           # La désinstallation ferme elle-même la notch en cours.
-          $uninstall = Start-Process -FilePath $exe -ArgumentList "--uninstall","--quiet" -PassThru -Wait
+          $uninstall = Start-Process -FilePath $installedSetup -ArgumentList "--uninstall","--quiet" -PassThru -Wait
           if ($uninstall.ExitCode -ne 0) { throw "Désinstallation silencieuse : code $($uninstall.ExitCode)." }
 
           # Le dossier est effacé par l'interpréteur de commandes, après la sortie.
@@ -347,11 +394,13 @@ jobs:
           path: ${{ runner.temp }}/dist/SpaceNotch.exe
           if-no-files-found: error
 
-      - name: Conserver l'installeur
+      - name: Conserver l'installeur et son application
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: SpaceNotch-${{ steps.version.outputs.value }}-setup
-          path: ${{ runner.temp }}/dist/SpaceNotch-Setup.exe
+          path: |
+            ${{ runner.temp }}/dist/SpaceNotch-Setup.exe
+            ${{ runner.temp }}/dist/SpaceNotch.exe
           if-no-files-found: error
 
       - name: Conserver le dossier zippé
@@ -379,9 +428,10 @@ jobs:
           name: SpaceNotch v${{ steps.version.outputs.value }}
           generate_release_notes: true
           body: |
-            **Télécharger** : `SpaceNotch-Setup.exe` (l'installeur — la notch s'ouvre sur
-            ses choix), `SpaceNotch.exe` (portable, rien à installer) ou
-            `SpaceNotch-win-x64.zip` (dossier complet).
+            **Télécharger ensemble** : `SpaceNotch-Setup.exe` (l'installeur) et
+            `SpaceNotch.exe` (l'application à installer). Gardez les deux fichiers
+            dans le même dossier, puis lancez le Setup. `SpaceNotch-win-x64.zip`
+            contient également le dossier complet.
 
             Windows 11 x64. L'application n'est pas signée : au premier lancement,
             SmartScreen peut afficher « Windows a protégé votre ordinateur » —

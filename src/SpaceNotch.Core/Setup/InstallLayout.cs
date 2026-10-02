@@ -43,6 +43,9 @@ public sealed record InstallLayout(
     string StartMenuShortcut,
     string DesktopShortcut)
 {
+    /// <summary>Installeur sans identité, utilisé aussi par Paramètres › Applications pour désinstaller.</summary>
+    public string SetupExecutable => WindowsPath.Join(Directory, SetupIdentity.SetupExecutableName);
+
     /// <summary>
     /// Vrai si <paramref name="directory"/> est exactement le dossier
     /// d'installation de cette portée. La désinstallation n'efface jamais un
@@ -87,7 +90,7 @@ public sealed record InstallLayout(
 
     /// <summary>
     /// Ce que la désinstallation efface, une fois le processus terminé : le
-    /// dossier d'installation, le cache d'extraction de l'exécutable unique et,
+    /// dossier d'installation, les caches d'extraction des exécutables uniques et,
     /// sur demande, les réglages et journaux. Les greffons restent : ce sont les
     /// fichiers de l'utilisateur.
     /// </summary>

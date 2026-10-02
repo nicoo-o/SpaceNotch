@@ -54,10 +54,10 @@ public partial class App : Application
     {
         MiniLogger.Log("App.OnLaunched starting");
 
-        // Le même exécutable est aussi son installeur : « SpaceNotch-Setup.exe »,
-        // ou --install / --uninstall. Dans ce cas, pas d'Island — la notch de
-        // l'installeur, ou rien du tout pour le travail élevé et les
-        // installations scriptées. Voir ADR-022.
+        // « SpaceNotch-Setup.exe », --install ou --uninstall : pas d'Island —
+        // la notch de l'installeur, ou rien du tout pour le travail élevé et les
+        // installations scriptées. Le Setup publié est distinct de SpaceNotch.exe
+        // et ne porte pas l'identité MSIX de l'application. Voir ADR-022/023.
         SetupCommand setup = SetupCommand.Parse(Environment.GetCommandLineArgs(), Environment.ProcessPath);
 
         if (setup.Mode != SetupMode.None)

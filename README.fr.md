@@ -6,7 +6,7 @@
 
 <br>
 
-<a href="https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe"><img src="https://img.shields.io/badge/T%C3%A9l%C3%A9charger_pour_Windows-000000?style=for-the-badge&logo=windows11&logoColor=white" alt="Télécharger pour Windows" height="44"></a>
+<a href="https://github.com/nicoo-o/SpaceNotch/releases/latest"><img src="https://img.shields.io/badge/T%C3%A9l%C3%A9charger_pour_Windows-000000?style=for-the-badge&logo=windows11&logoColor=white" alt="Télécharger pour Windows" height="44"></a>
 
 <br><br>
 
@@ -103,8 +103,8 @@ fichiers · **L'historique du presse-papier** (désactivé par défaut, balayez 
 
 ## Pour commencer
 
-1. **[Téléchargez SpaceNotch-Setup.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe)**.
-2. Lancez-le. Windows peut dire qu'il *a protégé votre ordinateur* : choisissez **Informations complémentaires › Exécuter quand même** (l'application n'est pas encore signée).
+1. Téléchargez **[SpaceNotch-Setup.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe)** et **[SpaceNotch.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch.exe)** depuis la même release. Gardez les deux fichiers dans le même dossier.
+2. Lancez `SpaceNotch-Setup.exe`. Windows peut dire qu'il *a protégé votre ordinateur* : choisissez **Informations complémentaires › Exécuter quand même** (l'application n'est pas encore signée).
 3. L'installeur est la notch elle-même : elle descend du haut de l'écran et s'ouvre sur quelques
    choix — pour vous ou pour tous, lancement au démarrage, raccourci sur le bureau. Appuyez sur
    **Installer**, et elle se referme en notch.

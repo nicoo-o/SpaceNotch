@@ -32,19 +32,23 @@ public static class UninstallEntry
     /// <param name="version">Version installée.</param>
     /// <param name="sizeBytes">Taille installée, pour l'estimation affichée par Windows.</param>
     /// <param name="installedOn">Date d'installation.</param>
+    /// <param name="uninstaller">Setup sans identité à utiliser ; par défaut, son chemin prévu à côté de l'application.</param>
     public static IReadOnlyList<RegistryValue> Values(
         InstallLayout layout,
         InstallOptions options,
         string version,
         long sizeBytes,
-        DateOnly installedOn)
+        DateOnly installedOn,
+        string? uninstaller = null)
     {
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(options);
         ArgumentException.ThrowIfNullOrWhiteSpace(version);
 
+        // Le Setup n'a pas l'identité de SpaceNotch : Settings peut le lancer
+        // même quand l'application empaquetée est dans un état cassé.
         // Toujours entre guillemets : Windows lit la commande telle quelle.
-        string exe = $"\"{layout.Executable}\"";
+        string exe = $"\"{uninstaller ?? layout.SetupExecutable}\"";
 
         return
         [

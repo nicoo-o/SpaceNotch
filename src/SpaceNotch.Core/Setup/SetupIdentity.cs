@@ -13,8 +13,11 @@ public static class SetupIdentity
     /// <summary>Éditeur affiché dans Paramètres › Applications.</summary>
     public const string Publisher = "SpaceNotch";
 
-    /// <summary>Nom de l'exécutable installé. L'installeur, lui, porte « Setup » dans son nom.</summary>
+    /// <summary>Nom de l'exécutable installé : application avec identité Windows.</summary>
     public const string ExecutableName = "SpaceNotch.exe";
+
+    /// <summary>Nom de l'installeur sans identité, conservé pour mise à jour et désinstallation.</summary>
+    public const string SetupExecutableName = "SpaceNotch-Setup.exe";
 
     /// <summary>Nom du processus de l'application, pour la fermer avant une mise à jour.</summary>
     public const string ProcessName = "SpaceNotch";
