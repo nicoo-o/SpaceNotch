@@ -42,9 +42,106 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
     private string? _activityId;
     private byte[]? _artworkBytes;
 
+    // Paroles (T4) : la position est estimée entre deux nouvelles de Windows,
+    // qui n'en donne qu'au changement d'état ; une horloge à 4 Hz suffit.
+    private SpaceNotch.Core.Media.SyncedLyrics? _lyrics;
+    private TimeSpan _position;
+    private DateTime _positionAt = DateTime.UtcNow;
+    private bool _playing;
+    private DispatcherTimer? _lyricsClock;
+    private bool? _liked;
+
     public MediaExpandedScene()
     {
         InitializeComponent();
+        Unloaded += (_, _) => _lyricsClock?.Stop();
+    }
+
+    /// <summary>« J'aime » touché : la fenêtre le transmet à Spotify.</summary>
+    public event Action<bool>? LikeRequested;
+
+    /// <summary>Les paroles du morceau, ou <c>null</c> : la ligne disparaît.</summary>
+    public void SetLyrics(SpaceNotch.Core.Media.SyncedLyrics? lyrics)
+    {
+        _lyrics = lyrics;
+        UpdateLyric();
+    }
+
+    /// <summary>« Ensuite : … », ajouté à la ligne de l'artiste ; rien pour l'effacer.</summary>
+    public void SetNext(string? line)
+    {
+        _next = line;
+        ApplyArtistLine();
+    }
+
+    private string? _next;
+    private string _artist = string.Empty;
+
+    /// <summary>L'artiste, et ce qui vient ensuite ; cachée quand les paroles prennent sa place.</summary>
+    private void ApplyArtistLine()
+    {
+        ArtistText.Text = string.IsNullOrEmpty(_next) ? _artist : _artist + "  ·  " + _next;
+        ArtistText.Visibility = LyricsText.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    /// <summary>Le cœur : <c>null</c> le cache (Spotify non connecté ou morceau introuvable).</summary>
+    public void SetLiked(bool? liked)
+    {
+        _liked = liked;
+        LikeButton.Visibility = liked is null ? Visibility.Collapsed : Visibility.Visible;
+        LikeIcon.Tint = liked == true
+            ? new SolidColorBrush(global::Windows.UI.Color.FromArgb(0xFF, 0x1E, 0xD7, 0x60))
+            : (Brush)Application.Current.Resources["NfTextSecondaryBrush"];
+    }
+
+    private void OnLikeClicked(object sender, RoutedEventArgs e)
+    {
+        bool next = _liked != true;
+        SetLiked(next);
+        LikeRequested?.Invoke(next);
+    }
+
+    private void UpdateLyric()
+    {
+        if (_lyrics is null)
+        {
+            LyricsText.Visibility = Visibility.Collapsed;
+            ApplyArtistLine();
+            _lyricsClock?.Stop();
+            return;
+        }
+
+        TimeSpan now = _playing ? _position + (DateTime.UtcNow - _positionAt) : _position;
+        string? line = _lyrics.LineAt(now);
+        LyricsText.Text = line ?? "♪";
+        LyricsText.Visibility = Visibility.Visible;
+        ArtistText.Visibility = Visibility.Collapsed;
+
+        if (_playing && IsLoaded)
+        {
+            _lyricsClock ??= CreateLyricsClock();
+            _lyricsClock.Start();
+        }
+        else
+        {
+            _lyricsClock?.Stop();
+        }
+    }
+
+    private DispatcherTimer CreateLyricsClock()
+    {
+        var clock = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+        clock.Tick += (_, _) =>
+        {
+            if (Visibility != Visibility.Visible)
+            {
+                clock.Stop();
+                return;
+            }
+
+            UpdateLyric();
+        };
+        return clock;
     }
 
     /// <summary>Inclinaison maximale de la pochette, en degrés.</summary>
@@ -125,13 +222,26 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         var track = activity.Payload as MediaTrackInfo;
 
         ScrambleText.Set(TitleText, track?.Title ?? activity.Title, GlyphView.AnimationsEnabled && IsLoaded);
-        ArtistText.Text = track?.Artist ?? activity.Subtitle ?? string.Empty;
+        _artist = track?.Artist ?? activity.Subtitle ?? string.Empty;
+        ApplyArtistLine();
 
         bool playing = track?.IsPlaying ?? false;
         PlayPauseIcon.Key = playing ? "Pause" : "Play";
 
         UpdateTimeline(track);
         _ = UpdateArtworkAsync(track);
+
+        // Une nouvelle position de Windows recale l'horloge des paroles.
+        TimeSpan position = track?.Position ?? TimeSpan.Zero;
+
+        if (position != _position || playing != _playing)
+        {
+            _position = position;
+            _positionAt = DateTime.UtcNow;
+        }
+
+        _playing = playing;
+        UpdateLyric();
     }
 
     /// <summary>

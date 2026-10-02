@@ -4,48 +4,61 @@ using Windows.Security.Credentials;
 namespace SpaceNotch_App.Assistant;
 
 /// <summary>
-/// La clé d'API de l'utilisateur, gardée dans le coffre d'identifiants de
-/// Windows (PasswordVault), jamais dans la configuration ni le journal.
+/// Les secrets de l'utilisateur — clé d'API, jetons de connexion — gardés
+/// dans le coffre d'identifiants de Windows (PasswordVault), jamais dans la
+/// configuration ni le journal.
 /// </summary>
-internal static class AssistantKeys
+internal static class SecretVault
 {
-    private const string Resource = "SpaceNotch.Assistant.Claude";
-    private const string User = "api-key";
+    private const string User = "spacenotch";
 
-    public static string? Read()
+    public static string? Read(string resource, string user = User)
     {
         try
         {
-            PasswordCredential credential = new PasswordVault().Retrieve(Resource, User);
+            PasswordCredential credential = new PasswordVault().Retrieve(resource, user);
             credential.RetrievePassword();
             return string.IsNullOrWhiteSpace(credential.Password) ? null : credential.Password;
         }
         catch (Exception)
         {
-            // Absente : le coffre lève plutôt que de rendre null.
+            // Absent : le coffre lève plutôt que de rendre null.
             return null;
         }
     }
 
-    public static bool HasKey => Read() is not null;
-
-    public static void Save(string key)
+    public static void Save(string resource, string value, string user = User)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(key);
-        Remove();
-        new PasswordVault().Add(new PasswordCredential(Resource, User, key.Trim()));
+        ArgumentException.ThrowIfNullOrWhiteSpace(value);
+        Remove(resource, user);
+        new PasswordVault().Add(new PasswordCredential(resource, user, value.Trim()));
     }
 
-    public static void Remove()
+    public static void Remove(string resource, string user = User)
     {
         try
         {
             var vault = new PasswordVault();
-            vault.Remove(vault.Retrieve(Resource, User));
+            vault.Remove(vault.Retrieve(resource, user));
         }
         catch (Exception)
         {
-            // Déjà absente.
+            // Déjà absent.
         }
     }
+}
+
+/// <summary>La clé d'API Claude de l'utilisateur (ADR-025).</summary>
+internal static class AssistantKeys
+{
+    private const string Resource = "SpaceNotch.Assistant.Claude";
+    private const string User = "api-key";
+
+    public static string? Read() => SecretVault.Read(Resource, User);
+
+    public static bool HasKey => Read() is not null;
+
+    public static void Save(string key) => SecretVault.Save(Resource, key, User);
+
+    public static void Remove() => SecretVault.Remove(Resource, User);
 }

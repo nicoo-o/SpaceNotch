@@ -194,3 +194,9 @@ public sealed record ProgressStepsPayload(IReadOnlyList<double> Segments);
 /// donnée, à la place de la grille qui tourne.
 /// </summary>
 public sealed record ClawdPayload(SpaceNotch.Core.Motion.ClawdMood Mood);
+
+/// <summary>Livraison ou VTC (T2) : l'étape, le véhicule et l'heure d'arrivée, pour la frise.</summary>
+public sealed record DeliveryPayload(string Service, SpaceNotch.Core.Phone.DeliveryKind Kind, SpaceNotch.Core.Phone.DeliveryStep Step, DateTimeOffset? Eta, DateTimeOffset Since);
+
+/// <summary>Salle vocale Discord (T3) : qui est là, qui parle, et son propre micro.</summary>
+public sealed record VoicePayload(string? ChannelName, IReadOnlyList<SpaceNotch.Core.Social.VoiceMember> Members, bool SelfMuted);

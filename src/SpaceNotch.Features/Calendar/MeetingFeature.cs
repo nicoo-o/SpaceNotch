@@ -109,6 +109,27 @@ public sealed class MeetingFeature : IslandFeatureBase
     }
 
     /// <summary>Montre (ou retire) le rendez-vous selon l'heure. Appelable directement (tests, visite).</summary>
+    /// <summary>Hauteur ajoutée à la carte quand le miroir (W5) est ouvert sous « Rejoindre ».</summary>
+    public const double MirrorHeight = 150;
+
+    private bool _mirror;
+
+    /// <summary>Ouvre ou ferme la place du miroir sous les contrôles ; la carte grandit vers le bas.</summary>
+    public void SetMirror(bool open)
+    {
+        if (_mirror == open)
+        {
+            return;
+        }
+
+        _mirror = open;
+
+        if (_meeting is not null)
+        {
+            Show(_meeting);
+        }
+    }
+
     public void Show(CalendarMeeting? meeting)
     {
         DateTimeOffset now = _now();
@@ -194,7 +215,10 @@ public sealed class MeetingFeature : IslandFeatureBase
             State = IslandActivityState.Idle,
             Priority = soon ? ActivityPriority.Normal : ActivityPriority.High,
             Policy = ActivityPresentationPolicy.Passive,
-            Actions = Actions(meeting, now)
+            Actions = Actions(meeting, now),
+            ExpandedFootprint = _mirror && _link is not null
+                ? IslandSceneCatalog.FootprintFor(IslandSceneCatalog.Card) is var card ? new IslandFootprint(card.Width, card.Height + MirrorHeight) : null
+                : null
         });
     }
 

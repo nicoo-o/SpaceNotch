@@ -526,6 +526,24 @@ public sealed class AppSettings
     /// <summary>Actions sur copie (I3) : désactivées par défaut, rien n'est lu sans accord.</summary>
     public bool CopyActions { get; set; }
 
+    /// <summary>Appels et livraisons par Lien avec Windows (T1, T2) : lecture locale des notifications.</summary>
+    public bool ShowPhone { get; set; } = true;
+
+    /// <summary>Salle vocale Discord (T3), une fois l'application Discord renseignée et autorisée.</summary>
+    public bool ShowDiscord { get; set; } = true;
+
+    /// <summary>Identifiant de l'application Discord de l'utilisateur (le secret est dans le coffre).</summary>
+    public string DiscordClientId { get; set; } = string.Empty;
+
+    /// <summary>Paroles synchronisées (T4) : éteintes par défaut, elles interrogent LRCLIB.</summary>
+    public bool ShowLyrics { get; set; }
+
+    /// <summary>Identifiant client de l'application Spotify de l'utilisateur (PKCE, sans secret).</summary>
+    public string SpotifyClientId { get; set; } = string.Empty;
+
+    /// <summary>Miroir de la webcam au survol de « Rejoindre » (W5).</summary>
+    public bool CameraMirror { get; set; } = true;
+
     /// <summary>
     /// Ville de l'aperçu météo (F10). Vide : la météo est coupée et rien n'est
     /// demandé au réseau (ADR-011).
@@ -629,6 +647,8 @@ public sealed class AppSettings
         FeatureKeys.Meeting => ShowMeeting,
         FeatureKeys.Channel => ShowChannel,
         FeatureKeys.CopyAssist => CopyActions,
+        FeatureKeys.Phone => ShowPhone,
+        FeatureKeys.Discord => ShowDiscord,
         _ => true
     };
 
@@ -654,6 +674,8 @@ public sealed class AppSettings
         FeatureKeys.Meeting => true,
         FeatureKeys.Channel => true,
         FeatureKeys.CopyAssist => true,
+        FeatureKeys.Phone => true,
+        FeatureKeys.Discord => true,
         _ => false
     };
 
@@ -716,6 +738,14 @@ public sealed class AppSettings
 
             case FeatureKeys.CopyAssist:
                 CopyActions = enabled;
+                return true;
+
+            case FeatureKeys.Phone:
+                ShowPhone = enabled;
+                return true;
+
+            case FeatureKeys.Discord:
+                ShowDiscord = enabled;
                 return true;
 
             default:
@@ -786,6 +816,20 @@ public sealed class AppSettings
         }
 
         ClaudeModel = (ClaudeModel ?? string.Empty).Trim();
+
+        DiscordClientId = (DiscordClientId ?? string.Empty).Trim();
+
+        if (DiscordClientId.Length > 0 && !SpaceNotch.Core.Social.DiscordRpc.IsClientId(DiscordClientId))
+        {
+            DiscordClientId = string.Empty;
+        }
+
+        SpotifyClientId = (SpotifyClientId ?? string.Empty).Trim();
+
+        if (SpotifyClientId.Length > 0 && !SpaceNotch.Core.Media.SpotifyApi.IsClientId(SpotifyClientId))
+        {
+            SpotifyClientId = string.Empty;
+        }
 
         if (ClaudeModel.Length > 64 || ClaudeModel.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '-' or '.' or '_')))
         {

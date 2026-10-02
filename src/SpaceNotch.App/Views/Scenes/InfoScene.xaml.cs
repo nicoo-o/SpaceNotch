@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -33,6 +34,14 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     }
 
     public event EventHandler<IslandActionRequest>? ActionRequested;
+
+    /// <summary>Le pointeur entre sur un contrôle (<c>true</c>) ou en sort : le miroir de « Rejoindre » (W5).</summary>
+    public event Action<string, string, bool>? ActionHovered;
+
+    /// <summary>La vidéo du miroir, que la fenêtre relie à la caméra.</summary>
+    public MediaPlayerElement Mirror => MirrorVideo;
+
+    private DeliveryPayload? _delivery;
 
     public FrameworkElement Root => this;
 
@@ -118,6 +127,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     {
         _hypnotic?.SetPreset(HypnoticPreset.None, animate: false);
         SceneClawd.Visibility = Visibility.Collapsed;
+        MirrorPanel.Visibility = Visibility.Collapsed;
     }
 
     public void Apply(IslandActivity activity)
@@ -144,7 +154,106 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
 
         ApplyBadge(activity);
 
+        _delivery = activity.Payload as DeliveryPayload;
+        DeliveryTrack.Visibility = _delivery is null ? Visibility.Collapsed : Visibility.Visible;
+        LayoutDelivery();
+        ApplyVoice(activity.Payload as VoicePayload);
+
         RebuildActions(activity.Actions);
+    }
+
+    /// <summary>Montre ou cache le miroir, avec l'état du micro et de la caméra.</summary>
+    public void ShowMirror(bool visible, string? status)
+    {
+        MirrorPanel.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        MirrorStatus.Text = status ?? string.Empty;
+    }
+
+    private void OnDeliveryTrackSizeChanged(object sender, SizeChangedEventArgs e) => LayoutDelivery();
+
+    /// <summary>Trois points (préparation, en route, arrivé) et le véhicule à sa place.</summary>
+    private void LayoutDelivery()
+    {
+        if (_delivery is not { } delivery || DeliveryTrack.ActualWidth <= 0)
+        {
+            return;
+        }
+
+        double width = DeliveryTrack.ActualWidth;
+        double at = SpaceNotch.Core.Phone.Delivery.Position(delivery.Step, delivery.Eta, DateTimeOffset.Now, delivery.Since);
+        DeliveryDone.Width = Math.Max(0, width * at);
+        DeliveryCanvas.Children.Clear();
+
+        for (int i = 0; i < 3; i++)
+        {
+            bool reached = (int)delivery.Step >= i;
+            var dot = new Microsoft.UI.Xaml.Shapes.Rectangle
+            {
+                Width = 6,
+                Height = 6,
+                RadiusX = 1,
+                RadiusY = 1,
+                Fill = Ink(reached ? "NfTextPrimaryBrush" : "NfStrokeStrongBrush", reached ? (byte)0xFF : (byte)0x50)
+            };
+            Canvas.SetLeft(dot, Math.Clamp((width * i / 2.0) - 3, 0, width - 6));
+            Canvas.SetTop(dot, 24 - 4 - 4);
+            DeliveryCanvas.Children.Add(dot);
+        }
+
+        var vehicle = new GlyphView
+        {
+            Key = SpaceNotch.Core.Phone.Delivery.VehicleGlyph(delivery.Kind),
+            Size = 14,
+            Tint = Ink("NfTextPrimaryBrush", 0xFF)
+        };
+        Canvas.SetLeft(vehicle, Math.Clamp((width * at) - 7, 0, width - 14));
+        Canvas.SetTop(vehicle, 0);
+        DeliveryCanvas.Children.Add(vehicle);
+    }
+
+    /// <summary>Une identicône par personne : pleine quand elle parle, estompée sinon, barrée de rouge si muette.</summary>
+    private void ApplyVoice(VoicePayload? voice)
+    {
+        VoiceRow.Children.Clear();
+
+        if (voice is null || voice.Members.Count == 0)
+        {
+            VoiceRow.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        foreach (SpaceNotch.Core.Social.VoiceMember member in voice.Members.Take(8))
+        {
+            var face = new IdenticonView { Width = 18, Height = 18 };
+            face.Show(member.Id + member.Name, Ink("NfTextPrimaryBrush", 0xFF), animate: false);
+
+            var ring = new Border
+            {
+                Padding = new Thickness(3),
+                CornerRadius = new CornerRadius(6),
+                BorderThickness = new Thickness(1.5),
+                BorderBrush = member.Speaking ? new SolidColorBrush(Color.FromArgb(0xFF, 0x5B, 0xE3, 0x8A)) : new SolidColorBrush(Color.FromArgb(0, 0, 0, 0)),
+                Opacity = member.Speaking ? 1 : member.Muted ? 0.3 : 0.55,
+                Child = face
+            };
+
+            ToolTipService.SetToolTip(ring, member.Name);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(ring, member.Name);
+            VoiceRow.Children.Add(ring);
+        }
+
+        if (voice.Members.Count > 8)
+        {
+            VoiceRow.Children.Add(new TextBlock
+            {
+                Text = "+" + (voice.Members.Count - 8).ToString(System.Globalization.CultureInfo.InvariantCulture),
+                FontSize = 11,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = Ink("NfTextSecondaryBrush", 0xA0)
+            });
+        }
+
+        VoiceRow.Visibility = Visibility.Visible;
     }
 
     /// <summary>
@@ -237,6 +346,8 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
             // connaître la signification de l'identifiant qu'elle transporte.
             button.Tag = action.Id;
             button.Click += OnActionClicked;
+            button.PointerEntered += (_, _) => { if (_activityId is { } id) { ActionHovered?.Invoke(id, action.Id, true); } };
+            button.PointerExited += (_, _) => { if (_activityId is { } id) { ActionHovered?.Invoke(id, action.Id, false); } };
 
             ActionHost.Children.Add(button);
         }

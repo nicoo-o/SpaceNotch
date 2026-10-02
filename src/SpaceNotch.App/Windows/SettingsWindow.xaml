@@ -544,6 +544,67 @@
                             <TextBox x:Name="ClaudeModelBox" Grid.Column="2" Width="170" VerticalAlignment="Center" PlaceholderText="claude-opus-5-5" LostFocus="OnClaudeModelCommitted" AutomationProperties.Name="{l:Loc Fr='Modèle Claude', En='Claude model'}" />
                         </Grid>
                     </Border>
+                    <TextBlock Text="{l:Loc Fr='TÉLÉPHONE, SALONS ET MUSIQUE', En='PHONE, VOICE AND MUSIC'}" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Miroir webcam caméra réunion rejoindre micro">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Camera" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Miroir avant une réunion', En='Mirror before a meeting'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="{l:Loc Fr='Au survol de « Rejoindre », la webcam dans la notch et l’état du micro. Rien n’est enregistré.', En='Hovering “Join” shows your webcam in the notch and the microphone state. Nothing is recorded.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="CameraMirrorToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnCameraMirrorToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Paroles synchronisées LRCLIB musique karaoké">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Music" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Paroles synchronisées', En='Synced lyrics'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="{l:Loc Fr='La ligne chantée sous le titre, depuis LRCLIB. Seuls l’artiste, le titre et la durée sont envoyés.', En='The line being sung under the title, from LRCLIB. Only artist, title and length are sent.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="LyricsToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnLyricsToggled" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Spotify j'aime file d'attente client">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Heart" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Spotify" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock x:Name="SpotifyText" Text="{l:Loc Fr='« J’aime » et la file d’attente. Crée une application sur developer.spotify.com avec l’adresse http://127.0.0.1:43117/spotify/callback, puis colle son identifiant.', En='“Like” and the queue. Create an app on developer.spotify.com with the redirect http://127.0.0.1:43117/spotify/callback, then paste its client ID.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><TextBox x:Name="SpotifyIdBox" Width="150" PlaceholderText="Client ID" LostFocus="OnSpotifyIdCommitted" AutomationProperties.Name="{l:Loc Fr='Identifiant Spotify', En='Spotify client ID'}" /><Button x:Name="SpotifyButton" Click="OnSpotifyClicked" /></StackPanel>
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Discord vocal salon micro RPC">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Headphones" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="Discord" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock x:Name="DiscordText" Text="{l:Loc Fr='Le salon vocal et ton micro. Crée une application sur discord.com/developers (OAuth2, adresse http://localhost), colle son identifiant et son secret, puis accepte dans Discord.', En='Your voice channel and mic. Create an app on discord.com/developers (OAuth2, redirect http://localhost), paste its ID and secret, then accept in Discord.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><TextBox x:Name="DiscordIdBox" Width="120" PlaceholderText="Client ID" LostFocus="OnDiscordIdCommitted" AutomationProperties.Name="{l:Loc Fr='Identifiant Discord', En='Discord client ID'}" /><PasswordBox x:Name="DiscordSecretBox" Width="110" PlaceholderText="Secret" AutomationProperties.Name="{l:Loc Fr='Secret Discord', En='Discord secret'}" /><Button x:Name="DiscordButton" Click="OnDiscordClicked" /></StackPanel>
+                        </Grid>
+                    </Border>
                 </StackPanel>
                 <StackPanel x:Name="PageAppearance" Visibility="Collapsed">
                     <TextBlock Text="{l:Loc Fr='Apparence', En='Appearance'}" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />

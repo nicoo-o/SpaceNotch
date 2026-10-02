@@ -250,6 +250,12 @@ public sealed class NotificationFeature : IslandFeatureBase
     public void Receive(string appName, string title, string body, byte[]? logo = null)
         => OnNotificationReceived(appName, title, body, logo);
 
+    /// <summary>
+    /// Une autre fonctionnalité qui comprend certaines notifications (le
+    /// téléphone) : si elle rend <c>true</c>, la notification lui appartient.
+    /// </summary>
+    public Func<string, string, string, bool>? Intercept { get; set; }
+
     /// <summary>Applications dont les notifications restent dans le coin de l'écran.</summary>
     public IReadOnlyCollection<string> IgnoredApps { get; set; } = [];
 
@@ -262,6 +268,12 @@ public sealed class NotificationFeature : IslandFeatureBase
     private void OnNotificationReceived(string appName, string title, string body, byte[]? logo)
     {
         if (IgnoredApps.Contains(appName, StringComparer.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        // Un appel ou une livraison (T1, T2) a sa propre carte : pas de doublon.
+        if (Intercept?.Invoke(appName, title, body) == true)
         {
             return;
         }

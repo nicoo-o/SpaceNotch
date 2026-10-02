@@ -741,6 +741,56 @@ public static class PixelGlyphs
             "...x...",
             "...x...",
             "..xxx.."),
+
+        // Vague 6d : les véhicules de la frise de livraison, le cœur de « J'aime », la file, le micro coupé.
+        ["Scooter"] = Mask(
+            ".......",
+            "....xx.",
+            ".....x.",
+            "xxxxxx.",
+            "xxx..xx",
+            "x.x.x.x",
+            ".x...x."),
+        ["Car"] = Mask(
+            ".......",
+            "..xxx..",
+            ".x...x.",
+            "xxxxxxx",
+            "xxxxxxx",
+            ".x...x.",
+            "......."),
+        ["Parcel"] = Mask(
+            ".......",
+            ".xxxxx.",
+            "x..x..x",
+            "xxxxxxx",
+            "x..x..x",
+            "x..x..x",
+            "xxxxxxx"),
+        ["Heart"] = Mask(
+            ".......",
+            ".xx.xx.",
+            "xxxxxxx",
+            "xxxxxxx",
+            ".xxxxx.",
+            "..xxx..",
+            "...x..."),
+        ["Queue"] = Mask(
+            ".......",
+            "x.xxxxx",
+            ".......",
+            "x.xxxxx",
+            ".......",
+            "x.xxx..",
+            "......."),
+        ["MicrophoneOff"] = Mask(
+            "x.xxx..",
+            ".x.xx..",
+            "..x.x..",
+            "x.xx..x",
+            ".x..x..",
+            "..xxxx.",
+            "...x..x"),
     };
 
     /// <summary>Clés disposant d'un motif.</summary>

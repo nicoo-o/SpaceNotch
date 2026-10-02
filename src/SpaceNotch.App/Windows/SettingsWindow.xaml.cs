@@ -370,6 +370,11 @@ public sealed partial class SettingsWindow : Window
             AssistantSourceBox.SelectedIndex = (int)settings.AssistantSource;
             ClaudeModelBox.Text = settings.ClaudeModel;
             UpdateAssistantStatus(settings.AssistantSource);
+            CameraMirrorToggle.IsOn = settings.CameraMirror;
+            LyricsToggle.IsOn = settings.ShowLyrics;
+            SpotifyIdBox.Text = settings.SpotifyClientId;
+            DiscordIdBox.Text = settings.DiscordClientId;
+            UpdateConnections();
             DiagnosticsToggle.IsOn = settings.EnableDiagnostics;
             CompositionToggle.IsOn = settings.UseCompositionAtmosphere;
             ClipboardSecretsToggle.IsOn = settings.ClipboardIgnoreSecrets;
@@ -893,6 +898,122 @@ public sealed partial class SettingsWindow : Window
     {
         string model = ClaudeModelBox.Text.Trim();
         Apply(s => s.ClaudeModel = model);
+    }
+
+    // ---- Téléphone, salons et musique (vague 6d) -----------------------------
+
+    private void OnCameraMirrorToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.CameraMirror = CameraMirrorToggle.IsOn);
+
+    private void OnLyricsToggled(object sender, RoutedEventArgs e)
+        => Apply(s => s.ShowLyrics = LyricsToggle.IsOn);
+
+    private void OnSpotifyIdCommitted(object sender, RoutedEventArgs e)
+    {
+        string id = SpotifyIdBox.Text.Trim();
+        Apply(s => s.SpotifyClientId = id);
+        UpdateConnections();
+    }
+
+    private void OnDiscordIdCommitted(object sender, RoutedEventArgs e)
+    {
+        string id = DiscordIdBox.Text.Trim();
+        Apply(s => s.DiscordClientId = id);
+        UpdateConnections();
+    }
+
+    private async void OnSpotifyClicked(object sender, RoutedEventArgs e)
+    {
+        if (SpaceNotch_App.Media.SpotifyClient.IsConnected)
+        {
+            SpaceNotch_App.Media.SpotifyClient.Disconnect();
+            UpdateConnections();
+            return;
+        }
+
+        string id = SpotifyIdBox.Text.Trim();
+
+        if (!SpaceNotch.Core.Media.SpotifyApi.IsClientId(id))
+        {
+            SpotifyText.Text = Lang.T("Identifiant invalide : 32 caractères hexadécimaux.", "Invalid client ID: 32 hexadecimal characters.");
+            return;
+        }
+
+        Apply(s => s.SpotifyClientId = id);
+        SpotifyButton.IsEnabled = false;
+        SpotifyText.Text = Lang.T("Accepte dans le navigateur…", "Accept in the browser…");
+        bool ok = await new SpaceNotch_App.Media.SpotifyClient(() => id).ConnectAsync();
+        SpotifyButton.IsEnabled = true;
+        UpdateConnections();
+
+        if (!ok)
+        {
+            SpotifyText.Text = Lang.T("Connexion refusée ou expirée.", "Connection refused or timed out.");
+        }
+    }
+
+    private void OnDiscordClicked(object sender, RoutedEventArgs e)
+    {
+        bool connected = DiscordLinkConnected();
+
+        if (connected)
+        {
+            SpaceNotch_App.Assistant.SecretVault.Remove(SpaceNotch_App.Phone.DiscordLink.TokenResource);
+            SpaceNotch_App.Assistant.SecretVault.Remove(SpaceNotch_App.Phone.DiscordLink.SecretResource);
+            SpaceNotch_App.Phone.DiscordLink.Client?.Stop();
+            UpdateConnections();
+            return;
+        }
+
+        string id = DiscordIdBox.Text.Trim();
+
+        if (!SpaceNotch.Core.Social.DiscordRpc.IsClientId(id))
+        {
+            DiscordText.Text = Lang.T("Identifiant invalide : un nombre de 17 à 20 chiffres.", "Invalid client ID: a 17 to 20 digit number.");
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(DiscordSecretBox.Password))
+        {
+            SpaceNotch_App.Assistant.SecretVault.Save(SpaceNotch_App.Phone.DiscordLink.SecretResource, DiscordSecretBox.Password.Trim());
+        }
+
+        DiscordSecretBox.Password = string.Empty;
+
+        if (!SpaceNotch_App.Phone.DiscordLink.HasSecret)
+        {
+            DiscordText.Text = Lang.T("Colle aussi le secret de l’application.", "Also paste the app secret.");
+            return;
+        }
+
+        Apply(s => s.DiscordClientId = id);
+        SpaceNotch_App.Phone.DiscordLink.Client?.Authorize();
+        DiscordText.Text = Lang.T("Accepte dans la fenêtre de Discord…", "Accept in the Discord window…");
+        DiscordButton.Content = Lang.T("Déconnecter", "Disconnect");
+    }
+
+    private static bool DiscordLinkConnected()
+        => SpaceNotch_App.Assistant.SecretVault.Read(SpaceNotch_App.Phone.DiscordLink.TokenResource) is not null;
+
+    private void UpdateConnections()
+    {
+        bool spotify = SpaceNotch_App.Media.SpotifyClient.IsConnected;
+        SpotifyButton.Content = spotify ? Lang.T("Déconnecter", "Disconnect") : Lang.T("Connecter", "Connect");
+
+        if (spotify)
+        {
+            SpotifyText.Text = Lang.T("Connecté : « J’aime » et la file d’attente apparaissent pendant la lecture.", "Connected: “Like” and the queue show while playing.");
+        }
+
+        bool discord = DiscordLinkConnected();
+        DiscordButton.Content = discord ? Lang.T("Déconnecter", "Disconnect") : Lang.T("Connecter", "Connect");
+
+        if (discord)
+        {
+            DiscordText.Text = SpaceNotch_App.Phone.DiscordLink.Client?.State == SpaceNotch.Platform.Windows.Discord.DiscordLinkState.NotRunning
+                ? Lang.T("Autorisé. Discord n’est pas lancé.", "Authorized. Discord isn’t running.")
+                : Lang.T("Connecté : ton salon vocal apparaît dans la notch.", "Connected: your voice channel shows in the notch.");
+        }
     }
 
     private void OnHoverToggled(object sender, RoutedEventArgs e)

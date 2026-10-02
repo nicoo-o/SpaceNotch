@@ -158,7 +158,9 @@ public static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetLastInputInfo(ref LASTINPUTINFO plii);
 
-    [LibraryImport("kernel32.dll")]
+    // Le nom de la méthode n'est pas celui de la fonction : sans EntryPoint,
+    // l'appel cherchait « NativeGetTickCount » dans kernel32 et plantait.
+    [LibraryImport("kernel32.dll", EntryPoint = "GetTickCount")]
     private static partial uint NativeGetTickCount();
 
     /// <summary>Compteur de millisecondes système modulo 2³².</summary>
