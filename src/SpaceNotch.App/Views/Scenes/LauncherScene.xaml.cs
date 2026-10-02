@@ -36,6 +36,9 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
     /// <summary>Le champ de recherche : l'œil droit y devient le curseur (vague 7).</summary>
     public FrameworkElement SearchField => SearchBox;
 
+    /// <summary>La loupe devant le champ : l'œil gauche s'y pose (vague 7).</summary>
+    public FrameworkElement SearchIcon => SearchGlyph;
+
     public const string SearchAction = "launcher.search";
     public const string OpenAction = "launcher.open";
     public const string PinAction = "launcher.pin";

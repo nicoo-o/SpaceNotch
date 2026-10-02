@@ -246,7 +246,7 @@ public sealed class ClipboardFeature : IslandFeatureBase
 
     private bool Paste(string? entryId)
     {
-        string? content = FindContent(entryId);
+        string? content = Recall(entryId);
 
         if (content is null)
         {
@@ -363,14 +363,16 @@ public sealed class ClipboardFeature : IslandFeatureBase
         }
 
         ClipboardEntry front = previews[_stackIndex % previews.Count];
-        string? content = FindContent(front.Id);
+        string? content = Recall(front.Id);
 
         if (content is null || !ClipboardAccess.SetText(content))
         {
             return false;
         }
 
-        PublishStack(previews, recalled: true);
+        // L'entrée recollée est passée en tête : la pile la garde devant.
+        _stackIndex = 0;
+        PublishStack(Previews(), recalled: true);
         return true;
     }
 
@@ -402,12 +404,31 @@ public sealed class ClipboardFeature : IslandFeatureBase
         }
     }
 
-    private string? FindContent(string? entryId)
+    /// <summary>
+    /// Recoller une entrée la remonte en tête de l'historique avant l'écriture :
+    /// le filtre de <see cref="OnClipboardUpdated"/> reconnaît alors sa propre
+    /// écriture, sans doublon ni pastille « copié » (ou couleur) de plus.
+    /// </summary>
+    private string? Recall(string? entryId)
     {
         lock (_lock)
         {
             int index = IndexOf(entryId);
-            return index < 0 ? null : _entries[index].Content;
+
+            if (index < 0)
+            {
+                return null;
+            }
+
+            Entry entry = _entries[index];
+
+            if (index > 0)
+            {
+                _entries.RemoveAt(index);
+                _entries.Insert(0, entry);
+            }
+
+            return entry.Content;
         }
     }
 

@@ -1,6 +1,7 @@
 using System;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
 
 namespace SpaceNotch.Platform.Windows.Clipboard;
 
@@ -38,7 +39,7 @@ public static partial class ClipboardAccess
         excluded = false;
         text = string.Empty;
 
-        if (!OpenClipboard(IntPtr.Zero))
+        if (!OpenWithRetry())
         {
             return false;
         }
@@ -119,7 +120,7 @@ public static partial class ClipboardAccess
     {
         text = string.Empty;
 
-        if (!OpenClipboard(IntPtr.Zero))
+        if (!OpenWithRetry())
         {
             return false;
         }
@@ -168,7 +169,7 @@ public static partial class ClipboardAccess
     {
         ArgumentNullException.ThrowIfNull(text);
 
-        if (!OpenClipboard(IntPtr.Zero))
+        if (!OpenWithRetry())
         {
             return false;
         }
@@ -227,6 +228,27 @@ public static partial class ClipboardAccess
     }
 
     private const uint GmemMoveable = 0x0002;
+
+    /// <summary>
+    /// Le presse-papier n'a qu'un seul ouvreur à la fois : l'historique de
+    /// Windows, un gestionnaire de mots de passe ou l'application qui vient de
+    /// copier le gardent souvent quelques millisecondes. On réessaie un court
+    /// instant plutôt que d'échouer au premier refus.
+    /// </summary>
+    private static bool OpenWithRetry()
+    {
+        for (int attempt = 0; attempt < 10; attempt++)
+        {
+            if (OpenClipboard(IntPtr.Zero))
+            {
+                return true;
+            }
+
+            Thread.Sleep(15);
+        }
+
+        return false;
+    }
 
     [LibraryImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
