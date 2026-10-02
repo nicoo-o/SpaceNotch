@@ -51,8 +51,25 @@ public sealed partial class IslandWindow
             TourLater(1800, () => Channel(new AgentMessage(Agent, ClaudeHook.AgentName, "SpaceNotch", null, ChannelState.Done)));
         });
 
+        yield return ("agent · compact, puis développé d'un appui", () =>
+        {
+            Channel(Thinking("Read sidebar.tsx · 741 lines"));
+            Channel(Thinking("Edit src/app.tsx · +42 −8"));
+            Channel(Thinking("Bash · npm test · 12 passed"));
+            TourOpen(AgentActivity);
+            TourLater(1800, () => _channelFeature?.ToggleDetails(Agent));
+            TourLater(4200, () => _channelFeature?.ToggleDetails(Agent));
+        });
+
+        yield return ("script · notification, Ouvrir le journal", () =>
+        {
+            Channel(new NotifyMessage("build-ps1", Lang.T("Script terminé", "Script finished"), Lang.T("42 s, aucune erreur", "42 s, no errors"), "build.ps1", @"C:\Windows\win.ini", Lang.T("Ouvrir le journal", "Open the log"), ChannelState.Done));
+            TourLater(600, () => TourOpen(ChannelFeature.Prefix + "build-ps1"));
+        });
+
         yield return ("clawd · réponse attendue dans le terminal", () =>
         {
+            TourClear(ChannelFeature.Prefix + "build-ps1");
             Channel(new AgentMessage(Agent, ClaudeHook.AgentName, Lang.T("Réponds dans le terminal", "Answer in the terminal"), null, ChannelState.Waiting));
             TourOpen(AgentActivity);
         });

@@ -18,6 +18,9 @@ namespace SpaceNotch_App.Startup;
 /// attend la réponse de la notch et l'écrit sur la sortie standard.</item>
 /// <item><c>SpaceNotch.exe --progress --id build --step 2/4 --label Tests</c> :
 /// un script annonce où il en est.</item>
+/// <item><c>SpaceNotch.exe --notify --id build --title "Script terminé" --body "42 s"
+/// --source build.ps1 --open C:\logs\build.log --done</c> : un script prévient,
+/// et propose d'ouvrir son journal.</item>
 /// </list>
 ///
 /// <para>
@@ -31,7 +34,7 @@ internal static class ChannelCommand
 {
     /// <summary>Vrai si les arguments demandent l'une des deux commandes.</summary>
     public static bool Matches(string[] args)
-        => args.Any(a => IsFlag(a, "--hook") || IsFlag(a, "--progress"));
+        => args.Any(a => IsFlag(a, "--hook") || IsFlag(a, "--progress") || IsFlag(a, "--notify"));
 
     public static int Run(string[] args)
     {

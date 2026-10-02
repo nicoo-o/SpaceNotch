@@ -49,6 +49,20 @@ public sealed record AgentMessage(
     string? Question,
     ChannelState State) : ChannelMessage(Id);
 
+/// <summary>
+/// Notification d'un script : « build.ps1 · Script terminé · 42 s ». Avec
+/// <see cref="Open"/>, la carte propose de l'ouvrir (un journal, un dossier,
+/// une page) à côté de « Ignorer ».
+/// </summary>
+public sealed record NotifyMessage(
+    string Id,
+    string Title,
+    string? Body,
+    string? Source,
+    string? Open,
+    string? OpenLabel,
+    ChannelState State) : ChannelMessage(Id);
+
 /// <summary>Retire une activité annoncée par le canal.</summary>
 public sealed record ClearMessage(string Id) : ChannelMessage(Id);
 
@@ -105,6 +119,7 @@ public static partial class ChannelProtocol
             {
                 "progress" => ParseProgress(id!, o),
                 "agent" => ParseAgent(id!, o),
+                "notify" => ParseNotify(id!, o),
                 "clear" => new ClearMessage(id!),
                 _ => null
             };
@@ -138,6 +153,15 @@ public static partial class ChannelProtocol
                 if (a.Detail is not null) o["detail"] = a.Detail;
                 if (a.Question is not null) o["question"] = a.Question;
                 o["state"] = StateName(a.State);
+                break;
+            case NotifyMessage n:
+                o["type"] = "notify";
+                o["title"] = n.Title;
+                if (n.Body is not null) o["body"] = n.Body;
+                if (n.Source is not null) o["source"] = n.Source;
+                if (n.Open is not null) o["open"] = n.Open;
+                if (n.OpenLabel is not null) o["openLabel"] = n.OpenLabel;
+                o["state"] = StateName(n.State);
                 break;
             default:
                 o["type"] = "clear";
@@ -185,13 +209,26 @@ public static partial class ChannelProtocol
             return new ClearMessage(id);
         }
 
+        ChannelState outcome = Flag("--done") ? ChannelState.Done : Flag("--error") ? ChannelState.Error : ChannelState.Working;
+
+        if (Flag("--notify"))
+        {
+            return new NotifyMessage(
+                id,
+                Clip(Value("--title")) ?? id,
+                Clip(Value("--body")),
+                Clip(Value("--source")),
+                Target(Value("--open")),
+                Clip(Value("--open-label")),
+                outcome);
+        }
+
         (int step, int steps) = ParseSteps(Value("--step"));
         double? fraction = double.TryParse(Value("--percent"), NumberStyles.Float, CultureInfo.InvariantCulture, out double percent)
             ? Math.Clamp(percent / 100, 0, 1)
             : null;
 
-        ChannelState state = Flag("--done") ? ChannelState.Done : Flag("--error") ? ChannelState.Error : ChannelState.Working;
-        return new ProgressMessage(id, Clip(Value("--title")) ?? id, Clip(Value("--label")), step, steps, fraction, state);
+        return new ProgressMessage(id, Clip(Value("--title")) ?? id, Clip(Value("--label")), step, steps, fraction, outcome);
     }
 
     private static ProgressMessage ParseProgress(string id, JsonObject o)
@@ -208,6 +245,49 @@ public static partial class ChannelProtocol
         ChannelState state = State(Text(o, "state"));
         string? question = state == ChannelState.Waiting ? Clip(Text(o, "question")) : null;
         return new AgentMessage(id, Clip(Text(o, "name")) ?? id, Clip(Text(o, "detail")), question, state);
+    }
+
+    private static NotifyMessage ParseNotify(string id, JsonObject o)
+        => new(
+            id,
+            Clip(Text(o, "title")) ?? id,
+            Clip(Text(o, "body")),
+            Clip(Text(o, "source")),
+            Target(Text(o, "open")),
+            Clip(Text(o, "openLabel")),
+            State(Text(o, "state")));
+
+    /// <summary>Longueur maximale d'une cible à ouvrir.</summary>
+    public const int MaxTarget = 260;
+
+    /// <summary>
+    /// Ce qu'une notification peut proposer d'ouvrir : un chemin absolu ou une
+    /// page web, rien d'autre. Ni commande, ni protocole d'application, ni chemin
+    /// relatif (qui dépendrait du dossier de la notch, pas du script).
+    /// </summary>
+    public static string? Target(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        string target = value.Trim();
+
+        if (target.Length > MaxTarget || target.Any(char.IsControl))
+        {
+            return null;
+        }
+
+        if (Uri.TryCreate(target, UriKind.Absolute, out Uri? uri)
+            && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp))
+        {
+            return uri.AbsoluteUri;
+        }
+
+        bool drive = target.Length >= 3 && char.IsAsciiLetter(target[0]) && target[1] == ':' && target[2] is '\\' or '/';
+        bool share = target.StartsWith(@"\\", StringComparison.Ordinal) && !target.StartsWith(@"\\?", StringComparison.Ordinal) && !target.StartsWith(@"\\.", StringComparison.Ordinal);
+        return drive || share ? target : null;
     }
 
     private static (int Step, int Steps) ParseSteps(string? value)

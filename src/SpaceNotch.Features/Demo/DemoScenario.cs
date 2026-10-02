@@ -151,6 +151,7 @@ public static class DemoScenario
             Title = title,
             Eyebrow = eyebrow,
             IconKey = "Info",
+            ExpandedFootprint = CardFit.For(eyebrow: true, subtitle: null, progress: false, actions: false, ActivityLayout.Card),
             State = IslandActivityState.Idle,
             Priority = ActivityPriority.Normal,
             Policy = ActivityPresentationPolicy.Passive,

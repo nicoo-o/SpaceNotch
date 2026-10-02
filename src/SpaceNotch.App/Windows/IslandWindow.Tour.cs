@@ -199,6 +199,7 @@ public sealed partial class IslandWindow
             Title = "Creating prototype",
             Eyebrow = "Read sidebar.tsx · 741 lines",
             IconKey = "Info",
+            ExpandedFootprint = CardFit.For(eyebrow: true, subtitle: null, progress: false, actions: false, ActivityLayout.Card),
             State = IslandActivityState.Idle,
             Priority = ActivityPriority.Normal,
             Policy = ActivityPresentationPolicy.Passive,

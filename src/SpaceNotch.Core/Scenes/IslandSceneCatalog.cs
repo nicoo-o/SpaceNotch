@@ -81,7 +81,8 @@ public static class IslandSceneCatalog
         [VolumeHud] = SceneInsets.Wrap(268, 50),
         [BrightnessHud] = SceneInsets.Wrap(268, 50),
         [Notification] = SceneInsets.Wrap(330, 60),
-        [Bluetooth] = SceneInsets.Wrap(284, 52),
+        // Pastille de 34 et deux lignes : la hauteur suit, sans noir en dessous.
+        [Bluetooth] = SceneInsets.Wrap(284, 40),
         [FileShelf] = SceneInsets.Wrap(296, 94),
         [DropZone] = new IslandFootprint(260 + Shoulders, 75),
 

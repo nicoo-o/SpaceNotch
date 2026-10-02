@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SpaceNotch.Core.Activities;
@@ -192,9 +192,24 @@ public sealed record ProgressStepsPayload(IReadOnlyList<double> Segments);
 
 /// <summary>
 /// Agent Claude Code (I4) : la notch montre Clawd, sa mascotte, dans l'humeur
-/// donnée, à la place de la grille qui tourne.
+/// donnée, à la place de la grille qui tourne. <see cref="Recent"/> garde ses
+/// dernières actions (fichier lu, modifié, commande lancée) : la carte reste
+/// compacte, et un appui la développe pour les lire (<see cref="Expanded"/>).
 /// </summary>
-public sealed record ClawdPayload(SpaceNotch.Core.Motion.ClawdMood Mood);
+public sealed record ClawdPayload(
+    SpaceNotch.Core.Motion.ClawdMood Mood,
+    IReadOnlyList<string>? Recent = null,
+    bool Expanded = false)
+{
+    /// <summary>Action envoyée par un appui sur la carte : développer ou replier.</summary>
+    public const string ToggleAction = "channel.details";
+
+    /// <summary>Nombre d'actions gardées.</summary>
+    public const int MaxRecent = 3;
+
+    /// <summary>Lignes montrées : aucune en mode compact.</summary>
+    public int ShownLines => Expanded ? Math.Min(Recent?.Count ?? 0, MaxRecent) : 0;
+}
 
 /// <summary>Livraison ou VTC (T2) : l'étape, le véhicule et l'heure d'arrivée, pour la frise.</summary>
 public sealed record DeliveryPayload(string Service, SpaceNotch.Core.Phone.DeliveryKind Kind, SpaceNotch.Core.Phone.DeliveryStep Step, DateTimeOffset? Eta, DateTimeOffset Since);

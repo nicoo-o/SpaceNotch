@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
@@ -41,6 +43,12 @@ public sealed class ChannelFeature : IslandFeatureBase
 
     public const string DenyAction = "channel.deny";
 
+    /// <summary>Ouvre ce que la notification d'un script propose (journal, dossier, page).</summary>
+    public const string OpenAction = "channel.open";
+
+    /// <summary>Écarte la notification d'un script.</summary>
+    public const string DismissAction = "channel.dismiss";
+
     /// <summary>Préfixe des activités du canal : l'identifiant du message suit.</summary>
     public const string Prefix = "feature.channel.";
 
@@ -50,8 +58,28 @@ public sealed class ChannelFeature : IslandFeatureBase
     private static readonly TimeSpan Stale = TimeSpan.FromMinutes(20);
     private static readonly TimeSpan DoneLifetime = TimeSpan.FromSeconds(6);
     private static readonly TimeSpan ErrorLifetime = TimeSpan.FromSeconds(12);
+    private static readonly TimeSpan NotifyLifetime = TimeSpan.FromSeconds(12);
+
+    /// <summary>Vert d'une réussite, corail d'un échec.</summary>
+    private static readonly ActivityTint Mint = new(0x7F, 0xE8, 0xB0);
+    private static readonly ActivityTint Coral = new(0xFF, 0x6B, 0x6B);
 
     private readonly ConcurrentDictionary<string, DateTimeOffset> _started = new();
+
+    /// <summary>Dernières actions de chaque agent, la plus récente en bas.</summary>
+    private readonly ConcurrentDictionary<string, string[]> _recent = new();
+
+    /// <summary>Agents dont la carte est développée.</summary>
+    private readonly ConcurrentDictionary<string, byte> _expanded = new();
+
+    /// <summary>Dernier message de chaque agent : développer la carte la republie.</summary>
+    private readonly ConcurrentDictionary<string, AgentMessage> _agents = new();
+
+    /// <summary>Durée affichée sur la carte de chaque agent.</summary>
+    private readonly ConcurrentDictionary<string, string> _clock = new();
+
+    /// <summary>Ce que chaque notification de script propose d'ouvrir.</summary>
+    private readonly ConcurrentDictionary<string, string> _targets = new();
     private ChannelServer? _server;
 
     public ChannelFeature(IActivityManager activities, IEventBus events, bool isEnabled = true)
@@ -86,7 +114,17 @@ public sealed class ChannelFeature : IslandFeatureBase
             RemoveActivity(Prefix + id);
         }
 
+        foreach (string id in _targets.Keys)
+        {
+            RemoveActivity(Prefix + id);
+        }
+
         _started.Clear();
+        _recent.Clear();
+        _expanded.Clear();
+        _agents.Clear();
+        _clock.Clear();
+        _targets.Clear();
         return Task.CompletedTask;
     }
 
@@ -101,7 +139,12 @@ public sealed class ChannelFeature : IslandFeatureBase
         {
             case ClearMessage clear:
                 _started.TryRemove(clear.Id, out _);
+                Forget(clear.Id);
                 RemoveActivity(Prefix + clear.Id);
+                break;
+
+            case NotifyMessage notify:
+                PublishActivity(Notify(notify));
                 break;
 
             case ProgressMessage progress:
@@ -109,6 +152,7 @@ public sealed class ChannelFeature : IslandFeatureBase
                 break;
 
             case AgentMessage agent:
+                Remember(agent);
                 PublishActivity(Agent(agent));
 
                 if (agent is { State: ChannelState.Waiting, Question: not null })
@@ -124,12 +168,46 @@ public sealed class ChannelFeature : IslandFeatureBase
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (request.ActionId is not (AllowAction or DenyAction) || !request.ActivityId.StartsWith(Prefix, StringComparison.Ordinal))
+        if (!request.ActivityId.StartsWith(Prefix, StringComparison.Ordinal))
         {
             return Task.FromResult(false);
         }
 
         string id = request.ActivityId[Prefix.Length..];
+
+        switch (request.ActionId)
+        {
+            case ClawdPayload.ToggleAction:
+                return Task.FromResult(ToggleDetails(id));
+
+            case OpenAction:
+                if (_targets.TryRemove(id, out string? target))
+                {
+                    try
+                    {
+                        Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+                    }
+                    catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or PlatformNotSupportedException)
+                    {
+                        // Le fichier a disparu depuis : la notification s'efface quand même.
+                    }
+                }
+
+                RemoveActivity(request.ActivityId);
+                return Task.FromResult(true);
+
+            case DismissAction:
+                _targets.TryRemove(id, out _);
+                RemoveActivity(request.ActivityId);
+                return Task.FromResult(true);
+
+            case AllowAction or DenyAction:
+                break;
+
+            default:
+                return Task.FromResult(false);
+        }
+
         bool allow = request.ActionId == AllowAction;
         bool delivered = _server?.Answer(id, allow) ?? false;
 
@@ -144,6 +222,50 @@ public sealed class ChannelFeature : IslandFeatureBase
 
     private void OnAbandoned(string id)
         => PublishActivity(Agent(new AgentMessage(id, ClaudeHook.AgentName, Lang.T("Réponds dans le terminal", "Answer in the terminal"), null, ChannelState.Waiting)));
+
+    /// <summary>Garde les trois dernières actions d'un agent, sans doublon d'affilée.</summary>
+    private void Remember(AgentMessage m)
+    {
+        _agents[m.Id] = m;
+
+        if (m.Detail is not { } detail)
+        {
+            return;
+        }
+
+        _recent.AddOrUpdate(
+            m.Id,
+            _ => [detail],
+            (_, lines) => lines.Length > 0 && lines[^1] == detail
+                ? lines
+                : [.. lines.Skip(Math.Max(0, lines.Length + 1 - ClawdPayload.MaxRecent)), detail]);
+    }
+
+    private void Forget(string id)
+    {
+        _recent.TryRemove(id, out _);
+        _expanded.TryRemove(id, out _);
+        _agents.TryRemove(id, out _);
+        _clock.TryRemove(id, out _);
+        _targets.TryRemove(id, out _);
+    }
+
+    /// <summary>Un appui sur la carte d'un agent : elle se développe, ou se replie.</summary>
+    public bool ToggleDetails(string id)
+    {
+        if (!_agents.TryGetValue(id, out AgentMessage? last) || !_recent.ContainsKey(id))
+        {
+            return false;
+        }
+
+        if (!_expanded.TryRemove(id, out _))
+        {
+            _expanded[id] = 0;
+        }
+
+        PublishActivity(Agent(last, keepClock: true));
+        return true;
+    }
 
     /// <summary>Temps écoulé depuis le premier message de ce travail : « 42 s », « 3:07 ».</summary>
     private string Elapsed(string id, ChannelState state)
@@ -162,10 +284,18 @@ public sealed class ChannelFeature : IslandFeatureBase
             : string.Create(CultureInfo.InvariantCulture, $"{Math.Max(0, (int)elapsed.TotalSeconds)} s");
     }
 
-    private IslandActivity Agent(AgentMessage m)
+    private IslandActivity Agent(AgentMessage m, bool keepClock = false)
     {
-        string elapsed = Elapsed(m.Id, m.State);
+        // Développer la carte ne remet pas la durée à zéro : elle reste celle affichée.
+        string elapsed = keepClock && _clock.TryGetValue(m.Id, out string? shown) ? shown : Elapsed(m.Id, m.State);
+        _clock[m.Id] = elapsed;
         bool asks = m is { State: ChannelState.Waiting, Question: not null };
+        string? eyebrow = asks || m.State == ChannelState.Waiting ? null : m.Detail;
+
+        // Claude Code garde sa mascotte ; ses dernières actions attendent un appui.
+        ClawdPayload? clawd = IsClaudeCode(m.Name)
+            ? new ClawdPayload(MoodOf(m.State, asks), _recent.TryGetValue(m.Id, out string[]? recent) ? recent : null, _expanded.ContainsKey(m.Id))
+            : null;
 
         string subtitle = m.State switch
         {
@@ -184,7 +314,7 @@ public sealed class ChannelFeature : IslandFeatureBase
             // Maquette I4 : « Claude attend ta réponse », la commande en dessous.
             Title = asks ? Lang.T($"{ShortName(m.Name)} attend ta réponse", $"{ShortName(m.Name)} is waiting for you") : m.Name,
             Subtitle = subtitle,
-            Eyebrow = asks || m.State == ChannelState.Waiting ? null : m.Detail,
+            Eyebrow = eyebrow,
             ShowEnterHint = asks,
             Layout = ActivityLayout.Stack,
             Source = m.Name,
@@ -208,7 +338,10 @@ public sealed class ChannelFeature : IslandFeatureBase
             MotionPreset = m.State == ChannelState.Working ? HypnoticPreset.Think : HypnoticPreset.None,
 
             // Claude Code a sa mascotte : Clawd remplace la grille, dans l'humeur de l'agent.
-            Payload = IsClaudeCode(m.Name) ? new ClawdPayload(MoodOf(m.State, asks)) : null,
+            Payload = clawd,
+
+            // La carte épouse son contenu (A) : plus de grand noir sous le texte.
+            ExpandedFootprint = CardFit.For(eyebrow is not null, subtitle, progress: false, actions: asks, ActivityLayout.Stack, clawd?.ShownLines ?? 0),
             Priority = asks ? ActivityPriority.High : ActivityPriority.Normal,
             Policy = asks ? null : ActivityPresentationPolicy.Passive,
             Duration = m.State switch
@@ -246,6 +379,65 @@ public sealed class ChannelFeature : IslandFeatureBase
         _ => ClawdMood.Thinking
     };
 
+    /// <summary>
+    /// Notification d'un script (B) : ce qu'il annonce et, s'il donne de quoi
+    /// l'ouvrir, « Ouvrir » et « Ignorer ». Sans cible, la carte s'ajuste à son texte.
+    /// </summary>
+    private IslandActivity Notify(NotifyMessage m)
+    {
+        if (m.Open is { } target)
+        {
+            _targets[m.Id] = target;
+        }
+        else
+        {
+            _targets.TryRemove(m.Id, out _);
+        }
+
+        bool open = m.Open is not null;
+
+        return new IslandActivity
+        {
+            Id = Prefix + m.Id,
+            FeatureId = FeatureKey,
+            SceneKey = IslandSceneCatalog.Card,
+            Title = m.Title,
+            Subtitle = m.Body,
+            Eyebrow = m.Source,
+            Layout = ActivityLayout.Stack,
+            Source = m.Source ?? Lang.T("Script", "Script"),
+            IconKey = m.State switch
+            {
+                ChannelState.Done => "Check",
+                ChannelState.Error => "Warning",
+                _ => "Notification"
+            },
+            Tint = m.State switch
+            {
+                ChannelState.Done => Mint,
+                ChannelState.Error => Coral,
+                _ => null
+            },
+            State = IslandActivityState.Notification,
+            MotionState = m.State switch
+            {
+                ChannelState.Done => ActivityMotionState.Completing,
+                ChannelState.Error => ActivityMotionState.Error,
+                _ => ActivityMotionState.Idle
+            },
+            Priority = m.State == ChannelState.Error ? ActivityPriority.High : ActivityPriority.Normal,
+            Duration = NotifyLifetime,
+            ExpandedFootprint = CardFit.For(m.Source is not null, m.Body, progress: false, actions: open, ActivityLayout.Stack),
+            Actions = open
+                ?
+                [
+                    new ActivityAction(OpenAction, m.OpenLabel ?? Lang.T("Ouvrir", "Open"), "Folder", ActivityActionKind.Invoke, IsPrimary: true, Tone: ActivityActionTone.Positive),
+                    new ActivityAction(DismissAction, Lang.T("Ignorer", "Dismiss"), "Close")
+                ]
+                : []
+        };
+    }
+
     private IslandActivity Progress(ProgressMessage m)
     {
         string elapsed = Elapsed(m.Id, m.State);
@@ -272,6 +464,7 @@ public sealed class ChannelFeature : IslandFeatureBase
             Progress = ProgressSteps.Overall(m),
             Metric = m.State == ChannelState.Done ? elapsed : ProgressSteps.Metric(m),
             Payload = new ProgressStepsPayload(ProgressSteps.Segments(m)),
+            ExpandedFootprint = CardFit.For(step is not null, subtitle, progress: true, actions: false, ActivityLayout.Card),
             State = IslandActivityState.DownloadActive,
             MotionState = m.State switch
             {

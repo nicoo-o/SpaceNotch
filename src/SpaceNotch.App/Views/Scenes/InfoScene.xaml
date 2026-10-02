@@ -17,7 +17,7 @@
         tiers n'aurait aucun moyen d'exposer un contrôle : l'API lui permettrait de
         déclarer une action que personne n'afficherait.
     -->
-    <StackPanel x:Name="SceneRoot" Padding="{StaticResource NfScenePadding}" Spacing="8">
+    <StackPanel x:Name="SceneRoot" Padding="{StaticResource NfScenePadding}" Spacing="8" Background="Transparent" PointerPressed="OnScenePointerPressed">
 
         <Grid x:Name="HeaderGrid" ColumnSpacing="12">
             <Grid.ColumnDefinitions>
@@ -37,6 +37,14 @@
                 <Border x:Name="TrailBadge" CornerRadius="999" Padding="9,3" VerticalAlignment="Center" Visibility="Collapsed">
                     <TextBlock x:Name="TrailBadgeText" FontSize="11.5" FontWeight="SemiBold" />
                 </Border>
+                <!-- Carte d'agent : un appui la développe sur ses dernières actions. -->
+                <TextBlock
+                    x:Name="DetailsHint"
+                    Text="&#x25BE;"
+                    FontSize="12"
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource NfTextTertiaryBrush}"
+                    Visibility="Collapsed" />
             </StackPanel>
 
             <!-- Pastille d'icône : contour au trait, jamais de fond rempli.
@@ -165,6 +173,9 @@
                     Visibility="Collapsed" />
             </StackPanel>
         </Grid>
+
+        <!-- Dernières actions d'un agent (carte développée) : une puce teintée et la ligne. -->
+        <StackPanel x:Name="RecentList" Spacing="4" Margin="50,0,0,0" Visibility="Collapsed" />
 
         <!-- Livraison (T2) : trois étapes sur un fil, le véhicule en pixels qui avance. -->
         <Grid x:Name="DeliveryTrack" Height="16" Margin="2,0,2,0" Visibility="Collapsed" SizeChanged="OnDeliveryTrackSizeChanged">
