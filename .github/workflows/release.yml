@@ -195,7 +195,25 @@ jobs:
           $setup = Get-ChildItem "${{ runner.temp }}/setup" -Filter "*.exe" | Select-Object -First 1
           if (-not $exe) { throw "Aucun exécutable produit pour SpaceNotch." }
           if (-not $setup) { throw "Aucun exécutable produit pour le Setup." }
-          if ($exe.Name -eq $setup.Name) { throw "Le Setup et SpaceNotch doivent porter des noms distincts." }
+
+          # ApplicationManifest change le manifeste géré, pas celui de l'apphost natif
+          # utilisé par PublishSingleFile. Remplacer sa ressource Win32 #1 est nécessaire
+          # pour que Windows voie bien le Setup sans identité MSIX.
+          $sdk = Get-ChildItem "${env:ProgramFiles(x86)}\Windows Kits\10\bin\*\x64" -Directory |
+            Where-Object { Test-Path (Join-Path $_.FullName "mt.exe") } |
+            Sort-Object FullName -Descending | Select-Object -First 1
+          if (-not $sdk) { throw "mt.exe introuvable (Windows SDK)." }
+          $setupManifest = Join-Path "${{ github.workspace }}" "src/SpaceNotch.App/app.setup.manifest"
+          & (Join-Path $sdk.FullName "mt.exe") -manifest $setupManifest "-outputresource:$($setup.FullName);#1"
+          if ($LASTEXITCODE -ne 0) { throw "Remplacement du manifeste Win32 du Setup impossible ($LASTEXITCODE)." }
+
+          $embeddedManifest = Join-Path $env:RUNNER_TEMP "setup-embedded.manifest"
+          & (Join-Path $sdk.FullName "mt.exe") "-inputresource:$($setup.FullName);#1" "-out:$embeddedManifest"
+          if ($LASTEXITCODE -ne 0) { throw "Vérification du manifeste Win32 du Setup impossible ($LASTEXITCODE)." }
+          $manifestText = Get-Content $embeddedManifest -Raw
+          if ($manifestText -match "<msix\b|packageName=") { throw "Le Setup contient encore une identité de paquet." }
+          if ($manifestText -notmatch "PerMonitorV2") { throw "Le manifeste du Setup n'a pas conservé le DPI PerMonitorV2." }
+
           if ((Get-FileHash $exe.FullName).Hash -eq (Get-FileHash $setup.FullName).Hash) { throw "Le Setup doit être un exécutable distinct de SpaceNotch.exe." }
           Copy-Item $exe.FullName "$out/SpaceNotch.exe"
           Copy-Item $setup.FullName "$out/SpaceNotch-Setup.exe"
@@ -206,8 +224,6 @@ jobs:
 
           # Sans resources.pri, aucune fenêtre XAML ne se charge (WindowsAppSDK#6720).
           if (-not (Test-Path "${{ runner.temp }}/folder/resources.pri")) { throw "resources.pri absent de la publication." }
-          if (-not (Test-Path (Join-Path "${{ runner.temp }}/setup" "SpaceNotch.App.pri"))) { throw "Le Setup multi-fichier ne contient pas SpaceNotch.App.pri." }
-          if (-not (Test-Path (Join-Path "${{ runner.temp }}/setup" "SpaceNotch.Identity.msix"))) { throw "SpaceNotch.Identity.msix absent du Setup." }
 
       - name: Générer les empreintes SHA-256
         shell: pwsh
