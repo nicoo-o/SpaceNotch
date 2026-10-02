@@ -406,8 +406,22 @@ jobs:
           gh release download --repo $env:GITHUB_REPOSITORY --pattern "SpaceNotch-Setup.exe" --dir $previous 2>$null
           $old = Join-Path $previous "SpaceNotch-Setup.exe"
           if (Test-Path $old) {
-            Install-Quiet $old "Installation de la version précédente"
-            Write-Host "Version précédente installée."
+            # La désinstallation de l'étape précédente finit en arrière-plan
+            # (effacement du dossier par l'interpréteur de commandes, jusqu'à
+            # une douzaine de secondes) : on attend qu'elle soit terminée.
+            Start-Sleep -Seconds 15
+            try {
+              Install-Quiet $old "Installation de la version précédente"
+              Write-Host "Version précédente installée."
+            } catch {
+              # Un défaut de l'ANCIENNE version ne doit pas bloquer la publication
+              # du correctif qui le répare : signalé, puis mise à jour essayée sur
+              # une installation neuve.
+              Write-Host "::warning::$($_.Exception.Message) — la mise à jour est essayée sans elle."
+              Get-WinEvent -FilterHashtable @{ LogName = "Application"; StartTime = (Get-Date).AddMinutes(-2) } -ErrorAction SilentlyContinue |
+                Where-Object { $_.ProviderName -in @(".NET Runtime", "Application Error") } |
+                ForEach-Object { $_.Message } | Select-Object -First 3 | Write-Host
+            }
           } else {
             Write-Host "Aucune version publiée : mise à jour essayée sur une installation neuve."
           }
