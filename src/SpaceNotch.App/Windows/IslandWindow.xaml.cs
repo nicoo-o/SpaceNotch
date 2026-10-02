@@ -264,6 +264,9 @@ public sealed partial class IslandWindow : Window
         LoadDock();
 
         _hWnd = WindowNative.GetWindowHandle(this);
+
+        // Bonjour et au revoir (vague 7) : la fenêtre apprend le verrouillage de session.
+        _ = SpaceNotch.Platform.Windows.Shell.SessionNotifications.Register(_hWnd);
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hWnd);
         _appWindow = AppWindow.GetFromWindowId(windowId);
         AppIcon.ApplyTo(_appWindow);
@@ -1710,6 +1713,12 @@ public sealed partial class IslandWindow : Window
             return dozing;
         }
 
+        // Un bâillement étire un peu la notch vers le bas.
+        if (activity is null && Yawning)
+        {
+            return new IslandFootprint(IslandFootprint.Idle.Width + 4, IslandFootprint.Idle.Height + 6);
+        }
+
         if (activity is null || tier == IslandPresentationTier.Idle)
         {
             return IslandFootprint.For(tier, _settings.Density);
@@ -1968,6 +1977,12 @@ public sealed partial class IslandWindow : Window
         // fonctionnalités concernées — le presse-papier en est l'exemple. Aucune
         // scrutation n'est nécessaire pour les recevoir.
         _featureRegistry.TryHandleWindowMessage(e.Message.MessageId, e.Message.WParam);
+
+        // Verrouillage de session : Pixel dit au revoir, puis bonjour (vague 7).
+        if (e.Message.MessageId == SpaceNotch.Platform.Windows.Shell.SessionNotifications.WmSessionChange)
+        {
+            OnSessionChange((int)e.Message.WParam);
+        }
 
         if (_screenWatcher.HandleMessage(e.Message.MessageId, e.Message.WParam))
         {

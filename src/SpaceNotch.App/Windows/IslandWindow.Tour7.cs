@@ -111,6 +111,69 @@ public sealed partial class IslandWindow
             TourLater(3200, _controller.RequestCollapse);
         });
 
+        // ---- Pixel vivant ----
+        void Rest()
+        {
+            if (shown is not null)
+            {
+                TourClear(shown);
+                shown = null;
+            }
+
+            _controller.RequestCollapse();
+            _settings.ShowPixel = true;
+            _pixelNight = new TimeOnly(14, 32);
+            _pixelLook = null;
+            Render();
+        }
+
+        yield return ("pixel · bonjour", () =>
+        {
+            Rest();
+            _helloStart = DateTime.UtcNow.AddMilliseconds(300);
+        });
+
+        yield return ("pixel · batterie faible", () => { _tourCondition = PixelCondition.Tired; PixelTick(); });
+        yield return ("pixel · processeur chaud", () => { _tourCondition = PixelCondition.Hot; PixelTick(); });
+        yield return ("pixel · hors ligne", () => { _tourCondition = PixelCondition.Offline; PixelTick(); TourLater(2600, () => { _tourCondition = null; PixelTick(); RestEyes.Blink(); }); });
+
+        yield return ("pixel · le soir, un bâillement", () =>
+        {
+            _pixelNight = new TimeOnly(22, 41);
+            PixelTick();
+            TourLater(1200, () => { _nextYawn = DateTime.UtcNow; PixelTick(); });
+        });
+
+        yield return ("pixel · il bat la mesure", () =>
+        {
+            _pixelNight = new TimeOnly(14, 32);
+            _tourBeat = true;
+            TourLater(3400, () => { _tourBeat = false; PixelTick(); });
+        });
+
+        yield return ("pixel · coup d'œil vers l'app active", () =>
+        {
+            _glance = (-PixelGaze.MaxLookX, PixelGaze.MaxLookY);
+            _glanceUntil = DateTime.UtcNow + GlanceDuration;
+            TourLater(1800, () => { _glance = (PixelGaze.MaxLookX, PixelGaze.MaxLookY); _glanceUntil = DateTime.UtcNow + GlanceDuration; });
+        });
+
+        yield return ("pixel · la teinte suit l'heure", () =>
+        {
+            _pixelNight = new TimeOnly(19, 0);
+            TourLater(700, () => _pixelNight = new TimeOnly(20, 30));
+            TourLater(1400, () => _pixelNight = new TimeOnly(21, 15));
+            TourLater(2100, () => _pixelNight = new TimeOnly(22, 0));
+            TourLater(3200, () => _pixelNight = new TimeOnly(7, 30));
+        });
+
+        yield return ("pixel · au revoir (verrouillage)", () =>
+        {
+            _pixelNight = new TimeOnly(14, 32);
+            OnSessionChange(SpaceNotch.Platform.Windows.Shell.SessionNotifications.SessionLock);
+            TourLater(2400, () => OnSessionChange(SpaceNotch.Platform.Windows.Shell.SessionNotifications.SessionUnlock));
+        });
+
         yield return ("passage · fin", () =>
         {
             _settings.ShowPixel = false;

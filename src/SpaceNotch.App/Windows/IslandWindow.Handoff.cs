@@ -100,7 +100,7 @@ public sealed partial class IslandWindow
         _handoffView = view;
         view.Opacity = 0;
         global::Windows.UI.Color tint = TintOf(recipe, activity);
-        (Border a, Border b) = MorphPixels(CyanColor);
+        (Border a, Border b) = MorphPixels(EyeColor);
         int generation = _morphGeneration;
 
         Spot Eye(global::Windows.Foundation.Point p) => new((FaceMorphLayer.ActualWidth / 2) + p.X, (FaceMorphLayer.ActualHeight / 2) + p.Y, shape.Width, shape.Height, shape.Roundness);
@@ -191,8 +191,8 @@ public sealed partial class IslandWindow
             case HandoffLead.Fill or HandoffLead.Tint:
                 RunMorph(d, t =>
                 {
-                    Tint(a, Blend(CyanColor, tint, t));
-                    Tint(b, Blend(CyanColor, tint, t));
+                    Tint(a, Blend(EyeColor, tint, t));
+                    Tint(b, Blend(EyeColor, tint, t));
                 }, () => next(l, r));
                 return;
 
@@ -205,8 +205,8 @@ public sealed partial class IslandWindow
                     PlaceSpot(b, Spot.Lerp(r, wr, t));
                     Rotate(a, 14 * t);
                     Rotate(b, -14 * t);
-                    Tint(a, Blend(CyanColor, tint, t));
-                    Tint(b, Blend(CyanColor, tint, t));
+                    Tint(a, Blend(EyeColor, tint, t));
+                    Tint(b, Blend(EyeColor, tint, t));
                 }, () =>
                 {
                     Rotate(a, 0);
@@ -235,8 +235,8 @@ public sealed partial class IslandWindow
                 RunMorph(d, t =>
                 {
                     arc.Opacity = Math.Min(1, t * 1.6) * (t > 0.8 ? (1 - t) / 0.2 : 1);
-                    Tint(a, Blend(CyanColor, tint, t));
-                    Tint(b, Blend(CyanColor, tint, t));
+                    Tint(a, Blend(EyeColor, tint, t));
+                    Tint(b, Blend(EyeColor, tint, t));
                 }, () =>
                 {
                     FaceMorphLayer.Children.Remove(arc);
@@ -370,8 +370,8 @@ public sealed partial class IslandWindow
             double k = EaseSpring(t);
             PlaceSpot(a, Spot.Lerp(leaving.Left.Move(cx, cy), new Spot(l.X, l.Y, shape.Width, shape.Height, shape.Roundness), k));
             PlaceSpot(b, Spot.Lerp(leaving.Right.Move(cx, cy), new Spot(r.X, r.Y, shape.Width, shape.Height, shape.Roundness), k));
-            Tint(a, Blend(leaving.Color, CyanColor, t));
-            Tint(b, Blend(leaving.Color, CyanColor, t));
+            Tint(a, Blend(leaving.Color, EyeColor, t));
+            Tint(b, Blend(leaving.Color, EyeColor, t));
         }, () =>
         {
             if (generation != _morphGeneration)

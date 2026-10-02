@@ -323,7 +323,7 @@ public sealed partial class IslandWindow
             return;
         }
 
-        (Border a, Border b) = MorphPixels(CyanColor);
+        (Border a, Border b) = MorphPixels(EyeColor);
         double r = PixelClockView.ColonHalfGap, dot = PixelClockView.ColonDot;
         int generation = _morphGeneration;
         _morphTarget = RestFace.Clock;
@@ -418,8 +418,8 @@ public sealed partial class IslandWindow
                 Place(b, colon.X + (r * Math.Cos(angle)), colon.Y + (r * Math.Sin(angle)), dot, dot);
             }, () =>
             {
-                Tint(a, CyanColor);
-                Tint(b, CyanColor);
+                Tint(a, EyeColor);
+                Tint(b, EyeColor);
                 RunMorph(MorphOpen, t =>
                 {
                     double k = EaseSpring(t);
