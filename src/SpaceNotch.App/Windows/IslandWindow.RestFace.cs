@@ -87,9 +87,19 @@ public sealed partial class IslandWindow
 
     /// <summary>Forme du repos quand l'heure s'y installe sans survol (assoupi).</summary>
     private IslandFootprint? DozingFootprint()
-        => _dozing && PixelAtRest && _controller.PresentedActivity is null
-            ? RestWeatherPreview() ?? IslandFootprint.PreviewOf(IslandPresentationTier.Idle, IslandFootprint.Idle)
-            : null;
+    {
+        if (!_dozing || !PixelAtRest || _controller.PresentedActivity is not null)
+        {
+            return null;
+        }
+
+        // Toujours depuis la forme du repos, jamais depuis la forme actuelle :
+        // sinon chaque rendu agrandirait la notch d'un cinquième.
+        IslandFootprint preview = IslandFootprint.PreviewOf(IslandPresentationTier.Idle, IslandFootprint.Idle);
+        return WeatherAtRest
+            ? new IslandFootprint(Math.Max(preview.Width, WeatherPreviewWidth), Math.Max(preview.Height, 30))
+            : preview;
+    }
 
     /// <summary>Arme la surveillance de l'inactivité tant que le repos est montré.</summary>
     private void ArmDozeWatch(bool atRest)
@@ -175,6 +185,12 @@ public sealed partial class IslandWindow
                 IdleStatusDot.Visibility = Visibility.Collapsed;
                 IdleClock.Visibility = Visibility.Visible;
                 ShowRestWeather();
+
+                // La météo attend que les chiffres soient dépliés.
+                if (_morphLeft is not null)
+                {
+                    SetWeatherOpacity(0);
+                }
             }
             else
             {
