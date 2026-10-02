@@ -632,6 +632,7 @@ public sealed partial class IslandWindow : Window
         _scenes[IslandSceneCatalog.Timer] = TimerSceneView;
         _scenes[IslandSceneCatalog.Pomodoro] = TimerSceneView;
         _scenes[IslandSceneCatalog.Clipboard] = ClipboardSceneView;
+        _scenes[IslandSceneCatalog.ClipStack] = ClipStackSceneView;
         _scenes[IslandSceneCatalog.Launcher] = LauncherSceneView;
         _scenes[IslandSceneCatalog.QuickMenu] = QuickMenuSceneView;
         _scenes[IslandSceneCatalog.Bluetooth] = BluetoothSceneView;
@@ -694,7 +695,15 @@ public sealed partial class IslandWindow : Window
                 return;
             }
 
+            // Annuler en 3 s (vague 7) : ce qui va être écarté est gardé un instant.
+            IslandActivity? undoable = UndoableBefore(request);
+
             bool handled = await _featureRegistry.HandleActionAsync(request);
+
+            if (handled && undoable is not null)
+            {
+                OfferUndo(request, undoable);
+            }
 
             if (!handled)
             {
@@ -970,7 +979,7 @@ public sealed partial class IslandWindow : Window
         // chaque rendu et mémorisé, parce que la fermeture doit retrouver
         // exactement la forme quittée et que le survol doit savoir quoi annoncer.
         _tier = IslandPresentation.Resolve(activity);
-        _restFootprint = FitRest(activity, _tier);
+        _restFootprint = WithGestureHelp(FitRest(activity, _tier));
         _controller.UpdateCollapsedFootprint(_restFootprint);
 
         // Seules les scènes qui ne sont pas la cible sont repliées. Replier puis
@@ -1004,6 +1013,7 @@ public sealed partial class IslandWindow : Window
             : null;
 
         IdleRestView.Visibility = Visibility.Collapsed;
+        UndoRestView.Visibility = Visibility.Collapsed;
         SignalRestView.Visibility = Visibility.Collapsed;
         CardRestView.Visibility = Visibility.Collapsed;
         TabRestView.Visibility = Visibility.Collapsed;
@@ -1042,6 +1052,9 @@ public sealed partial class IslandWindow : Window
 
             // Les deux visages du repos (yeux, heure et météo) et la transition C.
             ApplyRestFace();
+
+            // « Annuler » prend la place des yeux le temps de l'annulation.
+            ShowUndo();
             ArmDozeWatch(atRest: true);
             ArmClockTick(IdleClock.Visibility == Visibility.Visible);
             return;
@@ -1531,29 +1544,12 @@ public sealed partial class IslandWindow : Window
 
     private void UpdateStackIndicator()
     {
-        int count = HiddenActivityCount() + 1;
-
         // Une seule notch : la pile se signale dans la notch elle-même, jamais
-        // par un second objet posé à côté. Voir ADR-017.
-        bool visible = StackIndicatorVisible();
-
-        // Un nombre plutôt que des points : « +2 » se lit d'un coup d'œil, là
-        // où « • • • » demandait de compter.
-        string text = visible ? CompactTrailing.StackBadge(count) ?? string.Empty : string.Empty;
-        Visibility state = visible ? Visibility.Visible : Visibility.Collapsed;
-
-        // Le compteur roule quand la pile grandit ou se vide.
-        bool rolls = visible && !string.Equals(SignalStackIndicator.Text, text, StringComparison.Ordinal);
-
-        SignalStackIndicator.Text = text;
-        SignalStackIndicator.Visibility = state;
-        CardStackIndicator.Text = text;
-        CardStackIndicator.Visibility = state;
-
-        if (rolls)
-        {
-            ContentTransition.Roll(SignalRestView.Visibility == Visibility.Visible ? SignalStackIndicator : CardStackIndicator, UseSpringAnimations());
-        }
+        // par un second objet posé à côté (ADR-017). Vague 7 : un point par
+        // activité qui attend, plutôt qu'un « +N » à compter.
+        SignalStackIndicator.Visibility = Visibility.Collapsed;
+        CardStackIndicator.Visibility = Visibility.Collapsed;
+        UpdateQueueDots(StackIndicatorVisible() ? HiddenActivityCount() : 0);
     }
 
     /// <summary>
@@ -1713,6 +1709,12 @@ public sealed partial class IslandWindow : Window
             return dozing;
         }
 
+        // « Annuler » : une ligne et sa barre qui se vide.
+        if (activity is null && UndoVisible)
+        {
+            return new IslandFootprint(116, 28);
+        }
+
         // Un bâillement étire un peu la notch vers le bas.
         if (activity is null && Yawning)
         {
@@ -1726,12 +1728,7 @@ public sealed partial class IslandWindow : Window
 
         double stack = 0;
 
-        if (StackIndicatorVisible())
-        {
-            _measureStack.Style ??= SignalStackIndicator.Style;
-            stack += 6 + Measure(_measureStack, CompactTrailing.StackBadge(HiddenActivityCount() + 1));
-        }
-
+        // La pile se lit en points sous le contenu (vague 7) : elle ne prend plus de largeur.
         CompactTrailing trailing = CompactTrailing.For(activity);
 
         if (CompactTrailing.MetricFor(activity, trailing) is { } metric)
@@ -2436,6 +2433,8 @@ public sealed partial class IslandWindow : Window
 
     private void OnIslandPointerEntered(object sender, PointerRoutedEventArgs e)
     {
+        ArmGestureHelp(true);
+
         _pixelHovered = true;
 
         // Une entrée annule la fermeture en attente : le pointeur qui revient
@@ -2513,6 +2512,8 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void OnIslandPointerExited(object sender, PointerRoutedEventArgs e)
     {
+        ArmGestureHelp(false);
+
         _pixelHovered = false;
 
         // Un passage trop bref n'a jamais été une intention : l'aperçu n'a pas
@@ -2657,6 +2658,12 @@ public sealed partial class IslandWindow : Window
     {
         _lastClickAt = Environment.TickCount64;
 
+        // « Annuler » est affiché : le clic rattrape ce qui vient d'être écarté.
+        if (TryUndo())
+        {
+            return;
+        }
+
         if (_pressOpensLauncher && _controller.PresentedActivity is null)
         {
             OpenLauncher();
@@ -2754,6 +2761,13 @@ public sealed partial class IslandWindow : Window
         }
 
         bool ctrl = (e.KeyModifiers & global::Windows.System.VirtualKeyModifiers.Control) != 0;
+
+        // Ctrl + molette : le presse-papier en pile (vague 7).
+        if (ctrl && !properties.IsHorizontalMouseWheel && CycleClipStack(delta))
+        {
+            e.Handled = true;
+            return;
+        }
 
         if (properties.IsHorizontalMouseWheel)
         {

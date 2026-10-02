@@ -174,8 +174,57 @@ public sealed partial class IslandWindow
             TourLater(2400, () => OnSessionChange(SpaceNotch.Platform.Windows.Shell.SessionNotifications.SessionUnlock));
         });
 
+        // ---- L'interface ----
+        yield return ("file d'attente · un point par activité", () =>
+        {
+            _byeStart = DateTime.MinValue;
+            _tourCondition = null;
+            IslandActivity first = music();
+            TourShow(first, open: false);
+            shown = first.Id;
+            TourLater(800, () => _activityManager.PostActivity(Card("tour7.q1", "Download", "Downloading", "ubuntu.iso", null, lilac, metric: "62 %")));
+            TourLater(1600, () => _activityManager.PostActivity(Card("tour7.q2", "Timer", "07:42", Lang.T("Minuteur", "Timer"), null, new ActivityTint(0xFF, 0xB2, 0x6B))));
+            TourLater(3000, () => TourClear(first.Id));
+        });
+
+        yield return ("aide des gestes · Alt au survol", () =>
+        {
+            TourClear("tour7.q1", "tour7.q2");
+            IslandActivity first = music();
+            TourShow(first, open: false);
+            shown = first.Id;
+            TourLater(900, () => SetGestureHelp(true));
+            TourLater(3200, () => SetGestureHelp(false));
+        });
+
+        yield return ("annuler · rattraper une notification écartée", () =>
+        {
+            TourClear(shown ?? string.Empty);
+            shown = null;
+            _channelFeature?.Receive(new SpaceNotch.Core.Channel.NotifyMessage("tour7-undo", Lang.T("Script terminé", "Script finished"), Lang.T("42 s, aucune erreur", "42 s, no errors"), "build.ps1", @"C:\Windows\win.ini", null, SpaceNotch.Core.Channel.ChannelState.Done));
+            TourLater(500, () => TourOpen(SpaceNotch.Features.Channel.ChannelFeature.Prefix + "tour7-undo"));
+            TourLater(1700, () => OnSceneActionRequested(this, new IslandActionRequest(SpaceNotch.Features.Channel.ChannelFeature.Prefix + "tour7-undo", SpaceNotch.Features.Channel.ChannelFeature.DismissAction)));
+            TourLater(3300, () => TryUndo());
+        });
+
+        yield return ("presse-papier · la pile à la molette", () =>
+        {
+            TourClear(SpaceNotch.Features.Channel.ChannelFeature.Prefix + "tour7-undo");
+            _clipboardFeature.AddForTour("dotnet test -c Release", "text");
+            _clipboardFeature.AddForTour("#7FE6FF", "text");
+            _clipboardFeature.AddForTour("FACTURE n° 2026-118 · 1 240,00 €", "text");
+            _clipboardFeature.AddForTour("https://github.com/nicoo-o/SpaceNotch", "link");
+            TourLater(500, () => CycleClipStack(-120));
+            TourLater(1300, () => CycleClipStack(-120));
+            TourLater(2000, () => CycleClipStack(-120));
+            TourLater(2800, () => OnSceneActionRequested(this, new IslandActionRequest(SpaceNotch.Features.Clipboard.ClipboardFeature.StackActivityId, SpaceNotch.Features.Clipboard.ClipboardFeature.StackPasteAction)));
+        });
+
         yield return ("passage · fin", () =>
         {
+            _clipboardFeature.HideStack();
+            _tourCondition = null;
+            _tourBeat = false;
             _settings.ShowPixel = false;
             _pixelNight = null;
             Render();

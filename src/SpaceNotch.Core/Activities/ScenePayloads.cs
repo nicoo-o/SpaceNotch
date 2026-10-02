@@ -77,6 +77,19 @@ public sealed record ClipboardEntry(
 /// <summary>Charge utile de la scène presse-papier.</summary>
 public sealed record ClipboardPayload(IReadOnlyList<ClipboardEntry> Entries);
 
+/// <summary>
+/// Presse-papier en pile (vague 7) : les derniers éléments copiés, celui de
+/// devant à l'index donné ; <see cref="Recalled"/> vrai juste après un clic.
+/// </summary>
+public sealed record ClipStackPayload(IReadOnlyList<ClipboardEntry> Entries, int Index, bool Recalled = false)
+{
+    /// <summary>Cartes visibles derrière celle de devant.</summary>
+    public const int Behind = 2;
+
+    /// <summary>L'élément de devant, ou null si la pile est vide.</summary>
+    public ClipboardEntry? Front => Entries.Count == 0 ? null : Entries[((Index % Entries.Count) + Entries.Count) % Entries.Count];
+}
+
 /// <summary>Charge utile de la recherche (lanceur).</summary>
 /// <param name="Sections">Résultats groupés, dans l'ordre d'affichage.</param>
 /// <param name="Query">Recherche en cours, vide si aucune.</param>

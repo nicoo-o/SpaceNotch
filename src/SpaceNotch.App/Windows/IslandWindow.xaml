@@ -187,6 +187,50 @@
                      des yeux aux deux-points de l'heure, et retour. -->
                 <Canvas x:Name="FaceMorphLayer" IsHitTestVisible="False" />
 
+                <!-- File d'attente visible (vague 7) : un point par activité qui attend son tour,
+                     dans le bas de la notch (une seule notch, voir ADR-017). -->
+                <StackPanel
+                    x:Name="QueueDotsRow"
+                    Orientation="Horizontal"
+                    Spacing="4"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,0,4"
+                    IsHitTestVisible="False"
+                    Visibility="Collapsed" />
+
+                <!-- Annuler en 3 s (vague 7) : ce qui vient d'être écarté se rattrape d'un clic. -->
+                <StackPanel
+                    x:Name="UndoRestView"
+                    Spacing="3"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    IsHitTestVisible="False"
+                    Visibility="Collapsed">
+                    <TextBlock
+                        x:Name="UndoText"
+                        FontSize="11.5"
+                        FontWeight="SemiBold"
+                        HorizontalAlignment="Center"
+                        Foreground="{ThemeResource NfTextPrimaryBrush}" />
+                    <Border Height="2" CornerRadius="1" Background="#FF7FE6FF" RenderTransformOrigin="0,0.5">
+                        <Border.RenderTransform>
+                            <ScaleTransform x:Name="UndoBarScale" ScaleX="1" />
+                        </Border.RenderTransform>
+                    </Border>
+                </StackPanel>
+
+                <!-- Aide des gestes (vague 7) : survol avec Alt, les gestes utiles ici. -->
+                <StackPanel
+                    x:Name="GestureHelpRow"
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    Margin="0,0,0,-18"
+                    IsHitTestVisible="False"
+                    Visibility="Collapsed" />
+
                 <!-- ====================================================
                      PALIER SIGNAL — un glyphe, un nom, sur une ligne.
                      ==================================================== -->
@@ -429,6 +473,7 @@
                 <scenes:NotificationScene x:Name="NotificationSceneView" Visibility="Collapsed" />
                 <scenes:FileShelfScene x:Name="FileShelfSceneView" Visibility="Collapsed" />
                 <scenes:TimerScene x:Name="TimerSceneView" Visibility="Collapsed" />
+                <scenes:ClipStackScene x:Name="ClipStackSceneView" Visibility="Collapsed" />
                 <scenes:ClipboardScene x:Name="ClipboardSceneView" Visibility="Collapsed" />
                 <scenes:LauncherScene x:Name="LauncherSceneView" Visibility="Collapsed" />
                 <scenes:QuickMenuScene x:Name="QuickMenuSceneView" Visibility="Collapsed" />

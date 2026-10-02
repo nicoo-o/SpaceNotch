@@ -48,6 +48,12 @@ public sealed class ClipboardFeature : IslandFeatureBase
     /// <summary>Recopier un format de la couleur (valeur : le texte à copier).</summary>
     public const string CopyTextAction = "clipboard.copy-text";
 
+    /// <summary>Presse-papier en pile (vague 7) : l'activité de la pile.</summary>
+    public const string StackActivityId = "feature.clipboard.stack";
+
+    /// <summary>Recolle l'élément de devant de la pile.</summary>
+    public const string StackPasteAction = "clipboard.stack-paste";
+
     /// <summary>Longueur maximale d'une prévisualisation, en caractères.</summary>
     private const int PreviewLength = 120;
 
@@ -56,6 +62,8 @@ public sealed class ClipboardFeature : IslandFeatureBase
     private readonly int _capacity;
 
     private readonly List<Entry> _entries = [];
+    private (Entry Entry, int Index)? _lastRemoved;
+    private int _stackIndex;
     private readonly object _lock = new();
 
     public ClipboardFeature(
@@ -141,6 +149,9 @@ public sealed class ClipboardFeature : IslandFeatureBase
 
             case RemoveAction:
                 return Task.FromResult(Remove(request.Value));
+
+            case StackPasteAction:
+                return Task.FromResult(PasteFromStack());
 
             case CopyTextAction when !string.IsNullOrEmpty(request.Value):
                 return Task.FromResult(ClipboardAccess.SetText(request.Value));
@@ -283,11 +294,112 @@ public sealed class ClipboardFeature : IslandFeatureBase
                 return false;
             }
 
+            _lastRemoved = (_entries[index], index);
             _entries.RemoveAt(index);
         }
 
         Publish();
         return true;
+    }
+
+    /// <summary>Visite filmée : des entrées de démonstration, la machine de tournage n'ayant rien copié.</summary>
+    public void AddForTour(string content, string kind)
+    {
+        lock (_lock)
+        {
+            _entries.Insert(0, new Entry(Guid.NewGuid().ToString("N"), content, kind, false));
+        }
+    }
+
+    /// <summary>Annuler en 3 s (vague 7) : la dernière entrée supprimée reprend sa place.</summary>
+    public bool UndoRemove()
+    {
+        lock (_lock)
+        {
+            if (_lastRemoved is not { } removed)
+            {
+                return false;
+            }
+
+            _entries.Insert(Math.Clamp(removed.Index, 0, _entries.Count), removed.Entry);
+            _lastRemoved = null;
+        }
+
+        Publish();
+        return true;
+    }
+
+    // ---- Presse-papier en pile (vague 7) ------------------------------------
+
+    /// <summary>Ouvre la pile, ou la fait défiler d'un cran : Ctrl + molette sur la notch.</summary>
+    public bool ShowStack(int step)
+    {
+        List<ClipboardEntry> previews = Previews();
+
+        if (previews.Count == 0)
+        {
+            return false;
+        }
+
+        _stackIndex = (((_stackIndex + step) % previews.Count) + previews.Count) % previews.Count;
+        PublishStack(previews, recalled: false);
+        return true;
+    }
+
+    /// <summary>Ferme la pile ; elle repart du plus récent la prochaine fois.</summary>
+    public void HideStack()
+    {
+        _stackIndex = 0;
+        RemoveActivity(StackActivityId);
+    }
+
+    private bool PasteFromStack()
+    {
+        List<ClipboardEntry> previews = Previews();
+
+        if (previews.Count == 0)
+        {
+            return false;
+        }
+
+        ClipboardEntry front = previews[_stackIndex % previews.Count];
+        string? content = FindContent(front.Id);
+
+        if (content is null || !ClipboardAccess.SetText(content))
+        {
+            return false;
+        }
+
+        PublishStack(previews, recalled: true);
+        return true;
+    }
+
+    private void PublishStack(List<ClipboardEntry> previews, bool recalled)
+    {
+        ClipboardEntry front = previews[_stackIndex % previews.Count];
+
+        PublishActivity(new IslandActivity
+        {
+            Id = StackActivityId,
+            FeatureId = FeatureKey,
+            SceneKey = IslandSceneCatalog.ClipStack,
+            Title = front.Preview,
+            Subtitle = recalled ? Lang.T("Recollé", "Pasted again") : Lang.T($"{_stackIndex + 1} sur {previews.Count}", $"{_stackIndex + 1} of {previews.Count}"),
+            Source = "Clipboard",
+            IconKey = "Clipboard",
+            State = IslandActivityState.Idle,
+            Priority = ActivityPriority.Normal,
+            Duration = TimeSpan.FromSeconds(recalled ? 1.2 : 8),
+            Payload = new ClipStackPayload(previews, _stackIndex, recalled)
+        });
+    }
+
+    private List<ClipboardEntry> Previews()
+    {
+        lock (_lock)
+        {
+            return _entries.Select(e => new ClipboardEntry(e.Id, e.Kind, BuildPreview(e.Content), e.IsPinned)).ToList();
+        }
     }
 
     private string? FindContent(string? entryId)
