@@ -183,6 +183,10 @@
                         Visibility="Collapsed" />
                 </StackPanel>
 
+                <!-- Visage du repos (transition C) : les deux pixels qui vont
+                     des yeux aux deux-points de l'heure, et retour. -->
+                <Canvas x:Name="FaceMorphLayer" IsHitTestVisible="False" />
+
                 <!-- ====================================================
                      PALIER SIGNAL — un glyphe, un nom, sur une ligne.
                      ==================================================== -->

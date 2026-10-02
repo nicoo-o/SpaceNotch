@@ -69,6 +69,24 @@ public sealed partial class PixelEyesView : StackPanel
         _right.Translation = offset;
     }
 
+    /// <summary>
+    /// Centre de chaque œil dans le repère de <paramref name="relativeTo"/>,
+    /// regard compris : la transition du repos part de là où ils sont vraiment.
+    /// </summary>
+    public (global::Windows.Foundation.Point Left, global::Windows.Foundation.Point Right) Centers(UIElement relativeTo)
+    {
+        global::Windows.Foundation.Point Center(Border eye)
+        {
+            global::Windows.Foundation.Point p = eye.TransformToVisual(relativeTo).TransformPoint(new global::Windows.Foundation.Point(eye.ActualWidth / 2, eye.ActualHeight / 2));
+            return new global::Windows.Foundation.Point(p.X + eye.Translation.X, p.Y + eye.Translation.Y);
+        }
+
+        return (Center(_left), Center(_right));
+    }
+
+    /// <summary>Forme actuelle d'un œil, clignement compris.</summary>
+    public EyeShape CurrentShape => _blinking ? PixelGaze.Blink : PixelGaze.Shape(_mood);
+
     /// <summary>Un clignement : les yeux se ferment puis se rouvrent.</summary>
     public void Blink()
     {

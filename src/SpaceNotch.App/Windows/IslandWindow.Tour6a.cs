@@ -117,7 +117,24 @@ public sealed partial class IslandWindow
 
         yield return ("pixel · surpris", () => { _pixelLook = (0, 0); SurprisePixel(); TourLater(1600, () => { _pixelHovered = true; PixelTick(); }); });
 
-        yield return ("pixel · la nuit", () => { _pixelHovered = false; _pixelNight = new TimeOnly(2, 14); PixelTick(); });
+        yield return ("repos · survol, les yeux deviennent les deux-points", () =>
+        {
+            _pixelHovered = false;
+            _pixelLook = null;
+            _weatherFeature.Inject(new SpaceNotch.Core.Weather.WeatherReport(14.6, 61, true), "Paris");
+            PixelTick();
+            TourLater(600, _controller.RequestPreview);
+            TourLater(3200, _controller.EndPreview);
+        });
+
+        yield return ("repos · assoupi, puis réveil en sursaut", () =>
+        {
+            _tourDoze = true;
+            ArmDozeWatch(atRest: true);
+            TourLater(3600, () => _tourDoze = false);
+        });
+
+        yield return ("pixel · la nuit", () => { _tourDoze = null; _pixelHovered = false; _pixelNight = new TimeOnly(2, 14); PixelTick(); });
 
         yield return ("goutte · un fichier au-dessus", () =>
         {

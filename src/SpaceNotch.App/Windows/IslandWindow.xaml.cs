@@ -1032,9 +1032,15 @@ public sealed partial class IslandWindow : Window
             ShowRestWeather();
             IdleClock.Animate = UseSpringAnimations();
             IdleClock.Show(_tourClock ?? DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+
+            // Les deux visages du repos (yeux, heure et météo) et la transition C.
+            ApplyRestFace();
+            ArmDozeWatch(atRest: true);
             ArmClockTick(IdleClock.Visibility == Visibility.Visible);
             return;
         }
+
+        ResetRestFace();
 
         bool known = _scenes.TryGetValue(activity.SceneKey, out IIslandSceneView? scene);
 
@@ -1694,6 +1700,12 @@ public sealed partial class IslandWindow : Window
     /// <summary>Forme au repos de la notch du haut — et de la pastille — ajustée à son contenu.</summary>
     private IslandFootprint FitRestFor(IslandActivity? activity, IslandPresentationTier tier)
     {
+        // Assoupi, l'heure et la météo s'installent sans survol : la forme de l'aperçu.
+        if (activity is null && DozingFootprint() is { } dozing)
+        {
+            return dozing;
+        }
+
         if (activity is null || tier == IslandPresentationTier.Idle)
         {
             return IslandFootprint.For(tier, _settings.Density);
@@ -2441,6 +2453,9 @@ public sealed partial class IslandWindow : Window
             {
                 _previewEnterTimer ??= CreateOneShotTimer(PreviewEnterDwell, _controller.RequestPreview);
                 _previewEnterTimer.Stop();
+
+                // Au repos, le survol fait venir l'heure : il faut une vraie pose.
+                _previewEnterTimer.Interval = _controller.PresentedActivity is null && PixelAtRest ? RestPreviewDwell : PreviewEnterDwell;
                 _previewEnterTimer.Start();
             }
         }
@@ -2494,6 +2509,7 @@ public sealed partial class IslandWindow : Window
         _previewExitTimer ??= CreateOneShotTimer(PreviewExitGrace, OnPreviewExitTick);
 
         _previewExitTimer.Stop();
+        _previewExitTimer.Interval = _controller.PresentedActivity is null && PixelAtRest ? RestPreviewGrace : PreviewExitGrace;
         _previewExitTimer.Start();
 
         // Pendant la frappe, le clavier reste à la notch même si la souris

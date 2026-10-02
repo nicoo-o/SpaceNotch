@@ -177,4 +177,133 @@ public sealed partial class PixelClockView : StackPanel
             Paint(palette, c);
         }
     }
+
+    // ---- Visage du repos (transition C) : les yeux deviennent les deux-points ----
+
+    /// <summary>Écart vertical des deux points au centre de la palette, en DIPs (rangées 1 et 3 sur 5).</summary>
+    public const double ColonHalfGap = 2;
+
+    /// <summary>Côté d'un point des deux-points, en DIPs.</summary>
+    public const double ColonDot = Cell;
+
+    private Canvas? Colon => _palettes.Find(p => p.Tag is ':');
+
+    /// <summary>Centre des deux-points dans le repère de <paramref name="relativeTo"/> ; null sans deux-points.</summary>
+    public global::Windows.Foundation.Point? ColonCenter(UIElement relativeTo)
+    {
+        if (Colon is not { } colon)
+        {
+            return null;
+        }
+
+        return colon.TransformToVisual(relativeTo).TransformPoint(new global::Windows.Foundation.Point(Cell / 2, colon.Height / 2));
+    }
+
+    /// <summary>Toutes les palettes repliées : l'horloge attend que les yeux deviennent ses deux-points.</summary>
+    public void FoldAll()
+    {
+        foreach (Canvas palette in _palettes)
+        {
+            Visual visual = ElementCompositionPreview.GetElementVisual(palette);
+            visual.StopAnimation("Scale.Y");
+            visual.CenterPoint = new Vector3((float)(palette.Width / 2), (float)(palette.Height / 2), 0);
+            visual.Scale = new Vector3(1, 0, 1);
+        }
+    }
+
+    /// <summary>Palettes dépliées sans animation.</summary>
+    public void UnfoldAll()
+    {
+        foreach (Canvas palette in _palettes)
+        {
+            Visual visual = ElementCompositionPreview.GetElementVisual(palette);
+            visual.StopAnimation("Scale.Y");
+            visual.Scale = Vector3.One;
+        }
+    }
+
+    /// <summary>
+    /// Les deux-points apparaissent tels quels, puis les chiffres se déplient de
+    /// part et d'autre, les plus proches d'abord (160 ms, avec rebond).
+    /// </summary>
+    public void UnfoldFromColon()
+    {
+        int colon = _palettes.FindIndex(p => p.Tag is ':');
+
+        if (colon < 0 || !Animate)
+        {
+            UnfoldAll();
+            return;
+        }
+
+        for (int i = 0; i < _palettes.Count; i++)
+        {
+            Visual visual = ElementCompositionPreview.GetElementVisual(_palettes[i]);
+            int distance = Math.Abs(i - colon);
+
+            if (distance == 0)
+            {
+                visual.Scale = Vector3.One;
+                continue;
+            }
+
+            Compositor compositor = visual.Compositor;
+            ScalarKeyFrameAnimation unfold = compositor.CreateScalarKeyFrameAnimation();
+            unfold.InsertKeyFrame(0f, 0f);
+            unfold.InsertKeyFrame(1f, 1f, compositor.CreateCubicBezierEasingFunction(new Vector2(0f, 0f), new Vector2(0.3f, 1.4f)));
+            unfold.Duration = Half;
+            unfold.DelayTime = TimeSpan.FromMilliseconds((distance - 1) * 60);
+            unfold.DelayBehavior = AnimationDelayBehavior.SetInitialValueBeforeDelay;
+            visual.StartAnimation("Scale.Y", unfold);
+        }
+    }
+
+    /// <summary>Les chiffres se replient vers les deux-points, les plus éloignés d'abord ; rend la durée totale.</summary>
+    public TimeSpan FoldToColon()
+    {
+        int colon = _palettes.FindIndex(p => p.Tag is ':');
+
+        if (colon < 0 || !Animate)
+        {
+            FoldAll();
+            return TimeSpan.Zero;
+        }
+
+        int far = 0;
+
+        for (int i = 0; i < _palettes.Count; i++)
+        {
+            far = Math.Max(far, Math.Abs(i - colon));
+        }
+
+        for (int i = 0; i < _palettes.Count; i++)
+        {
+            int distance = Math.Abs(i - colon);
+
+            if (distance == 0)
+            {
+                continue;
+            }
+
+            Visual visual = ElementCompositionPreview.GetElementVisual(_palettes[i]);
+            visual.CenterPoint = new Vector3((float)(_palettes[i].Width / 2), (float)(_palettes[i].Height / 2), 0);
+            Compositor compositor = visual.Compositor;
+            ScalarKeyFrameAnimation fold = compositor.CreateScalarKeyFrameAnimation();
+            fold.InsertKeyFrame(1f, 0f, compositor.CreateCubicBezierEasingFunction(new Vector2(0.5f, 0f), new Vector2(1f, 1f)));
+            fold.Duration = TimeSpan.FromMilliseconds(140);
+            fold.DelayTime = TimeSpan.FromMilliseconds((far - distance) * 50);
+            visual.StartAnimation("Scale.Y", fold);
+        }
+
+        return TimeSpan.FromMilliseconds(140 + ((far - 1) * 50));
+    }
+
+    /// <summary>Cache les deux-points seuls (les yeux prennent leur place).</summary>
+    public void HideColon()
+    {
+        if (Colon is { } colon)
+        {
+            ElementCompositionPreview.GetElementVisual(colon).Scale = new Vector3(1, 0, 1);
+        }
+    }
 }

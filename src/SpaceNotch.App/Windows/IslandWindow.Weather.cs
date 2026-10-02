@@ -39,7 +39,7 @@ public sealed partial class IslandWindow
     /// <summary>Montre ou cache la météo dans la lèvre du repos.</summary>
     private void ShowRestWeather()
     {
-        bool show = WeatherAtRest && _controller.State == IslandState.Preview;
+        bool show = WeatherAtRest && (_controller.State == IslandState.Preview || _dozing);
 
         if (!show || _weatherFeature.Current is not { } report)
         {

@@ -65,7 +65,7 @@ public sealed partial class IslandWindow
         PixelMood mood = PixelGaze.MoodFor(
             DateTime.UtcNow < _pixelSurpriseUntil,
             _pixelHovered,
-            !_touring && PixelGaze.IsIdle(LastInputIdle()),
+            _eyesClosing || (!_touring && PixelGaze.IsIdle(LastInputIdle())),
             time);
         bool wasAsleep = RestEyes.Mood == PixelMood.Asleep;
 
@@ -86,6 +86,8 @@ public sealed partial class IslandWindow
         {
             ArmBlink();
         }
+
+        TrackEyes();
 
         if (_pixelLook is { } forced)
         {
