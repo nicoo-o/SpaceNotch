@@ -828,7 +828,6 @@ public sealed partial class IslandWindow : Window
         // propriétaire. La fenêtre n'appelle donc plus directement la session
         // média, ce qui était exactement le couplage qu'il fallait retirer.
         NotificationSceneView.DismissRequested += () => _controller.RequestCollapse();
-        HookInk();
 
         Closed += OnWindowClosed;
         Activated += OnWindowActivated;
@@ -1002,7 +1001,6 @@ public sealed partial class IslandWindow : Window
         CardRestView.Visibility = Visibility.Collapsed;
         TabRestView.Visibility = Visibility.Collapsed;
         ShowRestPixel(false);
-        ShowRestLife(atRest: false);
 
         // Clawd ne bat que là où il est montré : la branche qui le montre le rallume.
         SignalClawd.Visibility = Visibility.Collapsed;
@@ -1012,7 +1010,7 @@ public sealed partial class IslandWindow : Window
         Announce(activity);
         ApplyActivityTint(activity);
         ApplyStateTint(activity);
-        CrenelOnError(activity);
+        ShakeOnError(activity);
 
         if (activity is null)
         {
@@ -1034,7 +1032,6 @@ public sealed partial class IslandWindow : Window
             ShowRestWeather();
             IdleClock.Animate = UseSpringAnimations();
             IdleClock.Show(_tourClock ?? DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
-            ShowRestLife(atRest: true);
             ArmClockTick(IdleClock.Visibility == Visibility.Visible);
             return;
         }
@@ -1699,8 +1696,7 @@ public sealed partial class IslandWindow : Window
     {
         if (activity is null || tier == IslandPresentationTier.Idle)
         {
-            // Écran de veille (P5) : la notch s'élargit pour la vie, comme la maquette.
-            return _screensaverOn ? ScreensaverFootprint : IslandFootprint.For(tier, _settings.Density);
+            return IslandFootprint.For(tier, _settings.Density);
         }
 
         double stack = 0;
@@ -3322,9 +3318,6 @@ public sealed partial class IslandWindow : Window
         _launcherFeature.WebSearchEngine = settings.WebSearchEngine;
         ApplyAssistant();
         ApplyDiscord();
-
-        // Écran de veille (P5) : la vérification d'inactivité ne tourne que s'il est voulu.
-        ArmScreensaver();
 
         // Le détachement retiré, ou l'écran cible changé : la notch revient au
         // bord de l'écran qui est désormais le sien.

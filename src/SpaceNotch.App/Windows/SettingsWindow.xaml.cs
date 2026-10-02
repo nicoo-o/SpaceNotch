@@ -346,7 +346,6 @@ public sealed partial class SettingsWindow : Window
             StackToggle.IsOn = settings.ShowActivityStack;
             ClockToggle.IsOn = settings.ShowClockAtRest;
             PixelToggle.IsOn = settings.ShowPixel;
-            ScreensaverToggle.IsOn = settings.ShowScreensaver;
             UpdateAgentHooksButton();
             AssistantSourceBox.SelectedIndex = (int)settings.AssistantSource;
             ClaudeModelBox.Text = settings.ClaudeModel;
@@ -746,8 +745,6 @@ public sealed partial class SettingsWindow : Window
     private void OnPixelToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.ShowPixel = PixelToggle.IsOn);
 
-    private void OnScreensaverToggled(object sender, RoutedEventArgs e)
-        => Apply(s => s.ShowScreensaver = ScreensaverToggle.IsOn);
 
     // ---- Agents IA (I4) : les hooks de Claude Code ---------------------------
 

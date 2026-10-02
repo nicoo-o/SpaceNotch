@@ -465,21 +465,6 @@
                             <ToggleSwitch x:Name="PixelToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnPixelToggled" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Écran de veille jeu de la vie inactivité screensaver">
-                        <Grid ColumnSpacing="14">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="20" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Stack" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="{l:Loc Fr='Écran de veille', En='Screensaver'}" Style="{StaticResource NfSettingsTitleStyle}" />
-                                <TextBlock Text="{l:Loc Fr='Après cinq minutes sans clavier ni souris, un jeu de la vie en pixels dans la notch. Jamais sur batterie ni en plein écran.', En='After five minutes without keyboard or mouse, a pixel Game of Life in the notch. Never on battery or in full screen.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
-                            </StackPanel>
-                            <ToggleSwitch x:Name="ScreensaverToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnScreensaverToggled" AutomationProperties.Name="{l:Loc Fr='Écran de veille', En='Screensaver'}" />
-                        </Grid>
-                    </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Agents IA Claude Code hooks autoriser refuser progression canal">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>

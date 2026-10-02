@@ -7,16 +7,13 @@ namespace SpaceNotch_App.Windows;
 
 /// <summary>
 /// Déformations passagères de la silhouette accrochée en haut :
-/// la goutte qui pend vers un fichier et l'onde du dépôt (P2), les coins en
-/// escalier d'une erreur (A8). Chacune ne vit que quelques centaines de
-/// millisecondes ; hors de ces instants, la silhouette ordinaire est tracée.
+/// la goutte qui pend vers un fichier et l'onde du dépôt (P2). Elle ne vit
+/// que quelques centaines de millisecondes ; hors de ces instants, la
+/// silhouette ordinaire est tracée.
 /// </summary>
 public sealed partial class IslandWindow
 {
     private static readonly TimeSpan FxFrame = TimeSpan.FromMilliseconds(16);
-
-    /// <summary>Durée de l'escalier des coins, en millisecondes : 220 de bascule, puis le temps de lire.</summary>
-    private const int CrenelMilliseconds = 1400;
 
     /// <summary>Durée de l'onde du dépôt, en secondes.</summary>
     private const double RippleSeconds = 0.9;
@@ -27,10 +24,9 @@ public sealed partial class IslandWindow
     private double _dropX = double.NaN;
     private double _ripple;
     private double _ripplePhase;
-    private DateTime _crenelUntil;
 
     /// <summary>Vrai tant qu'une déformation est à tracer.</summary>
-    private bool ShapeFxActive => _drop > 0.01 || _dropTarget > 0 || _ripple > 0.05 || DateTime.UtcNow < _crenelUntil;
+    private bool ShapeFxActive => _drop > 0.01 || _dropTarget > 0 || _ripple > 0.05;
 
     /// <summary>Un fichier survole la notch à l'abscisse <paramref name="x"/> (DIP, repère de la notch) : la goutte pend vers lui.</summary>
     private void HangDrop(double x)
@@ -74,39 +70,28 @@ public sealed partial class IslandWindow
         StartFx();
     }
 
-    /// <summary>Une erreur : les coins passent en escalier, puis redeviennent lisses (A8).</summary>
-    private void CrenelCorners()
-    {
-        if (!UseSpringAnimations() || UsesFloatingGeometry || UsesSideTab)
-        {
-            return;
-        }
-
-        _crenelUntil = DateTime.UtcNow.AddMilliseconds(CrenelMilliseconds);
-        StartFx();
-    }
-
-    private string? _crenelledId;
+    private string? _shakenId;
 
     /// <summary>
-    /// Une activité en échec change la forme avant le texte (A8) — une seule
-    /// fois par échec, pas à chaque rendu.
+    /// Une activité en échec : la silhouette reste lisse, la notch secoue
+    /// brièvement (la secousse de la butée), une seule fois par échec. La
+    /// teinte d'erreur de l'icône et du titre dit le reste.
     /// </summary>
-    private void CrenelOnError(SpaceNotch.Core.Activities.IslandActivity? activity)
+    private void ShakeOnError(SpaceNotch.Core.Activities.IslandActivity? activity)
     {
         if (activity?.MotionState != SpaceNotch.Core.Motion.ActivityMotionState.Error)
         {
-            _crenelledId = null;
+            _shakenId = null;
             return;
         }
 
-        if (string.Equals(_crenelledId, activity.Id, StringComparison.Ordinal))
+        if (string.Equals(_shakenId, activity.Id, StringComparison.Ordinal))
         {
             return;
         }
 
-        _crenelledId = activity.Id;
-        CrenelCorners();
+        _shakenId = activity.Id;
+        BumpContent();
     }
 
     private void StartFx()
@@ -173,11 +158,6 @@ public sealed partial class IslandWindow
         else
         {
             outline = geometry.Silhouette(footprint);
-        }
-
-        if (DateTime.UtcNow < _crenelUntil)
-        {
-            outline = ShapeEffects.Crenellate(outline, footprint.Height, geometry.RadiusFor(footprint));
         }
 
         // La prochaine silhouette ordinaire devra se reconstruire.

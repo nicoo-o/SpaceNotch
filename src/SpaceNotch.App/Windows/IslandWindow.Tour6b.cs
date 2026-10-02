@@ -129,17 +129,9 @@ public sealed partial class IslandWindow
             TourLater(700, () => TourOpen(CaptureActivityId));
         });
 
-        yield return ("écran de veille · jeu de la vie", () =>
+        yield return ("capture · fin", () =>
         {
             TourClear(CaptureActivityId);
-            _tourScreensaver = true;
-            TourLater(600, () => { _screensaverOn = false; SetScreensaver(true); });
-        });
-
-        yield return ("écran de veille · réveil", () =>
-        {
-            _tourScreensaver = false;
-            SetScreensaver(false);
             _quietOverride = 0;
         });
     }

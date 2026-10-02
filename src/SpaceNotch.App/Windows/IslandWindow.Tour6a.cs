@@ -52,7 +52,7 @@ public sealed partial class IslandWindow
     /// <summary>Visite : heure imposée à l'horloge du repos, pour filmer la rémanence.</summary>
     private string? _tourClock;
 
-    private IEnumerable<(string Label, Action Run)> Wave6aTour(Func<IslandActivity> discord, Func<IslandActivity> music)
+    private IEnumerable<(string Label, Action Run)> Wave6aTour(Func<IslandActivity> discord)
     {
         DateTimeOffset Now() => DateTimeOffset.UtcNow;
 
@@ -199,17 +199,9 @@ public sealed partial class IslandWindow
             TourLater(2300, NotificationSceneView.DismissForTour);
         });
 
-        yield return ("clic d'encre", () =>
-        {
-            TourClear(NotificationGroups.ActivityIdFor("Discord"));
-            TourShow(music(), open: true);
-            TourLater(1500, () => PlayInk(new global::Windows.Foundation.Point(IslandBody.ActualWidth * 0.5, IslandBody.ActualHeight * 0.62)));
-            TourLater(2500, () => PlayInk(new global::Windows.Foundation.Point(IslandBody.ActualWidth * 0.7, IslandBody.ActualHeight * 0.62)));
-        });
-
         yield return ("butée · volume au maximum", () =>
         {
-            TourClear("tour.clipboard");
+            TourClear(NotificationGroups.ActivityIdFor("Discord"), "tour.clipboard");
             TourShow(HudActivity.Build("tour.volume", TourFeature, IslandSceneCatalog.VolumeHud, "Volume", 100, 100, "VolumeHigh", Lang.T("Sortie principale", "Main output"), TimeSpan.FromSeconds(30)), open: true);
             TourLater(1400, BumpContent);
             TourLater(2400, () => { _lastBump = 0; BumpContent(); });
@@ -221,7 +213,7 @@ public sealed partial class IslandWindow
             TourLater(900, () => _activityManager.PostActivity(Alarm()));
         });
 
-        yield return ("coins crénelés · erreur", () =>
+        yield return ("erreur · courte secousse", () =>
         {
             TourClear("tour.alarm");
             TourShow(Card("tour.error", Lang.T("Copie impossible", "Copy failed"), Lang.T("Disque D: plein", "Drive D: full"), "Warning", ActivityMotionState.Error), open: false);

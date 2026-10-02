@@ -4,14 +4,6 @@ using System.Collections.Generic;
 namespace SpaceNotch.Core.Motion;
 
 /// <summary>
-/// Rémanence et encre : deux façons de montrer ce qui vient de changer.
-///
-/// <para>
-/// <b>Rémanence phosphore (A1).</b> Un pixel qui s'éteint ne disparaît pas
-/// net : il décroît en cyan, comme le phosphore d'un vieil écran. Sur OLED, où
-/// le noir est vraiment éteint, l'effet est doux.
-/// </para>
-///
 /// <para>
 /// <b>Rafraîchissement d'encre (A3).</b> Quand une valeur change (température,
 /// pourcentage), seuls les caractères touchés s'inversent un instant, comme
@@ -20,34 +12,8 @@ namespace SpaceNotch.Core.Motion;
 /// </summary>
 public static class Afterglow
 {
-    /// <summary>Durée de la décroissance phosphore, en millisecondes.</summary>
-    public const int GlowMilliseconds = 160;
-
-    /// <summary>Opacité de départ du pixel rémanent.</summary>
-    public const double GlowOpacity = 0.9;
-
     /// <summary>Durée de l'inversion d'encre, en millisecondes.</summary>
     public const int InkMilliseconds = 160;
-
-    /// <summary>Pixels allumés dans <paramref name="before"/> et éteints dans <paramref name="after"/>.</summary>
-    public static IReadOnlyList<int> Fading(IReadOnlyList<bool> before, IReadOnlyList<bool> after)
-    {
-        ArgumentNullException.ThrowIfNull(before);
-        ArgumentNullException.ThrowIfNull(after);
-
-        var fading = new List<int>();
-        int count = Math.Min(before.Count, after.Count);
-
-        for (int i = 0; i < count; i++)
-        {
-            if (before[i] && !after[i])
-            {
-                fading.Add(i);
-            }
-        }
-
-        return fading;
-    }
 
     /// <summary>
     /// Plage de caractères à inverser entre deux valeurs : du premier caractère

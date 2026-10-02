@@ -495,12 +495,6 @@ public sealed class AppSettings
     public bool ShowChannel { get; set; } = true;
 
     /// <summary>
-    /// Écran de veille (P5) : un jeu de la vie en pixels dans la notch après cinq
-    /// minutes d'inactivité. Désactivé par défaut ; jamais sur batterie ni en plein écran.
-    /// </summary>
-    public bool ShowScreensaver { get; set; }
-
-    /// <summary>
     /// Clawd, la mascotte de Claude Code (I4) : son rendu en pixels. Par défaut
     /// fidèle au terminal (carrés pleins) ; « entre les deux » ou matière SpaceNotch au choix.
     /// </summary>
@@ -546,7 +540,6 @@ public sealed class AppSettings
 
     /// <summary>Regroupe les activités d'arrière-plan au-delà de la première.</summary>
     public bool ShowActivityStack { get; set; } = true;
-
 
     /// <summary>
     /// Affiche l'heure dans la forme de veille. Désactivée par défaut : elle
