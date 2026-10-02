@@ -67,11 +67,21 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         UpdateLyric();
     }
 
-    /// <summary>« Ensuite : … » sous les paroles, ou rien.</summary>
+    /// <summary>« Ensuite : … », ajouté à la ligne de l'artiste ; rien pour l'effacer.</summary>
     public void SetNext(string? line)
     {
-        NextText.Text = line ?? string.Empty;
-        NextText.Visibility = string.IsNullOrEmpty(line) ? Visibility.Collapsed : Visibility.Visible;
+        _next = line;
+        ApplyArtistLine();
+    }
+
+    private string? _next;
+    private string _artist = string.Empty;
+
+    /// <summary>L'artiste, et ce qui vient ensuite ; cachée quand les paroles prennent sa place.</summary>
+    private void ApplyArtistLine()
+    {
+        ArtistText.Text = string.IsNullOrEmpty(_next) ? _artist : _artist + "  ·  " + _next;
+        ArtistText.Visibility = LyricsText.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
     }
 
     /// <summary>Le cœur : <c>null</c> le cache (Spotify non connecté ou morceau introuvable).</summary>
@@ -96,6 +106,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         if (_lyrics is null)
         {
             LyricsText.Visibility = Visibility.Collapsed;
+            ApplyArtistLine();
             _lyricsClock?.Stop();
             return;
         }
@@ -104,6 +115,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         string? line = _lyrics.LineAt(now);
         LyricsText.Text = line ?? "♪";
         LyricsText.Visibility = Visibility.Visible;
+        ArtistText.Visibility = Visibility.Collapsed;
 
         if (_playing && IsLoaded)
         {
@@ -210,7 +222,8 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         var track = activity.Payload as MediaTrackInfo;
 
         ScrambleText.Set(TitleText, track?.Title ?? activity.Title, GlyphView.AnimationsEnabled && IsLoaded);
-        ArtistText.Text = track?.Artist ?? activity.Subtitle ?? string.Empty;
+        _artist = track?.Artist ?? activity.Subtitle ?? string.Empty;
+        ApplyArtistLine();
 
         bool playing = track?.IsPlaying ?? false;
         PlayPauseIcon.Key = playing ? "Pause" : "Play";

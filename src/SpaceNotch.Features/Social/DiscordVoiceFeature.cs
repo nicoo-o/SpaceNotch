@@ -78,6 +78,9 @@ public sealed class DiscordVoiceFeature : IslandFeatureBase
             Priority = ActivityPriority.Normal,
             Policy = ActivityPresentationPolicy.Passive,
             Payload = new VoicePayload(channelName, members, selfMuted),
+
+            // La rangée d'identicônes au-dessus du bouton du micro.
+            ExpandedFootprint = IslandSceneCatalog.FootprintFor(IslandSceneCatalog.Card) is var card ? new IslandFootprint(card.Width, card.Height + 40) : null,
             Actions =
             [
                 new ActivityAction(

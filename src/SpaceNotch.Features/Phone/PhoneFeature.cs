@@ -399,8 +399,17 @@ public sealed class PhoneFeature : IslandFeatureBase
             Policy = arrived ? null : ActivityPresentationPolicy.Passive,
             Duration = arrived ? TimeSpan.FromMinutes(5) : TimeSpan.FromHours(2),
             Payload = new DeliveryPayload(delivery.Service, delivery.Kind, delivery.Step, delivery.Eta, since),
+
+            // La frise (et le bouton, à l'arrivée) sous le texte : la carte grandit d'autant.
+            ExpandedFootprint = Taller(arrived ? 70 : 32),
             Actions = arrived ? [new ActivityAction(DeliveryDoneAction, "OK", "Check", ActivityActionKind.Invoke, IsPrimary: true)] : []
         });
+    }
+
+    private static IslandFootprint Taller(double extra)
+    {
+        IslandFootprint card = IslandSceneCatalog.FootprintFor(IslandSceneCatalog.Card);
+        return new IslandFootprint(card.Width, card.Height + extra);
     }
 
     /// <summary>« 12 min », « 1 min », « maintenant ».</summary>

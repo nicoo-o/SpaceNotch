@@ -69,21 +69,13 @@
                 TextTrimming="CharacterEllipsis"
                 MaxLines="1" />
 
-            <!-- Paroles synchronisées (T4) : la ligne chantée, puis ce qui vient ensuite. -->
+            <!-- Paroles synchronisées (T4) : la ligne chantée prend la place de l'artiste,
+                 pour que la scène garde sa hauteur. -->
             <TextBlock
                 x:Name="LyricsText"
-                FontSize="12.5"
+                FontSize="11.5"
                 FontWeight="SemiBold"
                 Foreground="{ThemeResource NfTextPrimaryBrush}"
-                TextTrimming="CharacterEllipsis"
-                MaxLines="1"
-                Margin="0,4,0,0"
-                Visibility="Collapsed" />
-
-            <TextBlock
-                x:Name="NextText"
-                FontSize="10.5"
-                Foreground="{ThemeResource NfTextTertiaryBrush}"
                 TextTrimming="CharacterEllipsis"
                 MaxLines="1"
                 Visibility="Collapsed" />

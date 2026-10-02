@@ -73,7 +73,9 @@ internal static class GlyphCatalog
         ["Heart"] = "\uEB51",
         ["Queue"] = "\uE8FD",
         ["MicrophoneOff"] = "\uEC54",
-        ["Headphones"] = "\uE7F6"
+        ["Headphones"] = "\uE7F6",
+        ["Close"] = "\uE711",
+        ["Calendar"] = "\uE787"
     };
 
     /// <summary>

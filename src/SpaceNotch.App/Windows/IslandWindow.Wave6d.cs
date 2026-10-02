@@ -33,6 +33,8 @@ public sealed partial class IslandWindow
     private CameraMirror? _mirror;
     private CancellationTokenSource? _trackCts;
     private string? _trackKey;
+    private bool _mirrorOpen;
+    private Microsoft.UI.Dispatching.DispatcherQueueTimer? _mirrorClose;
     private MediaTrackInfo? _track;
 
     private IEnumerable<IIslandFeature> CreateWave6dFeatures()
@@ -219,13 +221,38 @@ public sealed partial class IslandWindow
 
         if (!entered)
         {
-            InfoSceneView.ShowMirror(false, null);
-            _ = _mirror.StopAsync(InfoSceneView.Mirror);
+            // La carte grandit et ses boutons sont reconstruits : une sortie
+            // n'est retenue que si aucune entrée ne la suit de près.
+            _mirrorClose ??= CreateOneShotTimer(TimeSpan.FromMilliseconds(300), CloseMirror);
+            _mirrorClose.Stop();
+            _mirrorClose.Start();
             return;
         }
 
+        _mirrorClose?.Stop();
+
+        if (_mirrorOpen)
+        {
+            return;
+        }
+
+        _mirrorOpen = true;
+        _meetingFeature.SetMirror(true);
         InfoSceneView.ShowMirror(true, MicrophoneLine());
         _ = StartMirrorAsync();
+    }
+
+    private void CloseMirror()
+    {
+        if (!_mirrorOpen)
+        {
+            return;
+        }
+
+        _mirrorOpen = false;
+        InfoSceneView.ShowMirror(false, null);
+        _meetingFeature.SetMirror(false);
+        _ = _mirror?.StopAsync(InfoSceneView.Mirror);
     }
 
     private async Task StartMirrorAsync()
@@ -253,9 +280,7 @@ public sealed partial class IslandWindow
     /// <summary>La scène générique se repose : la caméra est rendue.</summary>
     private void RestMirror()
     {
-        if (_mirror is not null)
-        {
-            _ = _mirror.StopAsync(InfoSceneView.Mirror);
-        }
+        _mirrorClose?.Stop();
+        CloseMirror();
     }
 }

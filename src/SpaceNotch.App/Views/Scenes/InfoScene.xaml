@@ -151,17 +151,6 @@
         <!-- Salle vocale (T3) : une identicône par personne, allumée quand elle parle. -->
         <StackPanel x:Name="VoiceRow" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Center" Visibility="Collapsed" />
 
-        <!-- Miroir (W5) : la webcam au survol de « Rejoindre », et l'état du micro. -->
-        <StackPanel x:Name="MirrorPanel" Spacing="6" HorizontalAlignment="Center" Visibility="Collapsed">
-            <Border Width="208" Height="117" CornerRadius="{StaticResource NfCornerInner}" Background="#FF0A0A0A" BorderBrush="{ThemeResource NfStrokeSubtleBrush}" BorderThickness="1">
-                <MediaPlayerElement x:Name="MirrorVideo" Stretch="UniformToFill" AreTransportControlsEnabled="False" IsHitTestVisible="False">
-                    <MediaPlayerElement.RenderTransform>
-                        <ScaleTransform ScaleX="-1" CenterX="104" />
-                    </MediaPlayerElement.RenderTransform>
-                </MediaPlayerElement>
-            </Border>
-            <TextBlock x:Name="MirrorStatus" HorizontalAlignment="Center" FontSize="11" Foreground="{ThemeResource NfTextSecondaryBrush}" />
-        </StackPanel>
 
         <!--
             Rangée de contrôles, construite à partir des actions déclarées. Elle
@@ -174,5 +163,17 @@
             HorizontalAlignment="Center"
             Spacing="10"
             Visibility="Collapsed" />
+
+        <!-- Miroir (W5) : la webcam au survol de « Rejoindre » et l’état du micro, sous les contrôles pour que le bouton ne bouge pas sous le pointeur. -->
+        <StackPanel x:Name="MirrorPanel" Spacing="6" HorizontalAlignment="Center" Visibility="Collapsed">
+            <Border Width="208" Height="117" CornerRadius="{StaticResource NfCornerInner}" Background="#FF0A0A0A" BorderBrush="{ThemeResource NfStrokeSubtleBrush}" BorderThickness="1">
+                <MediaPlayerElement x:Name="MirrorVideo" Stretch="UniformToFill" AreTransportControlsEnabled="False" IsHitTestVisible="False">
+                    <MediaPlayerElement.RenderTransform>
+                        <ScaleTransform ScaleX="-1" CenterX="104" />
+                    </MediaPlayerElement.RenderTransform>
+                </MediaPlayerElement>
+            </Border>
+            <TextBlock x:Name="MirrorStatus" HorizontalAlignment="Center" FontSize="11" Foreground="{ThemeResource NfTextSecondaryBrush}" />
+        </StackPanel>
     </StackPanel>
 </UserControl>
