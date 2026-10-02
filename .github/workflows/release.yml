@@ -176,6 +176,31 @@ jobs:
           # L'installeur est le même fichier : « Setup » dans le nom suffit.
           Copy-Item $exe.FullName "$out/SpaceNotch-Setup.exe"
 
+          # Identité de paquet ÉTEINTE dans tout ce qui est téléchargé (installeur,
+          # portable, dossier) : Windows refuse de lancer un exécutable qui déclare
+          # une identité dont l'enregistrement est cassé — l'installeur ne pouvait
+          # alors plus démarrer pour réparer. L'élément <msix> devient un commentaire
+          # de même longueur ; l'installeur le rallume dans la copie installée
+          # (IdentityManifest, côté application).
+          function Set-IdentityManifest([string] $Path, [bool] $On) {
+            $bytes = [IO.File]::ReadAllBytes($Path)
+            $latin = [Text.Encoding]::GetEncoding(28591)
+            $text = $latin.GetString($bytes)
+            $found = [regex]::Matches($text, '<msix [^<>]*urn:schemas-microsoft-com:msix\.v1[^<>]*></msix>|<!--x [^<>]*urn:schemas-microsoft-com:msix\.v1[^<>]*></ms-->')
+            if ($found.Count -ne 1) { throw "$Path : $($found.Count) élément(s) d'identité, 1 attendu." }
+            $m = $found[0]
+            $inner = $m.Value.Substring(6, $m.Length - 14)
+            $value = if ($On) { "<msix $inner></msix>" } else { "<!--x $inner></ms-->" }
+            if ($value.Length -ne $m.Length) { throw "Longueur modifiée : $Path" }
+            $latin.GetBytes($value).CopyTo($bytes, $m.Index)
+            [IO.File]::WriteAllBytes($Path, $bytes)
+            Write-Host ("{0} : identité {1} (octet {2})" -f [IO.Path]::GetFileName($Path), $(if ($On) { "allumée" } else { "éteinte" }), $m.Index)
+          }
+          Set-IdentityManifest "$out/SpaceNotch.exe" $false
+          Set-IdentityManifest "$out/SpaceNotch-Setup.exe" $false
+          $folderExe = Get-ChildItem "${{ runner.temp }}/folder" -Filter "SpaceNotch.exe" | Select-Object -First 1
+          if ($folderExe) { Set-IdentityManifest $folderExe.FullName $false }
+
           Compress-Archive -Path "${{ runner.temp }}/folder/*" -DestinationPath "$out/SpaceNotch-win-x64.zip" -Force
 
           Get-ChildItem $out | ForEach-Object { "{0,-28} {1,8:N1} Mo" -f $_.Name, ($_.Length / 1MB) }
@@ -331,6 +356,84 @@ jobs:
           if (Test-Path $desktop) { throw "Le raccourci du bureau est resté." }
           if ((Get-ItemProperty "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run").SpaceNotch) { throw "Le lancement au démarrage est resté." }
           Write-Host "Installation et désinstallation propres."
+
+      # Mise à jour par-dessus la version publiée précédente, puis réparation d'un
+      # enregistrement cassé : c'est ce qu'un vrai PC traverse, et ce qu'un PC
+      # neuf ne montre jamais (v1.13.1 : « Nous ne pouvons pas ouvrir cette
+      # application… Réparer », installeur compris). Bloquant.
+      - name: Essai de mise à jour et de réparation
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $setup = "${{ runner.temp }}/dist/SpaceNotch-Setup.exe"
+          $dir = Join-Path $env:LOCALAPPDATA "Programs\SpaceNotch"
+          $exe = Join-Path $dir "SpaceNotch.exe"
+          $log = Join-Path $env:LOCALAPPDATA "SpaceNotch\logs\spacenotch.log"
+
+          function Install-Quiet([string] $Path, [string] $What) {
+            $p = Start-Process -FilePath $Path -ArgumentList "--quiet" -PassThru -Wait
+            if ($p.ExitCode -ne 0) {
+              if (Test-Path $log) { Get-Content $log -Tail 40 | Write-Host }
+              throw "$What : code $($p.ExitCode)."
+            }
+          }
+
+          function Assert-Identity([string] $What) {
+            $pkg = Get-AppxPackage -Name "SpaceNotch.Identity"
+            if (-not $pkg) { throw "$What : paquet d'identité absent." }
+            Write-Host "$What : $($pkg.PackageFullName) — état $($pkg.Status)"
+            if ("$($pkg.Status)" -ne "Ok") { throw "$What : paquet d'identité en mauvais état ($($pkg.Status))." }
+
+            Get-Process SpaceNotch -ErrorAction SilentlyContinue | Stop-Process -Force
+            Start-Sleep -Seconds 1
+            Remove-Item $log -ErrorAction SilentlyContinue
+            try { $app = Start-Process -FilePath $exe -ArgumentList "--demo" -PassThru }
+            catch { throw "$What : la notch installée refuse de démarrer ($($_.Exception.Message))." }
+            Start-Sleep -Seconds 12
+            $journal = if (Test-Path $log) { Get-Content $log -Raw } else { "" }
+            if ($app.HasExited -or $journal -notmatch "window activated" -or $journal -notmatch "Identité de paquet : présente") {
+              Write-Host $journal
+              throw "$What : la notch installée ne tourne pas avec son identité."
+            }
+            Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue
+            Write-Host "$What : la notch installée tourne avec son identité."
+          }
+
+          # 1. La version publiée précédente, s'il y en a une.
+          $previous = Join-Path "${{ runner.temp }}" "previous"
+          New-Item -ItemType Directory -Force -Path $previous | Out-Null
+          gh release download --repo $env:GITHUB_REPOSITORY --pattern "SpaceNotch-Setup.exe" --dir $previous 2>$null
+          $old = Join-Path $previous "SpaceNotch-Setup.exe"
+          if (Test-Path $old) {
+            Install-Quiet $old "Installation de la version précédente"
+            Write-Host "Version précédente installée."
+          } else {
+            Write-Host "Aucune version publiée : mise à jour essayée sur une installation neuve."
+          }
+
+          # 2. Mise à jour par-dessus.
+          Install-Quiet $setup "Mise à jour"
+          Assert-Identity "Après la mise à jour"
+
+          # 3. Enregistrement cassé : le certificat qui signe le paquet disparaît.
+          Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object { $_.Subject -eq "CN=SpaceNotch" } | Remove-Item
+          $broken = Get-AppxPackage -Name "SpaceNotch.Identity"
+          Write-Host "Certificats retirés — état du paquet : $($broken.Status)"
+
+          # L'installeur doit démarrer malgré tout (il ne déclare plus l'identité) et réparer.
+          try { Install-Quiet $setup "Réparation" }
+          catch { throw "L'installeur n'a pas pu réparer : $($_.Exception.Message)" }
+          Assert-Identity "Après la réparation"
+
+          # 4. Désinstallation propre.
+          $uninstall = Start-Process -FilePath $exe -ArgumentList "--uninstall","--quiet" -PassThru -Wait
+          if ($uninstall.ExitCode -ne 0) { throw "Désinstallation : code $($uninstall.ExitCode)." }
+          for ($i = 0; $i -lt 30 -and (Test-Path $dir); $i++) { Start-Sleep -Seconds 1 }
+          if (Test-Path $dir) { throw "Le dossier d'installation est resté." }
+          for ($i = 0; $i -lt 15 -and (Get-AppxPackage -Name "SpaceNotch.Identity"); $i++) { Start-Sleep -Seconds 1 }
+          if (Get-AppxPackage -Name "SpaceNotch.Identity") { throw "Le paquet d'identité est resté." }
+          Write-Host "Mise à jour, réparation et désinstallation propres."
 
       - name: Conserver le journal de démarrage
         if: always()

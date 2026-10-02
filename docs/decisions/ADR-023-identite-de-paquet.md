@@ -55,3 +55,33 @@ avec un **certificat éphémère** :
 Windows de GitHub. Le workflow Release installe, vérifie le paquet enregistré, lance la
 notch installée et exige au journal « window activated » et « Identité de paquet :
 présente », puis désinstalle et vérifie que le paquet a disparu.
+
+## Révision v1.13.2 — un enregistrement cassé ne doit jamais bloquer l'installeur
+
+Constat sur un vrai PC (v1.13.1) : au lancement de `SpaceNotch-Setup.exe`, Windows
+affichait « Désolé… Nous ne pouvons pas ouvrir cette application… sélectionner Réparer ».
+Windows refuse de lancer **tout** exécutable qui déclare une identité de paquet dont
+l'enregistrement est cassé, et l'installeur était le même fichier que l'application :
+il ne pouvait plus démarrer pour réparer. L'enregistrement se cassait à la mise à jour :
+l'ancien certificat était retiré *avant* l'enregistrement du nouveau paquet, si bien
+qu'un enregistrement qui échouait (ou une demande administrateur refusée au mauvais
+moment) laissait un paquet signé par un certificat disparu.
+
+Décisions :
+
+- **Identité éteinte dans tout ce qui est téléchargé** (installeur, portable, dossier) :
+  le workflow Release remplace l'élément `<msix>` du manifeste intégré par un
+  commentaire XML **de même longueur** (`<msix …></msix>` ⇄ `<!--x …></ms-->`), sans
+  décaler aucun octet de l'exécutable. L'installeur la **rallume dans la copie
+  installée** (`IdentityManifest`, `IdentityManifestFile`). Le portable tourne sans
+  identité, comme il l'a toujours fait.
+- **Réparation au début de chaque installation** : un paquet d'identité que Windows juge
+  en mauvais état (`Package.Status.VerifyIsOK()`) est retiré avant tout le reste.
+- **Le certificat précédent le plus récent est gardé** : il signe le paquet encore
+  enregistré tant que le nouveau ne l'a pas remplacé. Seuls les plus anciens partent.
+  Sans clé privée, un certificat laissé ne peut rien signer.
+- **`ForceTargetAppShutdown`** à l'enregistrement : une notch encore ouverte ne fait plus
+  échouer la mise à jour du paquet.
+- **Essai bloquant dans le workflow Release** : installer la version publiée précédente,
+  mettre à jour, vérifier l'identité ; retirer les certificats (enregistrement cassé),
+  relancer l'installeur, qui doit démarrer et réparer ; désinstaller.

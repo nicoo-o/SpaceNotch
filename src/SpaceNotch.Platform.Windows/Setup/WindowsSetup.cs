@@ -135,6 +135,10 @@ public static class WindowsSetup
 
         try
         {
+            // D'abord, un paquet d'identité laissé cassé par une version précédente
+            // est retiré : sinon la notch installée refuserait de démarrer.
+            await IdentityPackage.RepairAsync(log).ConfigureAwait(false);
+
             if (layout.RequiresElevation && !IsElevated)
             {
                 progress?.Report(new SetupProgress(InstallStep.Preparing, Indeterminate: true));
@@ -246,6 +250,12 @@ public static class WindowsSetup
 
         progress?.Report(new SetupProgress(InstallStep.Copying));
         CopyExecutable(source, layout.Executable, within => progress?.Report(new SetupProgress(InstallStep.Copying, within)));
+
+        // L'installeur est livré sans déclaration d'identité (il doit pouvoir
+        // démarrer même si l'enregistrement est cassé) ; la copie installée la
+        // reçoit, pour les notifications Windows. Échec : pas de notifications,
+        // la notch tourne quand même.
+        IdentityManifestFile.Set(layout.Executable, on: true, log);
 
         // Le paquet d'identité voyage avec l'exécutable : on le garde dans le
         // dossier d'installation, où l'enregistrement — et un réenregistrement
