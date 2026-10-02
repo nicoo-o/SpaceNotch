@@ -80,7 +80,7 @@ public sealed partial class IslandWindow
 
     // ---- Arrivée -------------------------------------------------------------
 
-    private void HandoffIn(IslandActivity activity, (global::Windows.Foundation.Point Left, global::Windows.Foundation.Point Right) eyes, EyeShape shape)
+    private void HandoffIn(IslandActivity activity, (global::Windows.Foundation.Point Left, global::Windows.Foundation.Point Right) eyes, EyeShape shape, int attempt = 0)
     {
         if (_isClosed || _controller.PresentedActivity?.Id != activity.Id)
         {
@@ -94,6 +94,12 @@ public sealed partial class IslandWindow
 
         if (view is null || SpotFor(recipe, recipe.Left, activity) is null)
         {
+            // Clawd, une scène qui s'ouvre : pas encore mis en page. On réessaie un peu plus tard.
+            if (attempt < 4)
+            {
+                RunAfter(TimeSpan.FromMilliseconds(50), () => HandoffIn(activity, eyes, shape, attempt + 1));
+            }
+
             return;
         }
 
@@ -560,21 +566,25 @@ public sealed partial class IslandWindow
     /// <summary>L'éclair blanc de l'obturateur (texte copié).</summary>
     private void Flash()
     {
+        // Un éclair doux, aux coins arrondis, qui ne déborde pas de la notch.
         var flash = new Border
         {
-            Width = FaceMorphLayer.ActualWidth,
-            Height = FaceMorphLayer.ActualHeight,
+            Width = Math.Max(0, FaceMorphLayer.ActualWidth - 16),
+            Height = Math.Max(0, FaceMorphLayer.ActualHeight - 8),
+            CornerRadius = new CornerRadius(10),
             Background = new SolidColorBrush(Microsoft.UI.Colors.White),
-            Opacity = 0.7,
+            Opacity = 0.35,
             IsHitTestVisible = false
         };
+        Canvas.SetLeft(flash, 8);
+        Canvas.SetTop(flash, 2);
         FaceMorphLayer.Children.Insert(0, flash);
         DateTime start = DateTime.UtcNow;
         EventHandler<object>? frame = null;
         frame = (_, _) =>
         {
             double t = (DateTime.UtcNow - start).TotalMilliseconds / 260;
-            flash.Opacity = Math.Max(0, 0.7 * (1 - t));
+            flash.Opacity = Math.Max(0, 0.35 * (1 - t));
 
             if (t >= 1)
             {

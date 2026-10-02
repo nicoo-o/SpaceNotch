@@ -202,7 +202,9 @@ public sealed partial class IslandWindow
         {
             _yawnUntil = now + TimeSpan.FromMilliseconds(PixelVitals.YawnMilliseconds);
             _nextYawn = now + PixelVitals.NextYawn(_yawnSeed++);
-            RequestRender();
+
+            // Différé : ce calcul tourne pendant le rendu, qui ne doit pas s'appeler lui-même.
+            _ = _dispatcherQueue.TryEnqueue(RequestRender);
         }
 
         bool yawning = now < _yawnUntil;
@@ -243,13 +245,15 @@ public sealed partial class IslandWindow
     private void TrackYawnEnd()
     {
         bool yawning = Yawning;
+        bool ended = _wasYawning && !yawning;
 
-        if (_wasYawning && !yawning)
-        {
-            RequestRender();
-        }
-
+        // Noté avant de redessiner : le rendu relance le regard, qui repasserait ici.
         _wasYawning = yawning;
+
+        if (ended)
+        {
+            _ = _dispatcherQueue.TryEnqueue(RequestRender);
+        }
     }
 
     /// <summary>Vrai pendant un bâillement : la notch s'étire un peu vers le bas.</summary>
