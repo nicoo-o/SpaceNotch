@@ -505,7 +505,7 @@ public sealed partial class IslandWindow
             case HandoffAnchor.Field when e.Field is { ActualWidth: > 0 } field:
             {
                 global::Windows.Foundation.Rect r = LayerBounds(field);
-                return new Spot(r.X + 12 + spot.X, r.Y + (r.Height / 2) + spot.Y, spot.Width, spot.Height, spot.Roundness);
+                return new Spot(TextStart(field, r) + spot.X, r.Y + (r.Height / 2) + spot.Y, spot.Width, spot.Height, spot.Roundness);
             }
 
             default:
@@ -526,6 +526,48 @@ public sealed partial class IslandWindow
                 return new Spot(ox + ((s.X + 0.5) * k), oy + ((s.Y + 0.5) * k), s.Width * k, s.Height * k, s.Roundness);
             }
         }
+    }
+
+    /// <summary>
+    /// Où commence le texte d'un champ, là où se tient son curseur : les champs
+    /// n'ont pas tous la même marge intérieure (la note est plus serrée que la recherche).
+    /// </summary>
+    private static readonly string[] TextParts = ["PlaceholderTextContentPresenter", "ContentElement"];
+
+    private double TextStart(FrameworkElement field, global::Windows.Foundation.Rect bounds)
+    {
+        foreach (string part in TextParts)
+        {
+            if (FindNamed(field, part) is { ActualWidth: > 0 } inner)
+            {
+                double padding = inner is Control control ? control.Padding.Left : 0;
+                return LayerBounds(inner).X + padding;
+            }
+        }
+
+        return bounds.X + 12;
+    }
+
+    private static FrameworkElement? FindNamed(DependencyObject root, string name)
+    {
+        int count = VisualTreeHelper.GetChildrenCount(root);
+
+        for (int i = 0; i < count; i++)
+        {
+            DependencyObject child = VisualTreeHelper.GetChild(root, i);
+
+            if (child is FrameworkElement element && element.Name == name)
+            {
+                return element;
+            }
+
+            if (FindNamed(child, name) is { } found)
+            {
+                return found;
+            }
+        }
+
+        return null;
     }
 
     private global::Windows.Foundation.Rect LayerBounds(FrameworkElement element)
