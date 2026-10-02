@@ -61,7 +61,8 @@ public sealed partial class IslandWindow
         {
             TourShow(Album("Midnight City", "M83", (0x5B, 0xE3, 0x8A), (0x7F, 0xE6, 0xFF)), open: false);
 
-            // Molette : 2 % par cran, le fader cranté s'affiche.
+            // Molette : 2 % par cran, le fader cranté s'affiche par-dessus la musique.
+            TourLater(400, () => _activityManager.PinPresentation(null));
             int[] levels = [70, 68, 66, 64];
 
             for (int i = 0; i < levels.Length; i++)
@@ -75,7 +76,7 @@ public sealed partial class IslandWindow
             TourLater(2300, () =>
             {
                 TourClear("tour.volume");
-                _activityManager.PostActivity(Album("Midnight City", "M83", (0x5B, 0xE3, 0x8A), (0x7F, 0xE6, 0xFF), playing: false));
+                TourShow(Album("Midnight City", "M83", (0x5B, 0xE3, 0x8A), (0x7F, 0xE6, 0xFF), playing: false), open: false);
             });
         });
 

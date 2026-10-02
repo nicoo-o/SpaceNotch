@@ -20,8 +20,8 @@ public static class Magnet
     /// <summary>Décalage maximal, en DIPs.</summary>
     public const double MaxShift = 4;
 
-    /// <summary>Grossissement maximal.</summary>
-    public const double MaxGrow = 0.015;
+    /// <summary>Grossissement maximal (4 %, comme la maquette U4).</summary>
+    public const double MaxGrow = 0.04;
 
     public static MagnetPull For(double cursorX, double cursorY, ScreenRect notch)
     {
