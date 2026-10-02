@@ -21,6 +21,9 @@ public sealed partial class IslandWindow
 
     private DispatcherQueueTimer? _magnetTimer;
 
+    /// <summary>Curseur imaginaire de la visite filmée, en DIPs d'écran ; <c>null</c> : le vrai.</summary>
+    private (double X, double Y)? _tourCursor;
+
     private void StartMagnet()
     {
         _magnetTimer ??= CreateMagnetTimer();
@@ -53,7 +56,7 @@ public sealed partial class IslandWindow
         }
 
         DisplayInfo display = DetachDisplay();
-        (double x, double y) = CursorDip();
+        (double x, double y) = _tourCursor ?? CursorDip();
         IslandFootprint rest = _restFootprint;
         var notch = new ScreenRect(AttachCenterX(display) - (rest.Width / 2), 0, rest.Width, rest.Height);
 

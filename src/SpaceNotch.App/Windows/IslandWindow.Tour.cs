@@ -359,7 +359,12 @@ public sealed partial class IslandWindow
             ("volume · pastille", () => TourShow(Volume(), open: false)),
             ("volume · ouvert", () => TourShow(Volume(), open: true)),
             ("notification · pastille", () => { TourClear("tour.volume"); TourShow(Discord(), open: false); }),
-            ("notification · ouverte", () => _controller.RequestExpand()),
+            ("notification · ouverte", () =>
+            {
+                _controller.RequestExpand();
+                TourLater(1200, () => NotificationSceneView.ShowFan(true));
+                TourLater(3300, () => NotificationSceneView.ShowFan(false));
+            }),
             ("téléchargement · pastille", () => { TourClear(NotificationGroups.ActivityIdFor("Discord")); TourShow(Download(), open: false); }),
             ("téléchargement · ouvert", () => TourShow(Download(), open: true)),
             ("bluetooth · pastille", () => TourShow(Headset(), open: false)),
@@ -397,6 +402,7 @@ public sealed partial class IslandWindow
             ("pastille détachée · avec bulle", () => DetachFromMenu()),
             ("pastille lancée · rebonds", TourThrow),
             ("raccrochée", () => ReattachTo(NotchEdge.Top, 0.5)),
+            .. Wave5Tour(Music),
             ("présentation · premier lancement", () => { TourClear("tour.media", "tour.download"); ShowWelcome(); }),
             ("réglages", () => { TourClear(); OpenSettingsWindow(); }),
             ("fin", () => { _settingsWindow?.Close(); _quietOverride = 0; TourClear(); })

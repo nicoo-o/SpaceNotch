@@ -143,6 +143,9 @@ public sealed partial class NotificationScene : UserControl, IIslandSceneView
         return new SolidColorBrush(global::Windows.UI.Color.FromArgb(0xFF, 0x1C, 0x1C, 0x1E));
     }
 
+    /// <summary>Ouvre ou referme l'éventail comme le survol ; la visite filmée l'appelle sans souris.</summary>
+    public void ShowFan(bool open) => Fan(open, animate: true);
+
     private void OnHistoryPointerEntered(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) => Fan(open: true, animate: true);
 
     private void OnHistoryPointerExited(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e) => Fan(open: false, animate: true);
