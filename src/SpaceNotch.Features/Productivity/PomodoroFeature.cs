@@ -73,6 +73,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
     public Func<(DateTimeOffset Start, string? Subject)?> NextMeeting { get; set; } = () => null;
 
     private string? _fittedNote;
+    private int? _fittedMinutes;
 
     /// <summary>
     /// Focus calé sur l'agenda (W3) : la session finit deux minutes avant la
@@ -109,9 +110,11 @@ public sealed class PomodoroFeature : IslandFeatureBase
             Reset(fit.Duration);
         }
 
-        _fittedNote = fit.Shortened && fit.MeetingStart is { } start
-            ? Lang.T($"{(int)fit.Duration.TotalMinutes} min · avant {start.ToLocalTime():HH:mm}", $"{(int)fit.Duration.TotalMinutes} min · before {start.ToLocalTime():HH:mm}")
+        // Maquette W3 : « Focus · 18 min », « raccourci pour finir avant la réunion ».
+        _fittedNote = fit.Shortened
+            ? Lang.T("raccourci pour finir avant la réunion", "shortened to end before your meeting")
             : null;
+        _fittedMinutes = fit.Shortened ? (int)Math.Round(fit.Duration.TotalMinutes) : null;
 
         Start(fit.Duration);
         return fit;
@@ -164,6 +167,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
         _clock.Set(duration ?? DefaultSessionLength, countsDown: true);
         SessionLength = duration ?? DefaultSessionLength;
         _fittedNote = null;
+        _fittedMinutes = null;
         RemoveActivity(ActivityId);
     }
 
@@ -225,6 +229,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
     private void PublishSessionActivity(string subtitle)
     {
         _published = _clock.Value;
+        bool fitted = _clock.IsRunning && _fittedNote is not null;
 
         PublishActivity(new IslandActivity
         {
@@ -239,7 +244,10 @@ public sealed class PomodoroFeature : IslandFeatureBase
             Priority = ActivityPriority.Normal,
 
             // La scène ouverte lit le temps ici : sans lui, elle montrait 25:00 à l'arrêt.
-            Payload = new TimerPayload(_clock.Value, _clock.IsRunning, "Focus")
+            Payload = fitted
+                ? new TimerPayload(_clock.Value, _clock.IsRunning, string.Create(CultureInfo.InvariantCulture, $"Focus · {_fittedMinutes} min"), _fittedNote)
+                : new TimerPayload(_clock.Value, _clock.IsRunning, "Focus"),
+            ExpandedFootprint = fitted ? SceneInsets.Wrap(250, 114) : null
         });
     }
 

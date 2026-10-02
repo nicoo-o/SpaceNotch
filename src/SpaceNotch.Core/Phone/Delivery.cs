@@ -25,7 +25,7 @@ public enum DeliveryStep
 }
 
 /// <summary>Une étape de livraison lue dans une notification.</summary>
-public sealed record DeliveryUpdate(string Service, DeliveryKind Kind, DeliveryStep Step, DateTimeOffset? Eta);
+public sealed record DeliveryUpdate(string Service, DeliveryKind Kind, DeliveryStep Step, DateTimeOffset? Eta, string? Merchant = null);
 
 /// <summary>
 /// Livraisons et VTC (T2) : Uber Eats, Deliveroo, Uber, Bolt… Leurs
@@ -111,7 +111,7 @@ public static partial class Delivery
             return null;
         }
 
-        return new DeliveryUpdate(service.Name, service.Kind, s, s == DeliveryStep.Arrived ? null : Eta(text, now));
+        return new DeliveryUpdate(service.Name, service.Kind, s, s == DeliveryStep.Arrived ? null : Eta(text, now), Merchant((title ?? string.Empty) + " " + (body ?? string.Empty)));
     }
 
     /// <summary>« dans 12 min », « in 5 minutes », « 12-18 min », « à 19:42 », « 19h42 », « at 7:42 PM ».</summary>
@@ -151,6 +151,13 @@ public static partial class Delivery
         return null;
     }
 
+    /// <summary>L'enseigne nommée dans le texte : « de chez Sushi Shop », « from Sushi Shop ».</summary>
+    public static string? Merchant(string text)
+    {
+        Match m = MerchantPattern().Match(text ?? string.Empty);
+        return m.Success ? m.Groups["m"].Value.Trim() : null;
+    }
+
     /// <summary>Où poser le véhicule sur la frise, de 0 à 1.</summary>
     public static double Position(DeliveryStep step, DateTimeOffset? eta, DateTimeOffset now, DateTimeOffset? since)
     {
@@ -180,6 +187,7 @@ public static partial class Delivery
         (DeliveryStep.OnTheWay, DeliveryKind.Ride) => french ? "Chauffeur en route" : "Driver on the way",
         (DeliveryStep.OnTheWay, _) => french ? "En route" : "On the way",
         (DeliveryStep.Arrived, DeliveryKind.Ride) => french ? "Ton chauffeur est là" : "Your driver is here",
+        (DeliveryStep.Arrived, DeliveryKind.Food) => french ? "Arrivée, le livreur est en bas" : "Arrived, the courier is downstairs",
         _ => french ? "Arrivé" : "Arrived"
     };
 
@@ -190,6 +198,9 @@ public static partial class Delivery
         DeliveryKind.Parcel => "Parcel",
         _ => "Scooter"
     };
+
+    [GeneratedRegex(@"(?:de chez|chez|from)\s+(?<m>[A-Z][\p{L}\d'&\- ]{1,28}?)(?=\s*(?:[,.!·:]|est|is|arrive|$))", RegexOptions.CultureInvariant)]
+    private static partial Regex MerchantPattern();
 
     [GeneratedRegex(@"(?:dans|in|d'ici|within)\s+(?:environ\s+|about\s+|~)?(?<n>\d{1,3})(?:\s*[-–à]\s*\d{1,3})?\s*(?:min|minutes?|mn)\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex MinutesPattern();

@@ -51,7 +51,7 @@
         </Border>
 
         <!-- Colonne droite : titre, artiste, timeline, transport -->
-        <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+        <StackPanel x:Name="ControlsPanel" Grid.Column="1" VerticalAlignment="Center" Spacing="2">
             <TextBlock
                 x:Name="TitleText"
                 Text="{l:Loc Fr='Titre de la chanson', En='Song title'}"
@@ -68,17 +68,6 @@
                 Foreground="{ThemeResource NfTextSecondaryBrush}"
                 TextTrimming="CharacterEllipsis"
                 MaxLines="1" />
-
-            <!-- Paroles synchronisées (T4) : la ligne chantée prend la place de l'artiste,
-                 pour que la scène garde sa hauteur. -->
-            <TextBlock
-                x:Name="LyricsText"
-                FontSize="11.5"
-                FontWeight="SemiBold"
-                Foreground="{ThemeResource NfTextPrimaryBrush}"
-                TextTrimming="CharacterEllipsis"
-                MaxLines="1"
-                Visibility="Collapsed" />
 
             <!--
                 Timeline interactive : la progression est présentée par la
@@ -190,7 +179,106 @@
                     Click="OnLikeClicked">
                     <views:GlyphView x:Name="LikeIcon" Key="Heart" Size="14" Tint="{ThemeResource NfTextSecondaryBrush}" />
                 </Button>
+
+                <!-- Retour au mode paroles, quand le morceau en a. -->
+                <Button
+                    Style="{StaticResource NfSecondaryButtonStyle}"
+                    x:Name="LyricsButton"
+                    Width="32"
+                    Height="32"
+                    CornerRadius="16"
+                    Padding="0"
+                    Background="{ThemeResource NfSurfaceElevatedBrush}"
+                    BorderThickness="0"
+                    Visibility="Collapsed"
+                    ToolTipService.ToolTip="{l:Loc Fr='Paroles', En='Lyrics'}"
+                    AutomationProperties.Name="{l:Loc Fr='Paroles', En='Lyrics'}"
+                    Click="OnLyricsClicked">
+                    <views:GlyphView Key="Text" Size="14" Tint="{ThemeResource NfTextPrimaryBrush}" />
+                </Button>
             </StackPanel>
         </StackPanel>
+
+        <!--
+            Mode paroles (T4) : la ligne chantée en grand, la suivante en gris,
+            qui remontent en rythme ; à droite, « J'aime » et la file Spotify.
+            Un clic sur les paroles rend les contrôles.
+        -->
+        <Grid
+            x:Name="LyricsPanel"
+            Grid.Column="1"
+            ColumnSpacing="14"
+            VerticalAlignment="Center"
+            Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Button
+                x:Name="LyricsViewport"
+                Style="{StaticResource NfGhostButtonStyle}"
+                Height="56"
+                Padding="0"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                VerticalContentAlignment="Top"
+                ToolTipService.ToolTip="{l:Loc Fr='Afficher les contrôles', En='Show the controls'}"
+                AutomationProperties.Name="{l:Loc Fr='Paroles, afficher les contrôles', En='Lyrics, show the controls'}"
+                Click="OnLyricsViewportClicked">
+                <!-- Un Canvas ne coupe rien de lui-même : le découpage suit sa taille. -->
+                <Canvas x:Name="LyricsClipHost" Height="56" SizeChanged="OnLyricsHostSizeChanged">
+                    <StackPanel x:Name="LyricsList" Spacing="4">
+                        <StackPanel.RenderTransform>
+                            <TranslateTransform x:Name="LyricsShift" />
+                        </StackPanel.RenderTransform>
+                    </StackPanel>
+                </Canvas>
+            </Button>
+
+            <StackPanel
+                x:Name="LyricsSide"
+                Grid.Column="1"
+                Spacing="6"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center"
+                Visibility="Collapsed">
+                <Button
+                    x:Name="LyricsLikeButton"
+                    Style="{StaticResource NfGhostButtonStyle}"
+                    Width="26"
+                    Height="26"
+                    Padding="0"
+                    HorizontalAlignment="Center"
+                    Background="Transparent"
+                    BorderThickness="0"
+                    ToolTipService.ToolTip="{l:Loc Fr='J’aime sur Spotify', En='Like on Spotify'}"
+                    AutomationProperties.Name="{l:Loc Fr='J’aime sur Spotify', En='Like on Spotify'}"
+                    Click="OnLikeClicked">
+                    <views:GlyphView x:Name="LyricsLikeIcon" Key="Heart" Size="14" Tint="#88FFFFFF" />
+                </Button>
+                <Button
+                    x:Name="QueueButton"
+                    Style="{StaticResource NfGhostButtonStyle}"
+                    Padding="6,1,6,2"
+                    MinHeight="0"
+                    MinWidth="0"
+                    HorizontalAlignment="Center"
+                    Background="Transparent"
+                    BorderBrush="#2AFFFFFF"
+                    BorderThickness="1"
+                    CornerRadius="5"
+                    ToolTipService.ToolTip="{l:Loc Fr='Ajouter à la file Spotify', En='Add to the Spotify queue'}"
+                    AutomationProperties.Name="{l:Loc Fr='Ajouter à la file Spotify', En='Add to the Spotify queue'}"
+                    Click="OnQueueClicked">
+                    <TextBlock
+                        x:Name="QueueText"
+                        Text="{l:Loc Fr='file', En='queue'}"
+                        FontFamily="Consolas"
+                        FontSize="10.5"
+                        Foreground="#B3FFFFFF" />
+                </Button>
+            </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>

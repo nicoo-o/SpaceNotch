@@ -124,6 +124,29 @@ internal sealed class SpotifyClient
         }
     }
 
+    /// <summary>Ajoute le morceau à la file de lecture Spotify.</summary>
+    public async Task<bool> AddToQueueAsync(string artist, string title, CancellationToken cancellationToken)
+    {
+        if (await TrackIdAsync(artist, title, cancellationToken).ConfigureAwait(false) is not { } id
+            || await TokenAsync(cancellationToken).ConfigureAwait(false) is not { } token)
+        {
+            return false;
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, SpotifyApi.AddToQueueUrl(id));
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        try
+        {
+            using HttpResponseMessage response = await Http.SendAsync(request, cancellationToken).ConfigureAwait(false);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return false;
+        }
+    }
+
     /// <summary>Les prochains morceaux de la file.</summary>
     public async Task<IReadOnlyList<QueuedTrack>> QueueAsync(CancellationToken cancellationToken)
     {

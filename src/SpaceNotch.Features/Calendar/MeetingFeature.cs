@@ -110,7 +110,7 @@ public sealed class MeetingFeature : IslandFeatureBase
 
     /// <summary>Montre (ou retire) le rendez-vous selon l'heure. Appelable directement (tests, visite).</summary>
     /// <summary>Hauteur ajoutée à la carte quand le miroir (W5) est ouvert sous « Rejoindre ».</summary>
-    public const double MirrorHeight = 150;
+    public const double MirrorHeight = 104;
 
     private bool _mirror;
 
@@ -204,8 +204,11 @@ public sealed class MeetingFeature : IslandFeatureBase
             SceneKey = IslandSceneCatalog.Card,
             Title = string.IsNullOrWhiteSpace(meeting.Subject) ? Lang.T("Rendez-vous", "Meeting") : meeting.Subject,
             Subtitle = (soon ? MeetingCountdown.Label(meeting.Start, now, french) : Lang.T("Maintenant", "Now")) + service,
-            Eyebrow = meeting.Start.ToLocalTime().ToString("t", CultureInfo.CurrentCulture),
             Source = Lang.T("Calendrier", "Calendar"),
+
+            // Une ligne, comme la maquette (W2, W5) : icône, titre, contrôles à droite.
+            Layout = ActivityLayout.Row,
+            ShowEnterHint = _mirror && _link is not null,
             IconKey = "Calendar",
             Tint = Blue,
             Progress = soon ? MeetingCountdown.Remaining(meeting.Start, now) : null,
@@ -216,9 +219,7 @@ public sealed class MeetingFeature : IslandFeatureBase
             Priority = soon ? ActivityPriority.Normal : ActivityPriority.High,
             Policy = ActivityPresentationPolicy.Passive,
             Actions = Actions(meeting, now),
-            ExpandedFootprint = _mirror && _link is not null
-                ? IslandSceneCatalog.FootprintFor(IslandSceneCatalog.Card) is var card ? new IslandFootprint(card.Width, card.Height + MirrorHeight) : null
-                : null
+            ExpandedFootprint = SceneInsets.Wrap(380, 44 + (_mirror && _link is not null ? MirrorHeight : 0))
         });
     }
 
@@ -228,12 +229,14 @@ public sealed class MeetingFeature : IslandFeatureBase
 
         if (_link is not null)
         {
-            actions.Add(new ActivityAction(JoinAction, Lang.T("Rejoindre", "Join"), "Call", ActivityActionKind.Invoke, IsPrimary: true));
+            actions.Add(new ActivityAction(JoinAction, Lang.T("Rejoindre", "Join"), "Call", ActivityActionKind.Invoke, IsPrimary: true, Tone: ActivityActionTone.Positive));
         }
 
         if (MeetingQuiet.Offer(meeting.Start, meeting.End, now, IsQuiet()))
         {
-            actions.Add(new ActivityAction(QuietAction, Lang.T("Silence", "Quiet"), "Moon"));
+            // « Silence jusqu'à 11:00 » : l'heure de fin dit ce que le clic va faire.
+            string until = meeting.End.ToLocalTime().ToString("t", CultureInfo.CurrentCulture);
+            actions.Add(new ActivityAction(QuietAction, Lang.T("Silence jusqu'à ", "Quiet until ") + until, "Moon"));
         }
 
         return actions;

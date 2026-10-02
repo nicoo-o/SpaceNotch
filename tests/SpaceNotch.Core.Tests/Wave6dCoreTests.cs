@@ -186,6 +186,27 @@ public class Wave6dCoreTests
     }
 
     [Fact]
+    public void TheNextLine_SkipsBlanks_AndEndsWithNull()
+    {
+        SyncedLyrics lyrics = Assert.IsType<SyncedLyrics>(Lyrics.Parse("""
+            [00:10.00]One more time
+            [00:12.00]
+            [00:14.00]We're gonna celebrate
+            """));
+
+        Assert.Equal("One more time", lyrics.NextLineAt(TimeSpan.FromSeconds(1)));
+        Assert.Equal("We're gonna celebrate", lyrics.NextLineAt(TimeSpan.FromSeconds(11)));
+        Assert.Null(lyrics.NextLineAt(TimeSpan.FromSeconds(20)));
+    }
+
+    [Fact]
+    public void Spotify_AddsToTheQueue_ByTrackUri()
+    {
+        Assert.Equal("https://api.spotify.com/v1/me/player/queue?uri=spotify%3Atrack%3A4cOdK2wGLETKBW3PvgPWqT", SpotifyApi.AddToQueueUrl("4cOdK2wGLETKBW3PvgPWqT").AbsoluteUri);
+        Assert.Contains("user-modify-playback-state", SpotifyApi.Scopes, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LrcLib_QueryAndResponse()
     {
         Uri url = Lyrics.LrcLibQuery("Daft Punk", "One More Time - Remastered 2011", "Discovery", TimeSpan.FromSeconds(320.4))!;

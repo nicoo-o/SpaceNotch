@@ -17,13 +17,27 @@
         tiers n'aurait aucun moyen d'exposer un contrôle : l'API lui permettrait de
         déclarer une action que personne n'afficherait.
     -->
-    <StackPanel Padding="{StaticResource NfScenePadding}" Spacing="8">
+    <StackPanel x:Name="SceneRoot" Padding="{StaticResource NfScenePadding}" Spacing="8">
 
-        <Grid ColumnSpacing="12">
+        <Grid x:Name="HeaderGrid" ColumnSpacing="12">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
+
+            <!-- Disposition en ligne (vague 6) : ce qui suit le texte, à droite —
+                 une étiquette de couleur, les avatars d'un salon, les contrôles. -->
+            <StackPanel
+                x:Name="TrailHost"
+                Grid.Column="2"
+                Orientation="Horizontal"
+                Spacing="8"
+                VerticalAlignment="Center">
+                <Border x:Name="TrailBadge" CornerRadius="999" Padding="9,3" VerticalAlignment="Center" Visibility="Collapsed">
+                    <TextBlock x:Name="TrailBadgeText" FontSize="11.5" FontWeight="SemiBold" />
+                </Border>
+            </StackPanel>
 
             <!-- Pastille d'icône : contour au trait, jamais de fond rempli.
                  Un fond légèrement plus clair serait une seconde surface, donc
@@ -103,13 +117,24 @@
                         Visibility="Collapsed" />
                 </Grid>
 
-                <TextBlock
+                <Grid ColumnSpacing="8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <!-- Étiquette devant le sous-titre : « Copié · anglais → français ». -->
+                    <Border x:Name="InlineBadge" CornerRadius="999" Padding="9,2" VerticalAlignment="Center" Visibility="Collapsed">
+                        <TextBlock x:Name="InlineBadgeText" FontSize="11.5" FontWeight="SemiBold" />
+                    </Border>
+                    <TextBlock
                     x:Name="SubtitleText"
+                    Grid.Column="1"
                     Text=""
                     FontSize="11.5"
                     Foreground="{ThemeResource NfTextSecondaryBrush}"
                     TextTrimming="CharacterEllipsis"
                     MaxLines="2" />
+                </Grid>
 
                 <!-- Progression : un fil, pas une barre de logiciel. Le
                      remplissage est une échelle, jamais une largeur recalculée. -->
@@ -142,9 +167,9 @@
         </Grid>
 
         <!-- Livraison (T2) : trois étapes sur un fil, le véhicule en pixels qui avance. -->
-        <Grid x:Name="DeliveryTrack" Height="24" Margin="2,0,2,0" Visibility="Collapsed" SizeChanged="OnDeliveryTrackSizeChanged">
-            <Border Height="2" VerticalAlignment="Bottom" Margin="0,0,0,4" CornerRadius="1" Background="{ThemeResource NfStrokeSubtleBrush}" />
-            <Border x:Name="DeliveryDone" Height="2" VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="0,0,0,4" CornerRadius="1" Width="0" Background="{ThemeResource NfTextPrimaryBrush}" />
+        <Grid x:Name="DeliveryTrack" Height="16" Margin="2,0,2,0" Visibility="Collapsed" SizeChanged="OnDeliveryTrackSizeChanged">
+            <Border Height="2" VerticalAlignment="Center" CornerRadius="1" Background="#22FFFFFF" />
+            <Border x:Name="DeliveryDone" Height="2" VerticalAlignment="Center" HorizontalAlignment="Left" CornerRadius="1" Width="0" Background="{ThemeResource NfTextPrimaryBrush}" />
             <Canvas x:Name="DeliveryCanvas" IsHitTestVisible="False" />
         </Grid>
 
@@ -165,15 +190,25 @@
             Visibility="Collapsed" />
 
         <!-- Miroir (W5) : la webcam au survol de « Rejoindre » et l’état du micro, sous les contrôles pour que le bouton ne bouge pas sous le pointeur. -->
-        <StackPanel x:Name="MirrorPanel" Spacing="6" HorizontalAlignment="Center" Visibility="Collapsed">
-            <Border Width="208" Height="117" CornerRadius="{StaticResource NfCornerInner}" Background="#FF0A0A0A" BorderBrush="{ThemeResource NfStrokeSubtleBrush}" BorderThickness="1">
+        <StackPanel x:Name="MirrorPanel" Orientation="Horizontal" Spacing="18" HorizontalAlignment="Center" Visibility="Collapsed">
+            <!-- Un petit miroir rond, comme dans la maquette. -->
+            <Border Width="92" Height="92" CornerRadius="46" Background="#FF1D2230" BorderBrush="{ThemeResource NfStrokeSubtleBrush}" BorderThickness="1">
                 <MediaPlayerElement x:Name="MirrorVideo" Stretch="UniformToFill" AreTransportControlsEnabled="False" IsHitTestVisible="False">
                     <MediaPlayerElement.RenderTransform>
-                        <ScaleTransform ScaleX="-1" CenterX="104" />
+                        <ScaleTransform ScaleX="-1" CenterX="46" />
                     </MediaPlayerElement.RenderTransform>
                 </MediaPlayerElement>
             </Border>
-            <TextBlock x:Name="MirrorStatus" HorizontalAlignment="Center" FontSize="11" Foreground="{ThemeResource NfTextSecondaryBrush}" />
+            <StackPanel Spacing="8" VerticalAlignment="Center">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <views:GlyphView x:Name="MirrorMicGlyph" Key="Microphone" Size="14" />
+                    <TextBlock x:Name="MirrorMic" FontSize="11.5" Foreground="{ThemeResource NfTextSecondaryBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <views:GlyphView x:Name="MirrorCamGlyph" Key="Camera" Size="14" />
+                    <TextBlock x:Name="MirrorCam" FontSize="11.5" Foreground="{ThemeResource NfTextSecondaryBrush}" VerticalAlignment="Center" />
+                </StackPanel>
+            </StackPanel>
         </StackPanel>
     </StackPanel>
 </UserControl>

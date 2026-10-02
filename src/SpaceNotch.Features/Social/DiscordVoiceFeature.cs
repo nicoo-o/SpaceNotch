@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
@@ -29,6 +28,9 @@ public sealed class DiscordVoiceFeature : IslandFeatureBase
 
     public static readonly ActivityTint Blurple = new(0x58, 0x65, 0xF2);
 
+    /// <summary>Le lilas de la maquette pour le casque du salon.</summary>
+    public static readonly ActivityTint Lilac = new(0xB9, 0xA8, 0xFF);
+
     private bool _selfMuted;
 
     public DiscordVoiceFeature(IActivityManager activities, IEventBus events, bool isEnabled)
@@ -54,33 +56,25 @@ public sealed class DiscordVoiceFeature : IslandFeatureBase
             return;
         }
 
-        var speaking = members.Where(m => m.Speaking).Select(m => m.Name).ToList();
-        string subtitle = speaking.Count switch
-        {
-            0 => members.Count == 1 ? Lang.T("1 personne", "1 person") : members.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + Lang.T(" personnes", " people"),
-            1 => speaking[0] + Lang.T(" parle", " is speaking"),
-            _ => string.Join(", ", speaking.Take(2)) + Lang.T(" parlent", " are speaking")
-        };
+        string name = string.IsNullOrWhiteSpace(channelName) ? Lang.T("Salon vocal", "Voice channel") : channelName;
 
+        // Maquette T3 : une seule ligne — le casque, le nom du salon, les avatars
+        // (celui qui parle s'éclaire), puis le micro, rouge quand il est coupé.
         PublishActivity(new IslandActivity
         {
             Id = ActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Card,
-            Eyebrow = Lang.T("Discord · vocal", "Discord · voice"),
-            Title = string.IsNullOrWhiteSpace(channelName) ? Lang.T("Salon vocal", "Voice channel") : channelName,
-            Subtitle = subtitle,
+            Title = selfMuted ? name + Lang.T(" · Micro coupé", " · Mic muted") : name,
             Source = "Discord",
             IconKey = "Headphones",
-            Metric = selfMuted ? Lang.T("muet", "muted") : null,
-            Tint = Blurple,
+            Tint = Lilac,
             State = IslandActivityState.MediaActive,
             Priority = ActivityPriority.Normal,
             Policy = ActivityPresentationPolicy.Passive,
             Payload = new VoicePayload(channelName, members, selfMuted),
-
-            // La rangée d'identicônes au-dessus du bouton du micro.
-            ExpandedFootprint = IslandSceneCatalog.FootprintFor(IslandSceneCatalog.Card) is var card ? new IslandFootprint(card.Width, card.Height + 40) : null,
+            Layout = ActivityLayout.Row,
+            ExpandedFootprint = SceneInsets.Wrap(320, 30),
             Actions =
             [
                 new ActivityAction(

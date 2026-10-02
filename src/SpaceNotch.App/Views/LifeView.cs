@@ -4,23 +4,28 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using SpaceNotch.Core.Motion;
+using Windows.UI;
 
 namespace SpaceNotch_App.Views;
 
 /// <summary>
-/// Écran de veille (P5) : le jeu de la vie en pixels, dans la lèvre de la
-/// notch au repos. Une cellule qui vient de naître est vive ; elle s'assombrit
-/// en vieillissant. Les règles et la graine viennent de <see cref="LifeGrid"/>.
+/// Écran de veille (P5) : le jeu de la vie en pixels, dans la notch élargie
+/// au repos. Une cellule qui vient de naître est cyan, lilas en grandissant,
+/// puis indigo sombre. Les règles et la graine viennent de <see cref="LifeGrid"/>.
 /// </summary>
 public sealed partial class LifeView : Canvas
 {
-    /// <summary>Colonnes et rangées : de quoi tenir dans la lèvre sans l'élargir.</summary>
-    public const int Columns = 22;
+    /// <summary>Colonnes et rangées : la maquette, 316 × 58 en pixels de 4.</summary>
+    public const int Columns = 79;
 
-    public const int Rows = 5;
+    public const int Rows = 14;
 
-    private const double Pixel = 2.2;
-    private const double Pitch = 3.0;
+    private const double Pixel = 3.0;
+    private const double Pitch = 4.0;
+
+    private static readonly SolidColorBrush Young = new(Color.FromArgb(0xFF, 0x7F, 0xE6, 0xFF));
+    private static readonly SolidColorBrush Grown = new(Color.FromArgb(0xFF, 0xB9, 0xA8, 0xFF));
+    private static readonly SolidColorBrush Old = new(Color.FromArgb(0xFF, 0x3B, 0x3F, 0x7A));
 
     private readonly Rectangle[] _cells = new Rectangle[Columns * Rows];
     private LifeGrid? _grid;
@@ -33,29 +38,11 @@ public sealed partial class LifeView : Canvas
 
         for (int i = 0; i < _cells.Length; i++)
         {
-            var cell = new Rectangle { Width = Pixel, Height = Pixel, RadiusX = 0.4, RadiusY = 0.4, Opacity = 0 };
+            var cell = new Rectangle { Width = Pixel, Height = Pixel, Opacity = 0 };
             SetLeft(cell, (i % Columns) * Pitch);
             SetTop(cell, (i / Columns) * Pitch);
             Children.Add(cell);
             _cells[i] = cell;
-        }
-    }
-
-    public static readonly DependencyProperty TintProperty = DependencyProperty.Register(
-        nameof(Tint), typeof(Brush), typeof(LifeView), new PropertyMetadata(null, (d, e) => ((LifeView)d).OnTintChanged((Brush?)e.NewValue)));
-
-    /// <summary>Couleur des cellules.</summary>
-    public Brush? Tint
-    {
-        get => (Brush?)GetValue(TintProperty);
-        set => SetValue(TintProperty, value);
-    }
-
-    private void OnTintChanged(Brush? value)
-    {
-        foreach (Rectangle cell in _cells)
-        {
-            cell.Fill = value;
         }
     }
 
@@ -98,9 +85,9 @@ public sealed partial class LifeView : Canvas
                     continue;
                 }
 
-                // Vive à la naissance, jamais sous un tiers : une cellule ancienne reste lisible.
-                double age = Math.Min(_grid.Age(column, row), LifeGrid.OldAge) / (double)LifeGrid.OldAge;
-                cell.Opacity = 1.0 - (0.65 * age);
+                int age = _grid.Age(column, row);
+                cell.Fill = age < 2 ? Young : age < 6 ? Grown : Old;
+                cell.Opacity = 1;
             }
         }
     }

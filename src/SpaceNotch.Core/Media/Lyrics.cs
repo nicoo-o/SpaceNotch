@@ -42,6 +42,20 @@ public sealed class SyncedLyrics
     /// <summary>La ligne chantée, ou <c>null</c> (avant la première, ou sur une ligne vide).</summary>
     public string? LineAt(TimeSpan position)
         => IndexAt(position) is >= 0 and int i && Lines[i].Text.Length > 0 ? Lines[i].Text : null;
+
+    /// <summary>La prochaine ligne non vide après celle chantée, ou <c>null</c> à la fin.</summary>
+    public string? NextLineAt(TimeSpan position)
+    {
+        for (int i = IndexAt(position) + 1; i < Lines.Count; i++)
+        {
+            if (Lines[i].Text.Length > 0)
+            {
+                return Lines[i].Text;
+            }
+        }
+
+        return null;
+    }
 }
 
 /// <summary>

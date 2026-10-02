@@ -83,6 +83,7 @@ public sealed partial class IslandWindow
         if (_copyAssistFeature is not null)
         {
             _copyAssistFeature.Ask = ask;
+            _copyAssistFeature.ModelPlace = model is null ? null : model.IsLocal ? Lang.T("sur l'appareil", "on device") : Lang.T("via ", "via ") + model.DisplayName;
         }
 
         MiniLogger.Log(model is null
@@ -96,10 +97,8 @@ public sealed partial class IslandWindow
         switch (kind)
         {
             case LauncherCommandKind.Reminder when TryReadReminder(value, out NaturalIntent intent):
-                if (_reminderFeature?.Add(intent) is { } reminder)
-                {
-                    AnswerInNotch(Lang.T("Rappel posé", "Reminder set"), reminder.Text + " · " + reminder.At.ToLocalTime().ToString("t", CultureInfo.CurrentCulture), ok: true);
-                }
+                // La pastille du rappel suffit (maquette I2) : pas de carte de confirmation.
+                _reminderFeature?.Add(intent);
 
                 return true;
 

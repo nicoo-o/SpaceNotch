@@ -30,6 +30,9 @@ public sealed partial class IslandWindow
     private DispatcherQueueTimer? _screensaverTimer;
     private DispatcherQueueTimer? _lifeTimer;
     private bool _screensaverOn;
+
+    /// <summary>La notch pendant l'écran de veille : 360 × 72, la vie en 79 × 14 pixels.</summary>
+    private static readonly IslandFootprint ScreensaverFootprint = new(360, 72);
     private bool _capturing;
 
     /// <summary>Visite : l'écran de veille forcé, sans attendre cinq minutes.</summary>

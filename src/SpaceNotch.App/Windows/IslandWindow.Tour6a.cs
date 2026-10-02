@@ -7,6 +7,7 @@ using SpaceNotch.Core.State;
 using SpaceNotch.Core.Localization;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Features.Notifications;
+using SpaceNotch.Features.SystemHud;
 using SpaceNotch.Infrastructure.Logging;
 
 namespace SpaceNotch_App.Windows;
@@ -51,7 +52,7 @@ public sealed partial class IslandWindow
     /// <summary>Visite : heure imposée à l'horloge du repos, pour filmer la rémanence.</summary>
     private string? _tourClock;
 
-    private IEnumerable<(string Label, Action Run)> Wave6aTour(Func<IslandActivity> discord, Func<IslandActivity> volume, Func<IslandActivity> clipboard, Func<IslandActivity> music)
+    private IEnumerable<(string Label, Action Run)> Wave6aTour(Func<IslandActivity> discord, Func<IslandActivity> clipboard, Func<IslandActivity> music)
     {
         DateTimeOffset Now() => DateTimeOffset.UtcNow;
 
@@ -129,10 +130,33 @@ public sealed partial class IslandWindow
             TourLater(1600, () => HangDrop(_controller.CurrentFootprint.Width * 0.4));
         });
 
-        yield return ("goutte · bue", () => { SwallowDrop(); FinishDrop(); });
+        // Bue, la goutte rend l'étagère (P2) : le fichier, sa taille, le compte.
+        yield return ("goutte · bue", () =>
+        {
+            SwallowDrop();
+            FinishDrop();
+            TourLater(700, () => TourShow(
+                new IslandActivity
+                {
+                    CreatedAt = Now(),
+                    Id = "tour.shelf",
+                    FeatureId = TourFeature,
+                    SceneKey = IslandSceneCatalog.Card,
+                    Title = "rapport.pdf · 2,4 Mo",
+                    Eyebrow = Lang.T("Étagère", "Shelf"),
+                    IconKey = "Folder",
+                    Metric = "1",
+                    Tint = new ActivityTint(0x7F, 0xE6, 0xFF),
+                    State = IslandActivityState.Notification,
+                    Priority = ActivityPriority.Normal,
+                    Policy = ActivityPresentationPolicy.Passive
+                },
+                open: false));
+        });
 
         yield return ("sablier · téléchargement", () =>
         {
+            TourClear("tour.shelf");
             TourShow(Heap(18), open: false);
             TourLater(1200, () => _activityManager.PostActivity(Heap(46)));
             TourLater(2400, () => _activityManager.PostActivity(Heap(71)));
@@ -142,8 +166,9 @@ public sealed partial class IslandWindow
         {
             TourClear("tour.heap");
             TourShow(Card("tour.glyph", "Nuit blanche", Lang.T("Lecture", "Playing"), "Play"), open: false);
-            TourLater(1300, () => _activityManager.PostActivity(Card("tour.glyph", "Nuit blanche", Lang.T("En pause", "Paused"), "Pause")));
-            TourLater(2600, () => _activityManager.PostActivity(Card("tour.glyph", "Nuit blanche", Lang.T("Ajouté", "Added"), "Check")));
+            TourLater(950, () => _activityManager.PostActivity(Card("tour.glyph", "Nuit blanche", Lang.T("En pause", "Paused"), "Pause")));
+            TourLater(1900, () => _activityManager.PostActivity(Card("tour.glyph", "Nuit blanche", Lang.T("Piste suivante", "Next track"), "Next")));
+            TourLater(2850, () => _activityManager.PostActivity(Card("tour.glyph", "Nuit blanche", Lang.T("Ajouté aux favoris", "Added to favourites"), "Check")));
         });
 
         yield return ("rémanence · horloge", () =>
@@ -198,7 +223,7 @@ public sealed partial class IslandWindow
         {
             SceneTrame.Spotlight(null);
             TourClear("tour.clipboard");
-            TourShow(volume(), open: true);
+            TourShow(HudActivity.Build("tour.volume", TourFeature, IslandSceneCatalog.VolumeHud, "Volume", 100, 100, "VolumeHigh", Lang.T("Sortie principale", "Main output"), TimeSpan.FromSeconds(30)), open: true);
             TourLater(1400, BumpContent);
             TourLater(2400, () => { _lastBump = 0; BumpContent(); });
         });

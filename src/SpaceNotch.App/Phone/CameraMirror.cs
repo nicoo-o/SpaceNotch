@@ -23,6 +23,9 @@ internal sealed class CameraMirror : IDisposable
     private MediaPlayer? _player;
     private int _generation;
 
+    /// <summary>Le nom de la caméra allumée (« Caméra intégrée »), ou <c>null</c>.</summary>
+    public string? CameraName { get; private set; }
+
     /// <summary>Allume la caméra dans <paramref name="target"/>. Rend <c>false</c> sans caméra ou sans accord.</summary>
     public async Task<bool> StartAsync(MediaPlayerElement target)
     {
@@ -75,6 +78,7 @@ internal sealed class CameraMirror : IDisposable
 
             _capture = capture;
             _player = player;
+            CameraName = group.DisplayName;
             target.SetMediaPlayer(player);
             return true;
         }

@@ -181,9 +181,12 @@ public sealed class ChannelFeature : IslandFeatureBase
             Id = Prefix + m.Id,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Card,
-            Title = asks ? Lang.T($"{m.Name} demande", $"{m.Name} asks") : m.Name,
+            // Maquette I4 : « Claude attend ta réponse », la commande en dessous.
+            Title = asks ? Lang.T($"{ShortName(m.Name)} attend ta réponse", $"{ShortName(m.Name)} is waiting for you") : m.Name,
             Subtitle = subtitle,
-            Eyebrow = m.State == ChannelState.Waiting && !asks ? null : m.Detail,
+            Eyebrow = asks || m.State == ChannelState.Waiting ? null : m.Detail,
+            ShowEnterHint = asks,
+            Layout = ActivityLayout.Stack,
             Source = m.Name,
             IconKey = "Agent",
             Tint = Violet,
@@ -191,7 +194,7 @@ public sealed class ChannelFeature : IslandFeatureBase
             {
                 ChannelState.Done => "✓",
                 ChannelState.Error => "!",
-                ChannelState.Waiting => "?",
+                ChannelState.Waiting => asks ? null : "?",
                 _ => elapsed
             },
             State = IslandActivityState.Notification,
@@ -217,12 +220,15 @@ public sealed class ChannelFeature : IslandFeatureBase
             Actions = asks
                 ?
                 [
-                    new ActivityAction(AllowAction, Lang.T("Autoriser", "Allow"), "Allow", ActivityActionKind.Invoke, IsPrimary: true),
+                    new ActivityAction(AllowAction, Lang.T("Autoriser", "Allow"), "Allow", ActivityActionKind.Invoke, IsPrimary: true, Tone: ActivityActionTone.Positive),
                     new ActivityAction(DenyAction, Lang.T("Refuser", "Deny"), "Deny")
                 ]
                 : []
         };
     }
+
+    /// <summary>« Claude » pour Claude Code : le titre reste court.</summary>
+    private static string ShortName(string name) => IsClaudeCode(name) ? "Claude" : name;
 
     private static bool IsClaudeCode(string name)
         => string.Equals(name, ClaudeHook.AgentName, StringComparison.OrdinalIgnoreCase);
@@ -242,7 +248,7 @@ public sealed class ChannelFeature : IslandFeatureBase
 
     private IslandActivity Progress(ProgressMessage m)
     {
-        _ = Elapsed(m.Id, m.State);
+        string elapsed = Elapsed(m.Id, m.State);
 
         string? step = m.Steps > 0 ? $"{m.Step}/{m.Steps}" : null;
         string subtitle = m.State switch
@@ -257,13 +263,14 @@ public sealed class ChannelFeature : IslandFeatureBase
             Id = Prefix + m.Id,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Card,
-            Title = m.Title,
+            // Maquette W1 : à la fin, « Build réussi » et la durée.
+            Title = m.State == ChannelState.Done ? m.Title + Lang.T(" réussi", " succeeded") : m.Title,
             Subtitle = subtitle,
             Eyebrow = step is null ? null : Lang.T($"Étape {step}", $"Step {step}"),
             Source = Lang.T("Progression", "Progress"),
-            IconKey = "Progress",
+            IconKey = m.State == ChannelState.Done ? "Check" : "Progress",
             Progress = ProgressSteps.Overall(m),
-            Metric = ProgressSteps.Metric(m),
+            Metric = m.State == ChannelState.Done ? elapsed : ProgressSteps.Metric(m),
             Payload = new ProgressStepsPayload(ProgressSteps.Segments(m)),
             State = IslandActivityState.DownloadActive,
             MotionState = m.State switch

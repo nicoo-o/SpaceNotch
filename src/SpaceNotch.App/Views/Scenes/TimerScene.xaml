@@ -14,6 +14,7 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
         <!--
@@ -41,8 +42,18 @@
             Foreground="{ThemeResource NfTextTertiaryBrush}"
             HorizontalAlignment="Center" />
 
-        <StackPanel
+        <!-- Focus calé (W3) : la raison du raccourci, comme dans la maquette. -->
+        <TextBlock
+            x:Name="NoteText"
             Grid.Row="2"
+            FontSize="11.5"
+            Foreground="{ThemeResource NfTextSecondaryBrush}"
+            HorizontalAlignment="Center"
+            TextTrimming="CharacterEllipsis"
+            Visibility="Collapsed" />
+
+        <StackPanel
+            Grid.Row="3"
             Orientation="Horizontal"
             HorizontalAlignment="Center"
             Spacing="10"

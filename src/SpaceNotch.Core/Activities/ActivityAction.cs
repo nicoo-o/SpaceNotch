@@ -16,6 +16,22 @@ public enum ActivityActionKind
 }
 
 /// <summary>
+/// Couleur d'une action (vague 6) : l'action qu'on attend se lit avant son
+/// libellé — vert plein pour accepter, rouge plein pour refuser un appel.
+/// </summary>
+public enum ActivityActionTone
+{
+    /// <summary>Contrôle ordinaire, sans fond de couleur.</summary>
+    Neutral,
+
+    /// <summary>Accepter, rejoindre, autoriser : vert plein.</summary>
+    Positive,
+
+    /// <summary>Refuser un appel : rouge plein.</summary>
+    Negative
+}
+
+/// <summary>
 /// Action déclarée par une fonctionnalité et rendue par l'Island.
 ///
 /// L'interface ne connaît aucun cas particulier : elle affiche les actions
@@ -29,4 +45,5 @@ public sealed record ActivityAction(
     string IconKey,
     ActivityActionKind Kind = ActivityActionKind.Invoke,
     bool IsPrimary = false,
-    bool IsEnabled = true);
+    bool IsEnabled = true,
+    ActivityActionTone Tone = ActivityActionTone.Neutral);

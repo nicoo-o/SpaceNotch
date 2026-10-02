@@ -49,6 +49,16 @@
   a aucun secret. Seul le jeton de renouvellement est gardé, dans le coffre ; le
   jeton d'accès reste en mémoire. Le lecteur de Windows ne donne pas l'identifiant
   Spotify du morceau : la notch le cherche par titre et artiste.
+- **Portées demandées** : `user-library-read`, `user-library-modify` (« J'aime »),
+  `user-read-playback-state` (« Ensuite : … ») et, depuis la v1.12.0,
+  `user-modify-playback-state` pour le bouton « file » du mode paroles, qui ajoute le
+  morceau à la file de lecture. Un compte connecté avant la v1.12.0 doit se
+  reconnecter une fois : sans cette portée, Spotify refuse l'ajout et la notch
+  affiche « échec ».
+- **Mode paroles** : quand un morceau a des paroles, la carte média les montre en
+  grand (la ligne chantée, la suivante en gris, qui remontent). Un clic sur les
+  paroles rend les contrôles ; le bouton « Paroles » y revient. Le choix est gardé
+  d'un morceau à l'autre.
 
 ## W5 — Le miroir : la webcam, et elle seule
 

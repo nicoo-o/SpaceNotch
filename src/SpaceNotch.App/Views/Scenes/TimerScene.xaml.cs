@@ -44,6 +44,8 @@ public sealed partial class TimerScene : UserControl, IIslandSceneView
 
         TimeText.Text = timer.Formatted;
         ModeText.Text = timer.Mode.ToUpperInvariant();
+        NoteText.Text = timer.Note ?? string.Empty;
+        NoteText.Visibility = string.IsNullOrEmpty(timer.Note) ? Visibility.Collapsed : Visibility.Visible;
 
         // Le bouton ne change plus de **remplissage** en marche : aucun contrôle
         // n'est rempli, par règle de matière. Ce qui change est le glyphe — pause

@@ -97,7 +97,7 @@ public static class IslandSceneCatalog
         [Note] = SceneInsets.Wrap(340, 120),
 
         // Le résumé du calme : jusqu'à quatre applications, une ligne chacune.
-        [Quiet] = SceneInsets.Wrap(320, 112),
+        [Quiet] = SceneInsets.Wrap(360, 124),
         [Monitor] = SceneInsets.Wrap(320, 96),
         [Share] = SceneInsets.Wrap(340, 136),
 

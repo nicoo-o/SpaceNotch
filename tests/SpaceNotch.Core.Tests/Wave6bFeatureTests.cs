@@ -109,7 +109,10 @@ public class Wave6bFeatureTests
 
         feature.Receive(new ProgressMessage("build", "Build", null, 4, 4, 1, ChannelState.Done));
         IslandActivity done = Assert.Single(activities.GetActiveActivities());
-        Assert.Equal("✓", done.TrailingMetric);
+        // Maquette W1 : « Build réussi », la coche et la durée écoulée.
+        Assert.Equal("Build réussi", done.Title);
+        Assert.Equal("Check", done.IconKey);
+        Assert.EndsWith(" s", done.TrailingMetric);
         Assert.NotNull(done.Duration);
     }
 
@@ -125,7 +128,9 @@ public class Wave6bFeatureTests
         Assert.True(fit.Shortened);
         Assert.Equal(TimeSpan.FromMinutes(18), fit.Duration);
         Assert.Equal(TimeSpan.FromMinutes(18), pomodoro.SessionLength);
-        Assert.StartsWith("18 min · avant", Assert.Single(activities.GetActiveActivities()).Subtitle);
+        IslandActivity focus = Assert.Single(activities.GetActiveActivities());
+        Assert.Equal("raccourci pour finir avant la réunion", focus.Subtitle);
+        Assert.Equal("Focus · 18 min", Assert.IsType<TimerPayload>(focus.Payload).Mode);
         pomodoro.Reset();
 
         var none = pomodoro.StartFitted(TimeSpan.FromMinutes(25), Start.AddMinutes(-4));
