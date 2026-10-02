@@ -43,7 +43,8 @@ public sealed partial class IslandWindow
 
         yield return ("pochette · couleur et relief", () =>
         {
-            TourClear();
+            // Le téléchargement des étapes précédentes passerait devant la musique.
+            TourClear("tour.download", "tour.timer", "tour.bluetooth", "tour.heap");
             TourShow(Album("Good Days", "SZA", (0xFF, 0x8F, 0xA3), (0xFF, 0xB2, 0x6B)), open: true);
 
             // La pochette suit un curseur qui fait le tour de son coin.
