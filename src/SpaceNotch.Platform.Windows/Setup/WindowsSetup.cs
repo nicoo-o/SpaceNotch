@@ -113,6 +113,9 @@ public static class WindowsSetup
         return null;
     }
 
+    /// <summary>Temps accordé à la vérification du paquet d'identité avant de passer outre.</summary>
+    private static readonly TimeSpan RepairTimeout = TimeSpan.FromSeconds(20);
+
     /// <summary>
     /// Installe. Pour tous et sans droits, relance ce même exécutable élevé
     /// pour le travail d'administrateur, puis termine ici ce qui appartient à
@@ -135,9 +138,24 @@ public static class WindowsSetup
 
         try
         {
+            log?.Invoke($"[SETUP] Installation {version} : portée {options.Scope}, élévation {(layout.RequiresElevation ? "requise" : "inutile")}, dossier {layout.Directory}");
+
             // D'abord, un paquet d'identité laissé cassé par une version précédente
-            // est retiré : sinon la notch installée refuserait de démarrer.
-            await IdentityPackage.RepairAsync(log).ConfigureAwait(false);
+            // est retiré : sinon la notch installée refuserait de démarrer. Hors du
+            // fil de l'interface et borné dans le temps : le gestionnaire de paquets
+            // de Windows peut répondre très lentement, l'installation ne l'attend pas.
+            //
+            // La notch en cours est fermée AVANT : Windows ne retire pas le paquet
+            // d'une application qui tourne encore avec lui, il attend qu'elle sorte.
+            // C'est ce qui figeait la mise à jour 1.5.0 → 1.13.2 sur « Préparation… ».
+            progress?.Report(new SetupProgress(InstallStep.Stopping));
+            StopRunning(log);
+            Task<int> repair = Task.Run(() => IdentityPackage.RepairAsync(log));
+
+            if (await Task.WhenAny(repair, Task.Delay(RepairTimeout)).ConfigureAwait(false) != repair)
+            {
+                log?.Invoke("[IDENTITÉ] Vérification du paquet trop longue : abandonnée, l'installation continue.");
+            }
 
             if (layout.RequiresElevation && !IsElevated)
             {

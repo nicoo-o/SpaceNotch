@@ -372,7 +372,14 @@ jobs:
           $log = Join-Path $env:LOCALAPPDATA "SpaceNotch\logs\spacenotch.log"
 
           function Install-Quiet([string] $Path, [string] $What) {
-            $p = Start-Process -FilePath $Path -ArgumentList "--quiet" -PassThru -Wait
+            $p = Start-Process -FilePath $Path -ArgumentList "--quiet" -PassThru
+            # Une installation qui se fige (v1.13.2 : retrait d'un paquet encore
+            # utilisé) doit faire échouer l'essai, pas l'exécution entière.
+            if (-not $p.WaitForExit(180000)) {
+              Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+              if (Test-Path $log) { Get-Content $log -Tail 40 | Write-Host }
+              throw "$What : figée depuis 3 minutes."
+            }
             if ($p.ExitCode -ne 0) {
               if (Test-Path $log) { Get-Content $log -Tail 40 | Write-Host }
               throw "$What : code $($p.ExitCode)."
@@ -430,7 +437,11 @@ jobs:
           Install-Quiet $setup "Mise à jour"
           Assert-Identity "Après la mise à jour"
 
-          # 3. Enregistrement cassé : le certificat qui signe le paquet disparaît.
+          # 3. Enregistrement cassé : le certificat qui signe le paquet disparaît,
+          # pendant que la notch installée TOURNE avec cette identité — c'est ce
+          # qui figeait la v1.13.2 sur un vrai PC.
+          $running = Start-Process -FilePath $exe -ArgumentList "--demo" -PassThru
+          Start-Sleep -Seconds 6
           Get-ChildItem Cert:\LocalMachine\TrustedPeople | Where-Object { $_.Subject -eq "CN=SpaceNotch" } | Remove-Item
           $broken = Get-AppxPackage -Name "SpaceNotch.Identity"
           Write-Host "Certificats retirés — état du paquet : $($broken.Status)"
