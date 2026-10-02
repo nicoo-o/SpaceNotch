@@ -347,11 +347,28 @@ public sealed partial class IslandWindow
                 return;
             }
 
+            case HandoffAfter.Caret when HandoffElementsOf(activity).Glyph is null:
+            {
+                // La note : l'œil gauche glisse dans le curseur et s'y fond, rien ne reste sur le texte.
+                Spot from = SpotOf(a), into = SpotOf(b);
+                RunMorph(TimeSpan.FromMilliseconds(180), t =>
+                {
+                    double k = EaseSpring(t);
+                    PlaceSpot(a, Spot.Lerp(from, into, k));
+                    a.Opacity = 1 - (t * 0.6);
+                }, Done);
+                return;
+            }
+
             default:
                 Done();
                 return;
         }
     }
+
+    /// <summary>La place actuelle d'un pixel de passage, dans le repère de la couche.</summary>
+    private static Spot SpotOf(Border pixel)
+        => new(Canvas.GetLeft(pixel) + (pixel.Width / 2), Canvas.GetTop(pixel) + (pixel.Height / 2), pixel.Width, pixel.Height, pixel.CornerRadius.TopLeft / Math.Max(1, Math.Min(pixel.Width, pixel.Height) / 2));
 
     // ---- Départ --------------------------------------------------------------
 
@@ -405,7 +422,7 @@ public sealed partial class IslandWindow
             return scene switch
             {
                 InfoScene info => new(info.ClawdElement is null ? info.IconElement : null, info.ClawdElement, null, info.TitleElement, info.ActionElements, null),
-                LauncherScene launcher => new(null, null, null, null, [], launcher.SearchField),
+                LauncherScene launcher => new(launcher.SearchIcon, null, null, null, [], launcher.SearchField),
                 NoteScene note => new(null, null, null, null, [], note.Field),
                 _ => new(scene.AnchorFor(MorphAnchorKind.Icon), null, null, null, [], null)
             };
@@ -476,6 +493,13 @@ public sealed partial class IslandWindow
             {
                 global::Windows.Foundation.Rect r = LayerBounds(button);
                 return new Spot(r.X + (r.Width / 2), r.Y + (r.Height / 2), r.Width, r.Height, 1);
+            }
+
+            case HandoffAnchor.Field when spot == recipe.Left && e.Glyph is { ActualWidth: > 0 } lens:
+            {
+                // La recherche : l'œil gauche se pose sur la loupe, pas sur le texte d'invite.
+                global::Windows.Foundation.Rect r = LayerBounds(lens);
+                return new Spot(r.X + (r.Width / 2), r.Y + (r.Height / 2), spot.Width, spot.Height, spot.Roundness);
             }
 
             case HandoffAnchor.Field when e.Field is { ActualWidth: > 0 } field:

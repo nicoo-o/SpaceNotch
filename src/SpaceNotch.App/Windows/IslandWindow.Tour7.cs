@@ -15,6 +15,9 @@ namespace SpaceNotch_App.Windows;
 /// </summary>
 public sealed partial class IslandWindow
 {
+    /// <summary>La visite a allumé l'historique du presse-papier pour la pile : elle l'éteindra.</summary>
+    private bool _tourClipboardWasOff;
+
     private IEnumerable<(string Label, Action Run)> Wave7Tour(Func<IslandActivity> music, Func<IslandActivity> volume)
     {
         string? shown = null;
@@ -210,6 +213,15 @@ public sealed partial class IslandWindow
         yield return ("presse-papier · la pile à la molette", () =>
         {
             TourClear(SpaceNotch.Features.Channel.ChannelFeature.Prefix + "tour7-undo");
+
+            // L'historique est désactivé par défaut : la visite l'allume le temps de l'étape.
+            _tourClipboardWasOff = _clipboardFeature.State != SpaceNotch.Core.Features.FeatureState.Running;
+
+            if (_tourClipboardWasOff)
+            {
+                _ = _featureRegistry.SetEnabledAsync(SpaceNotch.Features.Clipboard.ClipboardFeature.FeatureKey, true);
+            }
+
             _clipboardFeature.AddForTour("dotnet test -c Release", "text");
             _clipboardFeature.AddForTour("#7FE6FF", "text");
             _clipboardFeature.AddForTour("FACTURE n° 2026-118 · 1 240,00 €", "text");
@@ -223,6 +235,13 @@ public sealed partial class IslandWindow
         yield return ("passage · fin", () =>
         {
             _clipboardFeature.HideStack();
+
+            if (_tourClipboardWasOff)
+            {
+                _tourClipboardWasOff = false;
+                _ = _featureRegistry.SetEnabledAsync(SpaceNotch.Features.Clipboard.ClipboardFeature.FeatureKey, false);
+            }
+
             _tourCondition = null;
             _tourBeat = false;
             _settings.ShowPixel = false;

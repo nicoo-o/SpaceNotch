@@ -33,6 +33,7 @@
             </Grid.ColumnDefinitions>
 
             <views:GlyphView
+                x:Name="SearchGlyph"
                 Grid.Column="0"
                 Key="Search"
                 Size="16"

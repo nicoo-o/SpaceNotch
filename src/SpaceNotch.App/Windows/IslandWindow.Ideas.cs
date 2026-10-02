@@ -243,6 +243,12 @@ public sealed partial class IslandWindow
     /// <summary>Ctrl + molette : ouvre la pile ou la fait défiler d'un cran.</summary>
     private bool CycleClipStack(int delta)
     {
+        // Historique désactivé (c'est le réglage par défaut) : pas de pile, et un clic dessus ne mènerait à rien.
+        if (_clipboardFeature.State != SpaceNotch.Core.Features.FeatureState.Running)
+        {
+            return false;
+        }
+
         bool open = string.Equals(_controller.PresentedActivity?.Id, ClipboardFeature.StackActivityId, StringComparison.Ordinal);
 
         if (!_clipboardFeature.ShowStack(open ? (delta > 0 ? -1 : 1) : 0))
