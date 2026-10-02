@@ -212,8 +212,11 @@ public sealed partial class IslandWindow
 
         GestureHelpRow.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
 
-        // Le contenu remonte pour laisser la rangée en dessous.
-        ContentArea.Padding = new Thickness(0, 0, 0, shown ? 26 : 0);
+        // Le contenu remonte pour laisser la rangée en dessous (la rangée reste dans la notch).
+        var lift = new System.Numerics.Vector3(0, shown ? -13 : 0, 0);
+        SignalRestView.Translation = lift;
+        CardRestView.Translation = lift;
+        IdleRestView.Translation = lift;
         RequestRender();
     }
 
