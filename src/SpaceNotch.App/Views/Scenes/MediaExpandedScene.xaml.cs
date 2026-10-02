@@ -311,8 +311,16 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         }
 
         global::Windows.Foundation.Point p = e.GetCurrentPoint(ArtworkBorder).Position;
-        double nx = Math.Clamp(p.X / ArtworkBorder.ActualWidth, 0, 1) - 0.5;
-        double ny = Math.Clamp(p.Y / ArtworkBorder.ActualHeight, 0, 1) - 0.5;
+        TiltArtwork(Math.Clamp(p.X / ArtworkBorder.ActualWidth, 0, 1) - 0.5, Math.Clamp(p.Y / ArtworkBorder.ActualHeight, 0, 1) - 0.5);
+    }
+
+    /// <summary>Incline la pochette vers un point (-0,5 à 0,5 sur chaque axe) ; la visite filmée l'appelle sans souris.</summary>
+    public void TiltArtwork(double nx, double ny)
+    {
+        if (!GlyphView.AnimationsEnabled)
+        {
+            return;
+        }
 
         _tiltBack?.Stop();
         ArtworkTilt.RotationY = -nx * 2 * MaxTilt;

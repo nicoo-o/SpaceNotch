@@ -744,6 +744,16 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
         e.Handled = true;
     }
 
+    /// <summary>Efface la recherche comme Échap, lettres brisées comprises ; la visite filmée l'appelle sans clavier.</summary>
+    public void ClearWithShatter()
+    {
+        if (SearchBox.Text.Length > 0)
+        {
+            Shatter(SearchBox.Text);
+            SearchBox.Text = string.Empty;
+        }
+    }
+
     // ------------------------------------------------------------------
     // Éclatement (S3)
     // ------------------------------------------------------------------

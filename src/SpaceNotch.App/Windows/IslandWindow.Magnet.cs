@@ -1,4 +1,7 @@
 using System;
+using System.Numerics;
+using Microsoft.UI.Composition;
+using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Dispatching;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
@@ -20,6 +23,9 @@ public sealed partial class IslandWindow
     private static readonly TimeSpan MagnetNear = TimeSpan.FromMilliseconds(40);
 
     private DispatcherQueueTimer? _magnetTimer;
+
+    /// <summary>Curseur imaginaire de la visite filmée, en DIPs d'écran ; <c>null</c> : le vrai.</summary>
+    private (double X, double Y)? _tourCursor;
 
     private void StartMagnet()
     {
@@ -48,21 +54,55 @@ public sealed partial class IslandWindow
             || _controller.State != IslandState.Closed || !UseSpringAnimations())
         {
             _controller.Lean(1);
+            LeanToward(0);
             timer.Interval = MagnetFar;
             return;
         }
 
         DisplayInfo display = DetachDisplay();
-        (double x, double y) = CursorDip();
+        (double x, double y) = _tourCursor ?? CursorDip();
         IslandFootprint rest = _restFootprint;
         var notch = new ScreenRect(AttachCenterX(display) - (rest.Width / 2), 0, rest.Width, rest.Height);
 
         MagnetPull pull = Magnet.For(x, y, notch);
         _controller.Lean(pull.Scale);
+        LeanToward(pull.DX);
 
         // Loin : un regard toutes les 250 ms suffit ; proche : 40 ms, pour que
         // l'attraction suive la main sans à-coup.
         double gap = Math.Max(0, y - notch.Bottom);
         timer.Interval = gap < Magnet.Reach * 2 ? MagnetNear : MagnetFar;
+    }
+
+    private double _leanX;
+
+    /// <summary>
+    /// La notch se penche vers le curseur, de côté seulement : collée au haut
+    /// de l'écran, elle ne s'en détache jamais. Le décalage glisse en 120 ms.
+    /// </summary>
+    private void LeanToward(double dx)
+    {
+        dx = Math.Round(dx * 2) / 2;
+
+        if (Math.Abs(dx - _leanX) < 0.25)
+        {
+            return;
+        }
+
+        _leanX = dx;
+
+        try
+        {
+            ElementCompositionPreview.SetIsTranslationEnabled(IslandBody, true);
+            Visual visual = ElementCompositionPreview.GetElementVisual(IslandBody);
+            Vector3KeyFrameAnimation slide = visual.Compositor.CreateVector3KeyFrameAnimation();
+            slide.InsertKeyFrame(1f, new Vector3((float)dx, 0, 0));
+            slide.Duration = TimeSpan.FromMilliseconds(120);
+            visual.StartAnimation("Translation", slide);
+        }
+        catch (Exception)
+        {
+            // Sans compositeur, la notch grossit seulement.
+        }
     }
 }

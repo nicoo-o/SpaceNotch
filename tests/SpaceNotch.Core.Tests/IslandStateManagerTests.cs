@@ -69,15 +69,22 @@ public class IslandStateManagerTests
             }
         };
 
-        Task first = Task.Run(() => manager.TryTransitionTo(IslandState.Preview));
-        Assert.True(firstNotificationStarted.Wait(TimeSpan.FromSeconds(1)));
+        // Chaque transition a son propre fil : la première bloque le sien
+        // jusqu'à la fin du test, et le pool de threads, déjà pris par les
+        // tests voisins, peut mettre plus d'une seconde à en créer un autre.
+        Task first = Task.Factory.StartNew(() => manager.TryTransitionTo(IslandState.Preview), CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        Assert.True(firstNotificationStarted.Wait(TimeSpan.FromSeconds(5)));
 
-        Task second = Task.Run(() =>
-        {
-            secondTransitionStarted.Set();
-            return manager.TryTransitionTo(IslandState.Expanding);
-        });
-        Assert.True(secondTransitionStarted.Wait(TimeSpan.FromSeconds(1)));
+        Task second = Task.Factory.StartNew(
+            () =>
+            {
+                secondTransitionStarted.Set();
+                return manager.TryTransitionTo(IslandState.Expanding);
+            },
+            CancellationToken.None,
+            TaskCreationOptions.LongRunning,
+            TaskScheduler.Default);
+        Assert.True(secondTransitionStarted.Wait(TimeSpan.FromSeconds(5)));
         Assert.False(secondNotificationDelivered.Wait(TimeSpan.FromMilliseconds(100)));
 
         releaseFirstNotification.Set();
