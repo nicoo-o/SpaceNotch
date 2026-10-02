@@ -453,6 +453,13 @@ public sealed partial class IslandWindow
         RemoveMorphPixels();
         RestEyes.Opacity = 1;
         SetWeatherOpacity(1);
+
+        // Une arrivée interrompue montre tout de suite ce qu'elle cachait.
+        if (_handoffView is { } view)
+        {
+            view.Opacity = 1;
+            _handoffView = null;
+        }
     }
 
     private (Border, Border) MorphPixels(global::Windows.UI.Color color)

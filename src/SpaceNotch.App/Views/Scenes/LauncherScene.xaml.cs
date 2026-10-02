@@ -33,6 +33,9 @@ namespace SpaceNotch_App.Views.Scenes;
 /// </summary>
 public sealed partial class LauncherScene : UserControl, IIslandSceneView
 {
+    /// <summary>Le champ de recherche : l'œil droit y devient le curseur (vague 7).</summary>
+    public FrameworkElement SearchField => SearchBox;
+
     public const string SearchAction = "launcher.search";
     public const string OpenAction = "launcher.open";
     public const string PinAction = "launcher.pin";

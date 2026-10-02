@@ -46,6 +46,21 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
 
     public FrameworkElement Root => this;
 
+    // ---- Passage des yeux (vague 7) : où ils se posent dans la carte ouverte ----
+
+    /// <summary>Le glyphe de la pastille.</summary>
+    public GlyphView IconElement => SceneIcon;
+
+    /// <summary>Clawd, quand c'est lui qui occupe la pastille.</summary>
+    public ClawdView? ClawdElement => SceneClawd.Visibility == Visibility.Visible ? SceneClawd : null;
+
+    /// <summary>Le titre.</summary>
+    public TextBlock TitleElement => TitleText;
+
+    /// <summary>Les contrôles, dans l'ordre.</summary>
+    public IReadOnlyList<FrameworkElement> ActionElements
+        => ActionHost.Visibility == Visibility.Visible ? ActionHost.Children.OfType<FrameworkElement>().ToList() : [];
+
     /// <summary>
     /// Le mouvement hypnotique est-il joué ? Renseigné par la fenêtre, qui seule
     /// connaît les préférences et la réduction des animations.

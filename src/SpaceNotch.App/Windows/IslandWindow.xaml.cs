@@ -944,6 +944,10 @@ public sealed partial class IslandWindow : Window
         IslandActivity? activity = _controller.PresentedActivity;
         bool expanded = _controller.State is IslandState.Expanded or IslandState.Expanding;
 
+        // Les yeux deviennent un morceau de ce qui arrive, et inversement (vague 7) :
+        // relevé avant que les vues ne changent.
+        PrepareHandoff(activity);
+
         UpdateBubble();
 
         // Ce qui a changé depuis le rendu précédent décide de la transition :

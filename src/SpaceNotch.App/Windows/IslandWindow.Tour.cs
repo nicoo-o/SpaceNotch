@@ -351,6 +351,7 @@ public sealed partial class IslandWindow
         return
         [
             ("repos", () => TourClear()),
+            .. Wave7Tour(Music, Volume),
             .. Wave6bTour(Meeting),
             .. Wave6cTour(),
             .. Wave6dTour(Meeting, Music),
