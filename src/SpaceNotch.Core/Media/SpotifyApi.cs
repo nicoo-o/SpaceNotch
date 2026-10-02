@@ -25,7 +25,7 @@ public static class SpotifyApi
     public const string RedirectUri = "http://127.0.0.1:43117/spotify/callback";
 
     /// <summary>Lire la bibliothèque et la lecture, ajouter aux titres likés.</summary>
-    public const string Scopes = "user-library-read user-library-modify user-read-playback-state";
+    public const string Scopes = "user-library-read user-library-modify user-read-playback-state user-modify-playback-state";
 
     /// <summary>Un vérificateur PKCE : 64 caractères tirés au hasard.</summary>
     public static string CreateVerifier() => Base64Url(RandomNumberGenerator.GetBytes(48));
@@ -89,6 +89,9 @@ public static class SpotifyApi
     public static Uri ContainsUrl(string trackId) => new(ApiBase + "/me/tracks/contains?ids=" + Uri.EscapeDataString(trackId));
 
     public static readonly Uri QueueUrl = new(ApiBase + "/me/player/queue");
+
+    /// <summary>Ajoute un morceau à la file de lecture (POST, corps vide).</summary>
+    public static Uri AddToQueueUrl(string trackId) => new(ApiBase + "/me/player/queue?uri=" + Uri.EscapeDataString("spotify:track:" + trackId));
 
     /// <summary>L'identifiant du premier résultat d'une recherche.</summary>
     public static string? ReadFirstTrackId(string json)

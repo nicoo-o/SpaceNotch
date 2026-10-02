@@ -303,7 +303,29 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
             subtitle = subtitle.Length > 0 ? $"★  {subtitle}" : "★";
         }
 
-        if (subtitle.Length > 0)
+        if (item.Tags is { Count: > 0 } tags)
+        {
+            // Maquette I2 : la phrase comprise en étiquettes de couleur, puis « Entrée ».
+            var chips = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Margin = new Thickness(0, 2, 0, 0) };
+
+            for (int i = 0; i < tags.Count; i++)
+            {
+                global::Windows.UI.Color c = TagColors[i % TagColors.Length];
+                chips.Children.Add(new Border
+                {
+                    CornerRadius = new CornerRadius(999),
+                    Padding = new Thickness(7, 0, 7, 1),
+                    Background = new SolidColorBrush(global::Windows.UI.Color.FromArgb(0x22, c.R, c.G, c.B)),
+                    BorderBrush = new SolidColorBrush(global::Windows.UI.Color.FromArgb(0x55, c.R, c.G, c.B)),
+                    BorderThickness = new Thickness(1),
+                    Child = new TextBlock { Text = tags[i], FontSize = 10.5, FontWeight = FontWeights.Medium, Foreground = new SolidColorBrush(c) }
+                });
+            }
+
+            chips.Children.Add(KeyCap(French ? "Entrée" : "Enter"));
+            texts.Children.Add(chips);
+        }
+        else if (subtitle.Length > 0)
         {
             texts.Children.Add(new TextBlock
             {
@@ -455,6 +477,14 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
         _ => ""
     };
 
+    /// <summary>Orange (le genre), cyan (l'heure), lilas (l'action) : les couleurs de la maquette.</summary>
+    private static readonly global::Windows.UI.Color[] TagColors =
+    [
+        global::Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xB2, 0x6B),
+        global::Windows.UI.Color.FromArgb(0xFF, 0x7F, 0xE6, 0xFF),
+        global::Windows.UI.Color.FromArgb(0xFF, 0xB9, 0xA8, 0xFF)
+    ];
+
     private static string HintFor(LauncherResult item) => item.Kind switch
     {
         LauncherResultKind.Calculation => French ? "Copier" : "Copy",
@@ -463,6 +493,8 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
         {
             LauncherCommandKind.Timer => French ? "Lancer" : "Start",
             LauncherCommandKind.Volume => French ? "Régler" : "Set",
+            LauncherCommandKind.Reminder or LauncherCommandKind.Quiet => French ? "Valider" : "Confirm",
+            LauncherCommandKind.Ask => French ? "Demander" : "Ask",
             _ => French ? "Copier" : "Copy"
         },
         _ => French ? "Ouvrir" : "Open"

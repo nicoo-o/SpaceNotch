@@ -81,6 +81,7 @@ public sealed partial class IslandWindow
         _spotify = new SpotifyClient(() => _settings.SpotifyClientId is { Length: > 0 } id ? id : null);
         _mediaFeature.SessionManager.TrackChanged += OnTrackForExtras;
         MediaSceneView.LikeRequested += liked => _ = LikeAsync(liked);
+        MediaSceneView.QueueRequested += () => _ = QueueAsync();
 
         // Miroir : la webcam au survol de « Rejoindre ».
         InfoSceneView.ActionHovered += OnActionHovered;
@@ -208,6 +209,17 @@ public sealed partial class IslandWindow
         }
     }
 
+    private async Task QueueAsync()
+    {
+        if (_spotify is not { } spotify || _track is not { } track)
+        {
+            return;
+        }
+
+        bool ok = await spotify.AddToQueueAsync(track.Artist, track.Title, CancellationToken.None).ConfigureAwait(false);
+        OnUiThread(() => MediaSceneView.ShowQueued(ok));
+    }
+
     // ---- W5 : le miroir avant une réunion ----------------------------------
 
     private void OnActionHovered(string activityId, string actionId, bool entered)
@@ -238,7 +250,6 @@ public sealed partial class IslandWindow
 
         _mirrorOpen = true;
         _meetingFeature.SetMirror(true);
-        InfoSceneView.ShowMirror(true, MicrophoneLine());
         _ = StartMirrorAsync();
     }
 
@@ -250,11 +261,15 @@ public sealed partial class IslandWindow
         }
 
         _mirrorOpen = false;
-        InfoSceneView.ShowMirror(false, null);
+        InfoSceneView.ShowMirror(false, null, null);
         _meetingFeature.SetMirror(false);
         _ = _mirror?.StopAsync(InfoSceneView.Mirror);
     }
 
+    /// <summary>
+    /// Le miroir rond (W5) : la caméra, puis à côté le micro et la caméra en
+    /// usage, par leur nom — « Micro · Casque Jabra », « Caméra · intégrée ».
+    /// </summary>
     private async Task StartMirrorAsync()
     {
         if (_mirror is null)
@@ -262,20 +277,48 @@ public sealed partial class IslandWindow
             return;
         }
 
+        bool? muted = MicrophoneState.IsMuted();
+        string microphone = await MicrophoneNameAsync();
+        string mic = muted switch
+        {
+            null => Lang.T("Pas de micro", "No microphone"),
+            true => Lang.T("Micro coupé · ", "Mic muted · ") + microphone,
+            false => Lang.T("Micro · ", "Mic · ") + microphone
+        };
+
+        InfoSceneView.ShowMirror(true, mic, Lang.T("Caméra…", "Camera…"), muted == true);
         bool camera = await _mirror.StartAsync(InfoSceneView.Mirror);
 
-        if (!camera)
+        if (_mirrorOpen)
         {
-            InfoSceneView.ShowMirror(true, Lang.T("Caméra indisponible", "Camera unavailable") + " · " + MicrophoneLine());
+            InfoSceneView.ShowMirror(
+                true,
+                mic,
+                camera ? Lang.T("Caméra · ", "Camera · ") + (_mirror.CameraName ?? Lang.T("intégrée", "built-in")) : Lang.T("Caméra indisponible", "Camera unavailable"),
+                muted == true);
         }
     }
 
-    private static string MicrophoneLine() => MicrophoneState.IsMuted() switch
+    /// <summary>Le nom du micro des communications, comme Windows l'affiche.</summary>
+    private static async Task<string> MicrophoneNameAsync()
     {
-        true => Lang.T("Micro coupé", "Mic muted"),
-        false => Lang.T("Micro ouvert", "Mic on"),
-        null => Lang.T("Pas de micro", "No microphone")
-    };
+        try
+        {
+            string id = global::Windows.Media.Devices.MediaDevice.GetDefaultAudioCaptureId(global::Windows.Media.Devices.AudioDeviceRole.Communications);
+
+            if (!string.IsNullOrEmpty(id))
+            {
+                var device = await global::Windows.Devices.Enumeration.DeviceInformation.CreateFromIdAsync(id);
+                return device.Name;
+            }
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log("[MIROIR] Nom du micro illisible", ex);
+        }
+
+        return Lang.T("par défaut", "default");
+    }
 
     /// <summary>La scène générique se repose : la caméra est rendue.</summary>
     private void RestMirror()

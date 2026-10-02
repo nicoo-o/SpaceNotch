@@ -68,7 +68,8 @@ public class Wave6dFeatureTests
 
         Assert.True(phone.Offer("Uber Eats", "Uber Eats", "Le restaurant prépare ta commande"));
         IslandActivity preparing = Assert.Single(activities.GetActiveActivities());
-        Assert.Equal("En préparation", preparing.Title);
+        Assert.Equal("Uber Eats", preparing.Title);
+        Assert.Equal("En préparation", preparing.Subtitle);
         Assert.Equal("Scooter", preparing.IconKey);
 
         now = Start.AddMinutes(10);
@@ -120,7 +121,8 @@ public class Wave6dFeatureTests
         discord.Show("42", "Général", [new VoiceMember("1", "Lucas", Speaking: true, Muted: false), new VoiceMember("2", "Marie", false, true)], selfMuted: false);
         IslandActivity room = Assert.Single(activities.GetActiveActivities());
         Assert.Equal("Général", room.Title);
-        Assert.Equal("Lucas parle", room.Subtitle);
+        Assert.Null(room.Subtitle);
+        Assert.Equal(ActivityLayout.Row, room.Layout);
         Assert.Equal(2, Assert.IsType<VoicePayload>(room.Payload).Members.Count);
 
         Assert.True(await discord.HandleActionAsync(new IslandActionRequest(DiscordVoiceFeature.ActivityId, DiscordVoiceFeature.MuteAction)));

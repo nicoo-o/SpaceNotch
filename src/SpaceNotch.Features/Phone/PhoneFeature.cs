@@ -299,7 +299,7 @@ public sealed class PhoneFeature : IslandFeatureBase
         FeatureId = FeatureKey,
         SceneKey = IslandSceneCatalog.Card,
         Title = caller,
-        Subtitle = Lang.T("Appel entrant · téléphone", "Incoming call · phone"),
+        Subtitle = Lang.T("Appel entrant · Phone Link", "Incoming call · Phone Link"),
         Source = Lang.T("Téléphone", "Phone"),
         IconKey = "Call",
         Tint = CallGreen,
@@ -307,10 +307,14 @@ public sealed class PhoneFeature : IslandFeatureBase
         MotionState = ActivityMotionState.Attention,
         Priority = ActivityPriority.Critical,
         Duration = TimeSpan.FromSeconds(45),
+
+        // Une ligne verte (maquette T1) : l'icône qui vibre, Répondre en vert, Refuser en rouge.
+        Layout = ActivityLayout.Row,
+        ExpandedFootprint = SceneInsets.Wrap(370, 40),
         Actions =
         [
-            new ActivityAction(AnswerAction, Lang.T("Répondre", "Answer"), "Call", ActivityActionKind.Invoke, IsPrimary: true),
-            new ActivityAction(DeclineAction, Lang.T("Ignorer", "Dismiss"), "Close")
+            new ActivityAction(AnswerAction, Lang.T("Répondre", "Answer"), "Call", ActivityActionKind.Invoke, IsPrimary: true, Tone: ActivityActionTone.Positive),
+            new ActivityAction(DeclineAction, Lang.T("Refuser", "Decline"), "Close", Tone: ActivityActionTone.Negative)
         ]
     };
 
@@ -331,7 +335,9 @@ public sealed class PhoneFeature : IslandFeatureBase
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Card,
             Title = caller,
-            Subtitle = Lang.T("Appel en cours · Lien avec Windows", "On a call · Phone Link"),
+            Subtitle = Lang.T("Appel en cours · Phone Link", "On a call · Phone Link"),
+            Layout = ActivityLayout.Row,
+            ExpandedFootprint = SceneInsets.Wrap(340, 40),
             Source = Lang.T("Téléphone", "Phone"),
             IconKey = "Call",
             Metric = PhoneLink.Duration(elapsed),
@@ -349,14 +355,16 @@ public sealed class PhoneFeature : IslandFeatureBase
         FeatureId = FeatureKey,
         SceneKey = IslandSceneCatalog.Card,
         Title = caller,
-        Subtitle = Lang.T("Appel manqué", "Missed call"),
+        Subtitle = Lang.T("Appel manqué · Phone Link", "Missed call · Phone Link"),
+        Layout = ActivityLayout.Row,
+        ExpandedFootprint = SceneInsets.Wrap(340, 40),
         Source = Lang.T("Téléphone", "Phone"),
         IconKey = "Call",
         Tint = new ActivityTint(0xFF, 0x7A, 0x6B),
         State = IslandActivityState.Idle,
         Priority = ActivityPriority.Normal,
         Duration = TimeSpan.FromMinutes(2),
-        Actions = [new ActivityAction(CallBackAction, Lang.T("Rappeler", "Call back"), "Call", ActivityActionKind.Invoke, IsPrimary: true)]
+        Actions = [new ActivityAction(CallBackAction, Lang.T("Rappeler", "Call back"), "Call", ActivityActionKind.Invoke, IsPrimary: true, Tone: ActivityActionTone.Positive)]
     };
 
     private void PublishDelivery()
@@ -377,40 +385,34 @@ public sealed class PhoneFeature : IslandFeatureBase
 
         DateTimeOffset now = _now();
         bool arrived = delivery.Step == DeliveryStep.Arrived;
-        string? eta = delivery.Eta is { } at
-            ? Lang.T("Arrivée vers ", "Arriving around ") + at.ToLocalTime().ToString("t", CultureInfo.CurrentCulture)
-            : null;
 
+        // Maquette T2 : « Uber Eats · Sushi Shop », l'étape en dessous, le temps
+        // restant à droite, puis la frise ; à l'arrivée, une étiquette verte.
         PublishActivity(new IslandActivity
         {
             Id = DeliveryActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Card,
-            Eyebrow = delivery.Service,
-            Title = Delivery.StepLabel(delivery.Step, delivery.Kind, Lang.French),
-            Subtitle = eta ?? (arrived ? Lang.T("Va à la porte", "Head to the door") : null),
+            Title = delivery.Merchant is { Length: > 0 } merchant ? delivery.Service + " · " + merchant : delivery.Service,
+            Subtitle = Delivery.StepLabel(delivery.Step, delivery.Kind, Lang.French),
             Source = delivery.Service,
             IconKey = Delivery.VehicleGlyph(delivery.Kind),
             Metric = !arrived && delivery.Eta is { } e ? Countdown(e - now) : null,
-            Tint = TintFor(delivery.Service),
+            Badge = arrived ? new ActivityBadge(Lang.T("Arrivée", "Arrived")) : null,
+            Tint = arrived ? Arrived : TintFor(delivery.Service),
             State = IslandActivityState.Idle,
             MotionState = arrived ? ActivityMotionState.Attention : ActivityMotionState.Idle,
             Priority = arrived ? ActivityPriority.High : ActivityPriority.Normal,
             Policy = arrived ? null : ActivityPresentationPolicy.Passive,
             Duration = arrived ? TimeSpan.FromMinutes(5) : TimeSpan.FromHours(2),
             Payload = new DeliveryPayload(delivery.Service, delivery.Kind, delivery.Step, delivery.Eta, since),
-
-            // La frise (et le bouton, à l'arrivée) sous le texte : la carte grandit d'autant.
-            ExpandedFootprint = Taller(arrived ? 70 : 32),
-            Actions = arrived ? [new ActivityAction(DeliveryDoneAction, "OK", "Check", ActivityActionKind.Invoke, IsPrimary: true)] : []
+            Layout = ActivityLayout.Row,
+            ExpandedFootprint = SceneInsets.Wrap(380, 64)
         });
     }
 
-    private static IslandFootprint Taller(double extra)
-    {
-        IslandFootprint card = IslandSceneCatalog.FootprintFor(IslandSceneCatalog.Card);
-        return new IslandFootprint(card.Width, card.Height + extra);
-    }
+    /// <summary>Le vert de l'arrivée.</summary>
+    private static readonly ActivityTint Arrived = new(0x7F, 0xE8, 0xB0);
 
     /// <summary>« 12 min », « 1 min », « maintenant ».</summary>
     public static string Countdown(TimeSpan left)

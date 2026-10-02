@@ -41,7 +41,10 @@ public sealed class ReminderFeature : IslandFeatureBase
 
     public static readonly TimeSpan Snooze = TimeSpan.FromMinutes(10);
 
-    private static readonly ActivityTint Amber = new(0xFF, 0xC8, 0x6B);
+    private static readonly ActivityTint Amber = new(0xFF, 0xB2, 0x6B);
+
+    private static string Capitalize(string text)
+        => text.Length == 0 ? text : char.ToUpper(text[0], CultureInfo.CurrentCulture) + text[1..];
 
     private readonly object _gate = new();
     private readonly string? _path;
@@ -201,16 +204,18 @@ public sealed class ReminderFeature : IslandFeatureBase
             ? string.Create(CultureInfo.InvariantCulture, $"{(int)Math.Round(left.TotalHours)} h")
             : string.Create(CultureInfo.InvariantCulture, $"{Math.Max(1, (int)Math.Ceiling(left.TotalMinutes))} min");
 
+    // Maquette I2 : une cloche orange, « Appeler Paul », l'heure à droite.
     private static IslandActivity Upcoming(Reminder reminder, DateTimeOffset now) => new()
     {
         Id = NextActivityId,
         FeatureId = FeatureKey,
         SceneKey = IslandSceneCatalog.Card,
-        Title = reminder.Text,
-        Eyebrow = Lang.T("Rappel · ", "Reminder · ") + reminder.At.ToLocalTime().ToString("t", CultureInfo.CurrentCulture),
+        Title = Capitalize(reminder.Text),
+        Subtitle = Lang.T("Rappel dans ", "Reminder in ") + Countdown(reminder.At - now),
         Source = Lang.T("Rappel", "Reminder"),
-        IconKey = "Clock",
-        Metric = Countdown(reminder.At - now),
+        IconKey = "Notification",
+        Metric = reminder.At.ToLocalTime().ToString("HH:mm", CultureInfo.InvariantCulture),
+        Layout = ActivityLayout.Row,
         Tint = Amber,
         State = IslandActivityState.TimerActive,
         Priority = ActivityPriority.Background,
@@ -222,8 +227,9 @@ public sealed class ReminderFeature : IslandFeatureBase
         Id = DueActivityPrefix + reminder.Id,
         FeatureId = FeatureKey,
         SceneKey = IslandSceneCatalog.Card,
-        Title = reminder.Text,
+        Title = Capitalize(reminder.Text),
         Subtitle = Lang.T("C'est l'heure", "It's time"),
+        Layout = ActivityLayout.Row,
         Eyebrow = Lang.T("Rappel · ", "Reminder · ") + reminder.At.ToLocalTime().ToString("t", CultureInfo.CurrentCulture),
         Source = Lang.T("Rappel", "Reminder"),
         IconKey = "Clock",
@@ -234,7 +240,7 @@ public sealed class ReminderFeature : IslandFeatureBase
         Duration = TimeSpan.FromMinutes(5),
         Actions =
         [
-            new ActivityAction(DoneAction, "OK", "Check", ActivityActionKind.Invoke, IsPrimary: true),
+            new ActivityAction(DoneAction, "OK", "Check", ActivityActionKind.Invoke, IsPrimary: true, Tone: ActivityActionTone.Positive),
             new ActivityAction(SnoozeAction, "+10 min", "Timer")
         ]
     };

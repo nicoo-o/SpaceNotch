@@ -1720,7 +1720,8 @@ public sealed partial class IslandWindow : Window
     {
         if (activity is null || tier == IslandPresentationTier.Idle)
         {
-            return IslandFootprint.For(tier, _settings.Density);
+            // Écran de veille (P5) : la notch s'élargit pour la vie, comme la maquette.
+            return _screensaverOn ? ScreensaverFootprint : IslandFootprint.For(tier, _settings.Density);
         }
 
         double stack = 0;

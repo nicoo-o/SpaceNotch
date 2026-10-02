@@ -7,6 +7,31 @@ using SpaceNotch.Core.State;
 
 namespace SpaceNotch.Core.Activities;
 
+/// <summary>Disposition de la carte générique ouverte.</summary>
+public enum ActivityLayout
+{
+    /// <summary>Icône encadrée, titre et sous-titre, contrôles en dessous.</summary>
+    Card,
+
+    /// <summary>
+    /// Une ligne (vague 6) : icône teintée, titre et sous-titre, puis à droite
+    /// ce qui suit (valeur, étiquette, contrôles). L'appel, le salon vocal.
+    /// </summary>
+    Row,
+
+    /// <summary>
+    /// Une pile (vague 6) : icône teintée sans cadre, le texte, puis en dessous,
+    /// alignées à gauche, des pastilles (Autoriser, Traduire…) ou une frise.
+    /// </summary>
+    Stack
+}
+
+/// <summary>
+/// Une étiquette de couleur (« Copié », « Arrivée ») : un état, pas un bouton.
+/// <paramref name="Inline"/> la place devant le sous-titre plutôt qu'à droite.
+/// </summary>
+public sealed record ActivityBadge(string Text, ActivityActionTone Tone = ActivityActionTone.Positive, bool Inline = false);
+
 /// <summary>
 /// Une unité d'information contextuelle affichable dans l'Island.
 ///
@@ -142,6 +167,15 @@ public sealed class IslandActivity
     /// Contrôles exposés par la fonctionnalité, rendus tels quels par l'Island.
     /// </summary>
     public IReadOnlyList<ActivityAction> Actions { get; init; } = [];
+
+    /// <summary>Disposition de la carte ouverte ; la carte classique par défaut.</summary>
+    public ActivityLayout Layout { get; init; } = ActivityLayout.Card;
+
+    /// <summary>Étiquette de couleur à côté du titre ou du sous-titre.</summary>
+    public ActivityBadge? Badge { get; set; }
+
+    /// <summary>Affiche « Entrée » après les contrôles : la touche lance l'action principale.</summary>
+    public bool ShowEnterHint { get; init; }
 
     /// <summary>
     /// Teinte d'ambiance que l'activité souhaite donner à l'atmosphère de

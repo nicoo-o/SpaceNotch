@@ -16,7 +16,7 @@ namespace SpaceNotch_App.Windows;
 /// <summary>
 /// Visite de la vague 6d : le téléphone et les salons. Un appel qui sonne puis
 /// qui dure, une livraison qui avance, un salon Discord où l'on parle, les
-/// paroles sous le titre, le miroir avant la réunion. Les notifications et le
+/// paroles en grand, le miroir avant la réunion. Les notifications et le
 /// salon sont joués ; la machine de tournage n'a ni téléphone ni Discord.
 /// </summary>
 public sealed partial class IslandWindow
@@ -98,12 +98,14 @@ public sealed partial class IslandWindow
             MediaSceneView.SetLyrics(Lyrics.Parse("""
                 [01:18.00]I still wanna try, still believe in good days
                 [01:22.50]Good days in my mind, safe in my mind
-                [01:26.00]Gotta let go of the weight
-                [01:30.00]Good days, good days
+                [01:24.80]Gotta let go of the weight
+                [01:27.00]Good days, good days
+                [01:29.20]Still believe in good days
                 """));
             MediaSceneView.SetNext(SpotifyApi.NextLine([new QueuedTrack("Kill Bill", "SZA")], Lang.French));
             MediaSceneView.SetLiked(false);
             TourLater(2000, () => MediaSceneView.SetLiked(true));
+            TourLater(3600, () => MediaSceneView.ShowQueued(true));
         });
 
         yield return ("miroir · avant la réunion", () =>

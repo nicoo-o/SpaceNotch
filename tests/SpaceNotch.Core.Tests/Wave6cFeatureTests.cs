@@ -34,7 +34,8 @@ public class Wave6cFeatureTests
         IslandActivity upcoming = Assert.Single(activities.GetActiveActivities());
         Assert.Equal(ReminderFeature.NextActivityId, upcoming.Id);
         Assert.Equal(ActivityPriority.Background, upcoming.Priority);
-        Assert.Equal("50 min", upcoming.Metric);
+        Assert.Equal("Rappel dans 50 min", upcoming.Subtitle);
+        Assert.Equal("Appeler Paul", upcoming.Title);
 
         now = Now.AddMinutes(51);
         feature.Tick();

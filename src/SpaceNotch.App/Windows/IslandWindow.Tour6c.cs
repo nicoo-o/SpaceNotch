@@ -59,7 +59,7 @@ public sealed partial class IslandWindow
             TourClear();
             RunAssistantCommand(SpaceNotch.Core.Launcher.LauncherCommandKind.Reminder,
                 DateTimeOffset.Now.AddMinutes(50).ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture) + "|" + Lang.T("appeler Paul", "call Paul"));
-            TourLater(400, () => TourOpen(AssistantActivityId));
+            TourLater(400, () => _activityManager.PinPresentation(ReminderFeature.NextActivityId));
         });
 
         yield return ("rappel · c'est l'heure", () =>

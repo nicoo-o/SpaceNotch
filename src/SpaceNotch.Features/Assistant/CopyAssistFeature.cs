@@ -37,7 +37,6 @@ public sealed class CopyAssistFeature : IslandFeatureBase
 
     public const string ActionPrefix = "copy.";
 
-    private static readonly ActivityTint Lilac = new(0xB9, 0xA8, 0xFF);
 
     private readonly ClipboardMonitor _monitor;
     private readonly IntPtr _windowHandle;
@@ -123,16 +122,17 @@ public sealed class CopyAssistFeature : IslandFeatureBase
             Id = ActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Card,
-            Title = Lang.T("Texte copié", "Text copied"),
-            Subtitle = Preview(text),
+            // Maquette I3 : le texte copié entre guillemets, les actions en pastilles dessous.
+            Title = Quote(text),
             Source = Lang.T("Presse-papier", "Clipboard"),
             IconKey = "Clipboard",
-            Tint = Lilac,
+            Tint = Cyan,
+            Layout = ActivityLayout.Stack,
             State = IslandActivityState.Idle,
             Priority = ActivityPriority.Normal,
             Policy = ActivityPresentationPolicy.Passive,
             Duration = TimeSpan.FromSeconds(12),
-            Actions = [.. actions.Select((a, i) => new ActivityAction(ActionPrefix + a.ToString().ToLowerInvariant(), CopyActions.Label(a, Lang.French), Icon(a), ActivityActionKind.Invoke, IsPrimary: i == 0))]
+            Actions = Chips(actions, chosen: null)
         });
     }
 
@@ -163,7 +163,7 @@ public sealed class CopyAssistFeature : IslandFeatureBase
 
         try
         {
-            PublishActivity(Working(action, text));
+            PublishActivity(Working(action, text, CopyActions.Offer(text, UiLanguage, true, _now())));
 
             string? result = CopyActions.Clean(await ask(CopyActions.Prompt(action, text, UiLanguage)).ConfigureAwait(false));
 
@@ -176,14 +176,33 @@ public sealed class CopyAssistFeature : IslandFeatureBase
             _written = result;
             ClipboardAccess.SetText(result);
 
-            string what = action switch
+            // Le résultat entre guillemets, « Copié » en vert et ce qui s'est passé :
+            // « anglais → français, sur l'appareil ».
+            string place = ModelPlace ?? string.Empty;
+            string how = action switch
             {
-                CopyAction.Translate => Lang.T("Traduction copiée", "Translation copied"),
-                CopyAction.Summarize => Lang.T("Résumé copié", "Summary copied"),
-                _ => Lang.T("Réponse copiée", "Reply copied")
+                CopyAction.Translate => LanguageName(TextLanguage.Guess(text)) + " → " + LanguageName(TextLanguage.Guess(result) ?? UiLanguage),
+                CopyAction.Summarize => Lang.T("résumé", "summary"),
+                _ => Lang.T("réponse", "reply")
             };
 
-            Publish(what, Preview(result), ActivityMotionState.Completing);
+            PublishActivity(new IslandActivity
+            {
+                Id = ActivityId,
+                FeatureId = FeatureKey,
+                SceneKey = IslandSceneCatalog.Card,
+                Title = Quote(result),
+                Subtitle = place.Length == 0 ? how : how + ", " + place,
+                Badge = new ActivityBadge(Lang.T("Copié", "Copied"), Inline: true),
+                Source = Lang.T("Presse-papier", "Clipboard"),
+                IconKey = "Clipboard",
+                Tint = Cyan,
+                Layout = ActivityLayout.Stack,
+                State = IslandActivityState.Idle,
+                MotionState = ActivityMotionState.Completing,
+                Priority = ActivityPriority.Normal,
+                Duration = TimeSpan.FromSeconds(6)
+            });
         }
         finally
         {
@@ -205,27 +224,50 @@ public sealed class CopyAssistFeature : IslandFeatureBase
         Publish(Lang.T("Rappel posé · ", "Reminder set · ") + when, reminder.Text, ActivityMotionState.Completing);
     }
 
-    private static IslandActivity Working(CopyAction action, string text) => new()
+    private static IslandActivity Working(CopyAction action, string text, IReadOnlyList<CopyAction> actions) => new()
     {
         Id = ActivityId,
         FeatureId = FeatureKey,
         SceneKey = IslandSceneCatalog.Card,
-        Title = action switch
-        {
-            CopyAction.Translate => Lang.T("Traduction…", "Translating…"),
-            CopyAction.Summarize => Lang.T("Résumé…", "Summarizing…"),
-            _ => Lang.T("Réponse…", "Replying…")
-        },
-        Subtitle = Preview(text),
+        Title = Quote(text),
         Source = Lang.T("Presse-papier", "Clipboard"),
         IconKey = "Clipboard",
-        Tint = Lilac,
+        Tint = Cyan,
+        Layout = ActivityLayout.Stack,
         State = IslandActivityState.Idle,
         MotionState = ActivityMotionState.Working,
         MotionPreset = HypnoticPreset.Think,
         Priority = ActivityPriority.Normal,
-        Duration = TimeSpan.FromSeconds(60)
+        Duration = TimeSpan.FromSeconds(60),
+
+        // La pastille choisie passe au vert pendant que le modèle travaille.
+        Actions = Chips(actions, chosen: action)
     };
+
+    private static ActivityAction[] Chips(IReadOnlyList<CopyAction> actions, CopyAction? chosen)
+        => [.. actions.Select((a, i) => new ActivityAction(
+            ActionPrefix + a.ToString().ToLowerInvariant(),
+            CopyActions.Label(a, Lang.French),
+            Icon(a),
+            ActivityActionKind.Invoke,
+            IsPrimary: i == 0,
+            Tone: a == chosen ? ActivityActionTone.Positive : ActivityActionTone.Neutral))];
+
+    /// <summary>« Peux-tu… » entre guillemets, sur une ligne.</summary>
+    private static string Quote(string text) => Lang.T("« ", "“") + Preview(text) + Lang.T(" »", "”");
+
+    /// <summary>« anglais », « français » dans la langue de l'interface.</summary>
+    private static string LanguageName(string? code) => code switch
+    {
+        "fr" => Lang.T("français", "French"),
+        "en" => Lang.T("anglais", "English"),
+        _ => Lang.T("autre langue", "other language")
+    };
+
+    /// <summary>Où le modèle a répondu : « sur l'appareil » (Phi Silica) ou « via Claude ».</summary>
+    public string? ModelPlace { get; set; }
+
+    private static readonly ActivityTint Cyan = new(0x7F, 0xE6, 0xFF);
 
     private void Publish(string title, string subtitle, ActivityMotionState motion) => PublishActivity(new IslandActivity
     {
@@ -237,7 +279,8 @@ public sealed class CopyAssistFeature : IslandFeatureBase
         Source = Lang.T("Presse-papier", "Clipboard"),
         IconKey = "Clipboard",
         Metric = motion == ActivityMotionState.Completing ? "✓" : null,
-        Tint = Lilac,
+        Tint = Cyan,
+        Layout = ActivityLayout.Stack,
         State = IslandActivityState.Idle,
         MotionState = motion,
         Priority = ActivityPriority.Normal,

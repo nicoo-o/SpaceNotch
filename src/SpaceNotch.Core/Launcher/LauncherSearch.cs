@@ -157,7 +157,7 @@ public static class LauncherSearch
         {
             sections.Add(new LauncherSection(text.Command,
             [
-                new LauncherResult(command.Target, LauncherResultKind.Command, command.Title, command.Subtitle, command.Target, [], Glyph: "›")
+                new LauncherResult(command.Target, LauncherResultKind.Command, command.Title, command.Subtitle, command.Target, [], Glyph: "›", Tags: command.Tags)
             ]));
         }
 

@@ -31,7 +31,8 @@ public enum LauncherCommandKind
 }
 
 /// <summary>Une commande reconnue, avec ce que la ligne de résultat en montre.</summary>
-public sealed record LauncherCommand(LauncherCommandKind Kind, string Title, string Subtitle, string Target);
+/// <param name="Tags">Les étiquettes d'une phrase comprise (I2) : « Rappel », « 17:00 », « Appeler Paul ».</param>
+public sealed record LauncherCommand(LauncherCommandKind Kind, string Title, string Subtitle, string Target, IReadOnlyList<string>? Tags = null);
 
 /// <summary>
 /// Commandes tapées (F4) : dans Alt+Espace, une commande courte montre son
@@ -140,8 +141,14 @@ public static partial class LauncherCommands
     {
         ArgumentNullException.ThrowIfNull(intent);
 
-        string chips = string.Join(" · ", intent.Chips(french, now).Select(c => c.Value));
+        IReadOnlyList<IntentChip> parts = intent.Chips(french, now);
+        string chips = string.Join(" · ", parts.Select(c => c.Value));
         string enter = french ? "Entrée pour valider" : "Enter to confirm";
+
+        // Maquette I2 : la phrase se découpe en étiquettes — le genre, l'heure, l'action.
+        IReadOnlyList<string> tags = intent.Kind == NaturalKind.Reminder
+            ? [parts[0].Label, parts[1].Value, Capitalize(intent.Text ?? string.Empty)]
+            : [parts[0].Label, parts[0].Value];
 
         return intent.Kind switch
         {
@@ -149,24 +156,31 @@ public static partial class LauncherCommands
                 LauncherCommandKind.Reminder,
                 (french ? "Rappel : " : "Reminder: ") + intent.Text,
                 chips + " · " + enter,
-                Prefix + "reminder:" + intent.At!.Value.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) + "|" + intent.Text),
+                Prefix + "reminder:" + intent.At!.Value.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture) + "|" + intent.Text,
+                tags),
             NaturalKind.Quiet => new LauncherCommand(
                 LauncherCommandKind.Quiet,
                 french ? "Ne pas déranger" : "Do not disturb",
                 chips + " · " + enter,
-                Prefix + "quiet:" + intent.At!.Value.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture)),
+                Prefix + "quiet:" + intent.At!.Value.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture),
+                tags),
             NaturalKind.Timer => new LauncherCommand(
                 LauncherCommandKind.Timer,
                 (french ? "Minuteur " : "Timer ") + chips,
                 enter,
-                Prefix + "timer:" + ((int)intent.Duration!.Value.TotalSeconds).ToString(CultureInfo.InvariantCulture)),
+                Prefix + "timer:" + ((int)intent.Duration!.Value.TotalSeconds).ToString(CultureInfo.InvariantCulture),
+                tags),
             _ => new LauncherCommand(
                 LauncherCommandKind.Volume,
                 $"Volume {intent.Level} %",
                 enter,
-                Prefix + "volume:" + intent.Level!.Value.ToString(CultureInfo.InvariantCulture))
+                Prefix + "volume:" + intent.Level!.Value.ToString(CultureInfo.InvariantCulture),
+                tags)
         };
     }
+
+    private static string Capitalize(string text)
+        => text.Length == 0 ? text : char.ToUpper(text[0], CultureInfo.CurrentCulture) + text[1..];
 
     /// <summary>La ligne « Demander à … » quand un modèle est choisi et que rien d'autre n'a compris.</summary>
     public static LauncherCommand AskCommand(string query, string modelName, bool french)

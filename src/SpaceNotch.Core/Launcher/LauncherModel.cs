@@ -42,7 +42,8 @@ public sealed record LauncherResult(
     string Target,
     IReadOnlyList<TextMatch> Matches,
     string? IconPath = null,
-    string? Glyph = null)
+    string? Glyph = null,
+    IReadOnlyList<string>? Tags = null)
 {
     /// <summary>Vrai si le panneau d'actions (Ctrl+K) a quelque chose à proposer pour cette ligne.</summary>
     public bool HasActions => Kind is LauncherResultKind.Application or LauncherResultKind.File;

@@ -71,21 +71,32 @@ public sealed partial class QuietScene : UserControl, IIslandSceneView
         }
     }
 
+    /// <summary>Fond des pastilles d'application, comme les puces de la maquette.</summary>
+    private static readonly SolidColorBrush ChipBrush = new(global::Windows.UI.Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
+
     private static Grid Row(string appName, string text, string? countText, bool primary)
     {
-        var row = new Grid { ColumnSpacing = 8, Height = 20 };
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(92) });
+        var row = new Grid { ColumnSpacing = 10, MinHeight = 24 };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        var app = new TextBlock
+        // L'application en pastille grise (I1) : « Teams », « Outlook ».
+        var app = new Border
         {
-            Text = appName,
-            FontSize = 11.5,
-            FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-            TextTrimming = TextTrimming.CharacterEllipsis,
+            Background = ChipBrush,
+            CornerRadius = new CornerRadius(10),
+            Padding = new Thickness(8, 2, 8, 3),
+            MaxWidth = 110,
             VerticalAlignment = VerticalAlignment.Center,
-            Foreground = Brush("NfTextPrimaryBrush")
+            Visibility = appName.Length == 0 ? Visibility.Collapsed : Visibility.Visible,
+            Child = new TextBlock
+            {
+                Text = appName,
+                FontSize = 11.5,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Foreground = Brush("NfTextPrimaryBrush")
+            }
         };
 
         var latest = new TextBlock
@@ -94,7 +105,7 @@ public sealed partial class QuietScene : UserControl, IIslandSceneView
             FontSize = 11.5,
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center,
-            Foreground = Brush(primary ? "NfTextPrimaryBrush" : "NfTextSecondaryBrush")
+            Foreground = Brush(primary ? "NfTextSecondaryBrush" : "NfTextTertiaryBrush")
         };
 
         var count = new TextBlock

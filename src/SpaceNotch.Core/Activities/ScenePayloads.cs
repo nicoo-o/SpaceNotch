@@ -48,7 +48,8 @@ public sealed record NotificationGroupPayload(string AppName, IReadOnlyList<Noti
 public sealed record TimerPayload(
     TimeSpan Remaining,
     bool IsRunning,
-    string Mode)
+    string Mode,
+    string? Note = null)
 {
     /// <summary>Mise en forme <c>mm:ss</c>, ou <c>h:mm:ss</c> au-delà d'une heure.</summary>
     public string Formatted => Remaining.TotalHours >= 1

@@ -60,10 +60,62 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
     /// <summary>« J'aime » touché : la fenêtre le transmet à Spotify.</summary>
     public event Action<bool>? LikeRequested;
 
-    /// <summary>Les paroles du morceau, ou <c>null</c> : la ligne disparaît.</summary>
+    /// <summary>« file » touché : la fenêtre ajoute le morceau à la file Spotify.</summary>
+    public event Action? QueueRequested;
+
+    // Le mode paroles est un choix de l'utilisateur, gardé d'un morceau à l'autre.
+    private static bool s_preferLyrics = true;
+
+    private static readonly SolidColorBrush SungBrush = new(global::Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF));
+    private static readonly SolidColorBrush NextBrush = new(global::Windows.UI.Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF));
+    private static readonly SolidColorBrush FarBrush = new(global::Windows.UI.Color.FromArgb(0x22, 0xFF, 0xFF, 0xFF));
+    private static readonly SolidColorBrush LikedBrush = new(global::Windows.UI.Color.FromArgb(0xFF, 0xFF, 0x8F, 0xA3));
+    private static readonly SolidColorBrush UnlikedBrush = new(global::Windows.UI.Color.FromArgb(0x88, 0xFF, 0xFF, 0xFF));
+    private static readonly SolidColorBrush QueuedBrush = new(global::Windows.UI.Color.FromArgb(0xFF, 0x7F, 0xE8, 0xB0));
+    private static readonly SolidColorBrush QueueBrush = new(global::Windows.UI.Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF));
+
+    /// <summary>Hauteur d'une ligne de paroles et l'espace qui la suit : le pas du défilement.</summary>
+    private const double LyricPitch = 26 + 4;
+
+    // Les lignes affichées (les vides sont sautées) et leur rang dans les paroles.
+    private readonly System.Collections.Generic.List<(int Index, TextBlock Text)> _lyricLines = [];
+    private int _sung = int.MinValue;
+    private Microsoft.UI.Xaml.Media.Animation.Storyboard? _lyricsScroll;
+    private DispatcherTimer? _queuedReset;
+
+    /// <summary>Les paroles du morceau, ou <c>null</c> : la scène rend les contrôles.</summary>
     public void SetLyrics(SpaceNotch.Core.Media.SyncedLyrics? lyrics)
     {
         _lyrics = lyrics;
+        _sung = int.MinValue;
+        _lyricLines.Clear();
+        LyricsList.Children.Clear();
+        LyricsShift.Y = 0;
+
+        if (lyrics is not null)
+        {
+            for (int i = 0; i < lyrics.Lines.Count; i++)
+            {
+                if (lyrics.Lines[i].Text.Length == 0)
+                {
+                    continue;
+                }
+
+                var text = new TextBlock
+                {
+                    Text = lyrics.Lines[i].Text,
+                    FontSize = 17,
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    Height = 26,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    TextWrapping = TextWrapping.NoWrap,
+                    Foreground = FarBrush
+                };
+                _lyricLines.Add((i, text));
+                LyricsList.Children.Add(text);
+            }
+        }
+
         UpdateLyric();
     }
 
@@ -77,12 +129,9 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
     private string? _next;
     private string _artist = string.Empty;
 
-    /// <summary>L'artiste, et ce qui vient ensuite ; cachée quand les paroles prennent sa place.</summary>
+    /// <summary>L'artiste, et ce qui vient ensuite.</summary>
     private void ApplyArtistLine()
-    {
-        ArtistText.Text = string.IsNullOrEmpty(_next) ? _artist : _artist + "  ·  " + _next;
-        ArtistText.Visibility = LyricsText.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
-    }
+        => ArtistText.Text = string.IsNullOrEmpty(_next) ? _artist : _artist + "  ·  " + _next;
 
     /// <summary>Le cœur : <c>null</c> le cache (Spotify non connecté ou morceau introuvable).</summary>
     public void SetLiked(bool? liked)
@@ -92,6 +141,30 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         LikeIcon.Tint = liked == true
             ? new SolidColorBrush(global::Windows.UI.Color.FromArgb(0xFF, 0x1E, 0xD7, 0x60))
             : (Brush)Application.Current.Resources["NfTextSecondaryBrush"];
+        LyricsLikeIcon.Tint = liked == true ? LikedBrush : UnlikedBrush;
+        LyricsSide.Visibility = liked is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    /// <summary>Le morceau est parti dans la file (ou non) : « file » le dit deux secondes.</summary>
+    public void ShowQueued(bool added)
+    {
+        QueueText.Text = added ? Lang.T("ajouté", "added") : Lang.T("échec", "failed");
+        QueueText.Foreground = added ? QueuedBrush : new SolidColorBrush(global::Windows.UI.Color.FromArgb(0xFF, 0xFF, 0x6B, 0x6B));
+        _queuedReset ??= CreateQueuedReset();
+        _queuedReset.Stop();
+        _queuedReset.Start();
+    }
+
+    private DispatcherTimer CreateQueuedReset()
+    {
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            QueueText.Text = Lang.T("file", "queue");
+            QueueText.Foreground = QueueBrush;
+        };
+        return timer;
     }
 
     private void OnLikeClicked(object sender, RoutedEventArgs e)
@@ -101,21 +174,70 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         LikeRequested?.Invoke(next);
     }
 
+    private void OnQueueClicked(object sender, RoutedEventArgs e) => QueueRequested?.Invoke();
+
+    private void OnLyricsHostSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        LyricsList.Width = e.NewSize.Width;
+        LyricsClipHost.Clip = new RectangleGeometry { Rect = new global::Windows.Foundation.Rect(0, 0, e.NewSize.Width, e.NewSize.Height) };
+    }
+
+    private void OnLyricsViewportClicked(object sender, RoutedEventArgs e)
+    {
+        s_preferLyrics = false;
+        UpdateLyric();
+        PlayPauseButton.Focus(FocusState.Programmatic);
+    }
+
+    private void OnLyricsClicked(object sender, RoutedEventArgs e)
+    {
+        s_preferLyrics = true;
+        UpdateLyric();
+        LyricsViewport.Focus(FocusState.Programmatic);
+    }
+
+    /// <summary>Paroles ou contrôles : un seul des deux à la fois, pour que la scène garde sa taille.</summary>
+    private void ApplyMode()
+    {
+        bool lyrics = _lyricLines.Count > 0 && s_preferLyrics;
+        LyricsPanel.Visibility = lyrics ? Visibility.Visible : Visibility.Collapsed;
+        ControlsPanel.Visibility = lyrics ? Visibility.Collapsed : Visibility.Visible;
+        LyricsButton.Visibility = _lyricLines.Count > 0 && !lyrics ? Visibility.Visible : Visibility.Collapsed;
+    }
+
     private void UpdateLyric()
     {
-        if (_lyrics is null)
+        ApplyMode();
+
+        if (_lyrics is null || _lyricLines.Count == 0 || LyricsPanel.Visibility != Visibility.Visible)
         {
-            LyricsText.Visibility = Visibility.Collapsed;
-            ApplyArtistLine();
             _lyricsClock?.Stop();
             return;
         }
 
         TimeSpan now = _playing ? _position + (DateTime.UtcNow - _positionAt) : _position;
-        string? line = _lyrics.LineAt(now);
-        LyricsText.Text = line ?? "♪";
-        LyricsText.Visibility = Visibility.Visible;
-        ArtistText.Visibility = Visibility.Collapsed;
+        int index = _lyrics.IndexAt(now);
+
+        // La ligne affichée chantée : la dernière dont le rang est atteint (-1 avant la première).
+        int sung = -1;
+
+        for (int i = 0; i < _lyricLines.Count && _lyricLines[i].Index <= index; i++)
+        {
+            sung = i;
+        }
+
+        if (sung != _sung)
+        {
+            bool first = _sung == int.MinValue;
+            _sung = sung;
+
+            for (int i = 0; i < _lyricLines.Count; i++)
+            {
+                _lyricLines[i].Text.Foreground = i == sung ? SungBrush : i == sung + 1 ? NextBrush : FarBrush;
+            }
+
+            ScrollLyrics(-Math.Max(sung, 0) * LyricPitch, animate: !first);
+        }
 
         if (_playing && IsLoaded)
         {
@@ -126,6 +248,36 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         {
             _lyricsClock?.Stop();
         }
+    }
+
+    /// <summary>Les lignes remontent d'un cran, avec un léger rebond.</summary>
+    private void ScrollLyrics(double to, bool animate)
+    {
+        _lyricsScroll?.Stop();
+
+        if (!animate || !GlyphView.AnimationsEnabled)
+        {
+            LyricsShift.Y = to;
+            return;
+        }
+
+        var animation = new Microsoft.UI.Xaml.Media.Animation.DoubleAnimation
+        {
+            From = LyricsShift.Y,
+            To = to,
+            Duration = TimeSpan.FromMilliseconds(450),
+            EasingFunction = new Microsoft.UI.Xaml.Media.Animation.BackEase
+            {
+                Amplitude = 0.25,
+                EasingMode = Microsoft.UI.Xaml.Media.Animation.EasingMode.EaseOut
+            }
+        };
+        Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTarget(animation, LyricsShift);
+        Microsoft.UI.Xaml.Media.Animation.Storyboard.SetTargetProperty(animation, "Y");
+        _lyricsScroll = new Microsoft.UI.Xaml.Media.Animation.Storyboard();
+        _lyricsScroll.Children.Add(animation);
+        _lyricsScroll.Completed += (_, _) => LyricsShift.Y = to;
+        _lyricsScroll.Begin();
     }
 
     private DispatcherTimer CreateLyricsClock()

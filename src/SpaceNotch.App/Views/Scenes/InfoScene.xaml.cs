@@ -42,6 +42,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     public MediaPlayerElement Mirror => MirrorVideo;
 
     private DeliveryPayload? _delivery;
+    private Color _deliveryTint;
 
     public FrameworkElement Root => this;
 
@@ -148,25 +149,148 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
         MetricText.Visibility = metric is null ? Visibility.Collapsed : Visibility.Visible;
 
         bool steps = activity.Payload is ProgressStepsPayload { Segments.Count: > 1 };
-        ProgressTrack.Visibility = activity.Progress is null || steps ? Visibility.Collapsed : Visibility.Visible;
+        ProgressTrack.Visibility = activity.Progress is null || steps || activity.Layout == ActivityLayout.Row ? Visibility.Collapsed : Visibility.Visible;
         ProgressScale.ScaleX = Math.Clamp(activity.Progress ?? 0, 0, 1);
         ApplySteps(steps ? ((ProgressStepsPayload)activity.Payload!).Segments : null);
 
         ApplyBadge(activity);
 
         _delivery = activity.Payload as DeliveryPayload;
+        _deliveryTint = activity.Tint is { } t ? Color.FromArgb(0xFF, t.R, t.G, t.B) : Color.FromArgb(0xFF, 0xFF, 0xB2, 0x6B);
         DeliveryTrack.Visibility = _delivery is null ? Visibility.Collapsed : Visibility.Visible;
         LayoutDelivery();
         ApplyVoice(activity.Payload as VoicePayload);
 
-        RebuildActions(activity.Actions);
+        _row = activity.Layout == ActivityLayout.Row;
+        _chips = activity.Layout != ActivityLayout.Card;
+        ApplyLayout(activity);
+        ApplyBadgeChip(activity.Badge);
+        RebuildActions(activity.Actions, activity.ShowEnterHint);
     }
 
-    /// <summary>Montre ou cache le miroir, avec l'état du micro et de la caméra.</summary>
-    public void ShowMirror(bool visible, string? status)
+    // ---- Vague 6 : disposition en ligne, couleurs d'action, étiquettes ----------
+
+    /// <summary>Vert plein (accepter) et rouge plein (refuser un appel) de la maquette.</summary>
+    private static readonly Color Mint = Color.FromArgb(0xFF, 0x7F, 0xE8, 0xB0);
+    private static readonly Color Coral = Color.FromArgb(0xFF, 0xFF, 0x6B, 0x6B);
+    private static readonly Color OnColor = Color.FromArgb(0xFF, 0x04, 0x15, 0x0C);
+
+    private bool _row;
+
+    /// <summary>Pastilles (ligne et pile) plutôt que boutons au trait (carte).</summary>
+    private bool _chips;
+
+    private static readonly Color[] VoicePalette =
+    [
+        Color.FromArgb(0xFF, 0xFF, 0x8F, 0xA3),
+        Color.FromArgb(0xFF, 0x7F, 0xE6, 0xFF),
+        Color.FromArgb(0xFF, 0x7F, 0xE8, 0xB0),
+        Color.FromArgb(0xFF, 0xFF, 0xB2, 0x6B),
+        Color.FromArgb(0xFF, 0xB9, 0xA8, 0xFF)
+    ];
+    private Microsoft.UI.Composition.ScalarKeyFrameAnimation? _wiggle;
+
+    /// <summary>
+    /// Ligne : icône teintée sans cadre, contrôles et avatars à droite du texte.
+    /// Carte : icône encadrée, contrôles en dessous. Les éléments changent de
+    /// parent plutôt que d'être dupliqués : un seul jeu de contrôles existe.
+    /// </summary>
+    private void ApplyLayout(IslandActivity activity)
+    {
+        IconBadge.BorderThickness = new Thickness(_chips ? 0 : 1);
+        IconBadge.Width = IconBadge.Height = _row ? 24 : 38;
+        SceneIcon.Size = _chips ? 18 : 16;
+        SceneIcon.Tint = _chips && activity.Tint is { } tint
+            ? new SolidColorBrush(Color.FromArgb(0xFF, tint.R, tint.G, tint.B))
+            : Ink("NfTextPrimaryBrush", 0xFF);
+
+        Reparent(VoiceRow, _row ? TrailHost : SceneRoot, _row ? 1 : SceneRoot.Children.IndexOf(DeliveryTrack) + 1);
+        Reparent(ActionHost, _row ? TrailHost : SceneRoot, _row ? TrailHost.Children.Count : SceneRoot.Children.IndexOf(MirrorPanel));
+        ActionHost.HorizontalAlignment = _row ? HorizontalAlignment.Right : _chips ? HorizontalAlignment.Left : HorizontalAlignment.Center;
+        ActionHost.Margin = _chips && !_row ? new Thickness(50, 0, 0, 0) : new Thickness(0);
+        ActionHost.Spacing = _chips ? 6 : 10;
+        VoiceRow.Spacing = _row ? 4 : 8;
+
+        // L'icône d'un appel qui sonne vibre, comme le téléphone.
+        Wiggle(_row && activity.MotionState == ActivityMotionState.Attention && activity.IconKey == "Call");
+    }
+
+    private static void Reparent(FrameworkElement element, Panel target, int index)
+    {
+        if (element.Parent == target)
+        {
+            return;
+        }
+
+        if (element.Parent is Panel current)
+        {
+            current.Children.Remove(element);
+        }
+
+        target.Children.Insert(Math.Clamp(index, 0, target.Children.Count), element);
+    }
+
+    private void Wiggle(bool on)
+    {
+        Microsoft.UI.Composition.Visual visual = Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.GetElementVisual(SceneIcon);
+
+        if (!on || !GlyphView.AnimationsEnabled)
+        {
+            visual.StopAnimation("RotationAngleInDegrees");
+            visual.RotationAngleInDegrees = 0;
+            return;
+        }
+
+        visual.CenterPoint = new System.Numerics.Vector3((float)(SceneIcon.ActualWidth / 2), (float)(SceneIcon.ActualHeight / 2), 0);
+
+        if (_wiggle is null)
+        {
+            _wiggle = visual.Compositor.CreateScalarKeyFrameAnimation();
+            _wiggle.InsertKeyFrame(0.25f, -14f);
+            _wiggle.InsertKeyFrame(0.5f, 0f);
+            _wiggle.InsertKeyFrame(0.75f, 14f);
+            _wiggle.InsertKeyFrame(1f, 0f);
+            _wiggle.Duration = TimeSpan.FromMilliseconds(500);
+            _wiggle.IterationBehavior = Microsoft.UI.Composition.AnimationIterationBehavior.Forever;
+        }
+
+        visual.StartAnimation("RotationAngleInDegrees", _wiggle);
+    }
+
+    /// <summary>« Copié », « Arrivée » : une étiquette pleine, devant le sous-titre ou à droite.</summary>
+    private void ApplyBadgeChip(ActivityBadge? badge)
+    {
+        TrailBadge.Visibility = badge is { Inline: false } ? Visibility.Visible : Visibility.Collapsed;
+        InlineBadge.Visibility = badge is { Inline: true } ? Visibility.Visible : Visibility.Collapsed;
+
+        if (badge is null)
+        {
+            return;
+        }
+
+        Border chip = badge.Inline ? InlineBadge : TrailBadge;
+        TextBlock text = badge.Inline ? InlineBadgeText : TrailBadgeText;
+        chip.Background = new SolidColorBrush(ToneColor(badge.Tone) ?? Color.FromArgb(0x24, 0xFF, 0xFF, 0xFF));
+        text.Foreground = new SolidColorBrush(badge.Tone == ActivityActionTone.Neutral ? Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF) : OnColor);
+        text.Text = badge.Text;
+    }
+
+    private static Color? ToneColor(ActivityActionTone tone) => tone switch
+    {
+        ActivityActionTone.Positive => Mint,
+        ActivityActionTone.Negative => Coral,
+        _ => null
+    };
+
+    /// <summary>Montre ou cache le miroir rond, avec le micro et la caméra en usage.</summary>
+    public void ShowMirror(bool visible, string? microphone, string? camera, bool microphoneMuted = false)
     {
         MirrorPanel.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-        MirrorStatus.Text = status ?? string.Empty;
+        MirrorMic.Text = microphone ?? string.Empty;
+        MirrorCam.Text = camera ?? string.Empty;
+        MirrorMicGlyph.Key = microphoneMuted ? "MicrophoneOff" : "Microphone";
+        MirrorMicGlyph.Tint = new SolidColorBrush(microphoneMuted ? Coral : Mint);
+        MirrorCamGlyph.Tint = new SolidColorBrush(Mint);
     }
 
     private void OnDeliveryTrackSizeChanged(object sender, SizeChangedEventArgs e) => LayoutDelivery();
@@ -179,9 +303,13 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
             return;
         }
 
+        // La frise prend la couleur du service (orange Uber Eats…) ; l'arrivée passe au vert.
+        Color tint = _deliveryTint;
+        bool arrived = delivery.Step == SpaceNotch.Core.Phone.DeliveryStep.Arrived;
         double width = DeliveryTrack.ActualWidth;
         double at = SpaceNotch.Core.Phone.Delivery.Position(delivery.Step, delivery.Eta, DateTimeOffset.Now, delivery.Since);
         DeliveryDone.Width = Math.Max(0, width * at);
+        DeliveryDone.Background = new SolidColorBrush(tint);
         DeliveryCanvas.Children.Clear();
 
         for (int i = 0; i < 3; i++)
@@ -189,26 +317,30 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
             bool reached = (int)delivery.Step >= i;
             var dot = new Microsoft.UI.Xaml.Shapes.Rectangle
             {
-                Width = 6,
-                Height = 6,
-                RadiusX = 1,
-                RadiusY = 1,
-                Fill = Ink(reached ? "NfTextPrimaryBrush" : "NfStrokeStrongBrush", reached ? (byte)0xFF : (byte)0x50)
+                Width = 8,
+                Height = 8,
+                RadiusX = 2,
+                RadiusY = 2,
+                Fill = new SolidColorBrush(i == 2 && arrived ? Mint : reached ? tint : Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF))
             };
-            Canvas.SetLeft(dot, Math.Clamp((width * i / 2.0) - 3, 0, width - 6));
-            Canvas.SetTop(dot, 24 - 4 - 4);
+            Canvas.SetLeft(dot, Math.Clamp((width * i / 2.0) - 4, 0, width - 8));
+            Canvas.SetTop(dot, 4);
             DeliveryCanvas.Children.Add(dot);
         }
 
-        var vehicle = new GlyphView
+        // Le véhicule roule sur la ligne, entre deux étapes.
+        if (!arrived)
         {
-            Key = SpaceNotch.Core.Phone.Delivery.VehicleGlyph(delivery.Kind),
-            Size = 14,
-            Tint = Ink("NfTextPrimaryBrush", 0xFF)
-        };
-        Canvas.SetLeft(vehicle, Math.Clamp((width * at) - 7, 0, width - 14));
-        Canvas.SetTop(vehicle, 0);
-        DeliveryCanvas.Children.Add(vehicle);
+            var vehicle = new GlyphView
+            {
+                Key = SpaceNotch.Core.Phone.Delivery.VehicleGlyph(delivery.Kind),
+                Size = 12,
+                Tint = Ink("NfTextPrimaryBrush", 0xFF)
+            };
+            Canvas.SetLeft(vehicle, Math.Clamp((width * at) - 6, 0, width - 12));
+            Canvas.SetTop(vehicle, -1);
+            DeliveryCanvas.Children.Add(vehicle);
+        }
     }
 
     /// <summary>Une identicône par personne : pleine quand elle parle, estompée sinon, barrée de rouge si muette.</summary>
@@ -224,16 +356,17 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
 
         foreach (SpaceNotch.Core.Social.VoiceMember member in voice.Members.Take(8))
         {
-            var face = new IdenticonView { Width = 18, Height = 18 };
-            face.Show(member.Id + member.Name, Ink("NfTextPrimaryBrush", 0xFF), animate: false);
+            // Des avatars de pixels en couleur (maquette T3) ; celui qui parle s'éclaire.
+            Color c = VoicePalette[Identicon.PaletteIndex(member.Id + member.Name, VoicePalette.Length)];
+            var face = new IdenticonView { Width = 15, Height = 15 };
+            face.Show(member.Id + member.Name, new SolidColorBrush(c), animate: false);
 
             var ring = new Border
             {
-                Padding = new Thickness(3),
-                CornerRadius = new CornerRadius(6),
-                BorderThickness = new Thickness(1.5),
-                BorderBrush = member.Speaking ? new SolidColorBrush(Color.FromArgb(0xFF, 0x5B, 0xE3, 0x8A)) : new SolidColorBrush(Color.FromArgb(0, 0, 0, 0)),
-                Opacity = member.Speaking ? 1 : member.Muted ? 0.3 : 0.55,
+                Padding = new Thickness(2),
+                CornerRadius = new CornerRadius(4),
+                Background = new SolidColorBrush(member.Speaking ? Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0, 0, 0, 0)),
+                Opacity = member.Muted && !member.Speaking ? 0.45 : 1,
                 Child = face
             };
 
@@ -310,7 +443,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     /// qu'une carte qui propose deux contrôles doit indiquer lequel est le
     /// principal sans que la fonctionnalité ait à le décrire autrement.
     /// </summary>
-    private void RebuildActions(IReadOnlyList<ActivityAction> actions)
+    private void RebuildActions(IReadOnlyList<ActivityAction> actions, bool enterHint = false)
     {
         ActionHost.Children.Clear();
 
@@ -320,27 +453,40 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
             return;
         }
 
-        double height = Token("NfActionHeight", 30.0);
+        double height = _chips ? 26 : Token("NfActionHeight", 30.0);
 
         foreach (ActivityAction action in actions)
         {
-            // Un contrôle se distingue par son **trait** et par son encre, jamais
-            // par un fond plus clair : c'est la règle « sans hiérarchie » des
-            // jetons de conception. La pastille blanche qui précédait était de
-            // toute façon condamnée — sur un système en thème sombre, elle aurait
-            // été le seul objet clair d'une carte noire.
+            Color? fill = ToneColor(action.Tone);
+
+            // En ligne, une bascule (le micro d'un salon) n'est qu'une icône :
+            // rouge quand elle est coupée, comme dans la maquette.
+            bool iconOnly = _row && action.Kind == ActivityActionKind.Toggle && fill is null;
+
+            // Un contrôle ordinaire se distingue par son trait (carte) ou par une
+            // pastille à peine plus claire (ligne) ; l'action qu'on attend, par sa couleur.
             var button = new Button
             {
-                Padding = Token("NfActionPadding", new Thickness(12, 0, 12, 0)),
+                Padding = iconOnly ? new Thickness(4) : _chips ? new Thickness(11, 0, 11, 0) : Token("NfActionPadding", new Thickness(12, 0, 12, 0)),
                 Height = height,
+                MinWidth = iconOnly ? height : 0,
                 CornerRadius = new CornerRadius(height / 2),
-                BorderThickness = new Thickness(1),
+                BorderThickness = new Thickness(fill is null && !_chips ? 1 : 0),
                 BorderBrush = Ink(action.IsPrimary ? "NfStrokeStrongBrush" : "NfStrokeSubtleBrush", 0x24),
-                Background = new SolidColorBrush(Color.FromArgb(0x00, 0x00, 0x00, 0x00)),
-                Foreground = Ink(action.IsPrimary ? "NfTextPrimaryBrush" : "NfTextSecondaryBrush", 0xC0),
+                Background = fill is { } c
+                    ? new SolidColorBrush(c)
+                    : new SolidColorBrush(_chips && !iconOnly ? Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x00, 0x00, 0x00, 0x00)),
+                Foreground = fill is not null
+                    ? new SolidColorBrush(OnColor)
+                    : iconOnly && action.IconKey == "MicrophoneOff"
+                        ? new SolidColorBrush(Coral)
+                        : Ink(action.IsPrimary || _chips ? "NfTextPrimaryBrush" : "NfTextSecondaryBrush", 0xC0),
                 IsEnabled = action.IsEnabled,
-                Content = BuildActionContent(action)
+                Content = iconOnly ? BuildIconOnly(action) : BuildActionContent(action, showIcon: !_chips)
             };
+
+            ToolTipService.SetToolTip(button, action.Label);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, action.Label);
 
             // L'identification passe par l'étiquette : la vue n'a aucune raison de
             // connaître la signification de l'identifiant qu'elle transporte.
@@ -352,10 +498,37 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
             ActionHost.Children.Add(button);
         }
 
+        // « Entrée » : la touche lance l'action principale (OnIslandKeyDown).
+        if (enterHint)
+        {
+            ActionHost.Children.Add(new Border
+            {
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(0x2A, 0xFF, 0xFF, 0xFF)),
+                CornerRadius = new CornerRadius(5),
+                Padding = new Thickness(6, 1, 6, 1),
+                VerticalAlignment = VerticalAlignment.Center,
+                Child = new TextBlock
+                {
+                    Text = SpaceNotch.Core.Localization.Lang.T("Entrée", "Enter"),
+                    FontSize = 10.5,
+                    FontFamily = new FontFamily("Cascadia Mono, Consolas"),
+                    Foreground = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF))
+                }
+            });
+        }
+
         ActionHost.Visibility = Visibility.Visible;
     }
 
-    private static StackPanel BuildActionContent(ActivityAction action)
+    private static FontIcon BuildIconOnly(ActivityAction action) => new()
+    {
+        Glyph = GlyphCatalog.Resolve(action.IconKey),
+        FontSize = 14,
+        VerticalAlignment = VerticalAlignment.Center
+    };
+
+    private static StackPanel BuildActionContent(ActivityAction action, bool showIcon = true)
     {
         var panel = new StackPanel
         {
@@ -364,7 +537,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
             VerticalAlignment = VerticalAlignment.Center
         };
 
-        if (!string.IsNullOrEmpty(action.IconKey))
+        if (showIcon && !string.IsNullOrEmpty(action.IconKey))
         {
             panel.Children.Add(new FontIcon
             {
