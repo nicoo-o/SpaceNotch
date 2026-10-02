@@ -6,6 +6,9 @@
     <RootNamespace>SpaceNotch_App</RootNamespace>
     <ApplicationManifest Condition="'$(SetupBuild)' == 'true'">app.setup.manifest</ApplicationManifest>
     <ApplicationManifest Condition="'$(SetupBuild)' != 'true'">app.manifest</ApplicationManifest>
+    <!-- Single-file AppHosts use the Win32Manifest property as the source of the
+         embedded manifest. ApplicationManifest alone only updates the managed build. -->
+    <Win32Manifest Condition="'$(SetupBuild)' == 'true'">$(MSBuildProjectDirectory)/app.setup.manifest</Win32Manifest>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <Platforms>x64;ARM64;x86</Platforms>
     <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == ''">win-$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture.ToString().ToLowerInvariant())</RuntimeIdentifier>
