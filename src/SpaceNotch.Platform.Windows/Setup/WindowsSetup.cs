@@ -144,6 +144,12 @@ public static class WindowsSetup
             // est retiré : sinon la notch installée refuserait de démarrer. Hors du
             // fil de l'interface et borné dans le temps : le gestionnaire de paquets
             // de Windows peut répondre très lentement, l'installation ne l'attend pas.
+            //
+            // La notch en cours est fermée AVANT : Windows ne retire pas le paquet
+            // d'une application qui tourne encore avec lui, il attend qu'elle sorte.
+            // C'est ce qui figeait la mise à jour 1.5.0 → 1.13.2 sur « Préparation… ».
+            progress?.Report(new SetupProgress(InstallStep.Stopping));
+            StopRunning(log);
             Task<int> repair = Task.Run(() => IdentityPackage.RepairAsync(log));
 
             if (await Task.WhenAny(repair, Task.Delay(RepairTimeout)).ConfigureAwait(false) != repair)
