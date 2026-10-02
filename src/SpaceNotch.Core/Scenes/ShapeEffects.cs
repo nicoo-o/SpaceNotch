@@ -15,11 +15,6 @@ namespace SpaceNotch.Core.Scenes;
 /// la goutte remonte et le bord ondule, une onde qui part du point de chute et
 /// s'amortit.
 /// </para>
-///
-/// <para>
-/// <b>Coins crénelés (A8).</b> Une erreur change la forme avant le texte : les
-/// congés du bas passent en escalier de pixels, puis redeviennent lisses.
-/// </para>
 /// </summary>
 public static class ShapeEffects
 {
@@ -37,9 +32,6 @@ public static class ShapeEffects
 
     /// <summary>Distance, en DIP, sur laquelle l'onde s'amortit autour du point de chute.</summary>
     public const double RippleReach = 120;
-
-    /// <summary>Pas de l'escalier des coins crénelés, en DIP.</summary>
-    public const double CrenelStep = 4;
 
     /// <summary>
     /// Profil du bord liquide, mesuré vers le bas depuis le bas du corps, en
@@ -96,59 +88,6 @@ public static class ShapeEffects
             {
                 result.Add(new ShapePoint(x, bodyHeight + Profile(x, dropX, drop, ripple, phase)));
             }
-        }
-
-        return [.. result];
-    }
-
-    /// <summary>
-    /// Congés du bas en escalier : chaque sommet des coins est posé sur une
-    /// grille de <paramref name="step"/> DIP, et deux sommets voisins sont
-    /// reliés par une marche horizontale puis verticale. Le reste du contour
-    /// (bord de l'écran, épaules, flancs) ne bouge pas.
-    /// </summary>
-    /// <param name="outline">Contour complet.</param>
-    /// <param name="height">Hauteur de la forme.</param>
-    /// <param name="radius">Rayon des congés du bas.</param>
-    /// <param name="step">Pas de l'escalier, en DIP.</param>
-    public static ShapePoint[] Crenellate(ShapePoint[] outline, double height, double radius, double step = CrenelStep)
-    {
-        ArgumentNullException.ThrowIfNull(outline);
-
-        if (outline.Length == 0 || radius <= step || step <= 0)
-        {
-            return outline;
-        }
-
-        double top = height - radius - 0.01;
-        var result = new List<ShapePoint>(outline.Length * 2);
-        ShapePoint? previous = null;
-
-        foreach (ShapePoint p in outline)
-        {
-            if (p.Y < top)
-            {
-                result.Add(p);
-                previous = p;
-                continue;
-            }
-
-            var snapped = new ShapePoint(Math.Round(p.X / step) * step, Math.Min(height, Math.Round(p.Y / step) * step));
-
-            if (previous is { } prev && prev.Y >= top && prev.X != snapped.X && prev.Y != snapped.Y)
-            {
-                // Une marche : on descend d'abord, puis on avance. L'angle
-                // extérieur de chaque marche reste dans la forme lisse ou tout
-                // contre elle, jamais au-delà de la hauteur.
-                result.Add(new ShapePoint(prev.X, snapped.Y));
-            }
-
-            if (result.Count == 0 || result[^1] != snapped)
-            {
-                result.Add(snapped);
-            }
-
-            previous = snapped;
         }
 
         return [.. result];

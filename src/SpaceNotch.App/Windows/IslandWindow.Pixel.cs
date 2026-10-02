@@ -35,8 +35,11 @@ public sealed partial class IslandWindow
         {
             _gazeTimer?.Stop();
             _blinkTimer?.Stop();
+            StopPixelLife();
             return;
         }
+
+        StartPixelLife();
 
         RestEyes.Animate = UseSpringAnimations();
         _gazeTimer ??= CreateRepeatingTimer(GazeInterval, PixelTick);
@@ -65,11 +68,15 @@ public sealed partial class IslandWindow
         PixelMood mood = PixelGaze.MoodFor(
             DateTime.UtcNow < _pixelSurpriseUntil,
             _pixelHovered,
-            !_touring && PixelGaze.IsIdle(LastInputIdle()),
+            _eyesClosing || (!_touring && PixelGaze.IsIdle(LastInputIdle())),
             time);
         bool wasAsleep = RestEyes.Mood == PixelMood.Asleep;
 
         RestEyes.SetMood(mood);
+
+        // Pixel vivant : état du PC, soir, musique, coup d'œil, bonjour et au revoir.
+        (double X, double Y)? imposed = ApplyPixelLife(mood, time);
+        TrackYawnEnd();
 
         if (_gazeTimer is not null)
         {
@@ -87,9 +94,17 @@ public sealed partial class IslandWindow
             ArmBlink();
         }
 
+        TrackEyes();
+
         if (_pixelLook is { } forced)
         {
             RestEyes.Look(forced.X, forced.Y);
+            return;
+        }
+
+        if (imposed is { } life)
+        {
+            RestEyes.Look(life.X, life.Y);
             return;
         }
 

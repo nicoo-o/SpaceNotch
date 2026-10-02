@@ -43,7 +43,7 @@
         </Grid>
 
         <!-- La courbe : les trente dernières mesures, de gauche (anciennes) à droite. -->
-        <Grid x:Name="CurveHost" Grid.Row="1" Height="36" VerticalAlignment="Bottom" Tag="trame-avoid">
+        <Grid x:Name="CurveHost" Grid.Row="1" Height="36" VerticalAlignment="Bottom">
             <Path x:Name="CurveFill" Opacity="0.16" />
             <Path x:Name="CurveLine" StrokeThickness="1.5" StrokeLineJoin="Round" />
             <Rectangle x:Name="ThresholdLine" Height="1" VerticalAlignment="Top" Opacity="0.25" />

@@ -23,6 +23,9 @@ public static class IslandSceneCatalog
     public const string Pomodoro = "pomodoro";
     public const string Timer = "timer";
     public const string Clipboard = "clipboard";
+
+    /// <summary>Presse-papier en pile (vague 7) : Ctrl + molette fait défiler les derniers éléments copiés.</summary>
+    public const string ClipStack = "clip-stack";
     public const string Launcher = "launcher";
 
     /// <summary>Couleur copiée (F5) : la nuance et ses trois formats.</summary>
@@ -81,7 +84,8 @@ public static class IslandSceneCatalog
         [VolumeHud] = SceneInsets.Wrap(268, 50),
         [BrightnessHud] = SceneInsets.Wrap(268, 50),
         [Notification] = SceneInsets.Wrap(330, 60),
-        [Bluetooth] = SceneInsets.Wrap(284, 52),
+        // Pastille de 34 et deux lignes : la hauteur suit, sans noir en dessous.
+        [Bluetooth] = SceneInsets.Wrap(284, 40),
         [FileShelf] = SceneInsets.Wrap(296, 94),
         [DropZone] = new IslandFootprint(260 + Shoulders, 75),
 
@@ -89,6 +93,9 @@ public static class IslandSceneCatalog
         [Pomodoro] = SceneInsets.Wrap(188, 96),
         [Timer] = SceneInsets.Wrap(188, 96),
         [Clipboard] = SceneInsets.Wrap(352, 208),
+
+        // La carte de devant (34) et les deux qui dépassent derrière.
+        [ClipStack] = SceneInsets.Wrap(300, 48),
 
         // Nuance de 56, trois formats à recopier.
         [Color] = SceneInsets.Wrap(300, 76),

@@ -199,6 +199,7 @@ public sealed partial class IslandWindow
             Title = "Creating prototype",
             Eyebrow = "Read sidebar.tsx · 741 lines",
             IconKey = "Info",
+            ExpandedFootprint = CardFit.For(eyebrow: true, subtitle: null, progress: false, actions: false, ActivityLayout.Card),
             State = IslandActivityState.Idle,
             Priority = ActivityPriority.Normal,
             Policy = ActivityPresentationPolicy.Passive,
@@ -350,6 +351,7 @@ public sealed partial class IslandWindow
         return
         [
             ("repos", () => TourClear()),
+            .. Wave7Tour(Music, Volume),
             .. Wave6bTour(Meeting),
             .. Wave6cTour(),
             .. Wave6dTour(Meeting, Music),
@@ -386,7 +388,7 @@ public sealed partial class IslandWindow
             ("météo · survol du repos", () => { _meetingFeature.Show(null); WeatherHover(); }),
             ("partage · QR code", () => { _controller.EndPreview(); _shareFeature.Preview("http://192.168.1.20:50123/AAECAwQFBgcICQoLDA0ODw/rapport-final.pdf", "rapport-final.pdf"); TourOpen(SpaceNotch.Features.Share.ShareFeature.ActivityId); }),
             ("charge · branchement", () => { TourClear(SpaceNotch.Features.Share.ShareFeature.ActivityId); _chargeFeature.Announce(64); }),
-            .. Wave6aTour(Discord, Clipboard, Music),
+            .. Wave6aTour(Discord),
             ("appareil · manette", () => { TourClear(); TourShow(Gamepad(), open: false); }),
             ("moniteur · pastille", () => { TourClear("tour.gamepad"); CpuAlert(); _activityManager.PinPresentation(SpaceNotch.Features.Power.SystemMonitorFeature.ActivityId); }),
             ("moniteur · ouvert", () => TourOpen(SpaceNotch.Features.Power.SystemMonitorFeature.ActivityId)),

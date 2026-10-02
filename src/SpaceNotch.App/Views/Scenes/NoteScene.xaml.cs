@@ -13,6 +13,9 @@ namespace SpaceNotch_App.Views.Scenes;
 /// </summary>
 public sealed partial class NoteScene : UserControl, IIslandSceneView
 {
+    /// <summary>La zone de texte : l'œil droit y devient le curseur (vague 7).</summary>
+    public FrameworkElement Field => NoteBox;
+
     private static readonly TimeSpan SaveDelay = TimeSpan.FromMilliseconds(400);
 
     private DispatcherQueueTimer? _saveTimer;

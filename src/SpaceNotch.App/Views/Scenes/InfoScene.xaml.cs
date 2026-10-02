@@ -46,6 +46,21 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
 
     public FrameworkElement Root => this;
 
+    // ---- Passage des yeux (vague 7) : où ils se posent dans la carte ouverte ----
+
+    /// <summary>Le glyphe de la pastille.</summary>
+    public GlyphView IconElement => SceneIcon;
+
+    /// <summary>Clawd, quand c'est lui qui occupe la pastille.</summary>
+    public ClawdView? ClawdElement => SceneClawd.Visibility == Visibility.Visible ? SceneClawd : null;
+
+    /// <summary>Le titre.</summary>
+    public TextBlock TitleElement => TitleText;
+
+    /// <summary>Les contrôles, dans l'ordre.</summary>
+    public IReadOnlyList<FrameworkElement> ActionElements
+        => ActionHost.Visibility == Visibility.Visible ? ActionHost.Children.OfType<FrameworkElement>().ToList() : [];
+
     /// <summary>
     /// Le mouvement hypnotique est-il joué ? Renseigné par la fenêtre, qui seule
     /// connaît les préférences et la réduction des animations.
@@ -154,6 +169,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
         ApplySteps(steps ? ((ProgressStepsPayload)activity.Payload!).Segments : null);
 
         ApplyBadge(activity);
+        ApplyRecent(activity);
 
         _delivery = activity.Payload as DeliveryPayload;
         _deliveryTint = activity.Tint is { } t ? Color.FromArgb(0xFF, t.R, t.G, t.B) : Color.FromArgb(0xFF, 0xFF, 0xB2, 0x6B);
@@ -166,6 +182,72 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
         ApplyLayout(activity);
         ApplyBadgeChip(activity.Badge);
         RebuildActions(activity.Actions, activity.ShowEnterHint);
+    }
+
+    // ---- Carte d'agent : compacte, développée d'un appui -------------------------
+
+    /// <summary>Vrai quand un appui sur la carte la développe ou la replie.</summary>
+    private bool _togglesDetails;
+
+    /// <summary>Les dernières actions de l'agent, sous le texte, quand la carte est développée.</summary>
+    private void ApplyRecent(IslandActivity activity)
+    {
+        var clawd = activity.Payload as ClawdPayload;
+        _togglesDetails = clawd?.Recent is { Count: > 0 };
+        DetailsHint.Visibility = _togglesDetails ? Visibility.Visible : Visibility.Collapsed;
+        DetailsHint.Text = clawd?.Expanded == true ? "\u25B4" : "\u25BE";
+
+        RecentList.Children.Clear();
+        int shown = clawd?.ShownLines ?? 0;
+        RecentList.Visibility = shown > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+        if (shown == 0)
+        {
+            return;
+        }
+
+        Color tint = activity.Tint is { } t ? Color.FromArgb(0xFF, t.R, t.G, t.B) : Color.FromArgb(0xFF, 0xB3, 0x9D, 0xFF);
+        IReadOnlyList<string> lines = clawd!.Recent!;
+
+        for (int i = lines.Count - shown; i < lines.Count; i++)
+        {
+            // La plus récente est pleine, les précédentes s'estompent.
+            bool latest = i == lines.Count - 1;
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Height = 16 };
+            row.Children.Add(new Microsoft.UI.Xaml.Shapes.Ellipse
+            {
+                Width = 5,
+                Height = 5,
+                VerticalAlignment = VerticalAlignment.Center,
+                Fill = new SolidColorBrush(latest ? tint : Color.FromArgb(0x66, tint.R, tint.G, tint.B))
+            });
+            row.Children.Add(new TextBlock
+            {
+                Text = lines[i],
+                FontSize = 11.5,
+                VerticalAlignment = VerticalAlignment.Center,
+                MaxWidth = 250,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Foreground = Ink(latest ? "NfTextSecondaryBrush" : "NfTextTertiaryBrush", 0xB0)
+            });
+            RecentList.Children.Add(row);
+        }
+    }
+
+    /// <summary>
+    /// Un appui sur une carte d'agent : la fonctionnalité la republie développée
+    /// ou repliée. L'appui ne remonte pas à la fenêtre, qui refermerait la notch.
+    /// Les boutons gardent leur propre clic : ils marquent l'appui comme traité.
+    /// </summary>
+    private void OnScenePointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
+    {
+        if (!_togglesDetails || _activityId is null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        {
+            return;
+        }
+
+        e.Handled = true;
+        ActionRequested?.Invoke(this, new IslandActionRequest(_activityId, ClawdPayload.ToggleAction));
     }
 
     // ---- Vague 6 : disposition en ligne, couleurs d'action, étiquettes ----------

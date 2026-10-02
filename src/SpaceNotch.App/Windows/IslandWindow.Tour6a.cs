@@ -52,7 +52,7 @@ public sealed partial class IslandWindow
     /// <summary>Visite : heure imposée à l'horloge du repos, pour filmer la rémanence.</summary>
     private string? _tourClock;
 
-    private IEnumerable<(string Label, Action Run)> Wave6aTour(Func<IslandActivity> discord, Func<IslandActivity> clipboard, Func<IslandActivity> music)
+    private IEnumerable<(string Label, Action Run)> Wave6aTour(Func<IslandActivity> discord)
     {
         DateTimeOffset Now() => DateTimeOffset.UtcNow;
 
@@ -117,7 +117,24 @@ public sealed partial class IslandWindow
 
         yield return ("pixel · surpris", () => { _pixelLook = (0, 0); SurprisePixel(); TourLater(1600, () => { _pixelHovered = true; PixelTick(); }); });
 
-        yield return ("pixel · la nuit", () => { _pixelHovered = false; _pixelNight = new TimeOnly(2, 14); PixelTick(); });
+        yield return ("repos · survol, les yeux deviennent les deux-points", () =>
+        {
+            _pixelHovered = false;
+            _pixelLook = null;
+            _weatherFeature.Inject(new SpaceNotch.Core.Weather.WeatherReport(14.6, 61, true), "Paris");
+            PixelTick();
+            TourLater(600, _controller.RequestPreview);
+            TourLater(3200, _controller.EndPreview);
+        });
+
+        yield return ("repos · assoupi, puis réveil en sursaut", () =>
+        {
+            _tourDoze = true;
+            ArmDozeWatch(atRest: true);
+            TourLater(3600, () => _tourDoze = false);
+        });
+
+        yield return ("pixel · la nuit", () => { _tourDoze = null; _pixelHovered = false; _pixelNight = new TimeOnly(2, 14); PixelTick(); });
 
         yield return ("goutte · un fichier au-dessus", () =>
         {
@@ -199,30 +216,9 @@ public sealed partial class IslandWindow
             TourLater(2300, NotificationSceneView.DismissForTour);
         });
 
-        yield return ("clic d'encre", () =>
-        {
-            TourClear(NotificationGroups.ActivityIdFor("Discord"));
-            TourShow(music(), open: true);
-            TourLater(1500, () => PlayInk(new global::Windows.Foundation.Point(IslandBody.ActualWidth * 0.5, IslandBody.ActualHeight * 0.62)));
-            TourLater(2500, () => PlayInk(new global::Windows.Foundation.Point(IslandBody.ActualWidth * 0.7, IslandBody.ActualHeight * 0.62)));
-        });
-
-        yield return ("projecteur tramé", () =>
-        {
-            TourClear("tour.media");
-            TourShow(clipboard(), open: true);
-
-            for (int i = 0; i < 40; i++)
-            {
-                double t = i / 39.0;
-                TourLater(1000 + (i * 60), () => SceneTrame.Spotlight((IslandBody.ActualWidth * (0.15 + (0.7 * t)), IslandBody.ActualHeight * (0.7 + (0.15 * Math.Sin(t * Math.PI * 3))))));
-            }
-        });
-
         yield return ("butée · volume au maximum", () =>
         {
-            SceneTrame.Spotlight(null);
-            TourClear("tour.clipboard");
+            TourClear(NotificationGroups.ActivityIdFor("Discord"), "tour.clipboard");
             TourShow(HudActivity.Build("tour.volume", TourFeature, IslandSceneCatalog.VolumeHud, "Volume", 100, 100, "VolumeHigh", Lang.T("Sortie principale", "Main output"), TimeSpan.FromSeconds(30)), open: true);
             TourLater(1400, BumpContent);
             TourLater(2400, () => { _lastBump = 0; BumpContent(); });
@@ -234,7 +230,7 @@ public sealed partial class IslandWindow
             TourLater(900, () => _activityManager.PostActivity(Alarm()));
         });
 
-        yield return ("coins crénelés · erreur", () =>
+        yield return ("erreur · courte secousse", () =>
         {
             TourClear("tour.alarm");
             TourShow(Card("tour.error", Lang.T("Copie impossible", "Copy failed"), Lang.T("Disque D: plein", "Drive D: full"), "Warning", ActivityMotionState.Error), open: false);

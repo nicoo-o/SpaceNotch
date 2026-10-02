@@ -63,9 +63,6 @@
             Stroke="{ThemeResource NfSetupOutlineBrush}"
             StrokeThickness="1" />
 
-        <!-- La trame de la notch, au cyan du logo, sous le dernier contenu. -->
-        <views:TrameView x:Name="SetupTrame" />
-
         <Grid
             x:Name="ContentHost"
             HorizontalAlignment="Left"

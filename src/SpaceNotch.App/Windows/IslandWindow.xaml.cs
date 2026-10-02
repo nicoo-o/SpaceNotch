@@ -264,6 +264,9 @@ public sealed partial class IslandWindow : Window
         LoadDock();
 
         _hWnd = WindowNative.GetWindowHandle(this);
+
+        // Bonjour et au revoir (vague 7) : la fenêtre apprend le verrouillage de session.
+        _ = SpaceNotch.Platform.Windows.Shell.SessionNotifications.Register(_hWnd);
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hWnd);
         _appWindow = AppWindow.GetFromWindowId(windowId);
         AppIcon.ApplyTo(_appWindow);
@@ -629,6 +632,7 @@ public sealed partial class IslandWindow : Window
         _scenes[IslandSceneCatalog.Timer] = TimerSceneView;
         _scenes[IslandSceneCatalog.Pomodoro] = TimerSceneView;
         _scenes[IslandSceneCatalog.Clipboard] = ClipboardSceneView;
+        _scenes[IslandSceneCatalog.ClipStack] = ClipStackSceneView;
         _scenes[IslandSceneCatalog.Launcher] = LauncherSceneView;
         _scenes[IslandSceneCatalog.QuickMenu] = QuickMenuSceneView;
         _scenes[IslandSceneCatalog.Bluetooth] = BluetoothSceneView;
@@ -691,7 +695,15 @@ public sealed partial class IslandWindow : Window
                 return;
             }
 
+            // Annuler en 3 s (vague 7) : ce qui va être écarté est gardé un instant.
+            IslandActivity? undoable = UndoableBefore(request);
+
             bool handled = await _featureRegistry.HandleActionAsync(request);
+
+            if (handled && undoable is not null)
+            {
+                OfferUndo(request, undoable);
+            }
 
             if (!handled)
             {
@@ -828,7 +840,6 @@ public sealed partial class IslandWindow : Window
         // propriétaire. La fenêtre n'appelle donc plus directement la session
         // média, ce qui était exactement le couplage qu'il fallait retirer.
         NotificationSceneView.DismissRequested += () => _controller.RequestCollapse();
-        HookInk();
 
         Closed += OnWindowClosed;
         Activated += OnWindowActivated;
@@ -945,6 +956,10 @@ public sealed partial class IslandWindow : Window
         IslandActivity? activity = _controller.PresentedActivity;
         bool expanded = _controller.State is IslandState.Expanded or IslandState.Expanding;
 
+        // Les yeux deviennent un morceau de ce qui arrive, et inversement (vague 7) :
+        // relevé avant que les vues ne changent.
+        PrepareHandoff(activity);
+
         UpdateBubble();
 
         // Ce qui a changé depuis le rendu précédent décide de la transition :
@@ -964,7 +979,7 @@ public sealed partial class IslandWindow : Window
         // chaque rendu et mémorisé, parce que la fermeture doit retrouver
         // exactement la forme quittée et que le survol doit savoir quoi annoncer.
         _tier = IslandPresentation.Resolve(activity);
-        _restFootprint = FitRest(activity, _tier);
+        _restFootprint = WithGestureHelp(FitRest(activity, _tier));
         _controller.UpdateCollapsedFootprint(_restFootprint);
 
         // Seules les scènes qui ne sont pas la cible sont repliées. Replier puis
@@ -998,11 +1013,11 @@ public sealed partial class IslandWindow : Window
             : null;
 
         IdleRestView.Visibility = Visibility.Collapsed;
+        UndoRestView.Visibility = Visibility.Collapsed;
         SignalRestView.Visibility = Visibility.Collapsed;
         CardRestView.Visibility = Visibility.Collapsed;
         TabRestView.Visibility = Visibility.Collapsed;
         ShowRestPixel(false);
-        ShowRestLife(atRest: false);
 
         // Clawd ne bat que là où il est montré : la branche qui le montre le rallume.
         SignalClawd.Visibility = Visibility.Collapsed;
@@ -1012,12 +1027,11 @@ public sealed partial class IslandWindow : Window
         Announce(activity);
         ApplyActivityTint(activity);
         ApplyStateTint(activity);
-        CrenelOnError(activity);
+        ShakeOnError(activity);
 
         if (activity is null)
         {
             StopRestingHypnotic();
-            SceneTrame.Present(null, null, music: false);
             IdleRestView.Visibility = Visibility.Visible;
 
             // L'heure est un réglage et non un défaut : elle installerait une
@@ -1035,10 +1049,18 @@ public sealed partial class IslandWindow : Window
             ShowRestWeather();
             IdleClock.Animate = UseSpringAnimations();
             IdleClock.Show(_tourClock ?? DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
-            ShowRestLife(atRest: true);
+
+            // Les deux visages du repos (yeux, heure et météo) et la transition C.
+            ApplyRestFace();
+
+            // « Annuler » prend la place des yeux le temps de l'annulation.
+            ShowUndo();
+            ArmDozeWatch(atRest: true);
             ArmClockTick(IdleClock.Visibility == Visibility.Visible);
             return;
         }
+
+        ResetRestFace();
 
         bool known = _scenes.TryGetValue(activity.SceneKey, out IIslandSceneView? scene);
 
@@ -1062,7 +1084,6 @@ public sealed partial class IslandWindow : Window
 
             scene.Apply(activity);
             scene.Root.Visibility = Visibility.Visible;
-            PresentTrame(activity, scene);
 
             // Entrée de la scène, une seule fois : son contenu apparaît sur place
             // pendant que la forme grandit, et les éléments ancrés grandissent
@@ -1114,7 +1135,6 @@ public sealed partial class IslandWindow : Window
         _visibleSceneRoot = null;
         InfoSceneView.Rest();
         RestMirror();
-        SceneTrame.Present(null, null, music: false);
 
         PresentResting(activity);
 
@@ -1136,10 +1156,8 @@ public sealed partial class IslandWindow : Window
             // forme n'est pas celle du bord ou que les animations sont réduites.
             Breathe();
 
-            if (!PlayDissolve(expanded ? _controller.Opened(activity!) : _restFootprint))
-            {
-                PlayVeil();
-            }
+            // Un voile lisse, sans grille de pixels : la notch ne porte plus aucune trame.
+            PlayVeil();
         }
         else if (_controller.State == IslandState.Preview
             && previousState == IslandState.Closed
@@ -1268,21 +1286,6 @@ public sealed partial class IslandWindow : Window
 
         CardHeap.Animate = UseSpringAnimations();
         CardHeap.Fill(activity.Id, percent.Value, StatePalette.Brush(activity.State));
-    }
-
-    /// <summary>
-    /// Trame de la scène ouverte, dans la couleur de l'activité. Ni en thème
-    /// clair ni en contraste élevé ; fixe quand Windows réduit les animations.
-    /// Dans le lecteur, elle suit la musique.
-    /// </summary>
-    private void PresentTrame(IslandActivity activity, IIslandSceneView scene)
-    {
-        SceneTrame.IsAllowed = _settings.ShowTrame && !_visualState.HighContrast && _settings.Appearance != IslandAppearance.Light;
-        SceneTrame.Animate = UseSpringAnimations();
-
-        Color tint = DeclaredTint(activity) ?? StatePalette.Tint(activity.State);
-
-        SceneTrame.Present(scene.Root, tint, music: scene is MediaExpandedScene && activity.State == IslandActivityState.MediaActive);
     }
 
     /// <summary>Languette latérale au repos : glyphe ou grille, jauge verticale.</summary>
@@ -1541,29 +1544,12 @@ public sealed partial class IslandWindow : Window
 
     private void UpdateStackIndicator()
     {
-        int count = HiddenActivityCount() + 1;
-
         // Une seule notch : la pile se signale dans la notch elle-même, jamais
-        // par un second objet posé à côté. Voir ADR-017.
-        bool visible = StackIndicatorVisible();
-
-        // Un nombre plutôt que des points : « +2 » se lit d'un coup d'œil, là
-        // où « • • • » demandait de compter.
-        string text = visible ? CompactTrailing.StackBadge(count) ?? string.Empty : string.Empty;
-        Visibility state = visible ? Visibility.Visible : Visibility.Collapsed;
-
-        // Le compteur roule quand la pile grandit ou se vide.
-        bool rolls = visible && !string.Equals(SignalStackIndicator.Text, text, StringComparison.Ordinal);
-
-        SignalStackIndicator.Text = text;
-        SignalStackIndicator.Visibility = state;
-        CardStackIndicator.Text = text;
-        CardStackIndicator.Visibility = state;
-
-        if (rolls)
-        {
-            ContentTransition.Roll(SignalRestView.Visibility == Visibility.Visible ? SignalStackIndicator : CardStackIndicator, UseSpringAnimations());
-        }
+        // par un second objet posé à côté (ADR-017). Vague 7 : un point par
+        // activité qui attend, plutôt qu'un « +N » à compter.
+        SignalStackIndicator.Visibility = Visibility.Collapsed;
+        CardStackIndicator.Visibility = Visibility.Collapsed;
+        UpdateQueueDots(StackIndicatorVisible() ? HiddenActivityCount() : 0);
     }
 
     /// <summary>
@@ -1663,7 +1649,6 @@ public sealed partial class IslandWindow : Window
             SurfaceFill.Data = silhouette;
         }
 
-        SceneTrame.Resize(footprint.Width, footprint.Height, radius, shoulder);
         UpdateFocusTrace(footprint);
 
         // Le reflet suit la même courbe, borné à sa bande. La borne est ce qui
@@ -1718,20 +1703,32 @@ public sealed partial class IslandWindow : Window
     /// <summary>Forme au repos de la notch du haut — et de la pastille — ajustée à son contenu.</summary>
     private IslandFootprint FitRestFor(IslandActivity? activity, IslandPresentationTier tier)
     {
+        // Assoupi, l'heure et la météo s'installent sans survol : la forme de l'aperçu.
+        if (activity is null && DozingFootprint() is { } dozing)
+        {
+            return dozing;
+        }
+
+        // « Annuler » : une ligne et sa barre qui se vide.
+        if (activity is null && UndoVisible)
+        {
+            return new IslandFootprint(116, 28);
+        }
+
+        // Un bâillement étire un peu la notch vers le bas.
+        if (activity is null && Yawning)
+        {
+            return new IslandFootprint(IslandFootprint.Idle.Width + 4, IslandFootprint.Idle.Height + 6);
+        }
+
         if (activity is null || tier == IslandPresentationTier.Idle)
         {
-            // Écran de veille (P5) : la notch s'élargit pour la vie, comme la maquette.
-            return _screensaverOn ? ScreensaverFootprint : IslandFootprint.For(tier, _settings.Density);
+            return IslandFootprint.For(tier, _settings.Density);
         }
 
         double stack = 0;
 
-        if (StackIndicatorVisible())
-        {
-            _measureStack.Style ??= SignalStackIndicator.Style;
-            stack += 6 + Measure(_measureStack, CompactTrailing.StackBadge(HiddenActivityCount() + 1));
-        }
-
+        // La pile se lit en points sous le contenu (vague 7) : elle ne prend plus de largeur.
         CompactTrailing trailing = CompactTrailing.For(activity);
 
         if (CompactTrailing.MetricFor(activity, trailing) is { } metric)
@@ -1978,6 +1975,12 @@ public sealed partial class IslandWindow : Window
         // scrutation n'est nécessaire pour les recevoir.
         _featureRegistry.TryHandleWindowMessage(e.Message.MessageId, e.Message.WParam);
 
+        // Verrouillage de session : Pixel dit au revoir, puis bonjour (vague 7).
+        if (e.Message.MessageId == SpaceNotch.Platform.Windows.Shell.SessionNotifications.WmSessionChange)
+        {
+            OnSessionChange((int)e.Message.WParam);
+        }
+
         if (_screenWatcher.HandleMessage(e.Message.MessageId, e.Message.WParam))
         {
             ScheduleEnvironmentRefresh();
@@ -2162,20 +2165,6 @@ public sealed partial class IslandWindow : Window
         SceneTabs.Show(tabs, activity?.Id, (Brush)Application.Current.Resources["NfTextPrimaryBrush"], (Brush)Application.Current.Resources["NfTextTertiaryBrush"]);
     }
 
-    /// <summary>Fondu en pixels (A2) sur la forme d'arrivée ; faux s'il ne peut pas jouer.</summary>
-    private bool PlayDissolve(IslandFootprint target)
-    {
-        if (!UseSpringAnimations() || UsesFloatingGeometry || UsesSideTab || SurfaceFill.Fill is not Brush surface)
-        {
-            return false;
-        }
-
-        ShapePoint[] outline = _settings.Geometry.Silhouette(target);
-        DissolveOverlay.Width = target.Width;
-        DissolveOverlay.Height = target.Height;
-        DissolveOverlay.Play(outline, target.Width, target.Height, surface);
-        return true;
-    }
     private IslandActivity? _lastRenderedActivity;
 
     /// <summary>
@@ -2444,6 +2433,8 @@ public sealed partial class IslandWindow : Window
 
     private void OnIslandPointerEntered(object sender, PointerRoutedEventArgs e)
     {
+        ArmGestureHelp(true);
+
         _pixelHovered = true;
 
         // Une entrée annule la fermeture en attente : le pointeur qui revient
@@ -2480,6 +2471,9 @@ public sealed partial class IslandWindow : Window
             {
                 _previewEnterTimer ??= CreateOneShotTimer(PreviewEnterDwell, _controller.RequestPreview);
                 _previewEnterTimer.Stop();
+
+                // Au repos, le survol fait venir l'heure : il faut une vraie pose.
+                _previewEnterTimer.Interval = _controller.PresentedActivity is null && PixelAtRest ? RestPreviewDwell : PreviewEnterDwell;
                 _previewEnterTimer.Start();
             }
         }
@@ -2518,8 +2512,9 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void OnIslandPointerExited(object sender, PointerRoutedEventArgs e)
     {
+        ArmGestureHelp(false);
+
         _pixelHovered = false;
-        SceneTrame.Spotlight(null);
 
         // Un passage trop bref n'a jamais été une intention : l'aperçu n'a pas
         // lieu du tout.
@@ -2534,6 +2529,7 @@ public sealed partial class IslandWindow : Window
         _previewExitTimer ??= CreateOneShotTimer(PreviewExitGrace, OnPreviewExitTick);
 
         _previewExitTimer.Stop();
+        _previewExitTimer.Interval = _controller.PresentedActivity is null && PixelAtRest ? RestPreviewGrace : PreviewExitGrace;
         _previewExitTimer.Start();
 
         // Pendant la frappe, le clavier reste à la notch même si la souris
@@ -2662,6 +2658,12 @@ public sealed partial class IslandWindow : Window
     {
         _lastClickAt = Environment.TickCount64;
 
+        // « Annuler » est affiché : le clic rattrape ce qui vient d'être écarté.
+        if (TryUndo())
+        {
+            return;
+        }
+
         if (_pressOpensLauncher && _controller.PresentedActivity is null)
         {
             OpenLauncher();
@@ -2759,6 +2761,13 @@ public sealed partial class IslandWindow : Window
         }
 
         bool ctrl = (e.KeyModifiers & global::Windows.System.VirtualKeyModifiers.Control) != 0;
+
+        // Ctrl + molette : le presse-papier en pile (vague 7).
+        if (ctrl && !properties.IsHorizontalMouseWheel && CycleClipStack(delta))
+        {
+            e.Handled = true;
+            return;
+        }
 
         if (properties.IsHorizontalMouseWheel)
         {
@@ -3358,9 +3367,6 @@ public sealed partial class IslandWindow : Window
         _launcherFeature.WebSearchEngine = settings.WebSearchEngine;
         ApplyAssistant();
         ApplyDiscord();
-
-        // Écran de veille (P5) : la vérification d'inactivité ne tourne que s'il est voulu.
-        ArmScreensaver();
 
         // Le détachement retiré, ou l'écran cible changé : la notch revient au
         // bord de l'écran qui est désormais le sien.

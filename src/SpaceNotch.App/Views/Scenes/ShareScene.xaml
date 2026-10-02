@@ -23,8 +23,7 @@
             Height="136"
             Padding="8"
             CornerRadius="10"
-            Background="#FFF4F6FA"
-            Tag="trame-avoid">
+            Background="#FFF4F6FA">
             <Path x:Name="QrModules" Fill="#FF0B0C10" Stretch="None" />
         </Border>
 

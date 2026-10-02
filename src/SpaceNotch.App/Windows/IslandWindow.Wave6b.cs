@@ -16,27 +16,15 @@ namespace SpaceNotch_App.Windows;
 
 /// <summary>
 /// Vague 6b : le canal local (agents IA, progressions), le silence de
-/// réunion, le focus calé sur l'agenda, la capture de texte et l'écran de
-/// veille. Chacune vit dans sa fonctionnalité ; ici, seulement le câblage.
+/// réunion, le focus calé sur l'agenda et la capture de texte. Chacune vit
+/// dans sa fonctionnalité ; ici, seulement le câblage.
 /// </summary>
 public sealed partial class IslandWindow
 {
     private const string CaptureActivityId = "feature.capture.text";
 
-    private static readonly TimeSpan ScreensaverCheck = TimeSpan.FromSeconds(20);
-    private static readonly TimeSpan LifeFrame = TimeSpan.FromMilliseconds(1000.0 / LifeGrid.FramesPerSecond);
-
     private ChannelFeature? _channelFeature;
-    private DispatcherQueueTimer? _screensaverTimer;
-    private DispatcherQueueTimer? _lifeTimer;
-    private bool _screensaverOn;
-
-    /// <summary>La notch pendant l'écran de veille : 360 × 72, la vie en 79 × 14 pixels.</summary>
-    private static readonly IslandFootprint ScreensaverFootprint = new(360, 72);
     private bool _capturing;
-
-    /// <summary>Visite : l'écran de veille forcé, sans attendre cinq minutes.</summary>
-    private bool _tourScreensaver;
 
     private ChannelFeature CreateChannelFeature()
     {
@@ -64,8 +52,6 @@ public sealed partial class IslandWindow
         _pomodoroFeature.NextMeeting = () => _meetingFeature.Current is { } meeting
             ? (meeting.Start, meeting.Subject)
             : null;
-
-        ArmScreensaver();
     }
 
     // ---- Clawd (I4) -------------------------------------------------------
@@ -192,90 +178,4 @@ public sealed partial class IslandWindow
     }
 
     // ---- Écran de veille (P5) ---------------------------------------------
-
-    /// <summary>
-    /// Arme la vérification d'inactivité, seulement si l'écran de veille est
-    /// voulu : sinon, rien ne tourne. Une lecture système toutes les vingt
-    /// secondes ; le jeu de la vie ne bat qu'une fois affiché.
-    /// </summary>
-    private void ArmScreensaver()
-    {
-        _screensaverTimer ??= CreateRepeatingTimer(ScreensaverCheck, CheckScreensaver);
-
-        if (_settings.ShowScreensaver || _tourScreensaver)
-        {
-            _screensaverTimer.Start();
-        }
-        else
-        {
-            _screensaverTimer.Stop();
-            SetScreensaver(false);
-        }
-    }
-
-    private void CheckScreensaver()
-    {
-        bool onBattery = global::Windows.System.Power.PowerManager.PowerSupplyStatus == global::Windows.System.Power.PowerSupplyStatus.NotPresent;
-        bool should = _tourScreensaver || ScreensaverPolicy.ShouldRun(
-            _settings.ShowScreensaver,
-            IdleProbe.Idle(),
-            onBattery,
-            _presence.ShouldHide,
-            _controller.PresentedActivity is not null);
-
-        SetScreensaver(should);
-    }
-
-    private void SetScreensaver(bool on)
-    {
-        if (on == _screensaverOn)
-        {
-            return;
-        }
-
-        _screensaverOn = on;
-
-        if (on)
-        {
-            int weather = _weatherFeature.Current?.Code ?? 0;
-            RestLife.Seed(LifeGrid.SeedFor(DateOnly.FromDateTime(DateTime.Now), weather));
-        }
-
-        Render();
-    }
-
-    /// <summary>Appelé par le rendu au repos : la vie remplace les yeux et l'heure tant qu'elle tourne.</summary>
-    private void ShowRestLife(bool atRest)
-    {
-        bool visible = atRest && _screensaverOn && !UsesSideTab;
-        RestLife.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
-
-        if (!visible)
-        {
-            _lifeTimer?.Stop();
-            return;
-        }
-
-        RestEyes.Visibility = Visibility.Collapsed;
-        IdleClock.Visibility = Visibility.Collapsed;
-        IdleStatusDot.Visibility = Visibility.Collapsed;
-        WeatherGlyph.Visibility = Visibility.Collapsed;
-        _gazeTimer?.Stop();
-        _blinkTimer?.Stop();
-
-        _lifeTimer ??= CreateRepeatingTimer(LifeFrame, LifeTick);
-        _lifeTimer.Start();
-    }
-
-    private void LifeTick()
-    {
-        // Le moindre geste réveille la notch : pas d'attente de la prochaine vérification.
-        if (!_tourScreensaver && IdleProbe.Idle() < TimeSpan.FromSeconds(1))
-        {
-            SetScreensaver(false);
-            return;
-        }
-
-        RestLife.Step();
-    }
 }

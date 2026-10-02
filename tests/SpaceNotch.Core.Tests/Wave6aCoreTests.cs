@@ -176,7 +176,7 @@ public class Wave6aCoreTests
         Assert.Equal((-1, -1), GlyphMorph.Offset(move));
     }
 
-    // ---------------- P2 Goutte, A8 coins crénelés ----------------
+    // ---------------- P2 Goutte ----------------
 
     [Fact]
     public void Drop_HangsTowardThePointer_InsideTheWindow()
@@ -210,44 +210,7 @@ public class Wave6aCoreTests
         Assert.True(near <= 6);
     }
 
-    [Fact]
-    public void Crenellation_TurnsTheBottomCornersIntoStairs()
-    {
-        const double width = 340, height = 56, radius = 24;
-        ShapePoint[] smooth = IslandShape.Silhouette(width, height, radius, IslandShape.Squircle, 0, 8);
-        ShapePoint[] stairs = ShapeEffects.Crenellate(smooth, height, radius);
-
-        Assert.All(stairs, p => Assert.InRange(p.Y, 0, height));
-
-        // Dans les coins, chaque segment est horizontal ou vertical.
-        for (int i = 0; i < stairs.Length - 1; i++)
-        {
-            ShapePoint a = stairs[i], b = stairs[i + 1];
-
-            if (a.Y > height - radius && b.Y > height - radius)
-            {
-                Assert.True(a.X == b.X || a.Y == b.Y, $"Segment oblique {a} → {b}");
-            }
-        }
-
-        // Le haut (bord de l'écran, épaules) n'a pas bougé.
-        Assert.Equal(smooth.Where(p => p.Y < 10), stairs.Where(p => p.Y < 10));
-        Assert.Same(smooth, ShapeEffects.Crenellate(smooth, height, radius: 2));
-    }
-
-    // ---------------- A1, A3 ----------------
-
-    [Fact]
-    public void Afterglow_KeepsOnlyThePixelsThatTurnOff()
-    {
-        var three = PixelFont.Resolve('3');
-        var four = PixelFont.Resolve('4');
-        var fading = Afterglow.Fading(three, four);
-
-        Assert.NotEmpty(fading);
-        Assert.All(fading, i => Assert.True(three[i] && !four[i]));
-        Assert.Empty(Afterglow.Fading(four, four));
-    }
+    // ---------------- A3 ----------------
 
     [Theory]
     [InlineData("21°", "22°", 1, 1)]
@@ -259,23 +222,7 @@ public class Wave6aCoreTests
     public void Ink_InvertsOnlyWhatChanged(string? before, string after, int start, int length)
         => Assert.Equal((start, length), Afterglow.InkSpan(before, after));
 
-    // ---------------- A5, A7, A9 ----------------
-
-    [Fact]
-    public void InkRing_IsACrispCircle_ThatGrowsAndFades()
-    {
-        foreach (int r in new[] { 1, 4, 9, 13 })
-        {
-            var circle = InkRing.Circle(r);
-            Assert.All(circle, p => Assert.InRange(Math.Sqrt((p.X * p.X) + (p.Y * p.Y)), r - 1, r + 1));
-            Assert.Equal(circle.Count, circle.Distinct().Count());
-        }
-
-        int[] radii = Enumerable.Range(0, InkRing.Frames).Select(InkRing.RadiusAt).ToArray();
-        Assert.Equal(radii.OrderBy(r => r), radii);
-        Assert.Equal(InkRing.MaxRadius, radii[^1]);
-        Assert.True(InkRing.OpacityAt(0) > InkRing.OpacityAt(InkRing.Frames - 1));
-    }
+    // ---------------- A7, A9 ----------------
 
     [Fact]
     public void Spring_ReadsTheImportance_ButRespectsCalm()

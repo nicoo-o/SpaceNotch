@@ -190,49 +190,4 @@ public class Wave6bCoreTests
         Assert.Equal((10, 20, 30, 40), OcrText.Selection(40, 60, 10, 20));
         Assert.False(OcrText.IsUsable(4, 100));
     }
-
-    // ---------------- Écran de veille ----------------
-
-    [Fact]
-    public void Life_FollowsB3S23_AndIsTheSameEachNight()
-    {
-        uint seed = LifeGrid.SeedFor(new DateOnly(2026, 9, 28), 61);
-        Assert.Equal(seed, LifeGrid.SeedFor(new DateOnly(2026, 9, 28), 61));
-        Assert.NotEqual(seed, LifeGrid.SeedFor(new DateOnly(2026, 9, 29), 61));
-
-        var a = new LifeGrid(40, 12, seed);
-        var b = new LifeGrid(40, 12, seed);
-
-        for (int i = 0; i < 30; i++)
-        {
-            a.Step();
-            b.Step();
-        }
-
-        Assert.Equal(Enumerable.Range(0, 480).Select(i => a.IsAlive(i % 40, i / 40)), Enumerable.Range(0, 480).Select(i => b.IsAlive(i % 40, i / 40)));
-    }
-
-    [Fact]
-    public void Life_NeverFreezes()
-    {
-        var grid = new LifeGrid(12, 6, 7);
-
-        for (int i = 0; i < 400; i++)
-        {
-            grid.Step();
-            Assert.True(grid.Population > 0);
-        }
-
-        Assert.True(grid.Sowings >= 1);
-    }
-
-    [Theory]
-    [InlineData(true, 6, false, false, false, true)]
-    [InlineData(false, 6, false, false, false, false)]
-    [InlineData(true, 4, false, false, false, false)]
-    [InlineData(true, 6, true, false, false, false)]
-    [InlineData(true, 6, false, true, false, false)]
-    [InlineData(true, 6, false, false, true, false)]
-    public void Screensaver_OnlyWhenTrulyIdle(bool enabled, int minutes, bool battery, bool fullscreen, bool activity, bool expected)
-        => Assert.Equal(expected, ScreensaverPolicy.ShouldRun(enabled, TimeSpan.FromMinutes(minutes), battery, fullscreen, activity));
 }

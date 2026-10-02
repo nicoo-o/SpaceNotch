@@ -12,7 +12,7 @@
   `PipeOptions.CurrentUserOnly` : les autres comptes et les autres sessions ne peuvent
   pas s'y connecter. **Rien n'écoute sur le réseau.**
 - Le protocole est une ligne JSON par connexion (`ChannelProtocol`) : `progress`,
-  `agent`, `clear`. Tout est borné : identifiant `[a-z0-9._-]{1,40}`, textes coupés à
+  `agent`, `notify`, `clear`. Tout est borné : identifiant `[a-z0-9._-]{1,40}`, textes coupés à
   80 caractères sans caractères de contrôle, 12 étapes au plus, ligne de 4 096
   caractères au plus, lecture abandonnée après 5 s. Un message mal formé est ignoré.
 - Seule une question d'agent (`state: waiting` avec `question`) attend une réponse :
@@ -23,6 +23,11 @@
   (`DISABLE_XAML_GENERATED_MAIN`), **avant WinUI** : un hook s'exécute à chaque message
   de l'agent et doit rendre la main sans charger de XAML. Elles ne font jamais échouer
   l'appelant : sans notch, elles sortent à 0 en silence.
+- `SpaceNotch.exe --notify --title … [--body …] [--source …] [--open <cible>]
+  [--open-label …] [--done|--error]` : un script prévient. Avec `--open`, la carte
+  propose « Ouvrir » (ou le libellé donné) et « Ignorer ». La cible n'est ouverte qu'au
+  clic, et seulement si c'est un chemin absolu (`C:\…`, `\\serveur\…`) ou une page
+  `http(s)` : ni commande, ni protocole d'application, ni chemin relatif.
 
 ## Décision 2 — Les hooks de Claude Code, installés à la demande
 

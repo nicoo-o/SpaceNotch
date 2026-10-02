@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Microsoft.UI.Xaml;
+using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
 using SpaceNotch.Core.Weather;
@@ -32,14 +33,15 @@ public sealed partial class IslandWindow
             return null;
         }
 
-        IslandFootprint preview = IslandFootprint.PreviewOf(_tier, _restFootprint);
+        // Depuis la forme du repos : assoupie, la notch a déjà la taille de l'aperçu.
+        IslandFootprint preview = IslandFootprint.PreviewOf(IslandPresentationTier.Idle, IslandFootprint.Idle);
         return new IslandFootprint(System.Math.Max(preview.Width, WeatherPreviewWidth), System.Math.Max(preview.Height, 30));
     }
 
     /// <summary>Montre ou cache la météo dans la lèvre du repos.</summary>
     private void ShowRestWeather()
     {
-        bool show = WeatherAtRest && _controller.State == IslandState.Preview;
+        bool show = WeatherAtRest && (_controller.State == IslandState.Preview || _dozing);
 
         if (!show || _weatherFeature.Current is not { } report)
         {

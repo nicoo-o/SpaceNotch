@@ -146,6 +146,12 @@ public static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetCursorPos(out POINT lpPoint);
 
+    /// <summary>Vrai si la touche est enfoncée à cet instant (Alt pour l'aide des gestes).</summary>
+    public static bool IsKeyDown(int virtualKey) => (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+
+    [LibraryImport("user32.dll")]
+    private static partial short GetAsyncKeyState(int virtualKey);
+
     [StructLayout(LayoutKind.Sequential)]
     public struct LASTINPUTINFO
     {
