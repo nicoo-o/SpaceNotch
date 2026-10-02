@@ -181,7 +181,7 @@ public sealed class CopyAssistFeature : IslandFeatureBase
             string place = ModelPlace ?? string.Empty;
             string how = action switch
             {
-                CopyAction.Translate => LanguageName(TextLanguage.Guess(text)) + " → " + LanguageName(UiLanguage),
+                CopyAction.Translate => LanguageName(TextLanguage.Guess(text)) + " → " + LanguageName(TextLanguage.Guess(result) ?? UiLanguage),
                 CopyAction.Summarize => Lang.T("résumé", "summary"),
                 _ => Lang.T("réponse", "reply")
             };
