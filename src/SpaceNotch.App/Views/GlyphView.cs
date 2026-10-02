@@ -30,8 +30,8 @@ namespace SpaceNotch_App.Views;
 /// </summary>
 public sealed partial class GlyphView : Grid
 {
-    /// <summary>Opacité des pixels éteints : la grille se devine, sans se lire.</summary>
-    private const double UnlitOpacity = 0.09;
+    /// <summary>Pixels éteints invisibles : aucune grille en filigrane derrière l'icône.</summary>
+    private const double UnlitOpacity = 0;
 
     /// <summary>Faux lorsque Windows réduit les animations : l'icône s'allume d'un coup.</summary>
     public static bool AnimationsEnabled { get; set; } = true;

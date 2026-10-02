@@ -52,7 +52,7 @@ public sealed partial class IslandWindow
     /// <summary>Visite : heure imposée à l'horloge du repos, pour filmer la rémanence.</summary>
     private string? _tourClock;
 
-    private IEnumerable<(string Label, Action Run)> Wave6aTour(Func<IslandActivity> discord, Func<IslandActivity> clipboard, Func<IslandActivity> music)
+    private IEnumerable<(string Label, Action Run)> Wave6aTour(Func<IslandActivity> discord, Func<IslandActivity> music)
     {
         DateTimeOffset Now() => DateTimeOffset.UtcNow;
 
@@ -207,21 +207,8 @@ public sealed partial class IslandWindow
             TourLater(2500, () => PlayInk(new global::Windows.Foundation.Point(IslandBody.ActualWidth * 0.7, IslandBody.ActualHeight * 0.62)));
         });
 
-        yield return ("projecteur tramé", () =>
-        {
-            TourClear("tour.media");
-            TourShow(clipboard(), open: true);
-
-            for (int i = 0; i < 40; i++)
-            {
-                double t = i / 39.0;
-                TourLater(1000 + (i * 60), () => SceneTrame.Spotlight((IslandBody.ActualWidth * (0.15 + (0.7 * t)), IslandBody.ActualHeight * (0.7 + (0.15 * Math.Sin(t * Math.PI * 3))))));
-            }
-        });
-
         yield return ("butée · volume au maximum", () =>
         {
-            SceneTrame.Spotlight(null);
             TourClear("tour.clipboard");
             TourShow(HudActivity.Build("tour.volume", TourFeature, IslandSceneCatalog.VolumeHud, "Volume", 100, 100, "VolumeHigh", Lang.T("Sortie principale", "Main output"), TimeSpan.FromSeconds(30)), open: true);
             TourLater(1400, BumpContent);

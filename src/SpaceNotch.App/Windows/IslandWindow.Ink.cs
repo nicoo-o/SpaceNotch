@@ -29,20 +29,6 @@ public sealed partial class IslandWindow
     private void HookInk()
     {
         IslandBody.AddHandler(UIElement.PointerPressedEvent, new PointerEventHandler(OnInkPressed), handledEventsToo: true);
-
-        // Projecteur tramé (A4) : dans une scène ouverte, la trame suit le curseur.
-        IslandBody.AddHandler(UIElement.PointerMovedEvent, new PointerEventHandler(OnSpotMoved), handledEventsToo: true);
-    }
-
-    private void OnSpotMoved(object sender, PointerRoutedEventArgs e)
-    {
-        if (!UseSpringAnimations())
-        {
-            return;
-        }
-
-        global::Windows.Foundation.Point at = e.GetCurrentPoint(IslandBody).Position;
-        SceneTrame.Spotlight((at.X, at.Y));
     }
 
     private void OnInkPressed(object sender, PointerRoutedEventArgs e)

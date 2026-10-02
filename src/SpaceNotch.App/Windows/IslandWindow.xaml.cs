@@ -1017,7 +1017,6 @@ public sealed partial class IslandWindow : Window
         if (activity is null)
         {
             StopRestingHypnotic();
-            SceneTrame.Present(null, null, music: false);
             IdleRestView.Visibility = Visibility.Visible;
 
             // L'heure est un réglage et non un défaut : elle installerait une
@@ -1062,7 +1061,6 @@ public sealed partial class IslandWindow : Window
 
             scene.Apply(activity);
             scene.Root.Visibility = Visibility.Visible;
-            PresentTrame(activity, scene);
 
             // Entrée de la scène, une seule fois : son contenu apparaît sur place
             // pendant que la forme grandit, et les éléments ancrés grandissent
@@ -1114,7 +1112,6 @@ public sealed partial class IslandWindow : Window
         _visibleSceneRoot = null;
         InfoSceneView.Rest();
         RestMirror();
-        SceneTrame.Present(null, null, music: false);
 
         PresentResting(activity);
 
@@ -1136,10 +1133,8 @@ public sealed partial class IslandWindow : Window
             // forme n'est pas celle du bord ou que les animations sont réduites.
             Breathe();
 
-            if (!PlayDissolve(expanded ? _controller.Opened(activity!) : _restFootprint))
-            {
-                PlayVeil();
-            }
+            // Un voile lisse, sans grille de pixels : la notch ne porte plus aucune trame.
+            PlayVeil();
         }
         else if (_controller.State == IslandState.Preview
             && previousState == IslandState.Closed
@@ -1268,21 +1263,6 @@ public sealed partial class IslandWindow : Window
 
         CardHeap.Animate = UseSpringAnimations();
         CardHeap.Fill(activity.Id, percent.Value, StatePalette.Brush(activity.State));
-    }
-
-    /// <summary>
-    /// Trame de la scène ouverte, dans la couleur de l'activité. Ni en thème
-    /// clair ni en contraste élevé ; fixe quand Windows réduit les animations.
-    /// Dans le lecteur, elle suit la musique.
-    /// </summary>
-    private void PresentTrame(IslandActivity activity, IIslandSceneView scene)
-    {
-        SceneTrame.IsAllowed = _settings.ShowTrame && !_visualState.HighContrast && _settings.Appearance != IslandAppearance.Light;
-        SceneTrame.Animate = UseSpringAnimations();
-
-        Color tint = DeclaredTint(activity) ?? StatePalette.Tint(activity.State);
-
-        SceneTrame.Present(scene.Root, tint, music: scene is MediaExpandedScene && activity.State == IslandActivityState.MediaActive);
     }
 
     /// <summary>Languette latérale au repos : glyphe ou grille, jauge verticale.</summary>
@@ -1663,7 +1643,6 @@ public sealed partial class IslandWindow : Window
             SurfaceFill.Data = silhouette;
         }
 
-        SceneTrame.Resize(footprint.Width, footprint.Height, radius, shoulder);
         UpdateFocusTrace(footprint);
 
         // Le reflet suit la même courbe, borné à sa bande. La borne est ce qui
@@ -2162,20 +2141,6 @@ public sealed partial class IslandWindow : Window
         SceneTabs.Show(tabs, activity?.Id, (Brush)Application.Current.Resources["NfTextPrimaryBrush"], (Brush)Application.Current.Resources["NfTextTertiaryBrush"]);
     }
 
-    /// <summary>Fondu en pixels (A2) sur la forme d'arrivée ; faux s'il ne peut pas jouer.</summary>
-    private bool PlayDissolve(IslandFootprint target)
-    {
-        if (!UseSpringAnimations() || UsesFloatingGeometry || UsesSideTab || SurfaceFill.Fill is not Brush surface)
-        {
-            return false;
-        }
-
-        ShapePoint[] outline = _settings.Geometry.Silhouette(target);
-        DissolveOverlay.Width = target.Width;
-        DissolveOverlay.Height = target.Height;
-        DissolveOverlay.Play(outline, target.Width, target.Height, surface);
-        return true;
-    }
     private IslandActivity? _lastRenderedActivity;
 
     /// <summary>
@@ -2519,7 +2484,6 @@ public sealed partial class IslandWindow : Window
     private void OnIslandPointerExited(object sender, PointerRoutedEventArgs e)
     {
         _pixelHovered = false;
-        SceneTrame.Spotlight(null);
 
         // Un passage trop bref n'a jamais été une intention : l'aperçu n'a pas
         // lieu du tout.

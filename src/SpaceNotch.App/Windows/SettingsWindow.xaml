@@ -27,7 +27,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- Menu latéral. -->
-        <Grid x:Name="NavColumn" Grid.Column="0" Padding="10,14,10,14" BorderBrush="#0FFFFFFF" BorderThickness="0,0,1,0" SizeChanged="OnNavColumnSizeChanged">
+        <Grid x:Name="NavColumn" Grid.Column="0" Padding="10,14,10,14" BorderBrush="#0FFFFFFF" BorderThickness="0,0,1,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -47,9 +47,6 @@
                 PlaceholderText="{l:Loc Fr='Rechercher un réglage', En='Search settings'}"
                 AutomationProperties.Name="{l:Loc Fr='Rechercher un réglage', En='Search settings'}"
                 TextChanged="OnSearchSettingsChanged" />
-
-            <!-- La trame de la notch, au cyan du logo, sous le dernier onglet. -->
-            <views:TrameView x:Name="NavTrame" Grid.RowSpan="4" />
 
             <StackPanel Grid.Row="2" Spacing="14">
                 <StackPanel x:Name="NavPanel" Spacing="2">
@@ -825,21 +822,6 @@
                                 <TextBlock Text="{l:Loc Fr='Aide à voir la notch sur un fond d’écran sombre.', En='Helps you see the notch on a dark wallpaper.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
                             </StackPanel>
                             <ToggleSwitch x:Name="OutlineToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnOutlineToggled" />
-                        </Grid>
-                    </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Trame Trame de pixels pixels au bas de la notch ouverte pattern">
-                        <Grid ColumnSpacing="14">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="20" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Rain" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="{l:Loc Fr='Trame', En='Pixel pattern'}" Style="{StaticResource NfSettingsTitleStyle}" />
-                                <TextBlock Text="{l:Loc Fr='Des pixels à la couleur de l’activité au bas de la notch ouverte. Désactivée : un noir pur.', En='Pixels in the activity’s colour at the bottom of the open notch. Off: pure black.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
-                            </StackPanel>
-                            <ToggleSwitch x:Name="TrameToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnTrameToggled" AutomationProperties.Name="{l:Loc Fr='Trame', En='Pixel pattern'}" />
                         </Grid>
                     </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Météo ville température weather city">

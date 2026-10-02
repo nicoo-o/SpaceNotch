@@ -221,24 +221,6 @@ public sealed partial class SettingsWindow : Window
         _ => ("Launcher", feature.DisplayName, string.Empty)
     };
 
-    /// <summary>
-    /// La trame du menu latéral : la matière de la notch, au cyan du logo,
-    /// sous le dernier onglet. Rien en contraste élevé.
-    /// </summary>
-    private void OnNavColumnSizeChanged(object sender, SizeChangedEventArgs e)
-    {
-        NavTrame.Resize(Math.Max(0, NavColumn.ActualWidth - 20), Math.Max(0, NavColumn.ActualHeight - 28), 0, 0);
-        RefreshNavTrame();
-    }
-
-    /// <summary>La trame du menu suit le réglage : le noir pur s'applique aussi ici.</summary>
-    private void RefreshNavTrame()
-    {
-        NavTrame.IsAllowed = _settings.Current.ShowTrame && !new global::Windows.UI.ViewManagement.AccessibilitySettings().HighContrast;
-        NavTrame.Animate = GlyphView.AnimationsEnabled;
-        NavTrame.Present(NavColumn, Color.FromArgb(0xFF, 0x7F, 0xE6, 0xFF), music: false);
-    }
-
     /// <summary>Carte OLED construite en code, identique à celles du XAML.</summary>
     private static Border SettingsCard(string glyph, string title, string description, FrameworkElement control)
     {
@@ -348,7 +330,6 @@ public sealed partial class SettingsWindow : Window
             FloatingRadiusSlider.Value = settings.FloatingRadius;
             ShadowSlider.Value = settings.FloatingShadowOpacity * 100;
             OutlineToggle.IsOn = settings.ShowOutline;
-            TrameToggle.IsOn = settings.ShowTrame;
             SoundsToggle.IsOn = settings.PlaySounds;
             WeatherCityBox.Text = settings.WeatherCity;
             OutlineSlider.Value = settings.OutlineOpacity * 100;
@@ -497,12 +478,6 @@ public sealed partial class SettingsWindow : Window
 
     private void OnSoundsToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.PlaySounds = SoundsToggle.IsOn);
-
-    private void OnTrameToggled(object sender, RoutedEventArgs e)
-    {
-        Apply(s => s.ShowTrame = TrameToggle.IsOn);
-        RefreshNavTrame();
-    }
 
     private void OnOutlineChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
         => ApplyContinuous(s => s.OutlineOpacity = e.NewValue / 100);
