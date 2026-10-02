@@ -257,6 +257,7 @@ public static partial class IdentityPackage
     public static async Task<int> RepairAsync(Action<string>? log = null)
     {
         int removed = 0;
+        log?.Invoke("[IDENTITÉ] Vérification du paquet d'identité…");
 
         try
         {
@@ -298,6 +299,7 @@ public static partial class IdentityPackage
             log?.Invoke($"[IDENTITÉ] Vérification du paquet impossible : {ex.Message}");
         }
 
+        log?.Invoke($"[IDENTITÉ] Vérification terminée ({removed} paquet(s) cassé(s) retiré(s)).");
         return removed;
     }
 
