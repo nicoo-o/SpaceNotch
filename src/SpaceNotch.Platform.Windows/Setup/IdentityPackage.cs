@@ -104,7 +104,11 @@ public static partial class IdentityPackage
                 // Le dossier exact où se trouve SpaceNotch.exe : un autre, et
                 // l'exécutable tournerait sans identité.
                 ExternalLocationUri = new Uri(Path.TrimEndingDirectorySeparator(installDirectory) + Path.DirectorySeparatorChar),
-                ForceUpdateFromAnyVersion = true
+                ForceUpdateFromAnyVersion = true,
+
+                // Une notch encore ouverte avec l'ancienne identité ne doit pas
+                // faire échouer la mise à jour du paquet.
+                ForceTargetAppShutdown = true
             };
 
             DeploymentResult result = await manager.AddPackageByUriAsync(new Uri(packagePath), options);
@@ -185,12 +189,19 @@ public static partial class IdentityPackage
             using var store = new global::System.Security.Cryptography.X509Certificates.X509Store(global::System.Security.Cryptography.X509Certificates.StoreName.TrustedPeople, global::System.Security.Cryptography.X509Certificates.StoreLocation.LocalMachine);
             store.Open(global::System.Security.Cryptography.X509Certificates.OpenFlags.ReadWrite);
 
-            foreach (var old in Ours(store))
+            // Le certificat précédent le plus récent est GARDÉ : il signe le paquet
+            // encore enregistré tant que le nouveau ne l'a pas remplacé. Le retirer
+            // avant (comme jusqu'en v1.13.1) cassait ce paquet si l'enregistrement
+            // suivant échouait — et Windows refusait alors tout lancement de
+            // SpaceNotch (« Réparer »). Les plus anciens partent.
+            List<global::System.Security.Cryptography.X509Certificates.X509Certificate2> previous = Ours(store)
+                .Where(c => !string.Equals(c.Thumbprint, certificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
+                .OrderByDescending(c => c.NotBefore)
+                .ToList();
+
+            foreach (var old in previous.Skip(1))
             {
-                if (!string.Equals(old.Thumbprint, certificate.Thumbprint, StringComparison.OrdinalIgnoreCase))
-                {
-                    store.Remove(old);
-                }
+                store.Remove(old);
             }
 
             store.Add(certificate);
@@ -235,6 +246,60 @@ public static partial class IdentityPackage
             .Where(c => string.Equals(c.Subject, Publisher, StringComparison.Ordinal)
                 && string.Equals(c.FriendlyName, CertificateFriendlyName, StringComparison.Ordinal))
             .ToList();
+
+    /// <summary>
+    /// Retire un paquet d'identité que Windows juge cassé (certificat retiré,
+    /// dossier disparu, enregistrement abîmé) : c'est lui qui fait afficher
+    /// « Nous ne pouvons pas ouvrir cette application… Réparer » à chaque
+    /// lancement de la notch installée. Joué au début de chaque installation.
+    /// </summary>
+    /// <returns>Le nombre de paquets retirés.</returns>
+    public static async Task<int> RepairAsync(Action<string>? log = null)
+    {
+        int removed = 0;
+
+        try
+        {
+            var manager = new PackageManager();
+
+            foreach (global::Windows.ApplicationModel.Package package in manager.FindPackagesForUser(string.Empty, PackageName, Publisher).ToList())
+            {
+                bool healthy;
+
+                try
+                {
+                    healthy = package.Status.VerifyIsOK();
+                }
+                catch (Exception)
+                {
+                    healthy = false;
+                }
+
+                if (healthy)
+                {
+                    continue;
+                }
+
+                log?.Invoke($"[IDENTITÉ] Paquet cassé trouvé ({package.Id.FullName}) : retrait avant réinstallation.");
+                DeploymentResult result = await manager.RemovePackageAsync(package.Id.FullName);
+
+                if (result.ExtendedErrorCode is { } error && error.HResult != 0)
+                {
+                    log?.Invoke($"[IDENTITÉ] Retrait du paquet cassé refusé : 0x{error.HResult:X8} {result.ErrorText}");
+                }
+                else
+                {
+                    removed++;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"[IDENTITÉ] Vérification du paquet impossible : {ex.Message}");
+        }
+
+        return removed;
+    }
 
     /// <summary>Retire l'identité de l'utilisateur courant. Sans effet si elle n'est pas là.</summary>
     public static async Task RemoveAsync(Action<string>? log = null)
