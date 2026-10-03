@@ -66,7 +66,9 @@ public sealed class IslandFeatureRegistry : IAsyncDisposable
 
             try
             {
-                await feature.StartAsync(cancellationToken).ConfigureAwait(false);
+                // Sur le fil de l'appelant (phase E) : après le premier démarrage
+                // asynchrone, les suivants partaient sur le pool de fils.
+                await feature.StartAsync(cancellationToken).ConfigureAwait(true);
             }
             catch (Exception ex)
             {
@@ -106,7 +108,7 @@ public sealed class IslandFeatureRegistry : IAsyncDisposable
             return false;
         }
 
-        await feature.SetEnabledAsync(enabled, cancellationToken).ConfigureAwait(false);
+        await feature.SetEnabledAsync(enabled, cancellationToken).ConfigureAwait(true);
         return true;
     }
 

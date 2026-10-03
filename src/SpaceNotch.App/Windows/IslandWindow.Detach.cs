@@ -196,6 +196,7 @@ public sealed partial class IslandWindow
         _pointerDown = true;
         _pressStartedAt = _detachClock.Elapsed.TotalSeconds;
         _pressByTouch = e.Pointer.PointerDeviceType is not Microsoft.UI.Input.PointerDeviceType.Mouse;
+        Shadow(SpaceNotch.Core.Machine.NotchTrigger.Press, "appui");
         _velocity.Reset();
 
         // Une pastille rattrapée en plein vol s'arrête dans la main, là où elle
@@ -264,6 +265,14 @@ public sealed partial class IslandWindow
         }
 
         double now = _detachClock.Elapsed.TotalSeconds;
+
+        if (click)
+        {
+            (double sx, double sy) = CursorDip();
+            (double sdx, double sdy) = (sx - _pressX, sy - _pressY);
+            bool sideEdge = _edge is NotchEdge.Left or NotchEdge.Right;
+            ShadowRelease(PullOf((sdx, sdy)), sideEdge ? sdy : sdx, PullOf(_velocity.Velocity(now)), now - _pressStartedAt);
+        }
 
         switch (_dragPhase)
         {
@@ -1042,12 +1051,12 @@ public sealed partial class IslandWindow
             }
 
             _lastDetachFrame = _detachClock.Elapsed.TotalSeconds;
-            CompositionTarget.Rendering += OnDetachFrame;
+            SpaceNotch_App.Animations.FrameClock.Rendering += OnDetachFrame;
         }
         else if (!needed && _detachFramesHooked)
         {
             _detachFramesHooked = false;
-            CompositionTarget.Rendering -= OnDetachFrame;
+            SpaceNotch_App.Animations.FrameClock.Rendering -= OnDetachFrame;
         }
     }
 
@@ -1085,6 +1094,7 @@ public sealed partial class IslandWindow
         switch (_dragPhase)
         {
             case DragPhase.Pressed when Detachment.ExceedsClickSlop(x - _pressX, y - _pressY):
+                Shadow(new SpaceNotch.Core.Machine.NotchInput(SpaceNotch.Core.Machine.NotchTrigger.PullMoved, PullDip: PullOf((x - _pressX, y - _pressY)), LateralDip: x - _pressX), "traction");
                 if (UsesFloatingGeometry)
                 {
                     BeginFloatingDrag();
@@ -1103,6 +1113,7 @@ public sealed partial class IslandWindow
 
             case DragPhase.Pulling:
                 _pull = PullOf((x - _pressX, y - _pressY));
+                Shadow(new SpaceNotch.Core.Machine.NotchInput(SpaceNotch.Core.Machine.NotchTrigger.PullMoved, PullDip: _pull, LateralDip: x - _pressX), "traction");
 
                 if (_settings.AllowDetach && Detachment.ShouldTear(_pull, _settings.TearDistance))
                 {

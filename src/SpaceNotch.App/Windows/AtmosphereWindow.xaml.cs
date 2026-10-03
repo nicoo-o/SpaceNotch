@@ -610,7 +610,7 @@ public sealed partial class AtmosphereWindow : Window
         }
 
         _tintRunning = true;
-        CompositionTarget.Rendering += OnTintFrame;
+        SpaceNotch_App.Animations.FrameClock.Rendering += OnTintFrame;
     }
 
     private void OnTintFrame(object? sender, object e)
@@ -636,7 +636,7 @@ public sealed partial class AtmosphereWindow : Window
 
         // Arrêt explicite : c'est ce qui ramène le coût à zéro une fois la teinte
         // posée. Aucun écouteur de rendu ne subsiste au repos.
-        CompositionTarget.Rendering -= OnTintFrame;
+        SpaceNotch_App.Animations.FrameClock.Rendering -= OnTintFrame;
         _tintRunning = false;
         _tintClock.Stop();
 
@@ -670,7 +670,7 @@ public sealed partial class AtmosphereWindow : Window
     {
         if (_tintRunning)
         {
-            CompositionTarget.Rendering -= OnTintFrame;
+            SpaceNotch_App.Animations.FrameClock.Rendering -= OnTintFrame;
             _tintRunning = false;
         }
 

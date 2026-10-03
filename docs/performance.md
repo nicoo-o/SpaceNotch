@@ -125,3 +125,24 @@ fréquent ne peut donc pas introduire de latence dans ce rappel.
   tentant de la redemander.
 - **Bluetooth** : l'observation est événementielle. Une absence de périphérique n'engage aucun cycle
   processeur.
+
+## Horloge d'images unique et caches (phase D de l'audit)
+
+- **`FrameClock`** (`App/Animations`, logique `FrameFanOut` en Core) : un seul abonnement à
+  `CompositionTarget.Rendering`, posé seulement tant qu'une animation tourne et redistribué à toutes.
+  Il sert au ressort de la forme, au détachement, au visage, aux passages, à la teinte, aux
+  compteurs et à la goutte, qui avait jusque-là son propre minuteur à 16 ms.
+- **`SilhouetteCache`** : les contours sont arrondis au quart de DIP et les 96 derniers sont gardés,
+  car un ressort repasse par les mêmes tailles.
+- **Pochettes** décodées à 192 pixels au lieu de leur taille d'origine (souvent 600 à 1 000), avec
+  4 entrées en cache au lieu d'une.
+- **Crête-mètre audio partagé** entre l'égaliseur et Pixel.
+- **Échelle de la bulle** interruptible : une nouvelle cible repart de la valeur affichée.
+
+Ces points de la phase D restent à faire et demandent un essai sur une vraie machine (100 / 150 /
+200 %, deux écrans, bords, notch flottante) :
+
+- l'enveloppe de fenêtre fixe avec `WS_EX_TRANSPARENT` pendant la course ;
+- le halo dimensionné une fois ;
+- les scènes créées à la demande ;
+- les visages et passages en canaux de ressort.

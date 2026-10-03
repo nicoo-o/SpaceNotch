@@ -13,12 +13,9 @@ namespace SpaceNotch_App.Windows;
 /// </summary>
 public sealed partial class IslandWindow
 {
-    private static readonly TimeSpan FxFrame = TimeSpan.FromMilliseconds(16);
-
     /// <summary>Durée de l'onde du dépôt, en secondes.</summary>
     private const double RippleSeconds = 0.9;
 
-    private DispatcherQueueTimer? _fxTimer;
     private double _dropTarget;
     private double _drop;
     private double _dropX = double.NaN;
@@ -94,22 +91,52 @@ public sealed partial class IslandWindow
         BumpContent();
     }
 
+    /// <summary>
+    /// La goutte et l'onde suivent l'horloge d'images unique (phase D) au lieu
+    /// d'un minuteur à 16 ms qui doublait le signal d'image du ressort.
+    /// </summary>
     private void StartFx()
     {
-        if (_fxTimer is null)
+        if (_fxRunning)
         {
-            _fxTimer = TrackTimer(DispatcherQueue.CreateTimer());
-            _fxTimer.Interval = FxFrame;
-            _fxTimer.IsRepeating = true;
-            _fxTimer.Tick += (_, _) => FxTick();
+            return;
         }
 
-        _fxTimer.Start();
+        _fxRunning = true;
+        _fxLast = System.Diagnostics.Stopwatch.GetTimestamp();
+        SpaceNotch_App.Animations.FrameClock.Rendering += OnFxFrame;
     }
 
-    private void FxTick()
+    private void StopFx()
     {
-        double dt = FxFrame.TotalSeconds;
+        if (!_fxRunning)
+        {
+            return;
+        }
+
+        _fxRunning = false;
+        SpaceNotch_App.Animations.FrameClock.Rendering -= OnFxFrame;
+    }
+
+    private bool _fxRunning;
+    private long _fxLast;
+
+    private void OnFxFrame(object? sender, object e)
+    {
+        if (_isClosed)
+        {
+            StopFx();
+            return;
+        }
+
+        long now = System.Diagnostics.Stopwatch.GetTimestamp();
+        double dt = Math.Clamp((now - _fxLast) / (double)System.Diagnostics.Stopwatch.Frequency, 0, 1.0 / 15);
+        _fxLast = now;
+        FxTick(dt);
+    }
+
+    private void FxTick(double dt)
+    {
 
         // La goutte suit le pointeur à ressort doux et descend ou remonte
         // avec une constante de temps de 90 ms.
@@ -126,7 +153,7 @@ public sealed partial class IslandWindow
 
         if (!active)
         {
-            _fxTimer?.Stop();
+            StopFx();
             _drop = 0;
             _ripple = 0;
             _dropX = double.NaN;

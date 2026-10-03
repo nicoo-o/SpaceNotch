@@ -52,7 +52,7 @@ internal sealed class ValueRoller
         if (!_running)
         {
             _running = true;
-            CompositionTarget.Rendering += OnFrame;
+            SpaceNotch_App.Animations.FrameClock.Rendering += OnFrame;
         }
     }
 
@@ -60,7 +60,7 @@ internal sealed class ValueRoller
     {
         if (_running)
         {
-            CompositionTarget.Rendering -= OnFrame;
+            SpaceNotch_App.Animations.FrameClock.Rendering -= OnFrame;
             _running = false;
         }
 

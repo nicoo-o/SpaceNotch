@@ -48,7 +48,6 @@ using SpaceNotch.Platform.Windows.System;
 using SpaceNotch.Platform.Windows.Windowing;
 using SpaceNotch_App.Animations;
 using SpaceNotch_App.Composition;
-using SpaceNotch_App.Controllers;
 using SpaceNotch_App.Diagnostics;
 using SpaceNotch_App.Views;
 using SpaceNotch_App.Views.Scenes;
@@ -440,7 +439,9 @@ public sealed partial class IslandWindow : Window
                 ? SideTab.Rest(_settings.TabSize, _settings.SideShoulderRadius)
                 : IslandFootprint.For(IslandPresentation.Resolve(null), _settings.Density),
             UseSpringAnimations,
-            ApplyGeometry);
+            ApplyGeometry,
+            (update, settled) => new IslandSpringAnimator(_settings.Motion, update, settled),
+            (message, exception) => MiniLogger.Log(message, exception));
 
         // Le contrôleur reçoit de quoi rejoindre le fil d'interface. Il en a besoin
         // dès maintenant : il est déjà abonné aux activités, et une publication
@@ -744,7 +745,12 @@ public sealed partial class IslandWindow : Window
         // Sans cela, l'appel atteint un minuteur de file d'attente depuis le mauvais
         // fil et lève un COMException au message vide — une panne d'autant plus
         // difficile à lire que rien ne la désigne.
-        _controller.PresentedActivityChanged += (_, _) => RequestRender();
+        _controller.PresentedActivityChanged += (_, activity) =>
+        {
+            ShadowPresented(activity);
+            RequestRender();
+        };
+        _activityManager.ActivityRemoved += (_, activity) => OnUiThread(() => ShadowForget(activity));
         _controller.AnimationCompleted += (_, _) =>
         {
             RequestRender();
@@ -757,6 +763,8 @@ public sealed partial class IslandWindow : Window
         };
         _controller.StateChanged += (_, state) =>
         {
+            CompareShadow(state);
+
             // Ouverte, l'activité présentée est épargnée ; refermée, elle
             // reprend son échéance. Le minuteur se recale dans les deux cas.
             RearmExpirationTimer();
@@ -864,6 +872,7 @@ public sealed partial class IslandWindow : Window
         if (args.WindowActivationState == WindowActivationState.Deactivated
             && _controller.State is IslandState.Expanded or IslandState.Expanding)
         {
+            Shadow(SpaceNotch.Core.Machine.NotchTrigger.ClickOutside, "clic ailleurs");
             _controller.RequestCollapse();
         }
     }
@@ -2120,6 +2129,7 @@ public sealed partial class IslandWindow : Window
             _appWindow.Show(activateWindow: false);
             UpdateBubble();
             SuspendLife(false);
+            Shadow(new SpaceNotch.Core.Machine.NotchInput(SpaceNotch.Core.Machine.NotchTrigger.PresenceChanged, Presence: SpaceNotch.Core.Machine.Presence.Visible), "retour");
             return;
         }
 
@@ -2128,6 +2138,7 @@ public sealed partial class IslandWindow : Window
         _appWindow.Hide();
         UpdateBubble();
         SuspendLife(true);
+        Shadow(new SpaceNotch.Core.Machine.NotchInput(SpaceNotch.Core.Machine.NotchTrigger.PresenceChanged, Presence: SpaceNotch.Core.Machine.Presence.Withdrawn), "retrait");
     }
 
     /// <summary>
@@ -2609,7 +2620,11 @@ public sealed partial class IslandWindow : Window
             }
             else
             {
-                _previewEnterTimer ??= CreateOneShotTimer(PreviewEnterDwell, _controller.RequestPreview);
+                _previewEnterTimer ??= CreateOneShotTimer(PreviewEnterDwell, () =>
+                {
+                    Shadow(SpaceNotch.Core.Machine.NotchTrigger.HoverDwell, "survol");
+                    _controller.RequestPreview();
+                });
                 _previewEnterTimer.Stop();
 
                 // Au repos, le survol fait venir l'heure : il faut une vraie pose.
@@ -2689,6 +2704,7 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
+        Shadow(SpaceNotch.Core.Machine.NotchTrigger.HoverLeave, "sortie");
         _controller.EndPreview();
     }
 
@@ -2744,6 +2760,7 @@ public sealed partial class IslandWindow : Window
         if (properties.IsRightButtonPressed)
         {
             e.Handled = true;
+            Shadow(SpaceNotch.Core.Machine.NotchTrigger.SecondaryClick, "clic droit");
             ToggleQuickMenu();
             return;
         }
@@ -2873,6 +2890,8 @@ public sealed partial class IslandWindow : Window
         {
             return;
         }
+
+        Shadow(SpaceNotch.Core.Machine.NotchTrigger.HotKey, "aller à la notch");
 
         if (_controller.PresentedActivity is null)
         {
@@ -3062,6 +3081,7 @@ public sealed partial class IslandWindow : Window
         switch (e.Key)
         {
             case global::Windows.System.VirtualKey.Escape:
+                Shadow(SpaceNotch.Core.Machine.NotchTrigger.Escape, "Échap");
                 _controller.RequestCollapse();
                 break;
 
@@ -3819,6 +3839,7 @@ public sealed partial class IslandWindow : Window
         // laisserait à Windows (Alt+Espace ne marcherait plus nulle part).
         Safely("raccourci global", () => SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Unregister(_hWnd));
         Safely("thème de Windows", () => SpaceNotch_App.UI.SystemTheme.Changed -= OnSystemThemeChanged);
+        Safely("ombre", () => MiniLogger.Log(_shadow.Summary));
 
         // L'arrêt des fonctionnalités libère réellement leurs écouteurs système et
         // retire leurs activités : c'est la garantie symétrique du démarrage.
@@ -3872,7 +3893,7 @@ public sealed partial class IslandWindow : Window
         Safely("plein écran", _presence.Dispose);
         Safely("premier plan", () => _foreground?.Dispose());
         Safely("miroir", () => _mirror?.Dispose());
-        Safely("crête-mètre", () => _peakMeter?.Dispose());
+        Safely("crête-mètre", SpaceNotch.Platform.Windows.Audio.AudioPeakMeter.DisposeShared);
         Safely("messages", () => _messageMonitor?.Dispose());
 
         MiniLogger.Log("IslandWindow fermée");

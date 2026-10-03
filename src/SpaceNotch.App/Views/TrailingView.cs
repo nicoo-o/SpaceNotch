@@ -343,7 +343,7 @@ public sealed partial class TrailingView : Grid
                 ElementCompositionPreview.GetElementVisual(bar).CenterPoint = new Vector3(1, 6, 0);
             }
 
-            _meter ??= new SpaceNotch.Platform.Windows.Audio.AudioPeakMeter();
+            _meter ??= SpaceNotch.Platform.Windows.Audio.AudioPeakMeter.Shared;
             _danceStart = DateTime.UtcNow;
 
             if (_danceTimer is null)

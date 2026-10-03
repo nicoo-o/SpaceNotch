@@ -54,6 +54,7 @@ public sealed partial class IslandWindow
         if (_tourIndex >= _tourSteps.Count)
         {
             MiniLogger.Log("[TOUR] fin");
+            MiniLogger.Log(_shadow.Summary);
             return;
         }
 

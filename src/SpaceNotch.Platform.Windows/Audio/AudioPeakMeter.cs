@@ -16,6 +16,22 @@ namespace SpaceNotch.Platform.Windows.Audio;
 /// </summary>
 public sealed class AudioPeakMeter : IDisposable
 {
+    private static AudioPeakMeter? _shared;
+
+    /// <summary>
+    /// Le crête-mètre partagé (phase D) : l'égaliseur de la pastille et la
+    /// danse de Pixel lisaient chacun le leur, soit deux points d'accès au
+    /// périphérique audio pour la même valeur. Libéré par <see cref="DisposeShared"/>.
+    /// </summary>
+    public static AudioPeakMeter Shared => _shared ??= new AudioPeakMeter();
+
+    /// <summary>Libère le crête-mètre partagé (à l'arrêt de l'application).</summary>
+    public static void DisposeShared()
+    {
+        _shared?.Dispose();
+        _shared = null;
+    }
+
     private static readonly TimeSpan RebindEvery = TimeSpan.FromSeconds(5);
 
     private IMMDeviceEnumerator? _enumerator;
