@@ -133,6 +133,14 @@ public sealed partial class AtmosphereWindow : Window
         ApplyFallbackSurface();
 
         _appWindow.Show(activateWindow: false);
+        WindowChrome.MakeChildrenClickThrough(_hWnd);
+        _appWindow.Changed += (_, change) =>
+        {
+            if (change.DidSizeChange || change.DidVisibilityChange)
+            {
+                WindowChrome.MakeChildrenClickThrough(_hWnd);
+            }
+        };
 
         Closed += OnClosed;
     }

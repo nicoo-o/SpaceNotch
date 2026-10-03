@@ -77,9 +77,9 @@ double-clic, et elle rentre chez elle.
 
 <table>
   <tr>
-    <td width="33%" valign="top"><h3>Silencieuse</h3>Rien ne tourne quand rien ne se passe. Aucune scrutation, aucune animation de fond — juste une forme immobile en haut de l'écran.</td>
+    <td width="33%" valign="top"><h3>Silencieuse</h3>Presque rien ne tourne quand rien ne se passe : moins de 0,1&nbsp;% de processeur au repos, mesuré. Aucune animation de fond — juste une forme immobile en haut de l'écran.</td>
     <td width="33%" valign="top"><h3>Discrète</h3>Elle s'efface quand un jeu ou une vidéo passe en plein écran, et ne s'ouvre jamais pour un simple changement de volume.</td>
-    <td width="33%" valign="top"><h3>Privée</h3>Aucun compte, aucune télémétrie, aucun appel réseau. Tout reste sur votre PC.</td>
+    <td width="33%" valign="top"><h3>Privée</h3>Aucun compte, aucune télémétrie. La seule connexion faite par défaut est la recherche de mises à jour sur GitHub (toutes les 6&nbsp;h, désactivable dans les Réglages). La météo, les paroles, Spotify et l'assistant ne se connectent qu'une fois activés.</td>
   </tr>
   <tr>
     <td width="33%" valign="top"><h3>Noir profond</h3>Un noir OLED pur, des épaules douces et concaves, comme si l'écran avait un peu grandi.</td>

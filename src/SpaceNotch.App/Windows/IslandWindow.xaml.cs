@@ -2206,6 +2206,12 @@ public sealed partial class IslandWindow : Window
         // L'écran d'accroche est recherché à nouveau.
         _dockDisplayCache = null;
 
+        // Windows déplace lui-même la fenêtre sur WM_DPICHANGED (position mise
+        // à l'échelle) : la dernière géométrie envoyée n'est plus celle de la
+        // fenêtre. Sans cet oubli, la notch restait décentrée après un
+        // changement d'échelle (audit SN-03 : x 728 au lieu de 920 à 125 %).
+        ForgetWindowGeometry();
+
         if (_environmentMovesNotch)
         {
             _environmentMovesNotch = false;
@@ -3787,7 +3793,17 @@ public sealed partial class IslandWindow : Window
     // Arrêt
     // ------------------------------------------------------------------
 
-    private async void OnWindowClosed(object sender, WindowEventArgs args) => await ShutdownAsync();
+    /// <summary>
+    /// Fenêtre fermée par Windows (Alt+F4, WM_CLOSE, fermeture de session) :
+    /// l'application quitte vraiment. Avant, seul l'arrêt était fait, et les
+    /// autres fenêtres (atmosphère, bulle) gardaient un processus fantôme qui
+    /// tenait l'instance unique (audit SN-01, 5 essais sur 6).
+    /// </summary>
+    private async void OnWindowClosed(object sender, WindowEventArgs args)
+    {
+        await ShutdownAsync();
+        Application.Current.Exit();
+    }
 
     /// <summary>
     /// « Quitter » : l'arrêt est mené jusqu'au bout — fonctionnalités arrêtées,

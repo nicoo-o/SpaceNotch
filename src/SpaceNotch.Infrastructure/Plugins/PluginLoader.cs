@@ -229,7 +229,26 @@ public sealed class PluginLoader : IDisposable
             return;
         }
 
-        var pluginContext = new PluginLoadContext(assemblyPath);
+        // Les dépendances passent les mêmes contrôles que le greffon (audit
+        // SN-18) : sans cela, un greffon approuvé chargeait depuis son dossier
+        // n'importe quelle .dll non approuvée.
+        bool requireSignature = options?.RequireAuthenticodeSignature == true;
+        var pluginContext = new PluginLoadContext(assemblyPath, dependency =>
+        {
+            if (allowlist is not null && !allowlist.IsAllowed(dependency))
+            {
+                failures.Add($"{Path.GetFileName(dependency)} : dépendance non approuvée de {Path.GetFileName(assemblyPath)}.");
+                return false;
+            }
+
+            if (requireSignature && !PluginSignatureVerifier.HasValidSignature(dependency))
+            {
+                failures.Add($"{Path.GetFileName(dependency)} : dépendance sans signature Authenticode valide.");
+                return false;
+            }
+
+            return true;
+        });
 
         Assembly assembly;
 
@@ -318,11 +337,13 @@ public sealed class PluginLoader : IDisposable
     private sealed class PluginLoadContext : AssemblyLoadContext
     {
         private readonly AssemblyDependencyResolver _resolver;
+        private readonly Func<string, bool> _admit;
 
-        public PluginLoadContext(string pluginPath)
+        public PluginLoadContext(string pluginPath, Func<string, bool> admit)
             : base(name: $"SpaceNotch.Plugin:{Path.GetFileNameWithoutExtension(pluginPath)}", isCollectible: true)
         {
             _resolver = new AssemblyDependencyResolver(pluginPath);
+            _admit = admit;
         }
 
         protected override Assembly? Load(AssemblyName assemblyName)
@@ -339,7 +360,7 @@ public sealed class PluginLoader : IDisposable
 
             string? path = _resolver.ResolveAssemblyToPath(assemblyName);
 
-            return path is null ? null : LoadFromAssemblyPath(path);
+            return path is null || !_admit(path) ? null : LoadFromAssemblyPath(path);
         }
     }
 }

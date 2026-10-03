@@ -90,6 +90,29 @@ public static class WindowChrome
     }
 
     /// <summary>
+    /// Rend aussi transparentes aux clics les fenêtres enfants de la surface
+    /// décorative. WinUI 3 reçoit la souris par des enfants
+    /// (<c>DesktopChildSiteBridge</c>, <c>InputSite</c>) créés après la fenêtre
+    /// et qui n'héritent pas de <c>WS_EX_TRANSPARENT</c> : sans cela, un clic
+    /// à côté de la notch, dans le halo, n'atteignait pas l'application en
+    /// dessous (audit SN-02). À rappeler après l'affichage et à chaque
+    /// redimensionnement, l'hôte pouvant recréer ses enfants.
+    /// </summary>
+    public static void MakeChildrenClickThrough(IntPtr hWnd)
+    {
+        if (hWnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        NativeMethods.EnumChildWindows(hWnd, (child, _) =>
+        {
+            AddExtendedStyles(child, NativeConstants.WS_EX_TRANSPARENT | NativeConstants.WS_EX_NOACTIVATE);
+            return true;
+        }, IntPtr.Zero);
+    }
+
+    /// <summary>
     /// S'assure que la surface interactive reste au-dessus de la décorative
     /// lorsqu'elles sont toutes deux topmost.
     /// </summary>

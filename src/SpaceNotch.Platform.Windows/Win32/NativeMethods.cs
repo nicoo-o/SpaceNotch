@@ -137,6 +137,13 @@ public static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     internal static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
 
+    /// <summary>Rappel d'énumération des fenêtres enfants.</summary>
+    public delegate bool ChildEnumProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    internal static extern bool EnumChildWindows(IntPtr hWndParent, ChildEnumProc lpEnumFunc, IntPtr lParam);
+
     // ---- DPI --------------------------------------------------------------
 
     [LibraryImport("user32.dll", SetLastError = true)]

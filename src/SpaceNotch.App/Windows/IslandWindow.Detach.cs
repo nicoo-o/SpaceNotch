@@ -1632,6 +1632,13 @@ public sealed partial class IslandWindow
         }
     }
 
+    /// <summary>Oublie la dernière géométrie envoyée : la prochaine sera appliquée même identique.</summary>
+    private void ForgetWindowGeometry()
+    {
+        _lastWindowX = _lastWindowY = int.MinValue;
+        _lastWindowWidth = _lastWindowHeight = -1;
+    }
+
     private DispatcherQueueTimer? _presenceRecheck;
 
     /// <summary>
