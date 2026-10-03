@@ -383,7 +383,8 @@ public sealed partial class IslandWindow : Window
             _meetingFeature,
             _weatherFeature,
             _shareFeature,
-            CreateChannelFeature()
+            CreateChannelFeature(),
+            CreateUpdateFeature()
         };
 
         features.AddRange(CreateAssistantFeatures());
@@ -901,6 +902,7 @@ public sealed partial class IslandWindow : Window
         MiniLogger.Log($"Fonctionnalités actives : {_featureRegistry.RunningCount}/{_featureRegistry.Features.Count}");
 
         RearmExpirationTimer();
+        StartUpdates();
 
         MiniLogger.Log("IslandWindow prête");
     }
@@ -3841,6 +3843,7 @@ public sealed partial class IslandWindow : Window
         Safely("raccourci global", () => SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Unregister(_hWnd));
         Safely("thème de Windows", () => SpaceNotch_App.UI.SystemTheme.Changed -= OnSystemThemeChanged);
         Safely("ombre", () => MiniLogger.Log(_shadow.Summary));
+        Safely("mises à jour", StopUpdates);
 
         // L'arrêt des fonctionnalités libère réellement leurs écouteurs système et
         // retire leurs activités : c'est la garantie symétrique du démarrage.

@@ -574,6 +574,21 @@ public sealed class AppSettings
     /// </summary>
     public bool BounceOnThrow { get; set; } = true;
 
+    // ---- Mises à jour --------------------------------------------------------
+
+    /// <summary>
+    /// Mise à jour automatique : vérifie la dernière release, la télécharge, la
+    /// vérifie, puis l'installe seule au premier moment calme (Automatique) ou
+    /// la propose dans la notch (Me prévenir).
+    /// </summary>
+    public SpaceNotch.Core.Update.UpdateMode UpdateMode { get; set; } = SpaceNotch.Core.Update.UpdateMode.Automatic;
+
+    /// <summary>Version du dernier lancement : sert à dire « Mise à jour faite » une fois.</summary>
+    public string? LastRunVersion { get; set; }
+
+    /// <summary>« Plus tard » : la proposition revient après cette date.</summary>
+    public DateTimeOffset? UpdatePostponedUntil { get; set; }
+
     /// <summary>Mesures internes (cadence, rendus) : désactivées par défaut (phase C).</summary>
     public bool EnableDiagnostics { get; set; }
 
@@ -921,6 +936,11 @@ public sealed class AppSettings
 
         StretchAmount = Clamp(StretchAmount, 0, 0.10, FluidMotion.MaximumStretch);
         TearDistance = Clamp(TearDistance, Detachment.MinimumTearDistance, Detachment.MaximumTearDistance, Detachment.TearDistance);
+
+        if (!Enum.IsDefined(UpdateMode))
+        {
+            UpdateMode = SpaceNotch.Core.Update.UpdateMode.Automatic;
+        }
 
         // Encoche de la caméra : « À gauche » et « À droite » n'ont jamais rien
         // fait ; ils deviennent l'encoche ordinaire, qui, elle, agit.

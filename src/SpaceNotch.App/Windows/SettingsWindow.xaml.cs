@@ -289,6 +289,7 @@ public sealed partial class SettingsWindow : Window
         AssistantSourceBox.ItemsSource = new[] { Lang.T("Aucun", "None"), Lang.T("Windows (sur l’appareil)", "Windows (on device)"), "Claude" };
 
         DensityBox.ItemsSource = new[] { Lang.T("Compacte", "Compact"), Lang.T("Confortable", "Comfortable"), Lang.T("Aérée", "Airy") };
+        UpdateModeBox.ItemsSource = new[] { Lang.T("Désactivées", "Off"), Lang.T("Me prévenir", "Ask me"), Lang.T("Automatiques", "Automatic") };
         CutoutBox.ItemsSource = new[] { Lang.T("Aucune", "None"), Lang.T("Ordinaire (200 px)", "Standard (200 px)"), Lang.T("Personnalisée", "Custom") };
 
         // L'ordre suit l'énumération MotionStyle : l'index sélectionné en est la valeur.
@@ -314,6 +315,7 @@ public sealed partial class SettingsWindow : Window
             BackdropBox.SelectedIndex = (int)settings.BackdropMode;
             DisplayBox.SelectedIndex = (int)settings.DisplayMode;
             CutoutBox.SelectedIndex = CutoutIndex(settings.CutoutMode);
+            UpdateModeBox.SelectedIndex = (int)settings.UpdateMode;
             CutoutWidthSlider.Value = SpaceNotch.Core.Presentation.CameraCutout.WidthFor(true, settings.CutoutWidth);
 
             DensityBox.SelectedIndex = (int)settings.Density;
@@ -679,6 +681,9 @@ public sealed partial class SettingsWindow : Window
             2 => CameraCutoutMode.Custom,
             _ => CameraCutoutMode.None
         });
+
+    private void OnUpdateModeChanged(object sender, SelectionChangedEventArgs e)
+        => Apply(s => s.UpdateMode = (SpaceNotch.Core.Update.UpdateMode)Math.Clamp(UpdateModeBox.SelectedIndex, 0, 2));
 
     private void OnCutoutWidthChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
         => ApplyContinuous(s => s.CutoutWidth = e.NewValue);
