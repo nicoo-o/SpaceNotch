@@ -321,7 +321,10 @@ public static class Detachment
             }
             : pill;
 
-        if (ReachesReattach(projected, work, attachCenterX))
+        // Lâchée là où vit la notch, elle s'y raccroche, quel que soit l'élan :
+        // projetée, une pastille lancée vers le haut depuis un coin dépassait
+        // le centre et filait vers l'aimant du coin opposé (audit SN-08).
+        if (ReachesReattach(pill, work, attachCenterX) || ReachesReattach(projected, work, attachCenterX))
         {
             return new FloatingTarget(FloatingLanding.Reattach, attachCenterX - (pill.Width / 2), work.Y);
         }

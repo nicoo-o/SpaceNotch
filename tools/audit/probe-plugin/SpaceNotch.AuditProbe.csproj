@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Greffon d'audit : hostile exprès (lent, bavard). Jamais livré. -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <EnableNETAnalyzers>false</EnableNETAnalyzers>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\SpaceNotch.Core\SpaceNotch.Core.csproj" Private="false" />
+  </ItemGroup>
+</Project>

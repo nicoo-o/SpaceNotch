@@ -8,7 +8,8 @@ namespace SpaceNotch.Core.State;
 public sealed class IslandStateManager
 {
     private readonly object _lock = new();
-    private readonly object _transitionLock = new();
+    private readonly System.Collections.Generic.Queue<IslandStateChangedEventArgs> _outbox = new();
+    private bool _delivering;
     private IslandState _currentState = IslandState.Closed;
 
     public IslandState CurrentState
@@ -26,31 +27,74 @@ public sealed class IslandStateManager
 
     /// <summary>
     /// Tente d'effectuer une transition d'état.
+    ///
+    /// <para>
+    /// Les changements sont annoncés dans leur ordre, chacun à tous les abonnés
+    /// avant le suivant (audit SN-22). Avant, un abonné qui changeait l'état
+    /// depuis son gestionnaire faisait livrer la transition imbriquée avant que
+    /// les abonnés suivants aient appris la première.
+    /// </para>
     /// </summary>
     public bool TryTransitionTo(IslandState targetState)
     {
-        lock (_transitionLock)
+        lock (_lock)
         {
-            IslandState oldState;
+            if (_currentState == targetState)
+            {
+                return false;
+            }
+
+            if (!IsValidTransition(_currentState, targetState))
+            {
+                return false;
+            }
+
+            _outbox.Enqueue(new IslandStateChangedEventArgs(_currentState, targetState));
+            _currentState = targetState;
+        }
+
+        Deliver();
+        return true;
+    }
+
+    private void Deliver()
+    {
+        lock (_lock)
+        {
+            if (_delivering)
+            {
+                return;
+            }
+
+            _delivering = true;
+        }
+
+        while (true)
+        {
+            IslandStateChangedEventArgs change;
 
             lock (_lock)
             {
-                if (_currentState == targetState)
+                if (!_outbox.TryDequeue(out change!))
                 {
-                    return false;
+                    _delivering = false;
+                    return;
                 }
-
-                if (!IsValidTransition(_currentState, targetState))
-                {
-                    return false;
-                }
-
-                oldState = _currentState;
-                _currentState = targetState;
             }
 
-            StateChanged?.Invoke(this, new IslandStateChangedEventArgs(oldState, targetState));
-            return true;
+            try
+            {
+                StateChanged?.Invoke(this, change);
+            }
+            catch
+            {
+                lock (_lock)
+                {
+                    _delivering = false;
+                }
+
+                throw;
+            }
         }
     }
 

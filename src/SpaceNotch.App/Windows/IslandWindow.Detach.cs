@@ -521,7 +521,13 @@ public sealed partial class IslandWindow
     {
         DisplayInfo display = DetachDisplay();
         ScreenRect work = WorkAreaDip(display);
-        ScreenRect pill = NominalPillAt(_pillSpring.X, _pillSpring.Y);
+
+        // La destination se décide là où la main lâche, pas là où le ressort
+        // en est (audit SN-08) : glissée vite jusqu'au centre haut, la pastille
+        // traînait encore loin derrière le curseur, et l'élan projeté depuis ce
+        // retard l'envoyait à l'aimant d'un coin.
+        (double handX, double handY) = CursorDip();
+        ScreenRect pill = NominalPillAt(handX - _grabX, handY - _grabY);
 
         FloatingTarget target = Detachment.Land(
             pill,
@@ -960,6 +966,19 @@ public sealed partial class IslandWindow
         _dragPhase = DragPhase.Settling;
 
         HookDetachFrames();
+    }
+
+    /// <summary>Languette latérale : la notch revient au centre du bord haut.</summary>
+    private void ReturnSideTabToTop()
+    {
+        if (!UsesSideTab)
+        {
+            return;
+        }
+
+        CollapseByUser("languette ramenée en haut");
+        _controller.FinishMotion();
+        FinishReattach(NotchEdge.Top, 0.5);
     }
 
     /// <summary>Menu : raccroche au dernier bord.</summary>
@@ -1630,6 +1649,13 @@ public sealed partial class IslandWindow
         {
             SchedulePresenceRecheck();
         }
+    }
+
+    /// <summary>Oublie la dernière géométrie envoyée : la prochaine sera appliquée même identique.</summary>
+    private void ForgetWindowGeometry()
+    {
+        _lastWindowX = _lastWindowY = int.MinValue;
+        _lastWindowWidth = _lastWindowHeight = -1;
     }
 
     private DispatcherQueueTimer? _presenceRecheck;

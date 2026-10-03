@@ -83,10 +83,41 @@ public static class WindowChrome
             hWnd,
             NativeConstants.WS_EX_TOOLWINDOW
             | NativeConstants.WS_EX_NOACTIVATE
+            | NativeConstants.WS_EX_LAYERED
             | NativeConstants.WS_EX_TRANSPARENT);
+
+        // Une fenêtre superposée dont les attributs n'ont jamais été posés n'est
+        // pas traversée par la souris, malgré WS_EX_TRANSPARENT (audit SN-02,
+        // mesuré : WindowFromPoint rendait le halo, et le clic à côté de la
+        // notch n'atteignait pas l'application en dessous). Une opacité pleine
+        // ne change rien au rendu composé par WinUI.
+        NativeMethods.SetLayeredWindowAttributes(hWnd, 0, 255, NativeConstants.LWA_ALPHA);
 
         DisableDwmRounding(hWnd);
         ForceTopmost(hWnd);
+    }
+
+    /// <summary>
+    /// Rend aussi transparentes aux clics les fenêtres enfants de la surface
+    /// décorative. WinUI 3 reçoit la souris par des enfants
+    /// (<c>DesktopChildSiteBridge</c>, <c>InputSite</c>) créés après la fenêtre
+    /// et qui n'héritent pas de <c>WS_EX_TRANSPARENT</c> : sans cela, un clic
+    /// à côté de la notch, dans le halo, n'atteignait pas l'application en
+    /// dessous (audit SN-02). À rappeler après l'affichage et à chaque
+    /// redimensionnement, l'hôte pouvant recréer ses enfants.
+    /// </summary>
+    public static void MakeChildrenClickThrough(IntPtr hWnd)
+    {
+        if (hWnd == IntPtr.Zero)
+        {
+            return;
+        }
+
+        NativeMethods.EnumChildWindows(hWnd, (child, _) =>
+        {
+            AddExtendedStyles(child, NativeConstants.WS_EX_TRANSPARENT | NativeConstants.WS_EX_NOACTIVATE);
+            return true;
+        }, IntPtr.Zero);
     }
 
     /// <summary>
@@ -147,6 +178,27 @@ public static class WindowChrome
         if (enabled)
         {
             NativeMethods.SetFocus(hWnd);
+        }
+    }
+
+    /// <summary>Fenêtre actuellement au premier plan.</summary>
+    public static IntPtr Foreground() => NativeMethods.GetForegroundWindow();
+
+    /// <summary>
+    /// Rend le premier plan à <paramref name="previous"/> si la notch l'a encore :
+    /// après Échap, l'utilisateur retrouve sa fenêtre et peut taper sans cliquer
+    /// (audit SN-15). Rien si un autre clic a déjà choisi une autre fenêtre.
+    /// </summary>
+    public static void ReturnForeground(IntPtr self, IntPtr previous)
+    {
+        if (previous == IntPtr.Zero || previous == self || !NativeMethods.IsWindow(previous))
+        {
+            return;
+        }
+
+        if (NativeMethods.GetForegroundWindow() == self)
+        {
+            NativeMethods.SetForegroundWindow(previous);
         }
     }
 

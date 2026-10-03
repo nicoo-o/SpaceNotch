@@ -32,11 +32,19 @@ public sealed partial class IslandWindow
     /// <summary>Le temps de fermer les yeux avant que l'heure ne s'installe.</summary>
     private static readonly TimeSpan DozeClose = TimeSpan.FromMilliseconds(700);
 
-    /// <summary>Pose du survol, au repos, avant l'heure : un passage n'est pas une intention.</summary>
-    private static readonly TimeSpan RestPreviewDwell = TimeSpan.FromMilliseconds(500);
+    /// <summary>
+    /// Pose du survol, au repos, avant l'heure : un passage n'est pas une
+    /// intention. 0,35 s : les yeux répondent déjà au survol (moins de 0,1 s),
+    /// et la transition C ajoute plus d'une demi-seconde ; à 0,5 s, l'heure
+    /// mettait plus d'une seconde à se lire.
+    /// </summary>
+    private static readonly TimeSpan RestPreviewDwell = TimeSpan.FromMilliseconds(350);
 
-    /// <summary>L'heure reste ce temps après le départ du curseur.</summary>
-    private static readonly TimeSpan RestPreviewGrace = TimeSpan.FromSeconds(2);
+    /// <summary>
+    /// L'heure reste ce temps après le départ du curseur : de quoi finir de la
+    /// lire, sans qu'elle s'attarde quand la main est déjà ailleurs (2 s avant).
+    /// </summary>
+    private static readonly TimeSpan RestPreviewGrace = TimeSpan.FromMilliseconds(1200);
 
     /// <summary>Durées de la transition C.</summary>
     private static readonly TimeSpan MorphGather = TimeSpan.FromMilliseconds(300);
@@ -104,7 +112,7 @@ public sealed partial class IslandWindow
     /// <summary>Arme la surveillance de l'inactivité tant que le repos est montré.</summary>
     private void ArmDozeWatch(bool atRest)
     {
-        if (!atRest || !PixelAtRest)
+        if (!atRest || !PixelAtRest || _sessionLocked)
         {
             _dozeTimer?.Stop();
             return;

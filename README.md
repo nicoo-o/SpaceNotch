@@ -77,9 +77,9 @@ flows back home.
 
 <table>
   <tr>
-    <td width="33%" valign="top"><h3>Quiet</h3>Nothing runs when nothing happens. No polling, no background animation — just a still shape at the top of your screen.</td>
+    <td width="33%" valign="top"><h3>Quiet</h3>Almost nothing runs when nothing happens: under 0.1&nbsp;% CPU at rest, measured. No background animation — just a still shape at the top of your screen.</td>
     <td width="33%" valign="top"><h3>Respectful</h3>It steps aside when a game or a video goes fullscreen, and never pops open for a volume change.</td>
-    <td width="33%" valign="top"><h3>Private</h3>No account, no telemetry, no network calls. Everything stays on your PC.</td>
+    <td width="33%" valign="top"><h3>Private</h3>No account, no telemetry. The only connection made by default is the update check against GitHub (every 6&nbsp;h, can be turned off in Settings). Weather, lyrics, Spotify and the assistant connect only once you turn them on.</td>
   </tr>
   <tr>
     <td width="33%" valign="top"><h3>Deep black</h3>Pure OLED black with soft, concave shoulders, as if the screen itself had grown a little.</td>

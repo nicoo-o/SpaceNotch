@@ -37,6 +37,7 @@ public sealed partial class IslandWindow
     private DownloadedUpdate? _pendingUpdate;
     private bool _updateChecking;
     private bool _updateInstalling;
+    private DateTimeOffset? _updateOfferedAt;
 
     private static Version CurrentVersion
         => UpdateRules.Normalize(typeof(IslandWindow).Assembly.GetName().Version ?? new Version(1, 0, 0));
@@ -101,7 +102,7 @@ public sealed partial class IslandWindow
             }
 
             MiniLogger.Log($"[MISE À JOUR] {latest.Tag} disponible : téléchargement");
-            DownloadedUpdate? downloaded = await _updateClient.DownloadAsync(latest, message => MiniLogger.Log($"[MISE À JOUR] {message}"));
+            DownloadedUpdate? downloaded = await _updateClient.DownloadAsync(latest, MiniLogger.Log);
 
             if (downloaded is null || _isClosed)
             {
@@ -153,8 +154,16 @@ public sealed partial class IslandWindow
                 break;
 
             case UpdateAction.Offer:
+                // Une seule proposition par période de report : ignorée, elle
+                // vaut « Plus tard » au lieu de revenir chaque minute.
+                if (_updateOfferedAt is { } offered && DateTimeOffset.Now - offered < UpdateRules.Postpone)
+                {
+                    break;
+                }
+
                 if (!_activityManager.GetActiveActivities().Any(a => a.Id == UpdateFeature.ActivityId))
                 {
+                    _updateOfferedAt = DateTimeOffset.Now;
                     _updateFeature?.ShowReady(update.Release.Version, installed);
                 }
 
@@ -194,7 +203,7 @@ public sealed partial class IslandWindow
 
             _updateFeature?.ShowInstalling(update.Release.Version);
 
-            if (!UpdateClient.StartInstall(update.SetupPath, product.Options, message => MiniLogger.Log($"[MISE À JOUR] {message}")))
+            if (!UpdateClient.StartInstall(update.SetupPath, product.Options, MiniLogger.Log))
             {
                 _updateFeature?.Clear();
                 return;

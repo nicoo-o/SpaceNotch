@@ -128,5 +128,5 @@ public sealed partial class QuietScene : UserControl, IIslandSceneView
     }
 
     private static Brush? Brush(string key)
-        => Application.Current.Resources.TryGetValue(key, out object? value) ? value as Brush : null;
+        => SpaceNotch_App.UI.ThemeBrushes.Get(key);
 }

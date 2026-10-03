@@ -20,16 +20,26 @@ public sealed class IslandFeatureRegistry : IAsyncDisposable
 {
     private readonly IIslandFeature[] _features;
     private readonly Action<string, Exception>? _onFault;
+    private readonly Func<IIslandFeature, bool>? _startsOffThread;
     private bool _disposed;
 
+    /// <param name="features">Fonctionnalités, dans l'ordre de démarrage.</param>
+    /// <param name="onFault">Signalement d'un échec isolé.</param>
+    /// <param name="startsOffThread">
+    /// Fonctionnalités démarrées hors du fil de l'appelant, sans être attendues :
+    /// les greffons (audit SN-20). Un greffon dont le démarrage bloque ne retarde
+    /// plus l'affichage de la notch ni le démarrage des autres.
+    /// </param>
     public IslandFeatureRegistry(
         IEnumerable<IIslandFeature> features,
-        Action<string, Exception>? onFault = null)
+        Action<string, Exception>? onFault = null,
+        Func<IIslandFeature, bool>? startsOffThread = null)
     {
         ArgumentNullException.ThrowIfNull(features);
 
         _features = features.ToArray();
         _onFault = onFault;
+        _startsOffThread = startsOffThread;
 
         foreach (IIslandFeature feature in _features)
         {
@@ -64,6 +74,12 @@ public sealed class IslandFeatureRegistry : IAsyncDisposable
                 continue;
             }
 
+            if (_startsOffThread?.Invoke(feature) == true)
+            {
+                _ = StartDetachedAsync(feature, cancellationToken);
+                continue;
+            }
+
             try
             {
                 // Sur le fil de l'appelant (phase E) : après le premier démarrage
@@ -76,6 +92,19 @@ public sealed class IslandFeatureRegistry : IAsyncDisposable
                 // ceinture protège d'une implémentation tierce qui ne le ferait pas.
                 _onFault?.Invoke(feature.Id, ex);
             }
+        }
+    }
+
+    private async Task StartDetachedAsync(IIslandFeature feature, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Task.Run absorbe aussi un démarrage qui bloque avant son premier await.
+            await Task.Run(() => feature.StartAsync(cancellationToken), cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _onFault?.Invoke(feature.Id, ex);
         }
     }
 

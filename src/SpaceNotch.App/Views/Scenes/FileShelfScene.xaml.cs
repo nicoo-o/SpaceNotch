@@ -198,9 +198,7 @@ public sealed partial class FileShelfScene : UserControl, IIslandSceneView
     private void OnClearClicked(object sender, RoutedEventArgs e) => Raise(FileShelfManager.ClearAction);
 
     private static Brush Brush(string key)
-        => Application.Current.Resources.TryGetValue(key, out object value) && value is Brush brush
-            ? brush
-            : new SolidColorBrush(Colors.White);
+        => SpaceNotch_App.UI.ThemeBrushes.Get(key, new SolidColorBrush(Colors.White));
 
     private void Raise(string actionId, string? value = null)
         => ActionRequested?.Invoke(this, new IslandActionRequest(_activityId ?? FileShelfManager.ShelfActivityId, actionId, value));

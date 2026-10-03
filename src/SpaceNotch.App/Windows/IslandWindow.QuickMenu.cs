@@ -35,7 +35,7 @@ public sealed partial class IslandWindow
 
         if (_quickMenuFeature.IsShown && _controller.State != IslandState.Closed)
         {
-            _controller.RequestCollapse();
+            CollapseByUser("menu rapide");
             return;
         }
 
@@ -100,7 +100,7 @@ public sealed partial class IslandWindow
                 if (request.Value == "0")
                 {
                     _timerFeature.Reset();
-                    _controller.RequestCollapse();
+                    CollapseByUser("menu rapide");
                     return true;
                 }
 
@@ -123,19 +123,19 @@ public sealed partial class IslandWindow
 
             case QuickMenuFeature.DetachAction:
                 CloseQuickMenu();
-                _controller.RequestCollapse();
+                CollapseByUser("menu rapide");
                 ScheduleDetachFromMenu();
                 return true;
 
             case QuickMenuFeature.DockAction:
                 CloseQuickMenu();
-                _controller.RequestCollapse();
+                CollapseByUser("menu rapide");
                 DockFromMenu(Enum.TryParse(request.Value, out NotchEdge edge) ? edge : NotchEdge.Top);
                 return true;
 
             case QuickMenuFeature.SettingsAction:
                 CloseQuickMenu();
-                _controller.RequestCollapse();
+                CollapseByUser("menu rapide");
                 OpenSettingsWindow();
                 return true;
 
@@ -168,7 +168,7 @@ public sealed partial class IslandWindow
         else
         {
             _activityManager.PinPresentation(null);
-            _controller.RequestCollapse();
+            CollapseByUser("menu rapide");
         }
     }
 

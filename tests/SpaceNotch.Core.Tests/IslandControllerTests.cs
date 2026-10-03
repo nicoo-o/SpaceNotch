@@ -231,4 +231,52 @@ public sealed class IslandControllerTests
         controller.EndDragTarget();
         Assert.Equal(new IslandFootprint(130, 28), animator.Target);
     }
+
+    [Fact]
+    public void Ouverte_par_l_utilisateur_puis_d_elle_meme_SN07()
+    {
+        (IslandController controller, FakeAnimator animator, ActivityManager activities) = Create();
+
+        activities.PostActivity(Music());
+        controller.RequestExpand();
+        animator.Settle();
+        Assert.True(controller.OpenedByUser);
+
+        controller.RequestCollapse();
+        animator.Settle();
+        Assert.Equal(IslandState.Closed, controller.State);
+        Assert.False(controller.OpenedByUser);
+
+        // Une erreur qui s'ouvre d'elle-même n'est pas « ouverte par l'utilisateur » :
+        // elle pourra expirer.
+        activities.PostActivity(new IslandActivity
+        {
+            Id = "error",
+            FeatureId = "feature.agents",
+            SceneKey = IslandSceneCatalog.Card,
+            Title = "Échec",
+            Priority = ActivityPriority.High
+        });
+        Assert.False(controller.OpenedByUser);
+    }
+
+    [Fact]
+    public void Une_transition_sans_images_se_termine_sur_demande_SN24()
+    {
+        (IslandController controller, FakeAnimator animator, ActivityManager activities) = Create();
+
+        activities.PostActivity(Music());
+        controller.RequestExpand();
+        Assert.Equal(IslandState.Expanding, controller.State);
+
+        controller.FinishMotion();
+        Assert.Equal(IslandState.Expanded, controller.State);
+
+        controller.RequestCollapse();
+        Assert.Equal(IslandState.Collapsing, controller.State);
+
+        controller.FinishMotion();
+        Assert.Equal(IslandState.Closed, controller.State);
+        Assert.Equal(Rest, animator.Current);
+    }
 }

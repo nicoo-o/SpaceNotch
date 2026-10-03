@@ -29,6 +29,11 @@ public sealed partial class IslandWindow
 
     private void StartMagnet()
     {
+        if (_sessionLocked)
+        {
+            return;
+        }
+
         _magnetTimer ??= CreateMagnetTimer();
         _magnetTimer.Start();
     }

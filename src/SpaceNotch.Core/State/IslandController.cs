@@ -315,6 +315,24 @@ public sealed class IslandController : IDisposable
     }
 
     /// <summary>
+    /// Termine sur-le-champ une ouverture ou une fermeture en cours (audit
+    /// SN-24). Le ressort n'avance qu'avec les images rendues : une notch
+    /// retirée devant un plein écran n'en reçoit plus, et restait en
+    /// <c>Expanding</c> ou <c>Collapsing</c> jusqu'à son retour, refusant les
+    /// transitions entre-temps.
+    /// </summary>
+    public void FinishMotion()
+    {
+        if (State is not (IslandState.Expanding or IslandState.Collapsing))
+        {
+            return;
+        }
+
+        _animator.SnapTo(FootprintForState());
+        Settle();
+    }
+
+    /// <summary>
     /// Premier temps de la respiration : la forme au repos se resserre un
     /// instant, avec le ressort vif de l'effleurement.
     /// </summary>
@@ -476,10 +494,26 @@ public sealed class IslandController : IDisposable
     }
 
     /// <summary>
+    /// Vrai quand l'ouverture en cours vient de l'utilisateur (clic, raccourci,
+    /// tirer, survol prolongé), faux quand une activité s'est ouverte d'elle-même.
+    /// Seule la première épargne son activité de l'expiration : une erreur
+    /// ouverte toute seule devant un écran vide finit par se retirer (audit SN-07).
+    /// </summary>
+    public bool OpenedByUser { get; private set; }
+
+    /// <summary>
     /// Ouvre l'Island sur la scène de l'activité présentée. Sans activité, il n'y
     /// a rien à ouvrir : c'est la scène qui fournit l'encombrement.
     /// </summary>
-    public void RequestExpand() => RequestExpand(null);
+    public void RequestExpand()
+    {
+        if (_presented is not null)
+        {
+            OpenedByUser = true;
+        }
+
+        RequestExpand(null);
+    }
 
     /// <summary>
     /// Ouverture d'elle-même : le ressort dit l'importance (A7). Une
@@ -702,6 +736,11 @@ public sealed class IslandController : IDisposable
 
         if (claimsAttention && _announcedActivities.Add(activity.Id))
         {
+            if (State is not (IslandState.Expanded or IslandState.Expanding))
+            {
+                OpenedByUser = false;
+            }
+
             RequestExpand(activity.Priority);
             return;
         }
@@ -785,6 +824,11 @@ public sealed class IslandController : IDisposable
             case IslandState.Collapsing:
                 _stateManager.TryTransitionTo(IslandState.Closed);
                 break;
+        }
+
+        if (State == IslandState.Closed)
+        {
+            OpenedByUser = false;
         }
 
         // La notch vient de se refermer sur une activité qui attendait : elle est
