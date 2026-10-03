@@ -37,11 +37,15 @@ public sealed partial class IslandWindow
     /// <summary>La visite filmée n'a ni clavier ni souris : Pixel ne doit pas s'y endormir.</summary>
     private bool _touring;
 
+    /// <summary>Valeur de Pixel avant la visite, rendue à la fin.</summary>
+    private bool _tourPixelWas;
+
     public void StartTour()
     {
         _tourSteps = BuildTour();
         _tourIndex = 0;
         _touring = true;
+        _tourPixelWas = _settings.ShowPixel;
         MiniLogger.Log($"[TOUR] visite lancée : {_tourSteps.Count} états");
 
         _tourTimer ??= CreateOneShotTimer(TourStep, NextTourStep);
@@ -55,6 +59,11 @@ public sealed partial class IslandWindow
         {
             MiniLogger.Log("[TOUR] fin");
             MiniLogger.Log(_shadow.Summary);
+
+            // La visite allume et éteint Pixel pour ses besoins : elle rend la
+            // valeur choisie par l'utilisateur (audit SN-13).
+            _settings.ShowPixel = _tourPixelWas;
+            Render();
             return;
         }
 

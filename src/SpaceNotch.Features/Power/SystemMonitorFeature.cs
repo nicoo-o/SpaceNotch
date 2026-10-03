@@ -38,7 +38,15 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
     /// <summary>Rouge de l'alerte.</summary>
     public static readonly ActivityTint Red = new(0xFF, 0x6B, 0x6B);
 
-    private static readonly TimeSpan Period = TimeSpan.FromSeconds(2);
+    /// <summary>Échantillonnage quand le processeur chauffe ou qu'une alerte est en cours.</summary>
+    private static readonly TimeSpan BusyPeriod = TimeSpan.FromSeconds(2);
+
+    /// <summary>
+    /// Échantillonnage au calme (audit SN-12) : l'alerte exige 20 s au-dessus du
+    /// seuil, une mesure toutes les 5 s suffit à voir monter la charge, et le
+    /// processeur d'un portable au repos est réveillé deux fois et demie moins.
+    /// </summary>
+    private static readonly TimeSpan CalmPeriod = TimeSpan.FromSeconds(5);
 
     private readonly CpuSampler _sampler = new();
     private readonly CpuWatch _watch = new();
@@ -46,6 +54,7 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
     private readonly object _gate = new();
     private HeavyProcess? _heaviest;
     private double _last;
+    private volatile bool _sampling;
 
     public SystemMonitorFeature(IActivityManager activities, IEventBus events, bool isEnabled = true)
         : base(FeatureKey, "Moniteur", activities, events, isEnabled)
@@ -56,12 +65,14 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
     protected override Task OnStartAsync(CancellationToken cancellationToken)
     {
         _sampler.Sample();
-        _timer.Change(Period, Period);
+        _sampling = true;
+        _timer.Change(CalmPeriod, Timeout.InfiniteTimeSpan);
         return Task.CompletedTask;
     }
 
     protected override Task OnStopAsync()
     {
+        _sampling = false;
         _timer.Change(Timeout.Infinite, Timeout.Infinite);
         RemoveActivity(ActivityId);
         return Task.CompletedTask;
@@ -71,6 +82,11 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
 
     private void Tick()
     {
+        if (!_sampling)
+        {
+            return;
+        }
+
         try
         {
             Add(_sampler.Sample(), DateTimeOffset.UtcNow);
@@ -78,6 +94,27 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
         catch (Exception ex)
         {
             ReportError(ex);
+        }
+
+        if (!_sampling)
+        {
+            return;
+        }
+
+        bool busy;
+
+        lock (_gate)
+        {
+            busy = _watch.IsAlerting || _last >= CpuWatch.Release;
+        }
+
+        try
+        {
+            _timer.Change(busy ? BusyPeriod : CalmPeriod, Timeout.InfiniteTimeSpan);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Arrêtée pendant la mesure.
         }
     }
 

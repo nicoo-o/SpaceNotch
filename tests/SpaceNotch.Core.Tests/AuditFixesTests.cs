@@ -159,4 +159,56 @@ public sealed class AuditFixesTests
         Assert.Equal(FloatingLanding.Reattach, target.Landing);
         Assert.Equal(Work.Y, target.Y);
     }
+
+    // ------------------------------------------------------------------
+    // SN-21 et SN-22 : les changements sont annoncés dans leur ordre
+    // ------------------------------------------------------------------
+
+    [Fact]
+    public void Un_abonne_qui_publie_ne_fait_pas_passer_son_evenement_avant_les_autres()
+    {
+        var manager = new ActivityManager();
+        var seen = new System.Collections.Generic.List<string?>();
+
+        manager.ActiveActivityChanged += (_, activity) =>
+        {
+            if (activity?.Id == "a")
+            {
+                manager.PostActivity(new IslandActivity
+                {
+                    Id = "b",
+                    FeatureId = "feature.host",
+                    SceneKey = IslandSceneCatalog.Card,
+                    Title = "plus important",
+                    Priority = ActivityPriority.High
+                });
+            }
+        };
+        manager.ActiveActivityChanged += (_, activity) => seen.Add(activity?.Id);
+
+        manager.PostActivity(Activity("a"));
+
+        Assert.Equal(["a", "b"], seen);
+        Assert.Equal("b", manager.CurrentActivity?.Id);
+    }
+
+    [Fact]
+    public void Une_transition_imbriquee_est_annoncee_apres_la_premiere()
+    {
+        var states = new SpaceNotch.Core.State.IslandStateManager();
+        var seen = new System.Collections.Generic.List<string>();
+
+        states.StateChanged += (_, e) =>
+        {
+            if (e.NewState == SpaceNotch.Core.State.IslandState.Expanding)
+            {
+                states.TryTransitionTo(SpaceNotch.Core.State.IslandState.Collapsing);
+            }
+        };
+        states.StateChanged += (_, e) => seen.Add($"{e.OldState}>{e.NewState}");
+
+        Assert.True(states.TryTransitionTo(SpaceNotch.Core.State.IslandState.Expanding));
+
+        Assert.Equal(["Closed>Expanding", "Expanding>Collapsing"], seen);
+    }
 }

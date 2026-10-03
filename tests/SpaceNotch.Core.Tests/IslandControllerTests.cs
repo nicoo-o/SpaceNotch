@@ -259,4 +259,24 @@ public sealed class IslandControllerTests
         });
         Assert.False(controller.OpenedByUser);
     }
+
+    [Fact]
+    public void Une_transition_sans_images_se_termine_sur_demande_SN24()
+    {
+        (IslandController controller, FakeAnimator animator, ActivityManager activities) = Create();
+
+        activities.PostActivity(Music());
+        controller.RequestExpand();
+        Assert.Equal(IslandState.Expanding, controller.State);
+
+        controller.FinishMotion();
+        Assert.Equal(IslandState.Expanded, controller.State);
+
+        controller.RequestCollapse();
+        Assert.Equal(IslandState.Collapsing, controller.State);
+
+        controller.FinishMotion();
+        Assert.Equal(IslandState.Closed, controller.State);
+        Assert.Equal(Rest, animator.Current);
+    }
 }

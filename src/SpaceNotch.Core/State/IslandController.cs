@@ -315,6 +315,24 @@ public sealed class IslandController : IDisposable
     }
 
     /// <summary>
+    /// Termine sur-le-champ une ouverture ou une fermeture en cours (audit
+    /// SN-24). Le ressort n'avance qu'avec les images rendues : une notch
+    /// retirée devant un plein écran n'en reçoit plus, et restait en
+    /// <c>Expanding</c> ou <c>Collapsing</c> jusqu'à son retour, refusant les
+    /// transitions entre-temps.
+    /// </summary>
+    public void FinishMotion()
+    {
+        if (State is not (IslandState.Expanding or IslandState.Collapsing))
+        {
+            return;
+        }
+
+        _animator.SnapTo(FootprintForState());
+        Settle();
+    }
+
+    /// <summary>
     /// Premier temps de la respiration : la forme au repos se resserre un
     /// instant, avec le ressort vif de l'effleurement.
     /// </summary>

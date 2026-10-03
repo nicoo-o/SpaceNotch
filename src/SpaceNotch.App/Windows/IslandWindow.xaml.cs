@@ -2147,6 +2147,7 @@ public sealed partial class IslandWindow : Window
         }
 
         _islandShown = false;
+        _controller.FinishMotion();
         _atmosphere.SetVisible(false);
         _appWindow.Hide();
         UpdateBubble();
@@ -2619,6 +2620,12 @@ public sealed partial class IslandWindow : Window
         // dans le délai de grâce retrouve l'aperçu au lieu de le faire renaître.
         _previewExitTimer?.Stop();
 
+        // Sortie parasite (la forme a bougé sous le pointeur) : les poses en
+        // cours continuent au lieu de repartir de zéro. Sans cela, la seconde du
+        // survol prolongé recommençait à chaque image de l'aperçu qui grandit.
+        bool resumed = _hoverLeaveTimer is { IsRunning: true };
+        _hoverLeaveTimer?.Stop();
+
         // La main qui tient la notch passe sans cesse sur elle : ce n'est pas un
         // survol, et la forme ne doit pas changer sous elle.
         if (_dragPhase != DragPhase.None)
@@ -2626,8 +2633,13 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        // Survol prolongé : environ une seconde de pose ouvre la notch, si
+        // Survol prolongé : 0,8 s de pose ouvre la notch, si
         // l'utilisateur l'a choisi. La pose courte reste un simple aperçu.
+        if (resumed)
+        {
+            return;
+        }
+
         if (_settings.HoverToExpand && _controller.PresentedActivity is not null)
         {
             _hoverExpandTimer ??= CreateOneShotTimer(HoverExpandDwell, OnHoverExpandTick);
@@ -2712,9 +2724,15 @@ public sealed partial class IslandWindow : Window
         RearmExpirationTimer();
 
         // Un passage trop bref n'a jamais été une intention : l'aperçu n'a pas
-        // lieu du tout.
-        _previewEnterTimer?.Stop();
-        _hoverExpandTimer?.Stop();
+        // lieu du tout. L'annulation attend un instant : une sortie suivie d'une
+        // entrée immédiate n'est que la forme qui bouge sous le pointeur.
+        _hoverLeaveTimer ??= CreateOneShotTimer(HoverLeaveDebounce, () =>
+        {
+            _previewEnterTimer?.Stop();
+            _hoverExpandTimer?.Stop();
+        });
+        _hoverLeaveTimer.Stop();
+        _hoverLeaveTimer.Start();
 
         if (_dragPhase != DragPhase.None)
         {
@@ -2759,11 +2777,20 @@ public sealed partial class IslandWindow : Window
     }
 
     /// <summary>
-    /// Pose avant qu'un survol ouvre la notch, quand l'option est active. Une
-    /// seconde : au-delà des 0,3 à 0,5 s de l'intention, pour qu'un pointeur
-    /// qui ne fait que s'attarder n'ouvre rien.
+    /// Pose avant qu'un survol ouvre la notch, quand l'option est active :
+    /// 0,8 s, au-delà des 0,3 à 0,5 s de l'intention pour qu'un pointeur qui ne
+    /// fait que s'attarder n'ouvre rien. L'aperçu, venu à 0,22 s, annonce déjà
+    /// l'ouverture : une seconde pleine paraissait une attente.
     /// </summary>
-    private static readonly TimeSpan HoverExpandDwell = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan HoverExpandDwell = TimeSpan.FromMilliseconds(800);
+
+    /// <summary>
+    /// Une sortie plus courte que ceci, suivie d'une entrée, n'en est pas une :
+    /// c'est la forme qui a bougé sous le pointeur pendant l'animation.
+    /// </summary>
+    private static readonly TimeSpan HoverLeaveDebounce = TimeSpan.FromMilliseconds(140);
+
+    private DispatcherQueueTimer? _hoverLeaveTimer;
 
     private DispatcherQueueTimer? _hoverExpandTimer;
 
@@ -2775,8 +2802,14 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private static readonly TimeSpan PreviewEnterDwell = TimeSpan.FromMilliseconds(220);
 
-    /// <summary>Délai de grâce avant que l'aperçu ne se retire.</summary>
-    private static readonly TimeSpan PreviewExitGrace = TimeSpan.FromMilliseconds(1500);
+    /// <summary>
+    /// Délai de grâce avant que l'aperçu ne se retire. Il était de 1,5 s : la
+    /// notch restait descendue longtemps après le départ de la main, et le geste
+    /// suivant (viser un onglet, une barre d'adresse) se faisait sous elle. Les
+    /// allers-retours de l'animation sont absorbés par l'anti-rebond ; il ne
+    /// reste qu'à pardonner un pointeur qui dépasse un peu.
+    /// </summary>
+    private static readonly TimeSpan PreviewExitGrace = TimeSpan.FromMilliseconds(600);
 
     /// <summary>
     /// Clic sur l'Island.

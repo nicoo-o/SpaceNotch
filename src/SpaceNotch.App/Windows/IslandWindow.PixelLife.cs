@@ -133,15 +133,47 @@ public sealed partial class IslandWindow
         if (change == SessionNotifications.SessionLock)
         {
             _byeStart = DateTime.UtcNow;
-        }
-        else if (change == SessionNotifications.SessionUnlock)
-        {
-            _byeStart = DateTime.MinValue;
-            _helloStart = DateTime.UtcNow;
+            PixelTick();
+
+            // Session verrouillée (audit SN-23) : une fois l'au revoir joué,
+            // regard, clignement, constantes, assoupissement et aimant
+            // s'arrêtent. Ils tournaient toute la nuit derrière l'écran de
+            // verrouillage.
+            _lockSuspendTimer ??= CreateOneShotTimer(ByeDuration + TimeSpan.FromMilliseconds(200), () =>
+            {
+                if (_sessionLocked)
+                {
+                    SuspendLife(true);
+                }
+            });
+            _sessionLocked = true;
+            _lockSuspendTimer.Stop();
+            _lockSuspendTimer.Start();
+            return;
         }
 
-        PixelTick();
+        if (change == SessionNotifications.SessionUnlock)
+        {
+            _lockSuspendTimer?.Stop();
+            bool wasLocked = _sessionLocked;
+            _sessionLocked = false;
+            _byeStart = DateTime.MinValue;
+            _helloStart = DateTime.UtcNow;
+
+            if (wasLocked && _islandShown)
+            {
+                // Reprend par le rendu : les yeux se rouvrent sur un bonjour.
+                SuspendLife(false);
+            }
+
+            PixelTick();
+        }
     }
+
+    /// <summary>Vrai entre le verrouillage de la session et son déverrouillage.</summary>
+    private bool _sessionLocked;
+
+    private DispatcherQueueTimer? _lockSuspendTimer;
 
     /// <summary>
     /// Ce que la vie de Pixel impose au regard et à la forme, à cet instant.

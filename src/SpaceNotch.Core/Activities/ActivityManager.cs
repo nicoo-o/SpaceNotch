@@ -95,12 +95,14 @@ public sealed class ActivityManager : IActivityManager
             _pinnedActivityId = activityId;
             next = EvaluateTop();
             _currentActivity = next;
+
+            if (!ReferenceEquals(previous, next))
+            {
+                EnqueueChanged(next);
+            }
         }
 
-        if (!ReferenceEquals(previous, next))
-        {
-            ActiveActivityChanged?.Invoke(this, next);
-        }
+        Deliver();
     }
 
     /// <summary>
@@ -135,9 +137,10 @@ public sealed class ActivityManager : IActivityManager
             next = ordered[target];
             _pinnedActivityId = next.Id;
             _currentActivity = next;
+            EnqueueChanged(next);
         }
 
-        ActiveActivityChanged?.Invoke(this, next);
+        Deliver();
         return true;
     }
 
@@ -175,24 +178,26 @@ public sealed class ActivityManager : IActivityManager
 
             next = EvaluateTop();
             _currentActivity = next;
-        }
 
-        if (evicted is not null)
-        {
-            foreach (IslandActivity removed in evicted)
+            if (evicted is not null)
             {
-                ActivityRemoved?.Invoke(this, removed);
+                foreach (IslandActivity removed in evicted)
+                {
+                    EnqueueRemoved(removed);
+                }
             }
+
+            // On notifie aussi lorsqu'une activité déjà en tête est republiée : son
+            // contenu a changé, l'affichage doit suivre.
+            if (!ReferenceEquals(previous, next) || ReferenceEquals(next, activity))
+            {
+                EnqueueChanged(next);
+            }
+
+            _outbox.Enqueue(() => ActivityPosted?.Invoke(this, activity));
         }
 
-        // On notifie aussi lorsqu'une activité déjà en tête est republiée : son
-        // contenu a changé, l'affichage doit suivre.
-        if (!ReferenceEquals(previous, next) || ReferenceEquals(next, activity))
-        {
-            ActiveActivityChanged?.Invoke(this, next);
-        }
-
-        ActivityPosted?.Invoke(this, activity);
+        Deliver();
     }
 
     /// <summary>
@@ -220,15 +225,16 @@ public sealed class ActivityManager : IActivityManager
             previous = _currentActivity;
             next = EvaluateTop();
             _currentActivity = next;
+
+            EnqueueRemoved(removed);
+
+            if (!ReferenceEquals(previous, next))
+            {
+                EnqueueChanged(next);
+            }
         }
 
-        ActivityRemoved?.Invoke(this, removed);
-
-        if (!ReferenceEquals(previous, next))
-        {
-            ActiveActivityChanged?.Invoke(this, next);
-        }
-
+        Deliver();
         return true;
     }
 
@@ -259,18 +265,19 @@ public sealed class ActivityManager : IActivityManager
             previous = _currentActivity;
             next = EvaluateTop();
             _currentActivity = next;
+
+            foreach (IslandActivity activity in removed)
+            {
+                EnqueueRemoved(activity);
+            }
+
+            if (!ReferenceEquals(previous, next))
+            {
+                EnqueueChanged(next);
+            }
         }
 
-        foreach (IslandActivity activity in removed)
-        {
-            ActivityRemoved?.Invoke(this, activity);
-        }
-
-        if (!ReferenceEquals(previous, next))
-        {
-            ActiveActivityChanged?.Invoke(this, next);
-        }
-
+        Deliver();
         return removed.Count;
     }
 
@@ -307,18 +314,19 @@ public sealed class ActivityManager : IActivityManager
             previous = _currentActivity;
             next = EvaluateTop();
             _currentActivity = next;
+
+            foreach (IslandActivity activity in expired)
+            {
+                EnqueueRemoved(activity);
+            }
+
+            if (!ReferenceEquals(previous, next))
+            {
+                EnqueueChanged(next);
+            }
         }
 
-        foreach (IslandActivity activity in expired)
-        {
-            ActivityRemoved?.Invoke(this, activity);
-        }
-
-        if (!ReferenceEquals(previous, next))
-        {
-            ActiveActivityChanged?.Invoke(this, next);
-        }
-
+        Deliver();
         return expired.Count;
     }
 
@@ -356,17 +364,19 @@ public sealed class ActivityManager : IActivityManager
             _activities.Clear();
             hadCurrent = _currentActivity is not null;
             _currentActivity = null;
+
+            foreach (IslandActivity activity in removed)
+            {
+                EnqueueRemoved(activity);
+            }
+
+            if (hadCurrent)
+            {
+                EnqueueChanged(null);
+            }
         }
 
-        foreach (IslandActivity activity in removed)
-        {
-            ActivityRemoved?.Invoke(this, activity);
-        }
-
-        if (hadCurrent)
-        {
-            ActiveActivityChanged?.Invoke(this, null);
-        }
+        Deliver();
     }
 
     /// <summary>
@@ -374,6 +384,67 @@ public sealed class ActivityManager : IActivityManager
     /// (retrait explicite, expiration ou éviction).
     /// </summary>
     public event EventHandler<IslandActivity>? ActivityRemoved;
+
+    // ------------------------------------------------------------------
+    // Livraison ordonnée (audit SN-21)
+    // ------------------------------------------------------------------
+
+    // Les événements sont mis en file sous le verrou, dans l'ordre exact des
+    // changements d'état, puis livrés hors verrou par un seul livreur à la fois.
+    // Avant, chaque appel les levait après avoir relâché le verrou : deux
+    // publications concurrentes pouvaient annoncer leurs têtes dans le désordre,
+    // et la notch afficher une activité périmée. Un abonné qui publie depuis son
+    // gestionnaire voit aussi son événement livré après les autres abonnés.
+    private readonly Queue<Action> _outbox = new();
+    private bool _delivering;
+
+    private void EnqueueChanged(IslandActivity? next)
+        => _outbox.Enqueue(() => ActiveActivityChanged?.Invoke(this, next));
+
+    private void EnqueueRemoved(IslandActivity removed)
+        => _outbox.Enqueue(() => ActivityRemoved?.Invoke(this, removed));
+
+    private void Deliver()
+    {
+        lock (_lock)
+        {
+            if (_delivering)
+            {
+                return;
+            }
+
+            _delivering = true;
+        }
+
+        while (true)
+        {
+            Action notify;
+
+            lock (_lock)
+            {
+                if (!_outbox.TryDequeue(out notify!))
+                {
+                    _delivering = false;
+                    return;
+                }
+            }
+
+            try
+            {
+                notify();
+            }
+            catch
+            {
+                // Un abonné qui lève ne bloque pas la file : le suivant livrera.
+                lock (_lock)
+                {
+                    _delivering = false;
+                }
+
+                throw;
+            }
+        }
+    }
 
     private static void Validate(IslandActivity activity)
     {

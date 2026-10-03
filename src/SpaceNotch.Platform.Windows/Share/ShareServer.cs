@@ -94,39 +94,32 @@ public sealed class ShareServer : IDisposable
 
     public void Dispose() => Stop();
 
+    /// <summary>
+    /// Accepte les connexions jusqu'au premier téléchargement valide.
+    ///
+    /// <para>
+    /// Chaque client est servi à part (audit SN-25) : avant, un client qui se
+    /// connectait sans rien envoyer — l'aperçu d'un navigateur, un voisin du
+    /// réseau — bloquait la boucle (le délai de lecture ne s'applique pas aux
+    /// lectures asynchrones), et une connexion coupée arrêtait le partage.
+    /// </para>
+    /// </summary>
     private async Task ServeAsync(ShareLink link, string path, CancellationToken token)
     {
         TcpListener? listener = _listener;
+        using var served = CancellationTokenSource.CreateLinkedTokenSource(token);
 
         try
         {
-            while (!token.IsCancellationRequested && listener is not null)
+            while (!served.IsCancellationRequested && listener is not null)
             {
-                using TcpClient client = await listener.AcceptTcpClientAsync(token).ConfigureAwait(false);
-                client.ReceiveTimeout = 5000;
-                using NetworkStream stream = client.GetStream();
-
-                string requestLine = await ReadLineAsync(stream, token).ConfigureAwait(false);
-
-                if (!File.Exists(path) || !link.TryClaim(requestLine, DateTimeOffset.UtcNow))
-                {
-                    byte[] notFound = Encoding.ASCII.GetBytes(ShareLink.NotFound);
-                    await stream.WriteAsync(notFound, token).ConfigureAwait(false);
-                    continue;
-                }
-
-                link.MarkUsed();
-                await using FileStream file = File.OpenRead(path);
-                byte[] headers = Encoding.ASCII.GetBytes(ShareLink.ResponseHeaders(link.FileName, file.Length));
-                await stream.WriteAsync(headers, token).ConfigureAwait(false);
-                await file.CopyToAsync(stream, token).ConfigureAwait(false);
-                Served?.Invoke();
-                break;
+                TcpClient client = await listener.AcceptTcpClientAsync(served.Token).ConfigureAwait(false);
+                _ = ServeClientAsync(client, link, path, served);
             }
         }
         catch (Exception)
         {
-            // Annulé, expiré ou connexion coupée : le partage s'arrête.
+            // Annulé, expiré ou servi : le partage s'arrête.
         }
         finally
         {
@@ -140,6 +133,57 @@ public sealed class ShareServer : IDisposable
             }
 
             Stopped?.Invoke();
+        }
+    }
+
+    /// <summary>Délai pour recevoir la ligne de requête d'un client.</summary>
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(5);
+
+    private async Task ServeClientAsync(TcpClient client, ShareLink link, string path, CancellationTokenSource served)
+    {
+        using (client)
+        {
+            try
+            {
+                NetworkStream stream = client.GetStream();
+                string requestLine;
+
+                using (var request = CancellationTokenSource.CreateLinkedTokenSource(served.Token))
+                {
+                    request.CancelAfter(RequestTimeout);
+                    requestLine = await ReadLineAsync(stream, request.Token).ConfigureAwait(false);
+                }
+
+                // TryClaim est à usage unique : un seul client peut l'emporter.
+                if (!File.Exists(path) || !link.TryClaim(requestLine, DateTimeOffset.UtcNow))
+                {
+                    byte[] notFound = Encoding.ASCII.GetBytes(ShareLink.NotFound);
+                    await stream.WriteAsync(notFound, served.Token).ConfigureAwait(false);
+                    return;
+                }
+
+                // Les connexions suivantes reçoivent « introuvable » : le lien est
+                // consommé. La boucle s'arrête après l'envoi, pour que « servi »
+                // précède « arrêté » comme avant.
+                link.MarkUsed();
+
+                await using FileStream file = File.OpenRead(path);
+                byte[] headers = Encoding.ASCII.GetBytes(ShareLink.ResponseHeaders(link.FileName, file.Length));
+                await stream.WriteAsync(headers, CancellationToken.None).ConfigureAwait(false);
+                await file.CopyToAsync(stream, CancellationToken.None).ConfigureAwait(false);
+                Served?.Invoke();
+            }
+            catch (Exception)
+            {
+                // Client lent, muet ou coupé : seul ce client est perdu.
+            }
+            finally
+            {
+                if (link.Used)
+                {
+                    await served.CancelAsync().ConfigureAwait(false);
+                }
+            }
         }
     }
 

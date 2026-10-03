@@ -562,11 +562,18 @@ public sealed class AppSettings
 
     /// <summary>
     /// Pixel (P1) : deux yeux de pixels dans la notch au repos, qui suivent le
-    /// curseur, clignent et dorment la nuit. Désactivé par défaut : il lit la
-    /// position du pointeur quelques fois par seconde, et la notch promet de ne
-    /// rien faire au repos tant qu'on ne le lui demande pas.
+    /// curseur, clignent et dorment la nuit. Activé par défaut (audit SN-13) :
+    /// c'est le visage du produit, et sans lui le repos n'était qu'un trait noir.
+    /// Le coût mesuré au repos reste sous 0,1 % d'un cœur.
     /// </summary>
-    public bool ShowPixel { get; set; }
+    public bool ShowPixel { get; set; } = true;
+
+    /// <summary>
+    /// Vrai une fois que Pixel a été proposé par défaut. Les configurations
+    /// écrites quand il était désactivé par défaut le reçoivent une fois ;
+    /// l'éteindre ensuite dans Réglages est respecté.
+    /// </summary>
+    public bool PixelDefaultApplied { get; set; }
 
     /// <summary>
     /// Rebonds (P3) : lancée fort, la notch détachée rebondit contre les bords
@@ -809,6 +816,12 @@ public sealed class AppSettings
         SpringStiffness = LegacySpringStiffness;
         SpringDamping = LegacySpringDamping;
         SpringMass = LegacySpringMass;
+
+        if (!PixelDefaultApplied)
+        {
+            ShowPixel = true;
+            PixelDefaultApplied = true;
+        }
     }
 
     /// <summary>
