@@ -69,3 +69,6 @@ spacenotch.log*
 
 # État local de l'agent / de l'IDE
 .freebuff/
+
+# Réglages personnels de Claude Code (les réglages partagés sont dans .claude/settings.json)
+.claude/settings.local.json
