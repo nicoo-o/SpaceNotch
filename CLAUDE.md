@@ -69,6 +69,19 @@ samples/                          greffon d'exemple, écrit comme le ferait un t
 - Une décision d'architecture s'écrit quand elle est prise : skill `/adr`, index dans
   `docs/decisions/README.md`.
 
+## Façon de travailler
+
+- superpowers est installé : ses plans et specs s'écrivent **en français**, dans `docs/plans/`
+  (pas `docs/superpowers/`). **Pas de brainstorming pour une tâche de moins de 20 minutes** : la
+  plupart des demandes sont courtes, les faire directement. Pas de worktree : une seule copie du
+  dépôt par machine.
+- Naviguer dans le C# avec le serveur MCP `cwm-roslyn-navigator` (`find_callers`,
+  `get_symbol_source`, `find_references`) plutôt qu'en lisant des fichiers entiers ;
+  `IslandWindow.xaml.cs` dépasse 3 000 lignes. Premier appel : ~25 s de chargement.
+- Une demande sans critère d'acceptation : en fixer un, et le prouver (test, `/snapshot`).
+- Déboguer : lire d'abord `%LocalAppData%\SpaceNotch\logs\spacenotch.log`.
+- Gros chantier (nouvelle vague, machine à états) : proposer le mode plan avant d'écrire du code.
+
 ## Pièges connus
 
 - `src/NotchFlow.*` et `tests/NotchFlow.*` sont des restes de l'ancien nom (NotchFlow → SpaceNotch).

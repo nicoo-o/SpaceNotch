@@ -10,8 +10,12 @@
       "args": [
         "-y",
         "@upstash/context7-mcp"
-      ],
-      "env": {}
+      ]
+    },
+    "cwm-roslyn-navigator": {
+      "type": "stdio",
+      "command": "cwm-roslyn-navigator",
+      "args": []
     }
   }
 }
