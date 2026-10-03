@@ -1,0 +1,90 @@
+name: Audit
+
+# Audit runtime de SpaceNotch sur un vrai Windows. Ne modifie rien au produit :
+#   1. build-test — compilation Debug et Release de toute la solution, tous les tests ;
+#   2. runtime    — la vraie application, pilotée et mesurée par tools/audit/audit.py.
+# Résultats : artefacts « audit-build » et « audit-runtime ».
+on:
+  workflow_dispatch:
+  push:
+    branches: ["claude/**"]
+    paths:
+      - "tools/audit/**"
+      - ".github/workflows/audit.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build Debug et Release, tests
+        shell: pwsh
+        run: |
+          $out = "${{ runner.temp }}/audit-build"
+          New-Item -ItemType Directory -Force -Path $out | Out-Null
+          dotnet restore -p:Platform=x64 *>&1 | Tee-Object "$out/restore.txt" | Out-Null
+          dotnet build -c Debug -p:Platform=x64 --no-restore -p:TreatWarningsAsErrors=false *>&1 | Tee-Object "$out/build-debug.txt" | Out-Null
+          "debug exit: $LASTEXITCODE" | Out-File -Append "$out/exit-codes.txt"
+          dotnet build -c Release -p:Platform=x64 --no-restore *>&1 | Tee-Object "$out/build-release.txt" | Out-Null
+          "release exit: $LASTEXITCODE" | Out-File -Append "$out/exit-codes.txt"
+          dotnet test -c Release -p:Platform=x64 --no-build --logger "trx;LogFileName=tests.trx" --results-directory "$out/tests" *>&1 | Tee-Object "$out/test.txt" | Out-Null
+          "test exit: $LASTEXITCODE" | Out-File -Append "$out/exit-codes.txt"
+          dotnet list SpaceNotch.sln package --vulnerable --include-transitive *>&1 | Tee-Object "$out/vulnerable.txt" | Out-Null
+          dotnet list SpaceNotch.sln package --outdated *>&1 | Tee-Object "$out/outdated.txt" | Out-Null
+          Get-Content "$out/exit-codes.txt"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: audit-build
+          path: ${{ runner.temp }}/audit-build
+
+  runtime:
+    runs-on: windows-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: "10.0.x"
+      - name: Construire SpaceNotch (comme la release)
+        run: >
+          dotnet publish src/SpaceNotch.App/SpaceNotch.App.csproj
+          -c Release -p:Platform=x64 -r win-x64
+          --self-contained true
+          -p:WindowsPackageType=None
+          -p:WindowsAppSDKSelfContained=true
+          -p:EnableMsixTooling=true
+          -p:PublishSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
+          -p:IncludeAllContentForSelfExtract=true
+          -p:EnableCompressionInSingleFile=true
+          --output "${{ runner.temp }}/app"
+      - name: Greffon de test
+        run: dotnet build tests/SpaceNotch.TestPlugin -c Release -o "${{ runner.temp }}/plugin"
+      - name: Outils
+        run: python -m pip install --quiet pyautogui pywin32 psutil mss numpy pillow
+      - name: Audit runtime
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem "${{ runner.temp }}/app" -Filter "SpaceNotch*.exe" | Select-Object -First 1
+          Copy-Item $exe.FullName "${{ runner.temp }}/app/SpaceNotch.exe" -Force -ErrorAction SilentlyContinue
+          python tools/audit/audit.py "${{ runner.temp }}/app/SpaceNotch.exe" "${{ runner.temp }}/audit" "${{ runner.temp }}/plugin/SpaceNotch.TestPlugin.dll"
+      - name: Journaux d'événements
+        if: always()
+        shell: pwsh
+        run: |
+          Get-WinEvent -FilterHashtable @{ LogName = "Application"; StartTime = (Get-Date).AddHours(-3) } -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProviderName -in @(".NET Runtime", "Application Error", "Windows Error Reporting") } |
+            Select-Object TimeCreated, ProviderName, Id, Message | Format-List | Out-File "${{ runner.temp }}/audit/eventlog.txt"
+          Copy-Item "$env:LOCALAPPDATA/SpaceNotch/logs/*" "${{ runner.temp }}/audit/" -ErrorAction SilentlyContinue
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: audit-runtime
+          path: ${{ runner.temp }}/audit
