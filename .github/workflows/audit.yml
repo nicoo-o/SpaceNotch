@@ -75,6 +75,7 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:IncludeAllContentForSelfExtract=true
           -p:EnableCompressionInSingleFile=true
+          -p:Version=1.17.0
           --output "${{ runner.temp }}/app"
       - name: Greffon de test
         run: dotnet build tests/SpaceNotch.TestPlugin -c Release -o "${{ runner.temp }}/plugin"
@@ -121,6 +122,7 @@ jobs:
           -p:IncludeNativeLibrariesForSelfExtract=true
           -p:IncludeAllContentForSelfExtract=true
           -p:EnableCompressionInSingleFile=true
+          -p:Version=1.17.0
           --output "${{ runner.temp }}/app"
       - name: Greffon hostile
         run: dotnet build tools/audit/probe-plugin -c Release -o "${{ runner.temp }}/probe"
