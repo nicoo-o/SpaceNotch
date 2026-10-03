@@ -104,6 +104,38 @@ public sealed class IslandSpringAnimator : IShapeAnimator
     }
 
     /// <summary>
+    /// Encombrement que la fenêtre doit offrir pendant le segment en cours :
+    /// départ, arrivée, dépassement du ressort et écrasement compris.
+    ///
+    /// Constant sur tout le segment, il permet de dimensionner la fenêtre une
+    /// fois par transition au lieu d'une fois par image. La surface XAML suit
+    /// un redimensionnement de fenêtre avec une ou plusieurs images de retard :
+    /// redimensionner à chaque image décalait la forme (à gauche en grandissant,
+    /// à droite en rétrécissant), coupait ses coins et laissait voir des zones
+    /// grises encore non peintes.
+    /// </summary>
+    public IslandFootprint Envelope
+    {
+        get
+        {
+            if (!_isRunning)
+            {
+                return Current;
+            }
+
+            // Dépassement : 15 % du trajet couvre un amortissement jusqu'à 0,5
+            // (le réglage le plus nerveux, celui du survol, est à 0,6).
+            // Écrasement : MaxSquash de largeur au plus, voir Squash. Un mouvement
+            // semé (tirer pour ouvrir) peut dépasser davantage : la fenêtre prend
+            // alors aussi la forme elle-même, voir IslandWindow.WindowFrameFor.
+            double width = Math.Max(Math.Max(_fromWidth, _toWidth), _width) + (0.15 * Math.Abs(_toWidth - _fromWidth));
+            double height = Math.Max(Math.Max(_fromHeight, _toHeight), _height) + (0.15 * Math.Abs(_toHeight - _fromHeight));
+
+            return new IslandFootprint(Math.Ceiling(width * (1 + SpaceNotch.Core.Motion.MotionPresets.MaxSquash)), Math.Ceiling(height));
+        }
+    }
+
+    /// <summary>
     /// Change la loi du ressort sans interrompre le mouvement en cours.
     ///
     /// Le réglage est modifiable en direct depuis la fenêtre de réglages : la

@@ -55,7 +55,7 @@ public sealed partial class ColorScene : UserControl, IIslandSceneView
 
         var name = new TextBlock { Text = label, FontSize = 10.5, CharacterSpacing = 80, Opacity = 0.55, VerticalAlignment = VerticalAlignment.Center };
         var text = new TextBlock { Text = value, FontSize = 12.5, VerticalAlignment = VerticalAlignment.Center, IsTextSelectionEnabled = false };
-        var copied = new TextBlock { Text = SpaceNotch.Core.Localization.Lang.T("Copié", "Copied"), FontSize = 11, Opacity = 0, VerticalAlignment = VerticalAlignment.Center };
+        var copied = new TextBlock { Text = SpaceNotch.Core.Localization.Lang.T("Copié", "Copied"), FontSize = 11.5, Opacity = 0, VerticalAlignment = VerticalAlignment.Center };
         Grid.SetColumn(text, 1);
         Grid.SetColumn(copied, 2);
         grid.Children.Add(name);

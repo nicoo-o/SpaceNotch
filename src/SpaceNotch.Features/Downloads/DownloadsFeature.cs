@@ -233,7 +233,7 @@ public sealed class DownloadsFeature : IslandFeatureBase
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Card,
             Title = active.Length == 1 ? Lang.T("Téléchargement", "Downloading") : Lang.T($"{active.Length} téléchargements", $"{active.Length} downloads"),
-            Eyebrow = active.Length == 1 ? first.DisplayName : Lang.T($"{first.DisplayName} et {active.Length - 1} autre(s)", $"{first.DisplayName} and {active.Length - 1} more"),
+            Eyebrow = active.Length == 1 ? first.DisplayName : first.DisplayName + Lang.T(" et ", " and ") + Lang.Count(active.Length - 1, "autre", "autres", "more", "more"),
             Metric = DownloadTracker.FormatSize(total),
             Payload = new BytesPayload(total),
             Source = Lang.T("Téléchargements", "Downloads"),

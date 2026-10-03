@@ -182,8 +182,33 @@ public static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetLastInputInfo(ref LASTINPUTINFO plii);
 
-    // Le nom de la méthode n'est pas celui de la fonction : sans EntryPoint,
-    // l'appel cherchait « NativeGetTickCount » dans kernel32 et plantait.
+    [LibraryImport("gdi32.dll", EntryPoint = "CreateRectRgn")]
+    private static partial IntPtr NativeCreateRectRgn(int left, int top, int right, int bottom);
+
+    [LibraryImport("user32.dll", EntryPoint = "SetWindowRgn")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool NativeSetWindowRgn(IntPtr hwnd, IntPtr region, [MarshalAs(UnmanagedType.Bool)] bool redraw);
+
+    [LibraryImport("gdi32.dll", EntryPoint = "DeleteObject")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static partial bool NativeDeleteObject(IntPtr handle);
+
+    /// <summary>Région rectangulaire, coordonnées relatives à la fenêtre.</summary>
+    public static IntPtr CreateRectRgn(int left, int top, int right, int bottom) => NativeCreateRectRgn(left, top, right, bottom);
+
+    /// <summary>
+    /// Restreint la fenêtre à une région : hors de celle-ci, la fenêtre ne
+    /// dessine ni ne reçoit la souris — les clics traversent vers ce qui est
+    /// dessous. En cas de succès, le système possède la région et la libère ;
+    /// <c>IntPtr.Zero</c> retire la restriction.
+    /// </summary>
+    public static bool SetWindowRgn(IntPtr hwnd, IntPtr region, bool redraw) => NativeSetWindowRgn(hwnd, region, redraw);
+
+    /// <summary>Libère un objet GDI (une région refusée par SetWindowRgn).</summary>
+    public static bool DeleteObject(IntPtr handle) => NativeDeleteObject(handle);
+
+    // Sans EntryPoint, le nom de la méthode est cherché tel quel dans kernel32 :
+    // « NativeGetTickCount » n'existe pas, et Pixel au repos faisait tomber l'app.
     [LibraryImport("kernel32.dll", EntryPoint = "GetTickCount")]
     private static partial uint NativeGetTickCount();
 

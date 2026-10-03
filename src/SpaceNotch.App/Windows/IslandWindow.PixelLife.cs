@@ -120,8 +120,10 @@ public sealed partial class IslandWindow
         }
 
         double scale = RootLayout.XamlRoot?.RasterizationScale ?? 1.0;
-        double cx = _appWindow.Position.X + (_appWindow.Size.Width / 2.0);
-        double cy = _appWindow.Position.Y + (_appWindow.Size.Height / 2.0);
+        // Le centre de la forme, pas celui de la toile (IslandWindow.Canvas).
+        (int boundsX, int boundsY, int boundsWidth, int boundsHeight) = IslandScreenBounds();
+        double cx = boundsX + (boundsWidth / 2.0);
+        double cy = boundsY + (boundsHeight / 2.0);
         _glance = PixelGaze.Look((window.CenterX - cx) / scale * 3, (window.CenterY - cy) / scale * 3);
         _glanceUntil = DateTime.UtcNow + GlanceDuration;
         PixelTick();

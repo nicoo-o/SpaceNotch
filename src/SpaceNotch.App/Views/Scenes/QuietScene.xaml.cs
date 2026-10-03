@@ -111,7 +111,7 @@ public sealed partial class QuietScene : UserControl, IIslandSceneView
         var count = new TextBlock
         {
             Text = countText ?? string.Empty,
-            FontSize = 11,
+            FontSize = 11.5,
             VerticalAlignment = VerticalAlignment.Center,
             Foreground = Brush("NfTextTertiaryBrush")
         };

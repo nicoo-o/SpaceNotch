@@ -27,7 +27,7 @@
 
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                 <TextBlock x:Name="ProcessText" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource NfTextPrimaryBrush}" />
-                <TextBlock x:Name="LoadText" FontSize="11" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource NfTextSecondaryBrush}" />
+                <TextBlock x:Name="LoadText" FontSize="11.5" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource NfTextSecondaryBrush}" />
             </StackPanel>
 
             <Button
@@ -38,7 +38,7 @@
                 Padding="12,0"
                 VerticalAlignment="Center"
                 CornerRadius="14"
-                Style="{StaticResource NfGhostButtonStyle}"
+                Style="{StaticResource NfSecondaryButtonStyle}"
                 Click="OnCloseClicked" />
         </Grid>
 

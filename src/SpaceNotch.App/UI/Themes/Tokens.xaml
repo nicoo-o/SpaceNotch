@@ -49,8 +49,9 @@
             <!-- Encre plafonnée sous le blanc pur : sur un noir OLED, le blanc
                  absolu bave (halation). 92 % reste éclatant sans vibrer. -->
             <SolidColorBrush x:Key="NfTextPrimaryBrush" Color="#EBFFFFFF" />
-            <SolidColorBrush x:Key="NfTextSecondaryBrush" Color="#99FFFFFF" />
-            <SolidColorBrush x:Key="NfTextTertiaryBrush" Color="#6BFFFFFF" />
+            <SolidColorBrush x:Key="NfTextSecondaryBrush" Color="#A6FFFFFF" />
+            <!-- 52 % : le tertiaire passe le seuil AA (4,5:1) sur le noir, même à 10,5 px. -->
+            <SolidColorBrush x:Key="NfTextTertiaryBrush" Color="#85FFFFFF" />
 
             <!-- Traits. Utilisés à l'intérieur de l'Island uniquement : jamais
                  sur son pourtour, qui doit rester sans arête. -->

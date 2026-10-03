@@ -338,7 +338,7 @@ public sealed class NotificationFeature : IslandFeatureBase
                 ? Lang.T("Les notifications attendent", "Notifications will wait")
                 : digest is not null
                     ? Lang.T("Pendant le calme", "While you were away")
-                    : Lang.T($"{total} notification(s) retenue(s)", $"{total} notification(s) held")),
+                    : Lang.Count(total, "notification retenue", "notifications retenues", "notification held", "notifications held")),
             Source = Lang.T("Ne pas déranger", "Do not disturb"),
             Metric = total > 0 ? total.ToString(System.Globalization.CultureInfo.CurrentCulture) : null,
             IconKey = "Moon",

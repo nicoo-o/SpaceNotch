@@ -26,7 +26,7 @@
 
             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                 <TextBlock x:Name="TitleText" FontSize="13" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource NfTextPrimaryBrush}" />
-                <TextBlock x:Name="SubtitleText" FontSize="11" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource NfTextSecondaryBrush}" />
+                <TextBlock x:Name="SubtitleText" FontSize="11.5" TextTrimming="CharacterEllipsis" Foreground="{ThemeResource NfTextSecondaryBrush}" />
             </StackPanel>
         </Grid>
 

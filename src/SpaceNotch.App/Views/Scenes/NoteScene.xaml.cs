@@ -36,6 +36,14 @@ public sealed partial class NoteScene : UserControl, IIslandSceneView
 
     public event EventHandler<IslandActionRequest>? ActionRequested;
 
+    /// <summary>
+    /// Enregistre tout de suite, sans attendre le délai de frappe. À appeler
+    /// avant de ranger la note : une fois l'activité retirée, plus aucune
+    /// fonctionnalité ne revendique l'enregistrement, et les dernières
+    /// frappes (moins de 400 ms) étaient perdues.
+    /// </summary>
+    public void Flush() => SaveNow();
+
     public FrameworkElement Root => this;
 
     public void Apply(IslandActivity activity)

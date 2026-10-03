@@ -85,8 +85,22 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
         {
             if (Visibility == Visibility.Visible)
             {
-                _cascadePending = true;
                 _signature = string.Empty;
+
+                // La liste est déjà construite quand la scène devient visible
+                // (Apply précède l'affichage) : la cascade d'ouverture se joue
+                // maintenant. Attendue jusqu'à la publication suivante — celle du
+                // catalogue rechargé, ~700 ms plus tard —, elle effaçait d'un coup
+                // une liste déjà lue pour la refaire entrer ligne à ligne.
+                if (_rows.Count > 0)
+                {
+                    _cascadePending = false;
+                    PlayCascade(TimeSpan.FromMilliseconds(80));
+                }
+                else
+                {
+                    _cascadePending = true;
+                }
             }
             else
             {
@@ -221,6 +235,13 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
         // résultats, pas les mêmes resurlignés — elle arrive ligne après ligne.
         string results = string.Join('\u001f', sections.SelectMany(s => s.Items).Select(i => i.Id));
         bool newResults = !string.Equals(results, _shownResults, StringComparison.Ordinal);
+
+        // Seules les lignes qui n'étaient pas déjà affichées entrent en cascade.
+        // Le catalogue d'applications et les fichiers récents arrivent après
+        // l'ouverture : rejouer toute la cascade pour une ligne ajoutée faisait
+        // disparaître puis réapparaître la liste entière sous les yeux.
+        HashSet<string> shownBefore = _shownResults is null ? [] : [.. _shownResults.Split('\u001f')];
+        var arriving = new HashSet<UIElement>();
         _shownResults = results;
 
         RowsPanel.Children.Clear();
@@ -233,7 +254,7 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
         foreach (LauncherSection section in sections)
         {
-            RowsPanel.Children.Add(new TextBlock
+            var header = new TextBlock
             {
                 Text = section.Title,
                 Height = LauncherLayout.SectionHeader,
@@ -242,7 +263,14 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
                 FontWeight = FontWeights.SemiBold,
                 Foreground = Brush("NfTextTertiaryBrush"),
                 IsHitTestVisible = false
-            });
+            };
+
+            RowsPanel.Children.Add(header);
+
+            if (!section.Items.Any(i => shownBefore.Contains(i.Id)))
+            {
+                arriving.Add(header);
+            }
 
             top += LauncherLayout.SectionHeader;
 
@@ -254,6 +282,11 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
                 RowsPanel.Children.Add(slot.Element);
                 _rows.Add(slot);
 
+                if (!shownBefore.Contains(item.Id))
+                {
+                    arriving.Add(slot.Element);
+                }
+
                 top += height;
                 index++;
             }
@@ -264,9 +297,9 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
             _cascadePending = false;
             PlayCascade(TimeSpan.FromMilliseconds(80));
         }
-        else if (newResults && _rows.Count > 0)
+        else if (newResults && arriving.Count > 0)
         {
-            PlayCascade(TimeSpan.Zero);
+            PlayCascade(TimeSpan.Zero, arriving);
         }
     }
 
@@ -652,7 +685,11 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
     /// par un fondu, une montée de 6 DIPs et une mise au point (98 % → 100 %) ;
     /// à l'ouverture, après 80 ms — le temps que la forme ait pris sa place.
     /// </summary>
-    private void PlayCascade(TimeSpan start)
+    /// <param name="start">Attente avant la première ligne.</param>
+    /// <param name="only">
+    /// Lignes à faire entrer ; les autres restent en place. <c>null</c> : toutes.
+    /// </param>
+    private void PlayCascade(TimeSpan start, HashSet<UIElement>? only = null)
     {
         if (!MotionSettings.AnimationsEnabled)
         {
@@ -663,6 +700,11 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
         foreach (UIElement child in RowsPanel.Children)
         {
+            if (only is not null && !only.Contains(child))
+            {
+                continue;
+            }
+
             TimeSpan delay = start + TimeSpan.FromMilliseconds(order * 25);
             order = Math.Min(order + 1, 12);
 

@@ -187,6 +187,9 @@ public sealed class IslandController : IDisposable
         }
     }
 
+    /// <summary>Taille que la fenêtre doit offrir pendant la transition en cours. Voir <see cref="IslandSpringAnimator.Envelope"/>.</summary>
+    public IslandFootprint AnimationEnvelope => _animator.Envelope;
+
     public IslandFootprint CollapsedFootprint => _collapsedFootprint;
 
     public IslandActivity? PresentedActivity => _presented;
@@ -468,7 +471,48 @@ public sealed class IslandController : IDisposable
     {
         ArgumentNullException.ThrowIfNull(activity);
         IslandFootprint scene = activity.Footprint;
+
+        // Une scène qui a mesuré son contenu épouse sa hauteur, sans jamais
+        // dépasser celle qu'elle a déclarée.
+        if (string.Equals(_fittedFor, activity.Id, StringComparison.Ordinal) && _fittedHeight > 0)
+        {
+            scene = new IslandFootprint(scene.Width, Math.Min(scene.Height, _fittedHeight));
+        }
+
         return _tabRow > 0 ? new IslandFootprint(scene.Width, scene.Height + _tabRow) : scene;
+    }
+
+    private string? _fittedFor;
+    private double _fittedHeight;
+
+    /// <summary>
+    /// Hauteur mesurée du contenu de la scène ouverte. La carte générique est
+    /// déclarée pour un titre, un sous-titre et une rangée de boutons ; sans
+    /// boutons (un agent qui réfléchit, un script terminé), sa moitié basse
+    /// restait vide. La forme épouse donc le contenu, comme le recommande Apple
+    /// pour l'île, et le ressort se réoriente vers la nouvelle hauteur sans
+    /// repartir de zéro.
+    /// </summary>
+    public void FitOpenedHeight(string activityId, double height)
+    {
+        ArgumentNullException.ThrowIfNull(activityId);
+
+        // Même garde que pour le repos : la même mesure ne relance rien, sinon
+        // la fin d'animation redemanderait un rendu, qui remesurerait, etc.
+        if (string.Equals(_fittedFor, activityId, StringComparison.Ordinal) && Math.Abs(_fittedHeight - height) < 0.5)
+        {
+            return;
+        }
+
+        _fittedFor = activityId;
+        _fittedHeight = height;
+
+        if (State is IslandState.Expanded or IslandState.Expanding
+            && _presented is { } presented
+            && string.Equals(presented.Id, activityId, StringComparison.Ordinal))
+        {
+            AnimateTo(Opened(presented));
+        }
     }
 
     private const double PressScale = 0.97;

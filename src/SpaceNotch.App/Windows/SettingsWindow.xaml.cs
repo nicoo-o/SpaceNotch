@@ -296,6 +296,9 @@ public sealed partial class SettingsWindow : Window
         MotionStyleBox.ItemsSource = new[] { Lang.T("Calme", "Calm"), Lang.T("Naturel", "Natural"), Lang.T("Dynamique", "Lively"), Lang.T("Personnalisé", "Custom") };
 
         WebSearchBox.ItemsSource = WebEngines.Select(e => e.Label).ToArray();
+        HotkeyBox.ItemsSource = new[] { Lang.T("Automatique", "Automatic") }
+            .Concat(SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Choices.Select(c => c.Label))
+            .ToArray();
         ClipboardSizeBox.ItemsSource = ClipboardSizes.Select(n => Lang.T($"{n} éléments", $"{n} items")).ToArray();
     }
 
@@ -374,6 +377,7 @@ public sealed partial class SettingsWindow : Window
             CompositionToggle.IsOn = settings.UseCompositionAtmosphere;
             ClipboardSecretsToggle.IsOn = settings.ClipboardIgnoreSecrets;
             WebSearchBox.SelectedIndex = Math.Max(0, Array.FindIndex(WebEngines, e => e.Key == settings.WebSearchEngine));
+            HotkeyBox.SelectedIndex = HotkeyIndex(settings.LauncherHotkey);
 
             int size = Array.FindIndex(ClipboardSizes, n => n >= settings.ClipboardHistoryLimit);
             ClipboardSizeBox.SelectedIndex = size < 0 ? ClipboardSizes.Length - 1 : size;
@@ -1401,6 +1405,25 @@ public sealed partial class SettingsWindow : Window
         Close();
     }
 
+    /// <summary>Position dans la liste : 0 pour « Automatique », puis l'ordre de GlobalHotkey.Choices.</summary>
+    private static int HotkeyIndex(string? key)
+    {
+        int index = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Choices.ToList().FindIndex(c => c.Key == key);
+        return index < 0 ? 0 : index + 1;
+    }
+
+    private void OnHotkeyChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (HotkeyBox.SelectedIndex is int index and >= 0)
+        {
+            string key = index == 0
+                ? SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Auto
+                : SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Choices[index - 1].Key;
+            Apply(s => s.LauncherHotkey = key);
+        }
+    }
+
+    /// <summary>Le raccourci réellement actif, sous le choix : un choix pris par une autre application cède la place au suivant.</summary>
     private void ShowHotkey()
     {
         HotkeyCaps.Children.Clear();
@@ -1409,13 +1432,21 @@ public sealed partial class SettingsWindow : Window
         {
             HotkeyCaps.Children.Add(new TextBlock
             {
-                Text = Lang.T("Aucun (Alt+Espace et Win+Maj+Espace sont pris)", "None (Alt+Space and Win+Shift+Space are taken)"),
+                Text = Lang.T("Aucun : tous les raccourcis proposés sont pris par d'autres applications", "None: every offered shortcut is taken by other apps"),
                 FontSize = 12,
                 Foreground = new SolidColorBrush(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF)),
                 VerticalAlignment = VerticalAlignment.Center
             });
             return;
         }
+
+        HotkeyCaps.Children.Add(new TextBlock
+        {
+            Text = Lang.T("Actif :", "Active:"),
+            FontSize = 12,
+            Foreground = new SolidColorBrush(Color.FromArgb(0x99, 0xFF, 0xFF, 0xFF)),
+            VerticalAlignment = VerticalAlignment.Center
+        });
 
         foreach (string key in _searchHotkey.Split('+'))
         {

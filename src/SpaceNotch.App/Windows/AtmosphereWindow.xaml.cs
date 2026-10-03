@@ -232,14 +232,48 @@ public sealed partial class AtmosphereWindow : Window
         // surface de dissolution continuent d'être configurés à chaque passage,
         // parce qu'ils peuvent avoir été recréés entre-temps — par
         // SetCompositionEnabled — sans que la géométrie, elle, ait bougé.
-        if (x != _lastX || y != _lastY || width != _lastWidth || height != _lastHeight)
-        {
-            _lastX = x;
-            _lastY = y;
-            _lastWidth = width;
-            _lastHeight = height;
+        //
+        // Accrochée en haut, la couche est une toile qui ne fait que grandir,
+        // centrée sur la notch : redimensionnée à chaque image, sa surface était
+        // peinte avec une image de retard et se lisait comme un rectangle gris à
+        // coins carrés autour de la forme. Tout son contenu est ancré en haut et
+        // centré, et dimensionné d'après la forme, pas d'après la fenêtre : une
+        // fenêtre plus grande ne déplace rien. Elle ne reçoit jamais la souris.
+        int windowX = x;
+        int windowWidth = width;
+        int windowHeight = height;
+        // Le centre de la notch oscille d'un pixel selon la parité de sa largeur
+        // (division entière) : seul un vrai déplacement — autre écran, autre
+        // échelle, décalage réglé — remet la toile à zéro.
+        int centerX = placement.X + (placement.WidthPx / 2);
+        bool moved = Math.Abs(centerX - _canvasAnchor.CenterX) > 2
+            || placement.Y != _canvasAnchor.Top
+            || Math.Abs(Scale - _canvasAnchor.Scale) > 0.001;
 
-            _appWindow.MoveAndResize(new RectInt32(x, y, width, height));
+        if (shadowOnly || moved)
+        {
+            _canvasAnchor = shadowOnly ? default : (centerX, placement.Y, Scale);
+            _canvasWidth = 0;
+            _canvasHeight = 0;
+        }
+
+        if (!shadowOnly)
+        {
+            _canvasWidth = Math.Max(_canvasWidth, width);
+            _canvasHeight = Math.Max(_canvasHeight, height);
+            windowWidth = _canvasWidth;
+            windowHeight = _canvasHeight;
+            windowX = _canvasAnchor.CenterX - (_canvasWidth / 2);
+        }
+
+        if (windowX != _lastX || y != _lastY || windowWidth != _lastWidth || windowHeight != _lastHeight)
+        {
+            _lastX = windowX;
+            _lastY = y;
+            _lastWidth = windowWidth;
+            _lastHeight = windowHeight;
+
+            _appWindow.MoveAndResize(new RectInt32(windowX, y, windowWidth, windowHeight));
         }
 
         // Tout ce qui suit vit dans l'espace du contenu, qui est en DIPs — et non
@@ -300,11 +334,14 @@ public sealed partial class AtmosphereWindow : Window
         FadeHost.Height = contentHeight;
         FadeHost.Opacity = _deployment * DissolutionStrength;
 
-        // La pluie tombe du bas de la notch, sur sa largeur.
+        // La pluie tombe du bas de la notch, sur sa largeur, et reste une frange
+        // collée à la lèvre : découpée à RainBand, elle ne coule plus sur les
+        // fenêtres en dessous.
         if (_rainActive)
         {
             RainHost.Width = placement.WidthDip;
-            RainHost.Margin = new Thickness(0, placement.HeightDip + 2, 0, 0);
+            RainHost.Margin = new Thickness(0, placement.HeightDip, 0, 0);
+            RainHost.Clip = new RectangleGeometry { Rect = new global::Windows.Foundation.Rect(0, 0, placement.WidthDip, RainBand) };
         }
 
         if (_surface is not null)
@@ -552,9 +589,11 @@ public sealed partial class AtmosphereWindow : Window
             TimeSpan fall = TimeSpan.FromMilliseconds(1600 + random.Next(0, 1000));
             TimeSpan delay = TimeSpan.FromMilliseconds(random.Next(0, 1200));
 
+            // Course courte : la colonne sort de la lèvre et s'éteint dans la
+            // frange, au lieu de descendre de 30 DIP sur le bureau.
             var drop = compositor.CreateVector3KeyFrameAnimation();
-            drop.InsertKeyFrame(0f, new System.Numerics.Vector3(0, -12, 0));
-            drop.InsertKeyFrame(1f, new System.Numerics.Vector3(0, 30, 0));
+            drop.InsertKeyFrame(0f, new System.Numerics.Vector3(0, -30, 0));
+            drop.InsertKeyFrame(1f, new System.Numerics.Vector3(0, (float)(RainBand - 30), 0));
             drop.Duration = fall;
             drop.DelayTime = delay;
             drop.IterationBehavior = Microsoft.UI.Composition.AnimationIterationBehavior.Forever;
@@ -574,6 +613,16 @@ public sealed partial class AtmosphereWindow : Window
     }
 
     private const int RainColumns = 6;
+
+    /// <summary>Toile de la couche accrochée en haut : ne fait que grandir, repart à zéro hors du haut.</summary>
+    private int _canvasWidth;
+
+    private int _canvasHeight;
+
+    private (int CenterX, int Top, double Scale) _canvasAnchor;
+
+    /// <summary>Hauteur de la frange de pluie sous la lèvre, en DIPs.</summary>
+    private const double RainBand = 18;
 
     private bool _rainActive;
 
