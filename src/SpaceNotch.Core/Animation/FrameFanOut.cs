@@ -34,6 +34,12 @@ public sealed class FrameFanOut
         _onError = onError;
     }
 
+    /// <summary>
+    /// Mesure de fluidité : reçoit, pour chaque abonné, le temps qu'il a pris
+    /// dans l'image. Null par défaut, et alors aucun chronomètre ne tourne.
+    /// </summary>
+    public Action<EventHandler<object>, TimeSpan>? Timed { get; set; }
+
     /// <summary>Nombre d'abonnés.</summary>
     public int Count => _handlers.Count;
 
@@ -112,11 +118,14 @@ public sealed class FrameFanOut
         }
 
         EventHandler<object>[] snapshot = [.. _handlers];
+        Action<EventHandler<object>, TimeSpan>? timed = Timed;
 
         foreach (EventHandler<object> handler in snapshot)
         {
             if (_handlers.Contains(handler))
             {
+                long started = timed is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
+
                 try
                 {
                     handler(sender, args);
@@ -125,6 +134,8 @@ public sealed class FrameFanOut
                 {
                     Fail(handler, ex);
                 }
+
+                timed?.Invoke(handler, System.Diagnostics.Stopwatch.GetElapsedTime(started));
             }
         }
     }

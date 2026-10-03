@@ -46,6 +46,7 @@ public static class FrameClock
     {
         _context = context;
         _run ??= new FrameRunStats();
+        Fan.Timed = (handler, elapsed) => FrameCosts.Add((handler, elapsed.TotalMilliseconds));
         MiniLogger.Log("[IMAGES] mesure de fluidité allumée");
     }
 
@@ -87,9 +88,16 @@ public static class FrameClock
             _runStart = SafeContext();
         }
 
+        FrameCosts.Clear();
         long started = Stopwatch.GetTimestamp();
         Fan.Raise(sender, e);
         double cost = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+
+        // Une image qui dépasse le budget de 60 Hz se voit : on dit qui l'a prise.
+        if (cost > FrameRunStats.Budget60)
+        {
+            LogSlowFrame(cost);
+        }
         double interval = frame is { } now && _lastFrame is { } last ? (now - last).TotalMilliseconds : double.NaN;
         _lastFrame = frame ?? _lastFrame ?? TimeSpan.Zero;
         run.Add(interval, cost);
@@ -105,6 +113,41 @@ public static class FrameClock
         }
 
         _lastFrame = null;
+    }
+
+    /// <summary>Vrai quand la mesure de fluidité est allumée (<c>--frames</c>).</summary>
+    public static bool Measuring => _run is not null;
+
+    /// <summary>
+    /// Un travail du fil d'interface hors de l'horloge (le rendu de la fenêtre) :
+    /// journalisé s'il dépasse le budget de 60 Hz, car il gèle les animations
+    /// sans apparaître dans le coût des abonnés.
+    /// </summary>
+    public static void ReportSlow(string what, double ms)
+    {
+        if (_run is not null && ms > FrameRunStats.Budget60)
+        {
+            MiniLogger.Log(string.Format(System.Globalization.CultureInfo.GetCultureInfo("fr-FR"), "[IMAGES] {0} lent {1:0.0} ms ({2})", what, ms, SafeContext()));
+        }
+    }
+
+    /// <summary>Coût de chaque abonné dans l'image en cours (mesure seulement).</summary>
+    private static readonly System.Collections.Generic.List<(EventHandler<object> Handler, double Ms)> FrameCosts = [];
+
+    private static void LogSlowFrame(double cost)
+    {
+        FrameCosts.Sort((a, b) => b.Ms.CompareTo(a.Ms));
+        var parts = new System.Text.StringBuilder();
+
+        for (int i = 0; i < Math.Min(3, FrameCosts.Count); i++)
+        {
+            (EventHandler<object> handler, double ms) = FrameCosts[i];
+            parts.Append(i == 0 ? string.Empty : ", ")
+                .Append(handler.Method.DeclaringType?.Name).Append('.').Append(handler.Method.Name)
+                .Append(' ').Append(ms.ToString("0.0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))).Append(" ms");
+        }
+
+        MiniLogger.Log(string.Format(System.Globalization.CultureInfo.GetCultureInfo("fr-FR"), "[IMAGES] image lente {0:0.0} ms ({1}) : {2}", cost, SafeContext(), parts));
     }
 
     private static string SafeContext()

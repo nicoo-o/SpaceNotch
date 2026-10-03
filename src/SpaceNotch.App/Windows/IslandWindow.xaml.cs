@@ -1000,6 +1000,7 @@ public sealed partial class IslandWindow : Window
         try
         {
             int passes = 0;
+            long started = SpaceNotch_App.Animations.FrameClock.Measuring ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
 
             do
             {
@@ -1007,6 +1008,11 @@ public sealed partial class IslandWindow : Window
                 RenderOnce();
             }
             while (_renderAgain && ++passes < 3);
+
+            if (started != 0)
+            {
+                SpaceNotch_App.Animations.FrameClock.ReportSlow("rendu", System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+            }
         }
         finally
         {
