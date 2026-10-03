@@ -1258,7 +1258,7 @@
                                 <TextBlock Text="{l:Loc Fr='Distance d’arrachement', En='Detach distance'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Combien tirer avant que la notch se détache.', En='How far to pull before the notch comes off.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
                             </StackPanel>
-                            <TextBlock x:Name="TearValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="TearSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="80" Minimum="20" StepFrequency="1" ValueChanged="OnTearChanged" />
+                            <TextBlock x:Name="TearValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="TearSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="80" Minimum="32" StepFrequency="1" ValueChanged="OnTearChanged" />
                         </Grid>
                     </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Aimants aux coins La pastille se colle aux coins de l&#x27;écran.">

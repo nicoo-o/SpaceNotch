@@ -229,7 +229,7 @@ public class Wave6aCoreTests
     {
         SpringParameters natural = MotionPresets.NaturalOpen;
 
-        Assert.Equal(1.0, MotionPresets.ForPriority(natural, ActivityPriority.Normal).DampingRatio, 2);
+        Assert.Equal(MotionPresets.NormalDamping, MotionPresets.ForPriority(natural, ActivityPriority.Normal).DampingRatio, 2);
         Assert.Equal(MotionPresets.UrgentDamping, MotionPresets.ForPriority(natural, ActivityPriority.Critical).DampingRatio, 2);
         Assert.Equal(natural.ResponseSeconds, MotionPresets.ForPriority(natural, ActivityPriority.High).ResponseSeconds, 2);
 

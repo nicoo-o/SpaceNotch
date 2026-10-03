@@ -142,9 +142,14 @@ public sealed partial class IslandWindow
     /// </summary>
     private Microsoft.UI.Xaml.Media.Geometry? DeformedSilhouette(IslandFootprint footprint)
     {
-        if (!ShapeFxActive || UsesFloatingGeometry || UsesSideTab)
+        if (UsesFloatingGeometry || UsesSideTab)
         {
             return null;
+        }
+
+        if (!ShapeFxActive)
+        {
+            return BulgedSilhouette(footprint);
         }
 
         NotchGeometry geometry = _settings.Geometry;
@@ -164,4 +169,42 @@ public sealed partial class IslandWindow
         _shape.Forget();
         return IslandGeometryFactory.FromPolygons([outline], 0, 0);
     }
+
+    /// <summary>
+    /// Physique B « Liquide doux » : pendant le ressort, le bas de la forme
+    /// se bombe quand elle descend et se creuse un peu quand elle remonte,
+    /// selon sa vitesse. <c>null</c> au repos ou sous un mouvement réduit.
+    /// </summary>
+    private Microsoft.UI.Xaml.Media.Geometry? BulgedSilhouette(IslandFootprint footprint)
+    {
+        if (_dragPhase is not DragPhase.None || !UseSpringAnimations())
+        {
+            return null;
+        }
+
+        double bulge = SpaceNotch.Core.Motion.MotionPresets.Bulge(_controller.HeightVelocity);
+
+        if (Math.Abs(bulge) < 0.1)
+        {
+            if (_bulged)
+            {
+                // Retour à la silhouette ordinaire : elle doit se reconstruire.
+                _bulged = false;
+                _shape.Forget();
+            }
+
+            return null;
+        }
+
+        NotchGeometry geometry = _settings.Geometry;
+        double bodyHeight = ShapeEffects.BulgeBody(footprint.Height, bulge);
+        var body = new IslandFootprint(footprint.Width, bodyHeight);
+        ShapePoint[] outline = ShapeEffects.Bulged(geometry.Silhouette(body), bodyHeight, bulge);
+
+        _bulged = true;
+        _shape.Forget();
+        return IslandGeometryFactory.FromPolygons([outline], 0, 0);
+    }
+
+    private bool _bulged;
 }

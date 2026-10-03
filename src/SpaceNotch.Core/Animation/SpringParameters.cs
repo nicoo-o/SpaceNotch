@@ -18,8 +18,9 @@ namespace SpaceNotch.Core.Animation;
 /// <para>
 /// Le rebond vaut le rapport d'amortissement : 1,0 ne dépasse jamais la cible,
 /// en dessous de 1,0 le mouvement la dépasse d'autant plus qu'il s'en éloigne.
-/// Un rebond de 0,78 dépasse à peine — c'est l'ouverture au clic ; un rebond de
-/// 0,55 dépasse franchement — c'est le survol. Voir ADR-012.
+/// Un rebond de 0,82 dépasse à peine — c'est la fermeture ; un rebond de 0,62
+/// dépasse d'environ 8 % — c'est l'ouverture au clic (physique B « Liquide
+/// doux »). Voir ADR-012 et <c>MotionPresets</c>.
 /// </para>
 ///
 /// <para>
@@ -36,13 +37,11 @@ public record SpringParameters(
     double InitialVelocity = 0.0)
 {
     /// <summary>
-    /// Réglage de référence : l'ouverture au clic.
-    ///
-    /// Le dépassement est **franc** et non discret : environ 10 % de la distance,
-    /// ce qui se voit. C'est un choix assumé — l'Island est ancrée au bord
-    /// supérieur, donc son seul bord libre est le bas, et un dépassement franc y
-    /// est la seule chose qui fasse lire l'objet comme matériel. Une valeur plus
-    /// proche de 1,0 donnerait un redimensionnement propre mais inerte.
+    /// Ressort générique de l'installeur et des fenêtres annexes (0,46 / 0,58,
+    /// environ 11 % de dépassement). Les ressorts de la notch elle-même — ouverture,
+    /// fermeture, survol, priorité — ne sont pas ici : ils sont rassemblés dans
+    /// <c>MotionPresets</c> (physique B « Liquide doux » : ouverture 0,46 / 0,62,
+    /// fermeture 0,38 / 0,82, survol 0,30 / 0,61).
     /// </summary>
     public static SpringParameters Default => FromResponse(0.46, 0.58);
 

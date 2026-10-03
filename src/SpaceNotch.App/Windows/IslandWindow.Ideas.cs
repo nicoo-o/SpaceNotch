@@ -166,6 +166,7 @@ public sealed partial class IslandWindow
     private const int AltKey = 0x12;
     private DispatcherQueueTimer? _helpTimer;
     private bool _helpShown;
+    private long _altSince;
     private readonly TextBlock _measureHelp = new() { FontSize = 10 };
 
     private void ArmGestureHelp(bool hovering)
@@ -177,9 +178,19 @@ public sealed partial class IslandWindow
             return;
         }
 
-        _helpTimer ??= CreateRepeatingTimer(TimeSpan.FromMilliseconds(120), () =>
-            SetGestureHelp(NativeMethods.IsKeyDown(AltKey)
-                && _controller.State is IslandState.Closed or IslandState.Preview));
+        _altSince = 0;
+        _helpTimer ??= CreateRepeatingTimer(TimeSpan.FromMilliseconds(100), () =>
+        {
+            // Alt doit rester enfoncé un instant au survol : un Alt bref, qui
+            // vise la barre de menus de l'application, ne montre rien.
+            long now = Environment.TickCount64;
+            bool alt = NativeMethods.IsKeyDown(AltKey);
+            _altSince = alt ? (_altSince == 0 ? now : _altSince) : 0;
+
+            SetGestureHelp(alt
+                && now - _altSince >= (long)NotchGestures.HelpDelay.TotalMilliseconds
+                && _controller.State is IslandState.Closed or IslandState.Preview);
+        });
         _helpTimer.Start();
     }
 

@@ -26,9 +26,11 @@ public static class GestureHelp
 
         if (activity is null)
         {
-            tips.Add(new(Lang.T("Clic", "Click"), Lang.T("recherche", "search")));
+            // Sans musique, la molette ne règle plus le volume (phase B) : elle
+            // n'est plus annoncée au repos.
+            tips.Add(new(Lang.T("Clic ou tirer ↓", "Click or pull ↓"), Lang.T("recherche", "search")));
             tips.Add(new(Lang.T("Double-clic", "Double-click"), Lang.T("note", "note")));
-            tips.Add(new(Lang.T("Molette", "Wheel"), Lang.T("volume", "volume")));
+            tips.Add(new(Lang.T("Clic droit", "Right click"), Lang.T("menu", "menu")));
             return tips;
         }
 
@@ -48,7 +50,7 @@ public static class GestureHelp
             return tips;
         }
 
-        tips.Add(new(Lang.T("Clic", "Click"), Lang.T("ouvrir", "open")));
+        tips.Add(new(Lang.T("Clic ou tirer ↓", "Click or pull ↓"), Lang.T("ouvrir", "open")));
 
         if (activity.Actions.Count > 0)
         {
@@ -58,6 +60,38 @@ public static class GestureHelp
         tips.Add(new(Lang.T("Clic droit", "Right click"), Lang.T("menu", "menu")));
         return tips.Count > MaxTips ? tips.GetRange(0, MaxTips) : tips;
     }
+}
+
+/// <summary>
+/// Gestes de la notch accrochée (RFC §3.3, phase B) : à quoi sert la molette,
+/// quand un appui au doigt devient un appui long, quand l'aide se montre.
+/// </summary>
+public static class NotchGestures
+{
+    /// <summary>Durée d'un appui long au doigt ou au stylet, en secondes : il ouvre le menu rapide.</summary>
+    public const double LongPressSeconds = 0.5;
+
+    /// <summary>Temps pendant lequel Alt doit rester enfoncé au survol avant que l'aide se montre.</summary>
+    public static readonly TimeSpan HelpDelay = TimeSpan.FromMilliseconds(300);
+
+    /// <summary>
+    /// Vrai si la molette règle le volume : seulement quand une musique (ou le
+    /// témoin de volume) est présentée, ou quand la notch est ouverte. Sinon,
+    /// défiler sur les onglets du navigateur, juste sous la notch, changeait le
+    /// volume du système.
+    /// </summary>
+    public static bool WheelControlsVolume(string? presentedFeatureId, bool open)
+        => open
+            || string.Equals(presentedFeatureId, Features.FeatureKeys.Media, StringComparison.Ordinal)
+            || string.Equals(presentedFeatureId, Features.FeatureKeys.VolumeHud, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Vrai si un appui relâché sans avoir bougé est un appui long : au doigt
+    /// ou au stylet seulement (à la souris, le clic droit existe), tenu au
+    /// moins <see cref="LongPressSeconds"/>.
+    /// </summary>
+    public static bool IsLongPress(bool touchOrPen, double heldSeconds)
+        => touchOrPen && heldSeconds >= LongPressSeconds;
 }
 
 /// <summary>

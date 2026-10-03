@@ -401,7 +401,8 @@ public sealed partial class IslandWindow
             ("languette · gauche", () => DockFromMenu(NotchEdge.Left)),
             ("languette · droite", () => DockFromMenu(NotchEdge.Right)),
             ("retour en haut", () => DockFromMenu(NotchEdge.Top)),
-            ("pastille détachée · avec bulle", () => DetachFromMenu()),
+            ("tirer pour ouvrir · depuis la forme étirée", TourPullOpen),
+            ("pastille détachée · avec bulle", () => { _controller.RequestCollapse(); DetachFromMenu(); }),
             ("pastille lancée · rebonds", TourThrow),
             ("raccrochée", () => ReattachTo(NotchEdge.Top, 0.5)),
             .. Wave5Tour(Music),
@@ -410,4 +411,24 @@ public sealed partial class IslandWindow
             ("fin", () => { _settingsWindow?.Close(); _quietOverride = 0; TourClear(); })
         ];
     }
+
+    /// <summary>
+    /// Tirer pour ouvrir (phase B) : la forme part de l'étirement d'une
+    /// traction de 24 DIP lâchée à 900 DIP/s, avec l'élan transmis.
+    /// </summary>
+    private void TourPullOpen()
+    {
+        _tourPull ??= CreateOneShotTimer(TimeSpan.FromMilliseconds(400), () =>
+        {
+            const double pull = 24;
+            IslandFootprint stretched = Detachment.Pulled(_controller.CurrentFootprint, pull);
+            _controller.OpenFromPull(stretched, Detachment.PullOpenVelocity(pull, 900), _controller.RequestExpand);
+        });
+
+        _controller.RequestPreview();
+        _tourPull.Stop();
+        _tourPull.Start();
+    }
+
+    private DispatcherQueueTimer? _tourPull;
 }

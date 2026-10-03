@@ -9,6 +9,7 @@ using SpaceNotch.Core.Animation;
 using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
+using SpaceNotch.Core.State;
 using SpaceNotch.Infrastructure.Config;
 using SpaceNotch.Platform.Windows.Display;
 using SpaceNotch.Platform.Windows.Win32;
@@ -193,6 +194,8 @@ public sealed partial class IslandWindow
         _pressY = y;
         _pull = 0;
         _pointerDown = true;
+        _pressStartedAt = _detachClock.Elapsed.TotalSeconds;
+        _pressByTouch = e.Pointer.PointerDeviceType is not Microsoft.UI.Input.PointerDeviceType.Mouse;
         _velocity.Reset();
 
         // Une pastille rattrapée en plein vol s'arrête dans la main, là où elle
@@ -267,6 +270,19 @@ public sealed partial class IslandWindow
             case DragPhase.Pressed:
                 _dragPhase = DragPhase.None;
 
+                // Appui long au doigt ou au stylet : le menu rapide, comme le
+                // clic droit à la souris.
+                if (click && !_caughtInFlight && NotchGestures.IsLongPress(_pressByTouch, now - _pressStartedAt))
+                {
+                    if (!UsesFloatingGeometry)
+                    {
+                        _detachDisplay = null;
+                    }
+
+                    ToggleQuickMenu();
+                    break;
+                }
+
                 if (!UsesFloatingGeometry)
                 {
                     _detachDisplay = null;
@@ -309,6 +325,14 @@ public sealed partial class IslandWindow
                 }
 
                 double pullVelocity = PullOf(_velocity.Velocity(now));
+
+                if (click && PullOpens(pullVelocity))
+                {
+                    OpenFromPull(pullVelocity);
+                    break;
+                }
+
+                EndPullHint();
 
                 if (UseSpringAnimations())
                 {
@@ -376,6 +400,100 @@ public sealed partial class IslandWindow
         }
 
         return TimeSpan.FromMilliseconds(Math.Clamp(milliseconds, 200u, 400u));
+    }
+
+    // ------------------------------------------------------------------
+    // Tirer pour ouvrir (RFC §3.3)
+    // ------------------------------------------------------------------
+
+    /// <summary>Instant de l'appui, horloge du détachement (secondes).</summary>
+    private double _pressStartedAt;
+
+    /// <summary>Vrai si l'appui en cours vient d'un doigt ou d'un stylet.</summary>
+    private bool _pressByTouch;
+
+    /// <summary>Vrai tant que l'aperçu est montré comme indice de la traction.</summary>
+    private bool _pullHinted;
+
+    /// <summary>Vrai si le lâcher de la traction en cours ouvre la notch.</summary>
+    private bool PullOpens(double pullVelocity)
+        => _controller.State is not (IslandState.Expanded or IslandState.Expanding)
+            && Detachment.OpensOnRelease(_pull, pullVelocity, _settings.TearDistance, _settings.AllowDetach);
+
+    /// <summary>
+    /// Indice : dès que le seuil d'ouverture est franchi, l'aperçu apparaît
+    /// dans la forme étirée — on voit ce que le lâcher va ouvrir.
+    /// </summary>
+    private void UpdatePullHint()
+    {
+        if (_controller.State is IslandState.Expanded or IslandState.Expanding)
+        {
+            return;
+        }
+
+        bool show = Detachment.ShowsPullHint(_pull, _settings.TearDistance, _pullHinted);
+
+        if (show == _pullHinted)
+        {
+            return;
+        }
+
+        _pullHinted = show;
+
+        if (show)
+        {
+            _controller.RequestPreview();
+        }
+        else
+        {
+            _controller.EndPreview();
+        }
+    }
+
+    /// <summary>Retire l'indice, sauf si l'aperçu doit rester (l'arrachement le reprend).</summary>
+    private void EndPullHint(bool keepPreview = false)
+    {
+        if (!_pullHinted)
+        {
+            return;
+        }
+
+        _pullHinted = false;
+
+        if (!keepPreview && !_pixelHovered)
+        {
+            _controller.EndPreview();
+        }
+    }
+
+    /// <summary>
+    /// Lâcher qui ouvre : le ressort d'ouverture part de la forme étirée, avec
+    /// la vitesse de l'allongement (bornée), puis tout se passe comme un clic.
+    /// </summary>
+    private void OpenFromPull(double pullVelocity)
+    {
+        bool top = _edge == NotchEdge.Top;
+        IslandFootprint stretched = top
+            ? Detachment.Pulled(_controller.CurrentFootprint, _pull)
+            : _controller.CurrentFootprint;
+        double velocity = top ? Detachment.PullOpenVelocity(_pull, pullVelocity) : 0;
+
+        SpaceNotch.Infrastructure.Logging.MiniLogger.Log(
+            $"[GESTE] tirer pour ouvrir : {_pull:0} DIP, {pullVelocity:0} DIP/s");
+
+        _pullHinted = false;
+        _pull = 0;
+        _dragPhase = DragPhase.None;
+        _detachDisplay = null;
+
+        _controller.OpenFromPull(stretched, velocity, () =>
+        {
+            CommitClick();
+
+            // Une traction n'est pas un clic : elle n'arme pas le double-clic.
+            _doubleClickOpensNote = false;
+            _lastClickAt = 0;
+        });
     }
 
     /// <summary>Composante d'un déplacement qui éloigne du bord : c'est elle qui tire.</summary>
@@ -988,7 +1106,12 @@ public sealed partial class IslandWindow
 
                 if (_settings.AllowDetach && Detachment.ShouldTear(_pull, _settings.TearDistance))
                 {
+                    EndPullHint(keepPreview: true);
                     BeginTear();
+                }
+                else
+                {
+                    UpdatePullHint();
                 }
 
                 break;
@@ -1002,6 +1125,13 @@ public sealed partial class IslandWindow
                     _pull = 0;
                     _dragPhase = DragPhase.None;
                     _detachDisplay = null;
+
+                    // La sortie survenue pendant la traction n'a pas armé la
+                    // fermeture de l'aperçu : elle l'est maintenant.
+                    if (!_pixelHovered && _controller.State == IslandState.Preview)
+                    {
+                        _controller.EndPreview();
+                    }
                 }
 
                 break;
