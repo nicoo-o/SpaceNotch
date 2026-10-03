@@ -3924,6 +3924,28 @@ public sealed partial class IslandWindow : Window
     private async void OnWindowClosed(object sender, WindowEventArgs args)
     {
         await ShutdownAsync();
+        ExitProcess();
+    }
+
+    /// <summary>
+    /// Sortie de l'application, une fois l'arrêt mené à son terme.
+    ///
+    /// <para>
+    /// <c>Application.Exit()</c> ne suffit pas toujours : mesuré sur Windows,
+    /// avec la présentation du premier lancement ouverte, le processus restait
+    /// vivant plus de 15 s après « IslandWindow fermée » (audit SN-01, une fois
+    /// sur deux). Tout est déjà libéré et le journal vidé à ce stade : la sortie
+    /// est forcée si le processus est encore là après un court délai.
+    /// </para>
+    /// </summary>
+    private static void ExitProcess()
+    {
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(3)).ConfigureAwait(false);
+            Environment.Exit(0);
+        });
+
         Application.Current.Exit();
     }
 
@@ -3936,7 +3958,7 @@ public sealed partial class IslandWindow : Window
     private async void QuitApplication()
     {
         await ShutdownAsync();
-        Application.Current.Exit();
+        ExitProcess();
     }
 
     /// <summary>Une étape de l'arrêt, isolée : son échec est journalisé, la suite continue.</summary>
