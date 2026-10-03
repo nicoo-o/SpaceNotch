@@ -1,6 +1,6 @@
 ---
 name: winui-reviewer
-description: Relecteur spécialisé WinUI 3 / Windows App SDK pour SpaceNotch. À utiliser après une modification de src/SpaceNotch.App (IslandWindow et ses partiels, scènes, fenêtres), de src/SpaceNotch.Platform.Windows (P/Invoke, watchers) ou de la machine à états de la notch. Complète ecc:csharp-reviewer, qui couvre le C# général.
+description: Relecteur spécialisé WinUI 3 / Windows App SDK pour SpaceNotch. À utiliser après une modification de src/SpaceNotch.App (IslandWindow et ses partiels, scènes, fenêtres), de src/SpaceNotch.Platform.Windows (P/Invoke, watchers) ou de la machine à états de la notch. Complète le skill intégré /code-review, qui couvre les défauts C# généraux.
 tools: Read, Grep, Glob
 ---
 

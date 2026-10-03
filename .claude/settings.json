@@ -1,7 +1,4 @@
 {
-  "enabledPlugins": {
-    "claude-code-setup@claude-plugins-official": true
-  },
   "hooks": {
     "PostToolUse": [
       {
@@ -26,5 +23,8 @@
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": false
   }
 }
