@@ -153,6 +153,31 @@ public sealed class IslandController : IDisposable
 
     public IslandFootprint CurrentFootprint => _animator.Current;
 
+    /// <summary>Vitesse verticale de la forme, en DIP/s : elle gonfle le bas (Liquide doux).</summary>
+    public double HeightVelocity => _animator.HeightVelocity;
+
+    /// <summary>
+    /// Tirer pour ouvrir : le prochain mouvement part de la forme étirée et de
+    /// la vitesse de la main, puis <paramref name="open"/> ouvre comme un clic.
+    /// Si rien ne s'ouvre, la forme retombe à sa place avec le même élan.
+    /// </summary>
+    public void OpenFromPull(IslandFootprint stretched, double heightVelocity, Action open)
+    {
+        ArgumentNullException.ThrowIfNull(open);
+
+        if (_useSpringAnimations())
+        {
+            _animator.Seed(stretched, heightVelocity);
+        }
+
+        open();
+
+        if (_useSpringAnimations() && !_animator.IsRunning)
+        {
+            Resume();
+        }
+    }
+
     public IslandFootprint CollapsedFootprint => _collapsedFootprint;
 
     public IslandActivity? PresentedActivity => _presented;

@@ -92,4 +92,63 @@ public static class ShapeEffects
 
         return [.. result];
     }
+
+    /// <summary>
+    /// Bas gonflé par la vitesse (physique B « Liquide doux »). Le bord bas
+    /// droit d'un contour devient une courbe en sinus : bombée vers le bas
+    /// de <paramref name="bulge"/> DIP au milieu quand la forme descend,
+    /// creusée quand elle remonte, nulle aux congés pour s'y raccorder sans
+    /// angle.
+    ///
+    /// <para>
+    /// Un bombement positif doit tenir dans la fenêtre : le contour est alors
+    /// calculé pour une hauteur de corps diminuée d'autant (voir
+    /// <see cref="BulgeBody"/>), comme pour la goutte.
+    /// </para>
+    /// </summary>
+    /// <param name="outline">Contour calculé pour <paramref name="bodyHeight"/>.</param>
+    /// <param name="bodyHeight">Hauteur du corps, en DIP.</param>
+    /// <param name="bulge">Bombement au milieu, en DIP (négatif : creux).</param>
+    public static ShapePoint[] Bulged(ShapePoint[] outline, double bodyHeight, double bulge)
+    {
+        ArgumentNullException.ThrowIfNull(outline);
+
+        if (outline.Length < 2 || Math.Abs(bulge) < 0.05 || !double.IsFinite(bulge))
+        {
+            return outline;
+        }
+
+        var result = new List<ShapePoint>(outline.Length + 128);
+
+        for (int i = 0; i < outline.Length; i++)
+        {
+            ShapePoint a = outline[i];
+            ShapePoint b = outline[(i + 1) % outline.Length];
+            result.Add(a);
+
+            bool bottom = Math.Abs(a.Y - bodyHeight) < 0.01 && Math.Abs(b.Y - bodyHeight) < 0.01 && a.X - b.X > Sample;
+
+            if (!bottom)
+            {
+                continue;
+            }
+
+            double span = a.X - b.X;
+
+            for (double x = a.X - Sample; x > b.X; x -= Sample)
+            {
+                double t = (a.X - x) / span;
+                result.Add(new ShapePoint(x, bodyHeight + (bulge * Math.Sin(Math.PI * t))));
+            }
+        }
+
+        return [.. result];
+    }
+
+    /// <summary>
+    /// Hauteur du corps pour un bombement donné : la fenêtre garde la hauteur
+    /// de l'encombrement, le bombement positif descend dans la marge libérée.
+    /// </summary>
+    public static double BulgeBody(double height, double bulge)
+        => Math.Max(1, height - Math.Max(0, bulge));
 }

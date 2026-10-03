@@ -66,29 +66,38 @@ public static class MotionPresets
         MotionStyle.Quiet => SpringParameters.FromResponse(0.52, 0.92),
         MotionStyle.Dynamic => SpringParameters.FromResponse(0.38, 0.48),
 
-        // Naturel : ouverture ferme, un soupçon de dépassement (réponse
-        // 0,42 s, amortissement 0,78) — validé avec les visuels de la vague 2.
+        // Naturel : physique B « Liquide doux », choisie à l'audit d'octobre
+        // 2026 (réponse 0,46 s, amortissement 0,62, soit environ 8 % de
+        // dépassement) : la notch se lit comme une matière, sans trembler.
         _ => NaturalOpen
     };
 
-    /// <summary>Ouverture « Naturel » : 0,42 s, amortissement 0,78.</summary>
-    public static SpringParameters NaturalOpen { get; } = SpringParameters.FromResponse(0.42, 0.78);
+    /// <summary>Ouverture « Naturel » (Liquide doux) : 0,46 s, amortissement 0,62.</summary>
+    public static SpringParameters NaturalOpen { get; } = SpringParameters.FromResponse(0.46, 0.62);
+
+    /// <summary>« Naturel » de la vague 2 (0,42 / 0,78), suivi par les configurations restées dessus.</summary>
+    public static SpringParameters PreviousNaturalOpen { get; } = SpringParameters.FromResponse(0.42, 0.78);
+
+    /// <summary>Amortissement minimal de la fermeture.</summary>
+    public const double CloseDamping = 0.82;
 
     /// <summary>
     /// Ressort de fermeture, dérivé de celui de l'ouverture : plus court
-    /// (0,36 / 0,42) et sans rebond (amortissement au moins 0,9). Une notch
-    /// qui rebondit en se refermant a l'air de refuser de partir.
+    /// (0,38 / 0,46) et presque sans rebond (amortissement au moins 0,82, soit
+    /// moins de 1 % de dépassement). Une notch qui rebondit franchement en se
+    /// refermant a l'air de refuser de partir.
     /// </summary>
     public static SpringParameters CloseOf(SpringParameters open)
         => SpringParameters.FromResponse(
-            open.ResponseSeconds * (0.36 / 0.42),
-            Math.Max(open.DampingRatio, 0.9),
+            open.ResponseSeconds * (0.38 / 0.46),
+            Math.Max(open.DampingRatio, CloseDamping),
             open.Mass);
 
     /// <summary>
     /// Ressort selon l'importance (A7) : la physique porte le sens. Une
-    /// information qui s'ouvre d'elle-même sans être urgente se pose sans
-    /// dépasser ; une interruption (appel, alarme) s'ouvre avec un rebond franc.
+    /// information qui s'ouvre d'elle-même sans être urgente se pose presque
+    /// sans dépasser (amortissement 0,80) ; une interruption (appel, alarme)
+    /// s'ouvre avec un rebond franc (0,50).
     /// On devine l'importance avant de lire.
     ///
     /// <para>
@@ -107,11 +116,28 @@ public static class MotionPresets
 
         return priority >= ActivityPriority.High
             ? SpringParameters.FromResponse(chosen.ResponseSeconds, Math.Min(chosen.DampingRatio, UrgentDamping), chosen.Mass)
-            : SpringParameters.FromResponse(chosen.ResponseSeconds, 1.0, chosen.Mass);
+            : SpringParameters.FromResponse(chosen.ResponseSeconds, Math.Max(chosen.DampingRatio, NormalDamping), chosen.Mass);
     }
 
     /// <summary>Amortissement d'une ouverture urgente (A7).</summary>
-    public const double UrgentDamping = 0.55;
+    public const double UrgentDamping = 0.50;
+
+    /// <summary>Amortissement d'une ouverture spontanée ordinaire : un soupçon de rebond.</summary>
+    public const double NormalDamping = 0.80;
+
+    /// <summary>
+    /// Écrasement maximal au rebond, à volume constant : la forme qui dépasse
+    /// sa hauteur s'amincit d'au plus 7 %, et s'élargit d'autant en retombant.
+    /// </summary>
+    public const double MaxSquash = 0.07;
+
+    /// <summary>
+    /// Bas de la forme gonflé par la vitesse verticale (Liquide doux), en DIP :
+    /// positif quand la forme descend (le bas se bombe), négatif quand elle
+    /// remonte (le bas se creuse un peu). 0,35 × clamp(v / 120, −6, 10).
+    /// </summary>
+    public static double Bulge(double heightVelocity)
+        => double.IsFinite(heightVelocity) ? 0.35 * Math.Clamp(heightVelocity / 120, -6, 10) : 0;
 
     /// <summary>
     /// Butée (A6) : arrivé au bout (volume à 100 %, fin de liste), le contenu

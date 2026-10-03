@@ -905,7 +905,9 @@ public class SideEdgeTests
     [Fact]
     public void TheTearDistanceIsAdjustableWithinBounds()
     {
-        Assert.True(Detachment.ShouldTear(25, 20));
+        // Le minimum est 32 : réglée plus bas, la distance y est ramenée.
+        Assert.True(Detachment.ShouldTear(35, 20));
+        Assert.False(Detachment.ShouldTear(25, 20));
         Assert.False(Detachment.ShouldTear(25, 60));
         Assert.False(Detachment.ShouldTear(15, 5));
         Assert.False(Detachment.ShouldTear(100, 500) && !Detachment.ShouldTear(80, 500));

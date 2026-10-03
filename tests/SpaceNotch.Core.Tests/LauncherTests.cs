@@ -277,10 +277,10 @@ public sealed class WaveTwoMotionTests
         var open = SpaceNotch.Core.Motion.MotionPresets.Spring(SpaceNotch.Core.Motion.MotionStyle.Natural);
         var close = SpaceNotch.Core.Motion.MotionPresets.CloseOf(open);
 
-        Assert.Equal(0.42, open.ResponseSeconds, 3);
-        Assert.Equal(0.78, open.DampingRatio, 3);
-        Assert.Equal(0.36, close.ResponseSeconds, 3);
-        Assert.Equal(0.9, close.DampingRatio, 3);
+        Assert.Equal(0.46, open.ResponseSeconds, 3);
+        Assert.Equal(0.62, open.DampingRatio, 3);
+        Assert.Equal(0.38, close.ResponseSeconds, 3);
+        Assert.Equal(0.82, close.DampingRatio, 3);
     }
 
     [Fact]
@@ -290,6 +290,22 @@ public sealed class WaveTwoMotionTests
         settings.Sanitize();
 
         Assert.Equal(SpaceNotch.Core.Motion.MotionStyle.Natural, settings.MotionStyle);
-        Assert.Equal(0.42, settings.SpringResponseSeconds, 3);
+        Assert.Equal(0.46, settings.SpringResponseSeconds, 3);
+        Assert.Equal(0.62, settings.SpringBounce, 3);
+    }
+
+    [Fact]
+    public void Settings_on_the_wave_two_natural_spring_follow_liquid_soft()
+    {
+        var settings = new SpaceNotch.Infrastructure.Config.AppSettings { SpringResponseSeconds = 0.42, SpringBounce = 0.78 };
+        settings.Sanitize();
+
+        Assert.Equal(SpaceNotch.Core.Motion.MotionStyle.Natural, settings.MotionStyle);
+        Assert.Equal(0.46, settings.SpringResponseSeconds, 3);
+        Assert.Equal(0.62, settings.SpringBounce, 3);
+
+        // Le survol, lui, n'a pas changé.
+        Assert.Equal(0.30, settings.HoverMotion.ResponseSeconds, 2);
+        Assert.Equal(0.61, settings.HoverMotion.DampingRatio, 2);
     }
 }

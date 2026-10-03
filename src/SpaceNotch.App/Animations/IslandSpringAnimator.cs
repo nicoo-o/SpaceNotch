@@ -72,6 +72,37 @@ public sealed class IslandSpringAnimator
     /// <summary>Encombrement courant, à mi-parcours compris.</summary>
     public IslandFootprint Current => new(_width, _height);
 
+    /// <summary>Vitesse verticale courante de la forme, en DIP/s (0 au repos).</summary>
+    public double HeightVelocity => _isRunning ? _heightVelocity : 0;
+
+    /// <summary>
+    /// Fait partir le prochain mouvement d'une forme et d'une vitesse données,
+    /// sans rien dessiner : la notch tirée puis lâchée (tirer pour ouvrir)
+    /// s'ouvre depuis sa forme étirée, avec l'élan de la main.
+    /// </summary>
+    public void Seed(IslandFootprint from, double heightVelocity)
+    {
+        if (!from.IsValid)
+        {
+            return;
+        }
+
+        _width = from.Width;
+        _height = from.Height;
+        _widthVelocity = 0;
+        _heightVelocity = double.IsFinite(heightVelocity) ? heightVelocity : 0;
+
+        if (_isRunning)
+        {
+            // Un segment en cours repart de l'état semé, vers sa cible.
+            _fromWidth = _width;
+            _fromHeight = _height;
+            _initialWidthVelocity = _widthVelocity;
+            _initialHeightVelocity = _heightVelocity;
+            _stopwatch.Restart();
+        }
+    }
+
     /// <summary>
     /// Change la loi du ressort sans interrompre le mouvement en cours.
     ///
@@ -239,7 +270,8 @@ public sealed class IslandSpringAnimator
     /// Écrasement au rebond : quand la hauteur dépasse sa cible, la forme
     /// s'amincit d'autant — et s'élargit quand elle retombe en dessous —, à
     /// aire constante. C'est ce qui fait lire le rebond comme une matière
-    /// souple plutôt que comme un cadre qui tremble. Borné à 3 %.
+    /// souple plutôt que comme un cadre qui tremble. Borné à 7 % (physique B
+    /// « Liquide doux »).
     /// </summary>
     private double Squash(double height)
     {
@@ -249,7 +281,8 @@ public sealed class IslandSpringAnimator
         }
 
         double ratio = height / _toHeight;
-        return Math.Clamp(1 / Math.Sqrt(Math.Max(0.01, ratio)), 0.97, 1.03);
+        double max = SpaceNotch.Core.Motion.MotionPresets.MaxSquash;
+        return Math.Clamp(1 / Math.Sqrt(Math.Max(0.01, ratio)), 1 - max, 1 + max);
     }
 
     /// <summary>Détache immédiatement l'écouteur de rendu.</summary>

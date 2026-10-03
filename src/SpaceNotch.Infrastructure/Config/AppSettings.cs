@@ -120,10 +120,15 @@ public sealed class AppSettings
     /// Ce n'est pas un second réglage utilisateur mais une déclinaison du
     /// premier : le survol doit se lire comme le même objet effleuré, pas comme
     /// un objet réglé différemment.
+    ///
+    /// <para>
+    /// Calés pour que le survol de « Naturel » reste celui d'avant la physique B
+    /// (0,30 s / 0,61) : seul ce qui s'ouvre et se ferme a changé.
+    /// </para>
     /// </summary>
-    private const double HoverResponseFactor = 0.72;
+    private const double HoverResponseFactor = 0.3024 / 0.46;
 
-    private const double HoverBounceFactor = 0.78;
+    private const double HoverBounceFactor = 0.6084 / 0.62;
 
     // ---- Apparence --------------------------------------------------------
 
@@ -221,13 +226,13 @@ public sealed class AppSettings
     /// vive. C'est le premier des deux nombres qui décrivent vraiment un
     /// mouvement ; l'ancienne raideur ne le faisait qu'indirectement.
     /// </summary>
-    public double SpringResponseSeconds { get; set; } = 0.42;
+    public double SpringResponseSeconds { get; set; } = 0.46;
 
     /// <summary>
     /// Rebond, c'est-à-dire le rapport d'amortissement : 1,0 ne dépasse jamais la
     /// cible, 0,55 la dépasse franchement.
     /// </summary>
-    public double SpringBounce { get; set; } = 0.78;
+    public double SpringBounce { get; set; } = 0.62;
 
     /// <summary>
     /// Préréglage de mouvement choisi dans les réglages. <see cref="MotionStyle.Custom"/>
@@ -865,9 +870,12 @@ public sealed class AppSettings
         // Vague 2 : « Naturel » est passé de 0,46 / 0,58 à 0,42 / 0,78. Une
         // configuration restée sur l'ancien Naturel suit le nouveau, au lieu de
         // se déclarer personnalisée.
+        // Phase B de l'audit : « Naturel » devient Liquide doux (0,46 / 0,62) ;
+        // une configuration restée sur le Naturel de la vague 2 suit aussi.
         if (MotionStyle == MotionStyle.Natural
-            && Math.Abs(SpringResponseSeconds - 0.46) <= 0.005
-            && Math.Abs(SpringBounce - 0.58) <= 0.005)
+            && ((Math.Abs(SpringResponseSeconds - 0.46) <= 0.005 && Math.Abs(SpringBounce - 0.58) <= 0.005)
+                || (Math.Abs(SpringResponseSeconds - MotionPresets.PreviousNaturalOpen.ResponseSeconds) <= 0.005
+                    && Math.Abs(SpringBounce - MotionPresets.PreviousNaturalOpen.DampingRatio) <= 0.005)))
         {
             SpringResponseSeconds = MotionPresets.NaturalOpen.ResponseSeconds;
             SpringBounce = MotionPresets.NaturalOpen.DampingRatio;

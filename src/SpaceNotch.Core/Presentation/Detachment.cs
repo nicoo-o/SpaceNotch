@@ -137,8 +137,12 @@ public static class Detachment
     /// </summary>
     public const double MonitorEscape = 56;
 
-    /// <summary>Bornes réglables de la distance d'arrachement.</summary>
-    public const double MinimumTearDistance = 20;
+    /// <summary>
+    /// Bornes réglables de la distance d'arrachement. Le minimum est relevé à
+    /// 32 (phase B de l'audit) : en dessous, il ne restait plus de place pour
+    /// « tirer pour ouvrir » entre le clic et l'arrachement.
+    /// </summary>
+    public const double MinimumTearDistance = 32;
 
     public const double MaximumTearDistance = 80;
 
@@ -175,6 +179,82 @@ public static class Detachment
     /// </summary>
     public static bool IsClickRelease(double pull, double lateral)
         => pull < ClickSlop && Math.Abs(lateral) < LateralClickSlop;
+
+    /// <summary>Plus petite traction qui ouvre au lâcher, en DIP.</summary>
+    public const double PullOpenMinimum = 12;
+
+    /// <summary>Part de la distance d'arrachement à partir de laquelle un lâcher ouvre.</summary>
+    public const double PullOpenShare = 0.3;
+
+    /// <summary>Traction minimale d'un lancer vers le bas qui ouvre, en DIP.</summary>
+    public const double PullFlickMinimum = 6;
+
+    /// <summary>Vitesse transmise au plus à la forme qui s'ouvre, en DIP/s.</summary>
+    public const double PullOpenMaxVelocity = 1500;
+
+    /// <summary>Part de la distance d'arrachement où le col de la goutte se forme.</summary>
+    public const double NeckShare = 0.8;
+
+    /// <summary>
+    /// Traction à partir de laquelle un lâcher ouvre la notch :
+    /// max(12, 0,3 × T), T étant la distance d'arrachement.
+    /// </summary>
+    public static double PullOpenThreshold(double tearDistance)
+        => Math.Max(PullOpenMinimum, PullOpenShare * Math.Clamp(tearDistance, MinimumTearDistance, MaximumTearDistance));
+
+    /// <summary>
+    /// Tirer pour ouvrir (RFC §3.3) : vrai si le lâcher d'une notch tirée vers
+    /// le bas l'ouvre. Une traction au-delà du seuil ouvre — et, quand le
+    /// détachement est désactivé, toute traction au-delà du seuil, même plus
+    /// longue que la distance d'arrachement. Un lancer vers le bas (au moins
+    /// 300 DIP/s) ouvre dès 6 DIP.
+    /// </summary>
+    public static bool OpensOnRelease(double pullDown, double pullVelocity, double tearDistance, bool allowDetach)
+    {
+        if (!double.IsFinite(pullDown) || pullDown <= 0)
+        {
+            return false;
+        }
+
+        double tear = Math.Clamp(tearDistance, MinimumTearDistance, MaximumTearDistance);
+
+        if (allowDetach && pullDown >= tear)
+        {
+            return false;
+        }
+
+        return pullDown >= PullOpenThreshold(tear)
+            || (pullVelocity >= FlingSpeed && pullDown >= PullFlickMinimum);
+    }
+
+    /// <summary>
+    /// Vrai quand l'indice d'ouverture doit se montrer : le seuil est franchi,
+    /// l'aperçu apparaît dans la forme étirée. Une petite hystérésis évite le
+    /// clignotement autour du seuil.
+    /// </summary>
+    public static bool ShowsPullHint(double pullDown, double tearDistance, bool shown)
+        => pullDown >= PullOpenThreshold(tearDistance) * (shown ? 0.7 : 1);
+
+    /// <summary>
+    /// Vitesse de la forme au lâcher, en DIP/s : la vitesse de la main
+    /// ramenée à celle de l'allongement visible (le tirage résiste), bornée à
+    /// <see cref="PullOpenMaxVelocity"/>. Le ressort d'ouverture part de la
+    /// forme étirée avec cette vitesse, sans raccord.
+    /// </summary>
+    public static double PullOpenVelocity(double pullDown, double pullVelocity)
+    {
+        if (!double.IsFinite(pullVelocity) || pullVelocity <= 0)
+        {
+            return 0;
+        }
+
+        double m = Math.Max(0, pullDown);
+        double c = FluidMotion.RubberBandConstant;
+        double d = PullDimension;
+        double slope = d * d * c / Math.Pow(d + (c * m), 2);
+
+        return Math.Min(PullOpenMaxVelocity, pullVelocity * slope);
+    }
 
     /// <summary>
     /// Forme accrochée étirée par le tirage : plus haute, un peu plus étroite —

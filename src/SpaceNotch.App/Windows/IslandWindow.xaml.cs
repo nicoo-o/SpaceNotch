@@ -2876,7 +2876,14 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        if (!ctrl && _volumeListener.Level is float level)
+        bool open = _controller.State is IslandState.Expanded or IslandState.Expanding;
+
+        // La molette ne règle le volume qu'avec une musique présentée ou la
+        // notch ouverte (phase B) : défiler sous la notch, sur les onglets du
+        // navigateur, ne change plus le volume du système.
+        if (!ctrl
+            && SpaceNotch.Core.Presentation.NotchGestures.WheelControlsVolume(_controller.PresentedActivity?.FeatureId, open)
+            && _volumeListener.Level is float level)
         {
             // Butée (A6) : pousser au-delà de 100 % ou sous zéro secoue la notch.
             if ((level >= 0.999f && delta > 0) || (level <= 0.001f && delta < 0))

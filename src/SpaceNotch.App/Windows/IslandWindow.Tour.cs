@@ -358,6 +358,7 @@ public sealed partial class IslandWindow
             ("musique · pastille", () => TourShow(Music(), open: false)),
             ("musique · aperçu au survol", () => _controller.RequestPreview()),
             ("musique · ouverte", () => { _controller.EndPreview(); TourShow(Music(), open: true); }),
+            ("tirer pour ouvrir · depuis la forme étirée", () => { _controller.RequestCollapse(); TourPullOpen(); }),
             ("volume · pastille", () => TourShow(Volume(), open: false)),
             ("volume · ouvert", () => TourShow(Volume(), open: true)),
             ("notification · pastille", () => { TourClear("tour.volume"); TourShow(Discord(), open: false); }),
@@ -401,7 +402,7 @@ public sealed partial class IslandWindow
             ("languette · gauche", () => DockFromMenu(NotchEdge.Left)),
             ("languette · droite", () => DockFromMenu(NotchEdge.Right)),
             ("retour en haut", () => DockFromMenu(NotchEdge.Top)),
-            ("pastille détachée · avec bulle", () => DetachFromMenu()),
+            ("pastille détachée · avec bulle", () => { _controller.RequestCollapse(); DetachFromMenu(); }),
             ("pastille lancée · rebonds", TourThrow),
             ("raccrochée", () => ReattachTo(NotchEdge.Top, 0.5)),
             .. Wave5Tour(Music),
@@ -410,4 +411,25 @@ public sealed partial class IslandWindow
             ("fin", () => { _settingsWindow?.Close(); _quietOverride = 0; TourClear(); })
         ];
     }
+
+    /// <summary>
+    /// Tirer pour ouvrir (phase B) : la forme part de l'étirement d'une
+    /// traction de 24 DIP lâchée à 900 DIP/s, avec l'élan transmis.
+    /// </summary>
+    private void TourPullOpen()
+    {
+        // La notch se referme d'abord : la traction part du repos.
+        _tourPull ??= CreateOneShotTimer(TimeSpan.FromMilliseconds(900), () =>
+        {
+            const double pull = 24;
+            _controller.RequestPreview();
+            IslandFootprint stretched = Detachment.Pulled(_controller.CurrentFootprint, pull);
+            _controller.OpenFromPull(stretched, Detachment.PullOpenVelocity(pull, 900), _controller.RequestExpand);
+        });
+
+        _tourPull.Stop();
+        _tourPull.Start();
+    }
+
+    private DispatcherQueueTimer? _tourPull;
 }
