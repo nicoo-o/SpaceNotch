@@ -23,6 +23,14 @@ public sealed class FrameRunStats
     /// <summary>Budget d'une image à 60 Hz, en millisecondes.</summary>
     public const double Budget60 = 1000.0 / 60;
 
+    /// <summary>
+    /// Au-delà, un intervalle est une pause et non une saccade : l'horloge
+    /// reste abonnée, mais rien n'a été dessiné (une animation à l'arrêt, une
+    /// fenêtre masquée). Mêlées aux images manquées, ces pauses noyaient les
+    /// vraies saccades.
+    /// </summary>
+    public const double PauseMs = 100;
+
     private readonly List<double> _intervals = [];
     private readonly List<double> _costs = [];
 
@@ -63,14 +71,18 @@ public sealed class FrameRunStats
         // La cadence de l'écran se lit sur les intervalles les plus courts : le
         // dixième centile ignore les images manquées qui gonflent la médiane.
         double cadence = Percentile(intervals, 0.10);
-        int missed = 0;
+        int missed = 0, pauses = 0;
         double duration = 0;
 
         foreach (double interval in intervals)
         {
             duration += interval;
 
-            if (cadence > 0 && interval > cadence * 1.5)
+            if (interval > PauseMs)
+            {
+                pauses++;
+            }
+            else if (cadence > 0 && interval > cadence * 1.5)
             {
                 missed++;
             }
@@ -92,6 +104,7 @@ public sealed class FrameRunStats
             Percentile(intervals, 0.95),
             intervals.Length == 0 ? 0 : intervals[^1],
             missed,
+            pauses,
             Percentile(costs, 0.50),
             Percentile(costs, 0.95),
             costs[^1],
@@ -121,6 +134,7 @@ public readonly record struct FrameRunReport(
     double IntervalP95,
     double IntervalMax,
     int Missed,
+    int Pauses,
     double CostP50,
     double CostP95,
     double CostMax,
@@ -132,7 +146,7 @@ public readonly record struct FrameRunReport(
     /// <summary>Une ligne de journal, préfixée <c>[IMAGES]</c>, avec le contexte de la rafale.</summary>
     public string ToLogLine(string context) => string.Format(
         French,
-        "[IMAGES] {0} : {1} images en {2:0.0} ms · cadence {3:0.0} ms · intervalle p50 {4:0.0} / p95 {5:0.0} / max {6:0.0} ms · manquées : {7} · coût p50 {8:0.0} / p95 {9:0.0} / max {10:0.0} ms · > 8,3 ms : {11} · > 16,7 ms : {12}",
+        "[IMAGES] {0} : {1} images en {2:0.0} ms · cadence {3:0.0} ms · intervalle p50 {4:0.0} / p95 {5:0.0} / max {6:0.0} ms · manquées : {7} · pauses : {8} · coût p50 {9:0.0} / p95 {10:0.0} / max {11:0.0} ms · > 8,3 ms : {12} · > 16,7 ms : {13}",
         context,
         Frames,
         DurationMs,
@@ -141,6 +155,7 @@ public readonly record struct FrameRunReport(
         IntervalP95,
         IntervalMax,
         Missed,
+        Pauses,
         CostP50,
         CostP95,
         CostMax,

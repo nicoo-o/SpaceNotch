@@ -63,6 +63,25 @@ public sealed class FrameRunStatsTests
     }
 
     [Fact]
+    public void Un_intervalle_de_plus_de_100_ms_est_une_pause_pas_une_image_manquee()
+    {
+        var run = new FrameRunStats();
+        run.Add(double.NaN, 1);
+
+        // L'horloge reste abonnée, mais rien n'est dessiné pendant 4,9 s : ce
+        // n'est pas une saccade que l'œil voit, c'est une animation à l'arrêt.
+        foreach (double interval in new[] { 4.2, 4.2, 4.2, 4926, 4.2, 9, 4.2, 4.2, 4.2, 4.2 })
+        {
+            run.Add(interval, 1);
+        }
+
+        FrameRunReport report = run.Finish()!.Value;
+
+        Assert.Equal(1, report.Missed);
+        Assert.Equal(1, report.Pauses);
+    }
+
+    [Fact]
     public void Le_cout_est_compare_aux_budgets_de_120_et_60_Hz()
     {
         var run = new FrameRunStats();
