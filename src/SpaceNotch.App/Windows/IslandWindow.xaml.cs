@@ -385,11 +385,11 @@ public sealed partial class IslandWindow : Window
             CreateChannelFeature()
         };
 
-        features.AddRange(CreateWave6cFeatures());
-        features.AddRange(CreateWave6dFeatures());
-        WireWave6b();
-        WireWave6c();
-        WireWave6d();
+        features.AddRange(CreateAssistantFeatures());
+        features.AddRange(CreatePhoneFeatures());
+        WireWork();
+        WireAssistant();
+        WirePhone();
 
         // Les greffons sont chargés avant la création du registre : ils en font
         // partie dès le démarrage et bénéficient donc exactement du même cycle de

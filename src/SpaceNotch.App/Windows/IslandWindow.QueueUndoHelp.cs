@@ -55,7 +55,7 @@ public sealed partial class IslandWindow
                 Height = QueueDots.Size,
                 Fill = new SolidColorBrush(tint is { } t
                     ? global::Windows.UI.Color.FromArgb(0xFF, t.R, t.G, t.B)
-                    : Microsoft.UI.ColorHelper.FromArgb(0x99, 0xFF, 0xFF, 0xFF))
+                    : ((SolidColorBrush)SpaceNotch_App.UI.ThemeBrushes.Get(RootLayout, "NfTextSecondaryBrush")).Color)
             };
 
             // Un point de plus : il apparaît d'une pichenette.
@@ -217,14 +217,16 @@ public sealed partial class IslandWindow
         {
             foreach (GestureTip tip in GestureHelp.For(_controller.PresentedActivity))
             {
-                var text = new TextBlock { FontSize = 11, Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0x99, 0xFF, 0xFF, 0xFF)) };
-                text.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = tip.Gesture, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0xEB, 0xFF, 0xFF, 0xFF)) });
+                // Jetons du thème de la notch (phase F) : en apparence claire,
+                // l'aide restait blanche sur fond clair.
+                var text = new TextBlock { FontSize = 11, Foreground = SpaceNotch_App.UI.ThemeBrushes.Get(RootLayout, "NfTextSecondaryBrush") };
+                text.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = tip.Gesture, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = SpaceNotch_App.UI.ThemeBrushes.Get(RootLayout, "NfTextPrimaryBrush") });
                 text.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = " · " + tip.Effect });
                 GestureHelpRow.Children.Add(new Border
                 {
                     CornerRadius = new CornerRadius(999),
                     Padding = new Thickness(7, 3, 7, 3),
-                    Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0x12, 0xFF, 0xFF, 0xFF)),
+                    Background = SpaceNotch_App.UI.ThemeBrushes.Get(RootLayout, "NfStrokeSubtleBrush"),
                     Child = text
                 });
             }

@@ -21,7 +21,7 @@ namespace SpaceNotch_App.Windows;
 /// </summary>
 public sealed partial class IslandWindow
 {
-    private IEnumerable<(string Label, Action Run)> Wave6dTour(Func<double, CalendarMeeting> meeting, Func<IslandActivity> music)
+    private IEnumerable<(string Label, Action Run)> PhoneTour(Func<double, CalendarMeeting> meeting, Func<IslandActivity> music)
     {
         VoiceMember[] Room(int speaking) =>
         [

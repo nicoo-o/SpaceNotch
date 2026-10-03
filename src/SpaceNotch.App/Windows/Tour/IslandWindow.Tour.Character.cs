@@ -52,7 +52,7 @@ public sealed partial class IslandWindow
     /// <summary>Visite : heure imposée à l'horloge du repos, pour filmer la rémanence.</summary>
     private string? _tourClock;
 
-    private IEnumerable<(string Label, Action Run)> Wave6aTour(Func<IslandActivity> discord)
+    private IEnumerable<(string Label, Action Run)> CharacterTour(Func<IslandActivity> discord)
     {
         DateTimeOffset Now() => DateTimeOffset.UtcNow;
 

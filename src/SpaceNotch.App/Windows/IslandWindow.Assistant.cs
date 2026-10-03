@@ -31,7 +31,7 @@ public sealed partial class IslandWindow
     private WindowsLocalModel? _localModel;
     private IAssistantModel? _claudeModel;
 
-    private IEnumerable<IIslandFeature> CreateWave6cFeatures()
+    private IEnumerable<IIslandFeature> CreateAssistantFeatures()
     {
         string folder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SpaceNotch");
 
@@ -41,7 +41,7 @@ public sealed partial class IslandWindow
         return [_reminderFeature, _copyAssistFeature];
     }
 
-    private void WireWave6c()
+    private void WireAssistant()
     {
         _notificationFeature.UserName = Environment.UserName;
 

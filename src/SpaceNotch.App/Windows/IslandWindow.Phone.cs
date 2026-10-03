@@ -37,14 +37,14 @@ public sealed partial class IslandWindow
     private Microsoft.UI.Dispatching.DispatcherQueueTimer? _mirrorClose;
     private MediaTrackInfo? _track;
 
-    private IEnumerable<IIslandFeature> CreateWave6dFeatures()
+    private IEnumerable<IIslandFeature> CreatePhoneFeatures()
     {
         _phoneFeature = new PhoneFeature(_activityManager, _eventBus, _settings.ShowPhone);
         _discordFeature = new DiscordVoiceFeature(_activityManager, _eventBus, _settings.ShowDiscord);
         return [_phoneFeature, _discordFeature];
     }
 
-    private void WireWave6d()
+    private void WirePhone()
     {
         if (_phoneFeature is { } phone)
         {

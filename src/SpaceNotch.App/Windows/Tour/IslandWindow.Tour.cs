@@ -352,10 +352,10 @@ public sealed partial class IslandWindow
         return
         [
             ("repos", () => TourClear()),
-            .. Wave7Tour(Music, Volume),
-            .. Wave6bTour(Meeting),
-            .. Wave6cTour(),
-            .. Wave6dTour(Meeting, Music),
+            .. HandoffsTour(Music, Volume),
+            .. WorkTour(Meeting),
+            .. AssistantTour(),
+            .. PhoneTour(Meeting, Music),
             ("musique · pastille", () => TourShow(Music(), open: false)),
             ("musique · aperçu au survol", () => _controller.RequestPreview()),
             ("musique · ouverte", () => { _controller.EndPreview(); TourShow(Music(), open: true); }),
@@ -390,7 +390,7 @@ public sealed partial class IslandWindow
             ("météo · survol du repos", () => { _meetingFeature.Show(null); WeatherHover(); }),
             ("partage · QR code", () => { _controller.EndPreview(); _shareFeature.Preview("http://192.168.1.20:50123/AAECAwQFBgcICQoLDA0ODw/rapport-final.pdf", "rapport-final.pdf"); TourOpen(SpaceNotch.Features.Share.ShareFeature.ActivityId); }),
             ("charge · branchement", () => { TourClear(SpaceNotch.Features.Share.ShareFeature.ActivityId); _chargeFeature.Announce(64); }),
-            .. Wave6aTour(Discord),
+            .. CharacterTour(Discord),
             ("appareil · manette", () => { TourClear(); TourShow(Gamepad(), open: false); }),
             ("moniteur · pastille", () => { TourClear("tour.gamepad"); CpuAlert(); _activityManager.PinPresentation(SpaceNotch.Features.Power.SystemMonitorFeature.ActivityId); }),
             ("moniteur · ouvert", () => TourOpen(SpaceNotch.Features.Power.SystemMonitorFeature.ActivityId)),
@@ -406,7 +406,7 @@ public sealed partial class IslandWindow
             ("pastille détachée · avec bulle", () => { _controller.RequestCollapse(); DetachFromMenu(); }),
             ("pastille lancée · rebonds", TourThrow),
             ("raccrochée", () => ReattachTo(NotchEdge.Top, 0.5)),
-            .. Wave5Tour(Music),
+            .. GesturesTour(Music),
             ("présentation · premier lancement", () => { TourClear("tour.media", "tour.download"); ShowWelcome(); }),
             ("réglages", () => { TourClear(); OpenSettingsWindow(); }),
             ("fin", () => { _settingsWindow?.Close(); _quietOverride = 0; TourClear(); })

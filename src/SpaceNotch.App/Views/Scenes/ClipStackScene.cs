@@ -101,23 +101,23 @@ public sealed partial class ClipStackScene : Grid, IIslandSceneView
         Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(this, Lang.T(
             "Entrée pour recoller, Ctrl et molette pour parcourir.",
             "Enter to paste again, Ctrl and wheel to browse."));
-        _status.Foreground = new SolidColorBrush(stack.Recalled ? Mint : Microsoft.UI.ColorHelper.FromArgb(0x99, 0xFF, 0xFF, 0xFF));
+        _status.Foreground = stack.Recalled ? new SolidColorBrush(Mint) : SpaceNotch_App.UI.ThemeBrushes.Get(this, "NfTextSecondaryBrush");
     }
 
-    private static Border Card(ClipboardEntry entry, int depth, bool recalled)
+    private Border Card(ClipboardEntry entry, int depth, bool recalled)
     {
         var kind = new TextBlock
         {
             Text = KindLabel(entry.Kind),
             FontSize = 11,
-            Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0x8C, 0xFF, 0xFF, 0xFF))
+            Foreground = SpaceNotch_App.UI.ThemeBrushes.Get(this, "NfTextTertiaryBrush")
         };
         var text = new TextBlock
         {
             Text = entry.Preview,
             FontSize = 12,
             FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-            Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0xEB, 0xFF, 0xFF, 0xFF)),
+            Foreground = SpaceNotch_App.UI.ThemeBrushes.Get(this, "NfTextPrimaryBrush"),
             TextTrimming = TextTrimming.CharacterEllipsis,
             MaxLines = 1
         };
@@ -132,8 +132,11 @@ public sealed partial class ClipStackScene : Grid, IIslandSceneView
             Height = CardHeight,
             CornerRadius = new CornerRadius(10),
             Padding = new Thickness(10, 0, 10, 0),
-            Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0xFF, (byte)(0x14 - (depth * 4)), (byte)(0x16 - (depth * 4)), (byte)(0x1C - (depth * 4)))),
-            BorderBrush = new SolidColorBrush(recalled ? Mint : Microsoft.UI.ColorHelper.FromArgb(0x14, 0xFF, 0xFF, 0xFF)),
+            // En sombre, des cartes à peine grises sur le noir ; en clair, les surfaces du thème.
+            Background = ActualTheme == ElementTheme.Light
+                ? SpaceNotch_App.UI.ThemeBrushes.Get(this, depth == 0 ? "NfSurfaceRaisedBrush" : "NfSurfaceSunkenBrush")
+                : new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0xFF, (byte)(0x14 - (depth * 4)), (byte)(0x16 - (depth * 4)), (byte)(0x1C - (depth * 4)))),
+            BorderBrush = recalled ? new SolidColorBrush(Mint) : SpaceNotch_App.UI.ThemeBrushes.Get(this, "NfStrokeSubtleBrush"),
             BorderThickness = new Thickness(1),
             Opacity = depth == 0 ? 1 : 1 - (depth * 0.3),
             Child = depth == 0 ? content : null,
