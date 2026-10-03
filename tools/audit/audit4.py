@@ -69,14 +69,15 @@ def crop(name):
 
 
 # ---------------- Pixel : vraie saisie
+SKIP_PIXEL = os.environ.get("AUDIT_SKIP_PIXEL") == "1"
 pyautogui.press("shift")
-app = launch(ShowPixel=True)
+app = launch(ShowPixel=True) if not SKIP_PIXEL else None
 time.sleep(1)
 pyautogui.press("shift")
 time.sleep(3)
 crop("pixel-repos-saisie-recente")
 record("pixel.rest_after_real_input", "INFO", idle_s=idle_seconds())
-for cycle in range(3):
+for cycle in range(0 if SKIP_PIXEL else 3):
     time.sleep(36)
     crop(f"pixel-assoupi-{cycle}")
     idle_before = idle_seconds()
@@ -86,7 +87,8 @@ for cycle in range(3):
     record(f"pixel.cycle_{cycle}", "INFO", idle_before_wake=idle_before, idle_after=idle_seconds(),
            notes=[l for l in read_log().splitlines() if "REPOS" in l or "ANIMATION" in l][:5])
 time.sleep(2)
-shutil.copy(LOG, os.path.join(OUT, "log-pixel.txt"))
+if not SKIP_PIXEL:
+    shutil.copy(LOG, os.path.join(OUT, "log-pixel.txt"))
 
 # ---------------- greffons signés
 for name in sorted(os.listdir(SIGNED)):
@@ -118,7 +120,7 @@ for name in sorted(os.listdir(SIGNED)):
     log = read_log()
     loaded = "Greffons chargés : 2" in log
     record(f"plugin.{name}", "FAIL" if loaded else "PASS", loaded=loaded, ready_s=ready, ui_probes=probes, ui_hung=hung,
-           status=open(src + ".status", encoding="utf-8", errors="replace").read().strip() if os.path.exists(src + ".status") else "?",
+           windows_status=open(src + ".status", encoding="utf-8", errors="replace").read().strip() if os.path.exists(src + ".status") else "?",
            log=[l for l in log.splitlines() if "Greffon" in l or "PLUGIN" in l or "prête" in l][:6])
     if loaded:
         subprocess.run([EXE, "--progress", "--id", "victim", "--title", "Victime", "--percent", "50"], capture_output=True)

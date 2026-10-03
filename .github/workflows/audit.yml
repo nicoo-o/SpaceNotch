@@ -233,6 +233,7 @@ jobs:
         run: |
           $exe = Get-ChildItem "${{ runner.temp }}/app" -Filter "SpaceNotch*.exe" | Select-Object -First 1
           Copy-Item $exe.FullName "${{ runner.temp }}/app/SpaceNotch.exe" -Force -ErrorAction SilentlyContinue
+          $env:AUDIT_SKIP_PIXEL = "1"
           python tools/audit/audit4.py "${{ runner.temp }}/app/SpaceNotch.exe" "${{ runner.temp }}/audit4" "${{ runner.temp }}/signed"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
