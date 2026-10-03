@@ -17,7 +17,7 @@ namespace SpaceNotch_App.Windows;
 /// </summary>
 public sealed partial class IslandWindow
 {
-    private IEnumerable<(string Label, Action Run)> Wave5Tour(Func<IslandActivity> music)
+    private IEnumerable<(string Label, Action Run)> GesturesTour(Func<IslandActivity> music)
     {
         IslandActivity Album(string title, string artist, (byte R, byte G, byte B) from, (byte R, byte G, byte B) to, bool playing = true)
         {

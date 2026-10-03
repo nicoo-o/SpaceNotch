@@ -10,6 +10,9 @@ public static class SetupIdentity
     /// <summary>Nom affiché dans Paramètres › Applications et sur les raccourcis.</summary>
     public const string ProductName = "SpaceNotch";
 
+    /// <summary>Préfixe des identifiants rangés dans le coffre de Windows (Claude, Spotify, Discord…).</summary>
+    public const string VaultPrefix = "SpaceNotch.";
+
     /// <summary>Éditeur affiché dans Paramètres › Applications.</summary>
     public const string Publisher = "SpaceNotch";
 

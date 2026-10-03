@@ -67,6 +67,31 @@ Deux surfaces distinctes, et cette séparation est structurelle :
 Une seule fenêtre ne pouvait pas satisfaire les deux exigences : pour laisser passer les clics dans
 la marge, il faut une surface distincte.
 
+### Les fichiers d'`IslandWindow`
+
+`IslandWindow` est une classe partielle, découpée par responsabilité et non plus par vague de
+livraison (phase F de l'audit) :
+
+| Fichier | Rôle |
+|---|---|
+| `IslandWindow.xaml.cs` | Construction, rendu, géométrie, environnement, arrêt |
+| `.Detach` · `.Bubble` · `.Magnet` · `.ShapeFx` | Détachement et traction, bulle, aimant, goutte et bas gonflé |
+| `.RestFace` · `.Pixel` · `.PixelLife` · `.Handoff` · `.Transitions` | Le visage du repos, Pixel, les passages entre fonctions |
+| `.QueueUndoHelp` · `.QuickMenu` · `.Commands` · `.Welcome` | File d'attente, « Annuler », aide des gestes, menu rapide, commandes, présentation |
+| `.Work` · `.Assistant` · `.Phone` · `.Weather` · `.Focus` · `.Arrivals` · `.Bump` | Câblage des fonctionnalités : travail, assistant, téléphone, météo, pomodoro, arrivées, butée |
+| `.Shadow` | La machine à états en ombre (phase E) |
+| `Tour/` | La visite filmée, par thème |
+
+Les éléments construits en code prennent leurs couleurs par `UI/ThemeBrushes`, dans le thème de
+l'élément (sombre, clair ou contraste élevé).
+
+Il reste à faire, et cela suppose que la machine à états pilote vraiment (bascule de la phase E) :
+
+- extraire `AppHost`, la racine de composition qui sortira du constructeur de la fenêtre ;
+- extraire les directeurs `NotchInputRouter`, `RestFaceDirector`, `HandoffDirector` et
+  `NotchPresenter` ;
+- mettre les environ 270 couleurs littérales restantes en jetons.
+
 ## Le contenu tiers
 
 Un greffon ne peut pas modifier la fenêtre : il déclare une **clé de scène** parmi celles du

@@ -1340,7 +1340,7 @@
                             <ComboBox x:Name="DisplayBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="200" SelectionChanged="OnDisplayModeChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Encoche de la caméra Réserve la place de la caméra des portables à encoche.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Encoche de la caméra Réserve la place de la caméra des portables à encoche. Largeur personnalisée.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1357,6 +1357,14 @@
                                 <TextBlock Text="{l:Loc Fr='Réserve la place de la caméra des portables à encoche.', En='Leaves room for the camera on laptops with a notch.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
                             </StackPanel>
                             <ComboBox x:Name="CutoutBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="200" SelectionChanged="OnCutoutChanged" />
+                            <Grid x:Name="CutoutWidthRow" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" ColumnSpacing="10" Visibility="Collapsed">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Slider x:Name="CutoutWidthSlider" Minimum="80" Maximum="400" StepFrequency="2" ValueChanged="OnCutoutWidthChanged" />
+                                <TextBlock x:Name="CutoutWidthValue" Grid.Column="1" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" />
+                            </Grid>
                         </Grid>
                     </Border>
                 </StackPanel>

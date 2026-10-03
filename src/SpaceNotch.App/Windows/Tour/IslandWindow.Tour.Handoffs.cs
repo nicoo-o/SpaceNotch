@@ -18,7 +18,7 @@ public sealed partial class IslandWindow
     /// <summary>La visite a allumé l'historique du presse-papier pour la pile : elle l'éteindra.</summary>
     private bool _tourClipboardWasOff;
 
-    private IEnumerable<(string Label, Action Run)> Wave7Tour(Func<IslandActivity> music, Func<IslandActivity> volume)
+    private IEnumerable<(string Label, Action Run)> HandoffsTour(Func<IslandActivity> music, Func<IslandActivity> volume)
     {
         string? shown = null;
 

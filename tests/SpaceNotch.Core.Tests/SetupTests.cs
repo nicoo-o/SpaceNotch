@@ -157,11 +157,10 @@ public class InstallLayoutTests
         Assert.Contains(@"C:\Users\ana\AppData\Local\Temp\.net\SpaceNotch-Setup", kept);
         Assert.DoesNotContain(@"C:\Users\ana\AppData\Roaming\SpaceNotch", kept);
         Assert.Contains(@"C:\Users\ana\AppData\Roaming\SpaceNotch", all);
-        Assert.Contains(@"C:\Users\ana\AppData\Local\SpaceNotch\logs", all);
 
-        // Les greffons sont les fichiers de l'utilisateur : jamais effacés.
-        Assert.DoesNotContain(all, p => p.EndsWith("plugins", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(@"C:\Users\ana\AppData\Local\SpaceNotch", all);
+        // Demandé explicitement, tout part : journaux, note, rappels, greffons (phase C).
+        Assert.Contains(@"C:\Users\ana\AppData\Local\SpaceNotch", all);
+        Assert.DoesNotContain(@"C:\Users\ana\AppData\Local\SpaceNotch", kept);
     }
 
     [Theory]

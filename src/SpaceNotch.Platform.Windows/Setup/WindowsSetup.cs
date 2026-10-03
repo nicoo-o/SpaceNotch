@@ -187,11 +187,21 @@ public static class WindowsSetup
             // qui pourrait appartenir à un autre compte. Un échec n'empêche pas
             // l'installation : SpaceNotch tourne, sans les notifications Windows.
             progress?.Report(new SetupProgress(InstallStep.Registering));
-            await TrustIdentityCertificateAsync(layout, source, log).ConfigureAwait(false);
-            await IdentityPackage.RegisterAsync(
-                layout.Directory,
-                Path.Combine(layout.Directory, IdentityPackage.FileName),
-                log).ConfigureAwait(false);
+
+            // Facultatif (phase C) : sans notifications Windows, ni certificat
+            // ni paquet d'identité — donc aucune demande d'autorisation.
+            if (options.WindowsNotifications)
+            {
+                await TrustIdentityCertificateAsync(layout, source, log).ConfigureAwait(false);
+                await IdentityPackage.RegisterAsync(
+                    layout.Directory,
+                    Path.Combine(layout.Directory, IdentityPackage.FileName),
+                    log).ConfigureAwait(false);
+            }
+            else
+            {
+                log?.Invoke("[IDENTITÉ] Notifications Windows non demandées : certificat et paquet ignorés.");
+            }
 
             // Préférence de l'utilisateur, dans sa propre ruche, jamais élevée.
             StartupRegistration.SetEnabled(options.StartWithWindows, StartupRegistration.BuildCommand(layout.Executable), out string? error);
@@ -340,7 +350,12 @@ public static class WindowsSetup
             // Préférence de l'utilisateur : retirée ici, dans sa ruche.
             StartupRegistration.SetEnabled(false, StartupRegistration.BuildCommand(product.Executable), out _);
 
-
+            // Les clés (Claude, Spotify, Discord) sont dans le coffre de
+            // l'utilisateur : retirées depuis son processus, jamais élevé.
+            if (removeSettings)
+            {
+                PurgeVault(log);
+            }
 
             if (product.Options.Scope == InstallScope.AllUsers && !IsElevated)
             {
@@ -416,6 +431,32 @@ public static class WindowsSetup
         using Process? _ = Process.Start(cleanup);
 
         log?.Invoke($"[SETUP] Désinstallée de {layout.Directory}.");
+    }
+
+    /// <summary>Retire du coffre de Windows tous les identifiants de SpaceNotch.</summary>
+    private static void PurgeVault(Action<string>? log)
+    {
+        try
+        {
+            var vault = new global::Windows.Security.Credentials.PasswordVault();
+            int removed = 0;
+
+            foreach (global::Windows.Security.Credentials.PasswordCredential credential in vault.RetrieveAll())
+            {
+                if (credential.Resource.StartsWith(SetupIdentity.VaultPrefix, StringComparison.Ordinal))
+                {
+                    vault.Remove(credential);
+                    removed++;
+                }
+            }
+
+            log?.Invoke($"[SETUP] Coffre : {removed} identifiant(s) retiré(s).");
+        }
+        catch (Exception ex)
+        {
+            // Coffre vide ou illisible : rien à retirer.
+            log?.Invoke($"[SETUP] Coffre non purgé : {ex.Message}");
+        }
     }
 
     /// <summary>Lance la notch installée, dans le processus de l'utilisateur.</summary>

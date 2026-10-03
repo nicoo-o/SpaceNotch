@@ -90,7 +90,7 @@
 
                     <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
                         <TextBlock
-                            x:Name="TitleText"
+                            x:Name="TitleText" AutomationProperties.LiveSetting="Assertive"
                             Style="{StaticResource NfHeroTextStyle}"
                             Foreground="{ThemeResource NfTextPrimaryBrush}"
                             Text="SpaceNotch" />
@@ -178,6 +178,8 @@
                     <StackPanel Spacing="0">
                         <CheckBox x:Name="StartupCheck" IsChecked="True" />
                         <CheckBox x:Name="DesktopCheck" IsChecked="True" />
+                        <CheckBox x:Name="NotificationsCheck" IsChecked="True" />
+                        <TextBlock x:Name="NotificationsDetail" Style="{StaticResource NfCaptionTextStyle}" TextWrapping="WrapWholeWords" Margin="28,-2,0,4" />
                     </StackPanel>
 
                     <TextBlock
@@ -208,6 +210,7 @@
                 <StackPanel x:Name="ProgressPanel" Spacing="10" Visibility="Collapsed">
                     <TextBlock
                         x:Name="StepText"
+                        AutomationProperties.LiveSetting="Polite"
                         Style="{StaticResource NfBodyTextStyle}"
                         Foreground="{ThemeResource NfTextSecondaryBrush}" />
                     <ProgressBar
@@ -222,7 +225,7 @@
 
                 <!-- Message : échec, refus d'élévation. -->
                 <TextBlock
-                    x:Name="MessageText"
+                    x:Name="MessageText" AutomationProperties.LiveSetting="Assertive"
                     Style="{StaticResource NfBodyTextStyle}"
                     Foreground="{ThemeResource NfTextSecondaryBrush}"
                     TextWrapping="WrapWholeWords"

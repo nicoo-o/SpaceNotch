@@ -52,6 +52,13 @@ public sealed class PhoneFeature : IslandFeatureBase
     private readonly Timer _clock;
     private string? _caller;
     private DateTimeOffset? _callStart;
+
+    /// <summary>
+    /// Change à chaque fin d'appel. Le battement de la durée tourne sur un
+    /// autre fil : s'il a lu « appel en cours » juste avant que l'appel se
+    /// termine, il republiait l'appel après son retrait, figé pour toujours.
+    /// </summary>
+    private long _callGeneration;
     private DeliveryUpdate? _delivery;
     private DateTimeOffset _deliverySince;
 
@@ -114,6 +121,7 @@ public sealed class PhoneFeature : IslandFeatureBase
                 {
                     _caller = call.Caller;
                     _callStart = null;
+                    _callGeneration++;
                 }
 
                 PublishActivity(Ringing(call.Caller));
@@ -135,6 +143,7 @@ public sealed class PhoneFeature : IslandFeatureBase
                 {
                     _caller = null;
                     _callStart = null;
+                    _callGeneration++;
                 }
 
                 PublishActivity(Missed(call.Caller));
@@ -232,6 +241,7 @@ public sealed class PhoneFeature : IslandFeatureBase
         {
             _caller = null;
             _callStart = null;
+            _callGeneration++;
             _delivery = null;
         }
 
@@ -253,7 +263,27 @@ public sealed class PhoneFeature : IslandFeatureBase
 
         if (call)
         {
+            long generation;
+
+            lock (_gate)
+            {
+                generation = _callGeneration;
+            }
+
             PublishActivity(Active());
+
+            // L'appel s'est terminé pendant la publication : il est retiré de nouveau.
+            bool ended;
+
+            lock (_gate)
+            {
+                ended = generation != _callGeneration || _callStart is null;
+            }
+
+            if (ended)
+            {
+                RemoveActivity(CallActivityId);
+            }
         }
 
         if (delivery)
@@ -287,6 +317,7 @@ public sealed class PhoneFeature : IslandFeatureBase
         {
             _caller = null;
             _callStart = null;
+            _callGeneration++;
         }
 
         RemoveActivity(CallActivityId);

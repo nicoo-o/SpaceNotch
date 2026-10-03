@@ -36,6 +36,12 @@ internal sealed class IslandGeometryFactory
     private double _shoulder = double.NaN;
     private bool _floating;
 
+    /// <summary>
+    /// Contours partagés par toutes les formes de l'application (phase D) :
+    /// un ressort repasse par les mêmes tailles, au quart de DIP près.
+    /// </summary>
+    public static SilhouetteCache Cache { get; } = new();
+
     /// <summary>Nombre de tracés effectivement reconstruits. Sert de preuve au repos.</summary>
     public long Rebuilds { get; private set; }
 
@@ -72,7 +78,7 @@ internal sealed class IslandGeometryFactory
 
             Rebuilds++;
 
-            return FromPoints(IslandShape.Floating(footprint.Width, footprint.Height, radius, smoothing));
+            return FromPoints(Cache.Floating(footprint.Width, footprint.Height, radius, smoothing));
         }
 
         if (band > 0)
@@ -125,7 +131,7 @@ internal sealed class IslandGeometryFactory
         double band,
         double shoulder)
     {
-        return FromPoints(IslandShape.Silhouette(
+        return FromPoints(Cache.Silhouette(
             footprint.Width, footprint.Height, radius, smoothing, band, shoulder));
     }
 

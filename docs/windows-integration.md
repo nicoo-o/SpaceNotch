@@ -37,9 +37,17 @@ L'Island porte `WS_EX_NOACTIVATE` : elle ne vole jamais le focus, ce qui est ind
 overlay. Mais une fenêtre qui ne peut pas être activée ne reçoit **aucun** message clavier — l'Island
 serait alors inaccessible au clavier.
 
-`WindowChrome.SetKeyboardCapture` rend le focus possible **pendant** que l'utilisateur désigne
-l'Island au pointeur, et le retire aussitôt qu'il s'en éloigne. Le clavier fonctionne quand on
-interagit ; l'Island reste sans effet sur la fenêtre active le reste du temps.
+`WindowChrome.SetKeyboardCapture` rend le focus possible quand l'utilisateur l'a demandé, et
+seulement à ce moment-là :
+
+- à l'ouverture par un clic ou en tirant : Échap la referme, et cliquer ailleurs aussi ;
+- dans la recherche, la note, l'accueil et le menu rapide, qui reçoivent une saisie ;
+- par le raccourci global **« aller à la notch »** (Win+Alt+N, ou Ctrl+Alt+N si le premier est
+  pris) : la notch s'ouvre sur ce qu'elle présente, ou sur la recherche s'il n'y a rien, et prend
+  le clavier et le focus. Flèches, Entrée et Échap y agissent alors dans toutes les scènes.
+
+Les ouvertures automatiques (une notification qui arrive) ne prennent jamais le focus de
+l'application en cours. Le simple survol ne capture rien.
 
 ### Coins et DWM
 

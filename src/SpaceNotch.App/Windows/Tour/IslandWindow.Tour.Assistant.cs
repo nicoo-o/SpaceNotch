@@ -17,7 +17,7 @@ namespace SpaceNotch_App.Windows;
 /// </summary>
 public sealed partial class IslandWindow
 {
-    private IEnumerable<(string Label, Action Run)> Wave6cTour()
+    private IEnumerable<(string Label, Action Run)> AssistantTour()
     {
         static Func<AssistantRequest, Task<string?>> Says(string answer) => _ => Task.FromResult<string?>(answer);
 

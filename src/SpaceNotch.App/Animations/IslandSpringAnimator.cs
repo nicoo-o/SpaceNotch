@@ -17,7 +17,7 @@ namespace SpaceNotch_App.Animations;
 /// L'écouteur de rendu est détaché dès que le ressort est stabilisé, ce qui
 /// ramène le coût à zéro au repos : rien ne tourne tant que rien ne bouge.
 /// </summary>
-public sealed class IslandSpringAnimator
+public sealed class IslandSpringAnimator : IShapeAnimator
 {
     /// <summary>
     /// Seuil de repos, en DIPs pour la position et en DIPs par seconde pour la
@@ -187,7 +187,7 @@ public sealed class IslandSpringAnimator
         {
             _isRunning = true;
             _lastRenderTimestamp = 0;
-            CompositionTarget.Rendering += OnRendering;
+            SpaceNotch_App.Animations.FrameClock.Rendering += OnRendering;
         }
     }
 
@@ -294,7 +294,7 @@ public sealed class IslandSpringAnimator
         }
 
         _isRunning = false;
-        CompositionTarget.Rendering -= OnRendering;
+        SpaceNotch_App.Animations.FrameClock.Rendering -= OnRendering;
         _stopwatch.Stop();
     }
 }

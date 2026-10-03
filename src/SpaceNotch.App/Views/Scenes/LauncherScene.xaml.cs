@@ -360,6 +360,8 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
         grid.Children.Add(hint);
 
         AutomationPropertiesHelper.SetName(grid, item.Subtitle.Length > 0 ? $"{item.Title}, {item.Subtitle}" : item.Title);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationControlType(grid, Microsoft.UI.Xaml.Automation.Peers.AutomationControlType.ListItem);
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetPositionInSet(grid, index + 1);
 
         int captured = index;
         grid.PointerMoved += (_, _) =>
@@ -551,7 +553,42 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
         MovePill(SelectionPill, (float)slot.Top, animate);
         KeepVisible(slot);
+        AnnounceSelection(slot);
     }
+
+    /// <summary>
+    /// La ligne choisie aux flèches est dite au lecteur d'écran (phase C) :
+    /// les résultats sont dessinés en code, sans liste qui l'annoncerait.
+    /// </summary>
+    private void AnnounceSelection(RowSlot slot)
+    {
+        try
+        {
+            string name = Microsoft.UI.Xaml.Automation.AutomationProperties.GetName(slot.Element);
+
+            if (string.IsNullOrEmpty(name) || string.Equals(name, _announcedResult, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _announcedResult = name;
+            Microsoft.UI.Xaml.Automation.Peers.AutomationPeer? peer =
+                Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(slot.Element)
+                ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(slot.Element);
+
+            peer?.RaiseNotificationEvent(
+                Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationKind.ItemAdded,
+                Microsoft.UI.Xaml.Automation.Peers.AutomationNotificationProcessing.MostRecent,
+                $"{name}, {_rows.IndexOf(slot) + 1} / {_rows.Count}",
+                "SpaceNotch.Launcher.Selection");
+        }
+        catch (Exception)
+        {
+            // Aucun lecteur d'écran ne doit gêner la recherche.
+        }
+    }
+
+    private string? _announcedResult;
 
     private static void MovePill(UIElement pill, float y, bool animate)
     {

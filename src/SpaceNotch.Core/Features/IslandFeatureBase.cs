@@ -72,7 +72,10 @@ public abstract class IslandFeatureBase : IIslandFeature
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        // Le démarrage reste sur le fil de l'appelant — le fil d'interface pour
+        // l'Island (phase E) : une fonctionnalité qui publie en démarrant le
+        // fait depuis le même fil que tout l'état de la notch.
+        await _lifecycleGate.WaitAsync(cancellationToken).ConfigureAwait(true);
 
         try
         {
@@ -85,7 +88,7 @@ public abstract class IslandFeatureBase : IIslandFeature
 
             try
             {
-                await OnStartAsync(cancellationToken).ConfigureAwait(false);
+                await OnStartAsync(cancellationToken).ConfigureAwait(true);
                 TransitionTo(FeatureState.Running, error: null);
             }
             catch (Exception ex)
@@ -149,7 +152,7 @@ public abstract class IslandFeatureBase : IIslandFeature
 
         if (enabled)
         {
-            await StartAsync(cancellationToken).ConfigureAwait(false);
+            await StartAsync(cancellationToken).ConfigureAwait(true);
         }
         else
         {

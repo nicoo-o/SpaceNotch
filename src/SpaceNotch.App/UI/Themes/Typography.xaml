@@ -33,9 +33,9 @@
          ================================================================ -->
     <Style x:Key="NfMicroTextStyle" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource NfFontSmall}" />
-        <Setter Property="FontSize" Value="9.5" />
+        <Setter Property="FontSize" Value="11" />
         <Setter Property="FontWeight" Value="Normal" />
-        <Setter Property="LineHeight" Value="12" />
+        <Setter Property="LineHeight" Value="13" />
         <Setter Property="Foreground" Value="{ThemeResource NfTextTertiaryBrush}" />
         <Setter Property="TextTrimming" Value="CharacterEllipsis" />
         <Setter Property="MaxLines" Value="1" />

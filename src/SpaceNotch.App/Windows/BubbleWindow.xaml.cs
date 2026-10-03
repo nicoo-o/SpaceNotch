@@ -375,11 +375,22 @@ public sealed partial class BubbleWindow : Window
             return;
         }
 
-        visual.Scale = new Vector3(from, from, 1f);
-
         Compositor compositor = visual.Compositor;
         SpringScalarNaturalMotionAnimation spring = compositor.CreateSpringScalarAnimation();
-        spring.InitialValue = from;
+
+        // Interruptible (phase D) : une nouvelle cible pendant que le ressort
+        // court part de l'échelle affichée, sans revenir à la valeur de départ.
+        // Sans valeur initiale, le ressort du compositeur reprend la valeur
+        // courante de la propriété, vitesse comprise.
+        bool running = Environment.TickCount64 - _scaleStartedAt < ScaleSettleMs;
+
+        if (!running)
+        {
+            visual.Scale = new Vector3(from, from, 1f);
+            spring.InitialValue = from;
+        }
+
+        _scaleStartedAt = Environment.TickCount64;
         spring.FinalValue = to;
         spring.DampingRatio = bouncy ? 0.5f : 0.85f;
         spring.Period = TimeSpan.FromMilliseconds(55);
@@ -387,6 +398,11 @@ public sealed partial class BubbleWindow : Window
         visual.StartAnimation("Scale.X", spring);
         visual.StartAnimation("Scale.Y", spring);
     }
+
+    /// <summary>Durée après laquelle le ressort d'échelle est tenu pour posé, en millisecondes.</summary>
+    private const long ScaleSettleMs = 600;
+
+    private long _scaleStartedAt = long.MinValue / 2;
 
     private Visual? EnsureBodyVisual()
     {

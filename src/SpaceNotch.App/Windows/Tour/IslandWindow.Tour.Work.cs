@@ -18,7 +18,7 @@ namespace SpaceNotch_App.Windows;
 /// </summary>
 public sealed partial class IslandWindow
 {
-    private IEnumerable<(string Label, Action Run)> Wave6bTour(Func<double, CalendarMeeting> meeting)
+    private IEnumerable<(string Label, Action Run)> WorkTour(Func<double, CalendarMeeting> meeting)
     {
         const string Agent = "claude.5f3a9c21";
         const string AgentActivity = ChannelFeature.Prefix + Agent;

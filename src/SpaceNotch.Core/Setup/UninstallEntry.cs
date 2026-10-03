@@ -25,6 +25,7 @@ public static class UninstallEntry
     private const string ScopeValue = "SpaceNotchScope";
     private const string StartupValue = "SpaceNotchStartup";
     private const string DesktopValue = "SpaceNotchDesktop";
+    private const string NotificationsValue = "SpaceNotchNotifications";
 
     /// <summary>Valeurs à écrire sous <see cref="SetupIdentity.UninstallKeyPath"/>.</summary>
     /// <param name="layout">Plan d'installation.</param>
@@ -63,7 +64,8 @@ public static class UninstallEntry
             new RegistryValue("NoRepair", Number: 1),
             new RegistryValue(ScopeValue, options.Scope == InstallScope.AllUsers ? "machine" : "user"),
             new RegistryValue(StartupValue, Number: options.StartWithWindows ? 1 : 0),
-            new RegistryValue(DesktopValue, Number: options.DesktopShortcut ? 1 : 0)
+            new RegistryValue(DesktopValue, Number: options.DesktopShortcut ? 1 : 0),
+            new RegistryValue(NotificationsValue, Number: options.WindowsNotifications ? 1 : 0)
         ];
     }
 
@@ -85,7 +87,8 @@ public static class UninstallEntry
 
         bool startup = read(StartupValue) is not int s || s != 0;
         bool desktop = read(DesktopValue) is not int d || d != 0;
+        bool notifications = read(NotificationsValue) is not int n || n != 0;
 
-        return new InstalledProduct(version, directory, new InstallOptions(scope, startup, desktop));
+        return new InstalledProduct(version, directory, new InstallOptions(scope, startup, desktop, notifications));
     }
 }

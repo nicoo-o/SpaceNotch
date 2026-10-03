@@ -4,10 +4,8 @@ using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Animation;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
-using SpaceNotch.Core.State;
-using SpaceNotch_App.Animations;
 
-namespace SpaceNotch_App.Controllers;
+namespace SpaceNotch.Core.State;
 
 /// <summary>
 /// Chef d'orchestre de l'Island : traduit les activités en encombrements et fait
@@ -16,12 +14,19 @@ namespace SpaceNotch_App.Controllers;
 /// Deux responsabilités, volontairement sans recouvrement avec la fenêtre : la
 /// fenêtre ne décide jamais de sa taille ni de sa forme — elle applique
 /// l'encombrement reçu, qui provient de la scène déclarée par la fonctionnalité.
+///
+/// <para>
+/// En Core depuis la phase E : l'animateur et le journal sont fournis par
+/// l'hôte (<see cref="IShapeAnimator"/>), si bien que le contrôleur se teste
+/// sans fenêtre ni compositeur.
+/// </para>
 /// </summary>
 public sealed class IslandController : IDisposable
 {
     private readonly IslandStateManager _stateManager;
     private readonly ActivityManager _activityManager;
-    private readonly IslandSpringAnimator _animator;
+    private readonly IShapeAnimator _animator;
+    private readonly Action<string, Exception>? _log;
     private readonly Func<bool> _useSpringAnimations;
     private SpringParameters _motionParameters;
     private SpringParameters _hoverParameters;
@@ -61,9 +66,14 @@ public sealed class IslandController : IDisposable
         SpringParameters hoverParameters,
         IslandFootprint collapsedFootprint,
         Func<bool> useSpringAnimations,
-        Action<IslandFootprint> onFootprintChanged)
+        Action<IslandFootprint> onFootprintChanged,
+        Func<Action<IslandFootprint>, Action, IShapeAnimator> createAnimator,
+        Action<string, Exception>? log = null)
     {
         ArgumentNullException.ThrowIfNull(onFootprintChanged);
+        ArgumentNullException.ThrowIfNull(createAnimator);
+
+        _log = log;
 
         _stateManager = stateManager;
         _activityManager = activityManager;
@@ -72,8 +82,7 @@ public sealed class IslandController : IDisposable
         _motionParameters = springParameters;
         _hoverParameters = hoverParameters;
 
-        _animator = new IslandSpringAnimator(
-            springParameters,
+        _animator = createAnimator(
             footprint =>
             {
                 // L'application d'une géométrie est appelée depuis la boucle de
@@ -119,7 +128,7 @@ public sealed class IslandController : IDisposable
 
         _lastGeometryFailure = now;
 
-        SpaceNotch.Infrastructure.Logging.MiniLogger.Log(
+        _log?.Invoke(
             "[GEOMETRIE] l'application de la forme a échoué ; la fenêtre garde sa taille précédente",
             exception);
     }

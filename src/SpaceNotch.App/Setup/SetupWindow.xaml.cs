@@ -51,7 +51,7 @@ public sealed partial class SetupWindow : Window
     private const double PanelWidth = 540;
 
     /// <summary>Hauteur maximale de la fenêtre, en DIPs : la notch n'est jamais plus haute.</summary>
-    private const double WindowHeight = 460;
+    private const double WindowHeight = 520;
 
     /// <summary>Marge du contenu dans le corps de la notch, en DIPs.</summary>
     private const double Inset = 28;
@@ -327,6 +327,9 @@ public sealed partial class SetupWindow : Window
         ForEveryoneDetail.Text = _text.ForEveryoneDetail;
         StartupCheck.Content = _text.StartWithWindows;
         DesktopCheck.Content = _text.DesktopShortcut;
+        NotificationsCheck.Content = _text.WindowsNotifications;
+        NotificationsDetail.Text = _text.WindowsNotificationsDetail;
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(NotificationsCheck, _text.WindowsNotificationsDetail);
         RemoveSettingsCheck.Content = _text.RemoveSettings;
         KeepsChoicesText.Text = _text.KeepsChoices;
         UninstallDetailText.Text = _text.UninstallDetail;
@@ -375,6 +378,24 @@ public sealed partial class SetupWindow : Window
         }
     }
 
+    /// <summary>
+    /// Région dynamique (phase C) : le lecteur d'écran dit l'étape en cours,
+    /// la fin ou l'échec, sans que l'utilisateur ait à chercher.
+    /// </summary>
+    private static void RaiseLive(FrameworkElement element)
+    {
+        try
+        {
+            (Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.FromElement(element)
+                ?? Microsoft.UI.Xaml.Automation.Peers.FrameworkElementAutomationPeer.CreatePeerForElement(element))
+                ?.RaiseAutomationEvent(Microsoft.UI.Xaml.Automation.Peers.AutomationEvents.LiveRegionChanged);
+        }
+        catch (Exception)
+        {
+            // Sans lecteur d'écran, rien à dire.
+        }
+    }
+
     private void ShowWorking(string step)
     {
         _phase = Phase.Working;
@@ -387,6 +408,7 @@ public sealed partial class SetupWindow : Window
         ActionsPanel.Visibility = Visibility.Collapsed;
 
         StepText.Text = step;
+        RaiseLive(StepText);
         Progress.IsIndeterminate = false;
         Progress.Value = 0;
 
@@ -400,6 +422,7 @@ public sealed partial class SetupWindow : Window
 
         TitleText.Text = title;
         HeadlineText.Text = detail;
+        RaiseLive(TitleText);
         HeadlineText.Visibility = Visibility.Visible;
         ProgressPanel.Visibility = Visibility.Collapsed;
         ActionsPanel.Visibility = Visibility.Collapsed;
@@ -416,6 +439,7 @@ public sealed partial class SetupWindow : Window
         HeadlineText.Visibility = Visibility.Collapsed;
         ProgressPanel.Visibility = Visibility.Collapsed;
         MessageText.Text = message;
+        RaiseLive(MessageText);
         MessageText.Visibility = Visibility.Visible;
         ActionsPanel.Visibility = Visibility.Visible;
         SetActions(primary: _text.Retry, secondary: _text.Close);
@@ -521,7 +545,7 @@ public sealed partial class SetupWindow : Window
     {
         InstallOptions options = _installed is not null && _kind != InstallKind.Fresh
             ? _installed.Options
-            : new InstallOptions(_scope, StartupCheck.IsChecked == true, DesktopCheck.IsChecked == true);
+            : new InstallOptions(_scope, StartupCheck.IsChecked == true, DesktopCheck.IsChecked == true, NotificationsCheck.IsChecked == true);
 
         ShowWorking(_text.For(InstallStep.Preparing));
 

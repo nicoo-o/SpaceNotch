@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using SpaceNotch.Core.Features;
@@ -101,6 +102,7 @@ public sealed partial class SettingsWindow : Window
         ShowPendingPlugins();
         ShowHotkey();
         UpdateNotificationCard();
+        AnnotateCards();
 
         string version = typeof(SettingsWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : string.Empty;
         VersionText.Text = $"Version {version}";
@@ -148,7 +150,17 @@ public sealed partial class SettingsWindow : Window
 
         // Barre de titre noire, comme la fenêtre : la barre blanche par défaut
         // coupait l'OLED en deux.
-        if (AppWindowTitleBar.IsCustomizationSupported())
+        // Contraste élevé (phase C) : ni fond noir imposé ni barre de titre
+        // peinte — les contrôles prennent les couleurs du système, et un fond
+        // noir forcé donnait du texte noir sur noir en contraste élevé clair.
+        if (IsHighContrast())
+        {
+            RootLayout.RequestedTheme = ElementTheme.Default;
+            RootLayout.Background = Application.Current.Resources.TryGetValue("SystemColorWindowColorBrush", out object? brush) && brush is Brush window
+                ? window
+                : null;
+        }
+        else if (AppWindowTitleBar.IsCustomizationSupported())
         {
             Color black = Color.FromArgb(0xFF, 0x05, 0x05, 0x06);
             Color ink = Color.FromArgb(0xFF, 0xE8, 0xE8, 0xEA);
@@ -277,7 +289,7 @@ public sealed partial class SettingsWindow : Window
         AssistantSourceBox.ItemsSource = new[] { Lang.T("Aucun", "None"), Lang.T("Windows (sur l’appareil)", "Windows (on device)"), "Claude" };
 
         DensityBox.ItemsSource = new[] { Lang.T("Compacte", "Compact"), Lang.T("Confortable", "Comfortable"), Lang.T("Aérée", "Airy") };
-        CutoutBox.ItemsSource = new[] { Lang.T("Aucune", "None"), Lang.T("Centrée", "Centred"), Lang.T("À gauche", "Left"), Lang.T("À droite", "Right"), Lang.T("Personnalisée", "Custom") };
+        CutoutBox.ItemsSource = new[] { Lang.T("Aucune", "None"), Lang.T("Ordinaire (200 px)", "Standard (200 px)"), Lang.T("Personnalisée", "Custom") };
 
         // L'ordre suit l'énumération MotionStyle : l'index sélectionné en est la valeur.
         MotionStyleBox.ItemsSource = new[] { Lang.T("Calme", "Calm"), Lang.T("Naturel", "Natural"), Lang.T("Dynamique", "Lively"), Lang.T("Personnalisé", "Custom") };
@@ -301,7 +313,8 @@ public sealed partial class SettingsWindow : Window
             AppearanceBox.SelectedIndex = (int)settings.Appearance;
             BackdropBox.SelectedIndex = (int)settings.BackdropMode;
             DisplayBox.SelectedIndex = (int)settings.DisplayMode;
-            CutoutBox.SelectedIndex = (int)settings.CutoutMode;
+            CutoutBox.SelectedIndex = CutoutIndex(settings.CutoutMode);
+            CutoutWidthSlider.Value = SpaceNotch.Core.Presentation.CameraCutout.WidthFor(true, settings.CutoutWidth);
 
             DensityBox.SelectedIndex = (int)settings.Density;
             ClawdStyleBox.SelectedIndex = (int)settings.ClawdStyle;
@@ -417,6 +430,8 @@ public sealed partial class SettingsWindow : Window
         OutlineValue.Text = $"{(settings.OutlineOpacity * 100).ToString("0", CultureInfo.InvariantCulture)} %";
         StretchValue.Text = $"{(settings.StretchAmount * 100).ToString("0", CultureInfo.InvariantCulture)} %";
         TearValue.Text = $"{settings.TearDistance.ToString("0", CultureInfo.InvariantCulture)} px";
+        CutoutWidthRow.Visibility = settings.CutoutMode == CameraCutoutMode.Custom ? Visibility.Visible : Visibility.Collapsed;
+        CutoutWidthValue.Text = $"{SpaceNotch.Core.Presentation.CameraCutout.WidthFor(true, settings.CutoutWidth).ToString("0", CultureInfo.InvariantCulture)} px";
 
         // La couleur personnalisée ne sert que si elle est choisie ; l'aperçu
         // de la pastille dit ce qu'elle donnera.
@@ -519,7 +534,7 @@ public sealed partial class SettingsWindow : Window
     {
         AppSettings settings = _settings.Current;
 
-        bool light = settings.Appearance == IslandAppearance.Light;
+        bool light = settings.UsesLightAppearance(SpaceNotch_App.UI.SystemTheme.IsLight);
         bool opaque = settings.BackdropMode == IslandBackdropMode.Opaque;
 
         Brush body = opaque
@@ -658,7 +673,23 @@ public sealed partial class SettingsWindow : Window
         => Apply(s => s.DisplayMode = (IslandDisplayMode)Math.Max(0, DisplayBox.SelectedIndex));
 
     private void OnCutoutChanged(object sender, SelectionChangedEventArgs e)
-        => Apply(s => s.CutoutMode = (CameraCutoutMode)Math.Max(0, CutoutBox.SelectedIndex));
+        => Apply(s => s.CutoutMode = CutoutBox.SelectedIndex switch
+        {
+            1 => CameraCutoutMode.Center,
+            2 => CameraCutoutMode.Custom,
+            _ => CameraCutoutMode.None
+        });
+
+    private void OnCutoutWidthChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+        => ApplyContinuous(s => s.CutoutWidth = e.NewValue);
+
+    /// <summary>Position dans la liste : Aucune, Ordinaire, Personnalisée.</summary>
+    private static int CutoutIndex(CameraCutoutMode mode) => mode switch
+    {
+        CameraCutoutMode.None => 0,
+        CameraCutoutMode.Custom => 2,
+        _ => 1
+    };
 
     private void OnClawdStyleChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -1214,7 +1245,9 @@ public sealed partial class SettingsWindow : Window
                 switch (child)
                 {
                     case Border { Tag: string text } card:
-                        bool match = all || text.Contains(query, StringComparison.CurrentCultureIgnoreCase);
+                        bool match = all || SpaceNotch.Core.Accessibility.SettingsSearch.Matches(
+                            _cardIndex.TryGetValue(card, out string? index) ? index : SpaceNotch.Core.Accessibility.SettingsSearch.Index([text]),
+                            query);
                         card.Visibility = match ? Visibility.Visible : Visibility.Collapsed;
                         inPage += match ? 1 : 0;
                         break;
@@ -1243,6 +1276,95 @@ public sealed partial class SettingsWindow : Window
         }
 
         return found;
+    }
+
+    // ---- Accessibilité des cartes (phase C) ------------------------------
+
+    /// <summary>Texte de recherche de chaque carte : son étiquette française et ce qu'elle affiche.</summary>
+    private readonly Dictionary<Border, string> _cardIndex = [];
+
+    /// <summary>
+    /// Donne un nom à chaque contrôle d'une carte : le titre de la carte, et sa
+    /// description en aide. Sans cela, le Narrateur disait « Interrupteur,
+    /// désactivé » sans dire lequel. Indexe aussi la carte pour la recherche,
+    /// dans les deux langues.
+    /// </summary>
+    private void AnnotateCards()
+    {
+        foreach (StackPanel page in Pages)
+        {
+            foreach (UIElement child in AllChildren(page))
+            {
+                if (child is not Border { Tag: string tag } card)
+                {
+                    continue;
+                }
+
+                var texts = new List<TextBlock>();
+                var controls = new List<FrameworkElement>();
+                Collect(card.Child, texts, controls);
+
+                string? title = texts.FirstOrDefault()?.Text;
+                string? description = texts.Skip(1).FirstOrDefault()?.Text;
+
+                foreach (FrameworkElement control in controls)
+                {
+                    if (!string.IsNullOrEmpty(title) && string.IsNullOrEmpty(AutomationProperties.GetName(control)))
+                    {
+                        AutomationProperties.SetName(control, title);
+                    }
+
+                    if (!string.IsNullOrEmpty(description) && string.IsNullOrEmpty(AutomationProperties.GetHelpText(control)))
+                    {
+                        AutomationProperties.SetHelpText(control, description);
+                    }
+                }
+
+                _cardIndex[card] = SpaceNotch.Core.Accessibility.SettingsSearch.Index([tag, .. texts.Select(t => t.Text)]);
+            }
+        }
+    }
+
+    /// <summary>Textes et contrôles d'une carte, dans l'ordre de lecture.</summary>
+    private static void Collect(UIElement? element, List<TextBlock> texts, List<FrameworkElement> controls)
+    {
+        switch (element)
+        {
+            case null:
+                return;
+
+            case TextBlock text when !string.IsNullOrWhiteSpace(text.Text):
+                texts.Add(text);
+                return;
+
+            case ToggleSwitch or ComboBox or Slider or TextBox or PasswordBox or Microsoft.UI.Xaml.Controls.Primitives.ButtonBase or NumberBox:
+                controls.Add((FrameworkElement)element);
+                return;
+
+            case Border border:
+                Collect(border.Child, texts, controls);
+                return;
+
+            case Panel panel:
+                foreach (UIElement inner in panel.Children)
+                {
+                    Collect(inner, texts, controls);
+                }
+
+                return;
+        }
+    }
+
+    private static bool IsHighContrast()
+    {
+        try
+        {
+            return new global::Windows.UI.ViewManagement.AccessibilitySettings().HighContrast;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
     }
 
     /// <summary>Les enfants directs d'une page, et ceux de la liste des activités.</summary>

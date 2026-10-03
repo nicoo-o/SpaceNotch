@@ -46,7 +46,12 @@ public enum InstallScope
 /// <param name="Scope">Pour qui.</param>
 /// <param name="StartWithWindows">Lancer la notch à l'ouverture de session.</param>
 /// <param name="DesktopShortcut">Poser un raccourci sur le bureau (le menu Démarrer en a toujours un).</param>
-public sealed record InstallOptions(InstallScope Scope, bool StartWithWindows, bool DesktopShortcut)
+/// <param name="WindowsNotifications">
+/// Montrer les notifications Windows dans la notch. Facultatif (phase C) : il
+/// faut alors que Windows approuve le certificat du paquet d'identité, ce qui
+/// demande son autorisation.
+/// </param>
+public sealed record InstallOptions(InstallScope Scope, bool StartWithWindows, bool DesktopShortcut, bool WindowsNotifications = true)
 {
     /// <summary>Les choix proposés d'emblée : pour soi, au démarrage, avec un raccourci.</summary>
     public static InstallOptions Default { get; } = new(InstallScope.CurrentUser, StartWithWindows: true, DesktopShortcut: true);
@@ -98,6 +103,7 @@ public sealed record SetupCommand(
         InstallScope scope = InstallOptions.Default.Scope;
         bool startup = InstallOptions.Default.StartWithWindows;
         bool desktop = InstallOptions.Default.DesktopShortcut;
+        bool notifications = InstallOptions.Default.WindowsNotifications;
         bool quiet = false;
         bool removeSettings = false;
         int? caller = null;
@@ -147,6 +153,9 @@ public sealed record SetupCommand(
                 case "--DESKTOP":
                     desktop = IsOn(value);
                     break;
+                case "--NOTIFICATIONS":
+                    notifications = IsOn(value);
+                    break;
                 case "--CALLER":
                     caller = int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int id) && id > 0
                         ? id
@@ -157,7 +166,7 @@ public sealed record SetupCommand(
 
         mode ??= ModeFromFileName(executablePath);
 
-        return new SetupCommand(mode.Value, new InstallOptions(scope, startup, desktop), quiet, removeSettings, caller);
+        return new SetupCommand(mode.Value, new InstallOptions(scope, startup, desktop, notifications), quiet, removeSettings, caller);
     }
 
     /// <summary>
@@ -212,6 +221,7 @@ public sealed record SetupCommand(
         arguments.Add(Options.Scope == InstallScope.AllUsers ? "--scope=machine" : "--scope=user");
         arguments.Add(Options.StartWithWindows ? "--startup=on" : "--startup=off");
         arguments.Add(Options.DesktopShortcut ? "--desktop=on" : "--desktop=off");
+        arguments.Add(Options.WindowsNotifications ? "--notifications=on" : "--notifications=off");
 
         if (Quiet)
         {

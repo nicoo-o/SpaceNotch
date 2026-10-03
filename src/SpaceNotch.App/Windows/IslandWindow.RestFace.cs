@@ -462,7 +462,7 @@ public sealed partial class IslandWindow
 
         if (_morphFrame is not null)
         {
-            CompositionTarget.Rendering -= _morphFrame;
+            SpaceNotch_App.Animations.FrameClock.Rendering -= _morphFrame;
             _morphFrame = null;
         }
 
@@ -523,7 +523,7 @@ public sealed partial class IslandWindow
     {
         if (_morphFrame is not null)
         {
-            CompositionTarget.Rendering -= _morphFrame;
+            SpaceNotch_App.Animations.FrameClock.Rendering -= _morphFrame;
         }
 
         int generation = _morphGeneration;
@@ -534,7 +534,7 @@ public sealed partial class IslandWindow
         {
             if (generation != _morphGeneration || _isClosed)
             {
-                CompositionTarget.Rendering -= _morphFrame;
+                SpaceNotch_App.Animations.FrameClock.Rendering -= _morphFrame;
                 _morphFrame = null;
                 return;
             }
@@ -544,13 +544,13 @@ public sealed partial class IslandWindow
 
             if (t >= 1)
             {
-                CompositionTarget.Rendering -= _morphFrame;
+                SpaceNotch_App.Animations.FrameClock.Rendering -= _morphFrame;
                 _morphFrame = null;
                 done();
             }
         };
 
-        CompositionTarget.Rendering += _morphFrame;
+        SpaceNotch_App.Animations.FrameClock.Rendering += _morphFrame;
     }
 
     private void RunAfter(TimeSpan delay, Action action)

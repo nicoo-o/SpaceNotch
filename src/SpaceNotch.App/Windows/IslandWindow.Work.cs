@@ -42,7 +42,7 @@ public sealed partial class IslandWindow
         return _channelFeature;
     }
 
-    private void WireWave6b()
+    private void WireWork()
     {
         // Silence de réunion (W2) : la réunion propose, les notifications se taisent.
         _meetingFeature.IsQuiet = () => _notificationFeature.IsQuiet;

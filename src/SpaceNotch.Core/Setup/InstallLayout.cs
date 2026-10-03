@@ -108,7 +108,9 @@ public sealed record InstallLayout(
         if (removeSettings)
         {
             paths.Add(WindowsPath.Join(folders.RoamingAppData, SetupIdentity.ProductName));
-            paths.Add(WindowsPath.Join(folders.LocalAppData, SetupIdentity.ProductName, "logs"));
+            // Tout ce que la notch garde pour l'utilisateur : journaux, note,
+            // rappels, greffons (phase C). Demandé explicitement, rien ne reste.
+            paths.Add(WindowsPath.Join(folders.LocalAppData, SetupIdentity.ProductName));
         }
 
         return paths;

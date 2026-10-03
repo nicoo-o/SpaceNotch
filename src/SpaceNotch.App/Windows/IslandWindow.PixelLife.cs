@@ -25,7 +25,6 @@ public sealed partial class IslandWindow
     private DispatcherQueueTimer? _vitalsTimer;
     private PixelCondition _condition;
     private ForegroundWatcher? _foreground;
-    private AudioPeakMeter? _peakMeter;
     private DateTime _glanceUntil;
     private (double X, double Y) _glance;
     private DateTime _nextYawn = DateTime.MaxValue;
@@ -226,12 +225,11 @@ public sealed partial class IslandWindow
         return PixelVitals.Look(condition) ?? (evening ? (0, PixelGaze.MaxLookY * 0.5) : null);
     }
 
-    private double ReadLevel()
+    private static double ReadLevel()
     {
         try
         {
-            _peakMeter ??= new AudioPeakMeter();
-            return _peakMeter.Read();
+            return AudioPeakMeter.Shared.Read();
         }
         catch (Exception)
         {

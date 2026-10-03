@@ -654,10 +654,10 @@ public sealed partial class IslandWindow
 
             if (t >= 1)
             {
-                CompositionTarget.Rendering -= frame;
+                SpaceNotch_App.Animations.FrameClock.Rendering -= frame;
                 FaceMorphLayer.Children.Remove(flash);
             }
         };
-        CompositionTarget.Rendering += frame;
+        SpaceNotch_App.Animations.FrameClock.Rendering += frame;
     }
 }

@@ -17,8 +17,10 @@ CLOSED ──hover──► PREVIEW ──click──► EXPANDING ──► EXP
 | `Expanded` | Ouverte : contenu riche, contrôles, dissolution atmosphérique. | Déclaré par la scène |
 | `Collapsing` | Fermeture en cours. | Variable |
 
-L'état est la **seule** entrée du rendu. Une vue de scène ne peut pas demander une transition : elle
-décrit ce qu'elle contient, et le contrôleur en déduit l'encombrement.
+Une vue de scène ne peut pas demander une transition : elle décrit ce qu'elle contient, et le
+contrôleur en déduit l'encombrement. L'état n'est pas encore la seule entrée du rendu : la fenêtre
+garde des drapeaux à elle (appui, traction, visite, retrait). C'est ce que la machine ci-dessous
+doit résorber (audit d'octobre 2026, RFC §3).
 
 ## États d'activité
 
@@ -68,3 +70,40 @@ simple fondu. Ce n'est pas un repli dégradé : c'est le comportement demandé p
 - `Collapsing` retourne vers `Closed`, jamais vers `Preview` — sinon un simple clic laisserait
   l'Island dans un état intermédiaire permanent.
 - Une activité expirée pendant `Expanded` provoque la fermeture, pas un état vide affiché.
+
+
+## La machine à états de la notch (phase E de l'audit)
+
+`SpaceNotch.Core.Machine.NotchMachine` est la machine pure de la RFC (§3.2). Elle vit en Core et se
+teste sans fenêtre. Elle a quatre régions orthogonales :
+
+- **Présence** : visible, retirée (plein écran, session verrouillée) ou arrêtée ;
+- **Placement et main** : accrochée, languette ou flottante ; libre, pressée, traction, arrachement
+  ou déplacement ;
+- **Surface** : repos, aperçu ou ouverte (« en mouvement » est l'animateur, pas un état) ;
+- **Clavier** : libre ou capturé.
+
+Des gardes les relient :
+
+- retirée, la surface est figée et le clavier rendu ;
+- main occupée, pas d'aperçu ;
+- flottante, pas de traction ;
+- ouverte par l'utilisateur, le clavier est capturé.
+
+Chaque entrée (`NotchInput`) rend l'état suivant et une liste d'effets (`NotchEffect`), que l'hôte
+interprète.
+
+Elle tourne **en ombre** (`NotchShadow`, `IslandWindow.Shadow.cs`) :
+
+- la fenêtre lui donne les mêmes entrées que la notch réelle : survol posé, sortie, appui,
+  traction, lâcher, clic droit, Échap, clic ailleurs, raccourci, arrivées, retrait, placement ;
+- elle compare sa surface à l'état réel chaque fois que celui-ci se pose ;
+- elle journalise les écarts (`[OMBRE]`, 40 au plus) et un résumé à l'arrêt ;
+- elle ne pilote rien.
+
+La bascule se fera région par région, quand les journaux réels ne montreront plus d'écart ; chacune
+sera vérifiée sur une visite filmée. Il n'y a jamais deux sources de vérité qui pilotent.
+
+`IslandController` est en Core lui aussi (`SpaceNotch.Core.State`), derrière `IShapeAnimator` :
+l'application lui fournit le ressort branché sur l'horloge d'images, et les tests un faux qui se
+pose à la demande.
