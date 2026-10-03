@@ -3935,6 +3935,13 @@ public sealed partial class IslandWindow : Window
     /// publiée dans le vrai gestionnaire d'activités, à son heure, par un unique
     /// minuteur à usage unique réarmé d'étape en étape.
     /// </summary>
+    /// <summary>
+    /// Contexte d'une rafale d'images pour la mesure de fluidité (<c>--frames</c>) :
+    /// l'état de la notch et ce qu'elle présente.
+    /// </summary>
+    public string MotionContext()
+        => _controller.State + (_controller.PresentedActivity is { } activity ? "[" + activity.SceneKey + "]" : "[repos]");
+
     public void StartDemo()
     {
         _demoSteps = DemoScenario.Steps();

@@ -26,7 +26,12 @@ namespace SpaceNotch_App.Startup;
 /// Visite de tous les états de la notch, quatre secondes chacun, journalisée :
 /// de quoi juger à l'œil chaque forme et chaque scène.
 /// </param>
-internal sealed record CommandLineOptions(bool OpenSettings, bool StartedByWindows, bool RunDemo = false, bool RunTour = false)
+/// <param name="MeasureFrames">
+/// Mesure de fluidité : une ligne de journal par rafale d'images (cadence,
+/// images manquées, coût sur le fil d'interface). Éteinte par défaut, locale,
+/// jamais envoyée : un outil de diagnostic, pas une fonctionnalité.
+/// </param>
+internal sealed record CommandLineOptions(bool OpenSettings, bool StartedByWindows, bool RunDemo = false, bool RunTour = false, bool MeasureFrames = false)
 {
     public static CommandLineOptions Parse(IReadOnlyList<string> arguments)
     {
@@ -36,6 +41,7 @@ internal sealed record CommandLineOptions(bool OpenSettings, bool StartedByWindo
         bool startedByWindows = false;
         bool runDemo = false;
         bool runTour = false;
+        bool measureFrames = false;
 
         foreach (string argument in arguments)
         {
@@ -55,9 +61,13 @@ internal sealed record CommandLineOptions(bool OpenSettings, bool StartedByWindo
             {
                 runTour = true;
             }
+            else if (Matches(argument, "--frames"))
+            {
+                measureFrames = true;
+            }
         }
 
-        return new CommandLineOptions(openSettings, startedByWindows, runDemo, runTour);
+        return new CommandLineOptions(openSettings, startedByWindows, runDemo, runTour, measureFrames);
     }
 
     /// <summary>
