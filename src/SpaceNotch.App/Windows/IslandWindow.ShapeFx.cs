@@ -177,7 +177,9 @@ public sealed partial class IslandWindow
     /// </summary>
     private Microsoft.UI.Xaml.Media.Geometry? BulgedSilhouette(IslandFootprint footprint)
     {
-        if (_dragPhase is not DragPhase.None || !UseSpringAnimations())
+        // La forme est déjà posée pendant la construction de la fenêtre, avant
+        // que le contrôleur existe.
+        if (_controller is null || _dragPhase is not DragPhase.None || !UseSpringAnimations())
         {
             return null;
         }
