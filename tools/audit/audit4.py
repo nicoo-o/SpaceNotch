@@ -93,10 +93,12 @@ if not SKIP_PIXEL:
 # ---------------- greffons signés
 for name in sorted(os.listdir(SIGNED)):
     src = os.path.join(SIGNED, name)
-    if not name.endswith(".dll"):
+    if not name.endswith(".dll") or (os.environ.get("AUDIT_ONLY") and os.environ["AUDIT_ONLY"] not in name):
         continue
+    subprocess.run(["taskkill", "/F", "/IM", "SpaceNotch.exe"], capture_output=True)
+    time.sleep(1.5)
     shutil.rmtree(PLUGINS, ignore_errors=True)
-    os.makedirs(PLUGINS)
+    os.makedirs(PLUGINS, exist_ok=True)
     dst = os.path.join(PLUGINS, "SpaceNotch.AuditProbe.dll")
     shutil.copy(src, dst)
     digest = hashlib.sha256(open(dst, "rb").read()).hexdigest().upper()
