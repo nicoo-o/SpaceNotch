@@ -467,6 +467,18 @@ public sealed class IslandController : IDisposable
 
     public void RequestCollapse()
     {
+        // Depuis l'aperçu, il n'y a rien à replier : on revient au repos. Sans ce
+        // cas, la transition Preview → Collapsing était refusée en silence — la
+        // forme se repliait mais l'état restait Preview (ex. : la dernière
+        // activité expire pendant le survol).
+        if (State == IslandState.Preview)
+        {
+            _stateManager.TryTransitionTo(IslandState.Closed);
+            _animator.UpdateParameters(_motionParameters);
+            AnimateTo(_collapsedFootprint);
+            return;
+        }
+
         _animator.UpdateParameters(SpaceNotch.Core.Motion.MotionPresets.CloseOf(_motionParameters));
         _stateManager.TryTransitionTo(IslandState.Collapsing);
         AnimateTo(_collapsedFootprint);

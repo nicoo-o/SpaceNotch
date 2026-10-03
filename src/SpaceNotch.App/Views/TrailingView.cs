@@ -361,6 +361,47 @@ public sealed partial class TrailingView : Grid
         }
     }
 
+    /// <summary>
+    /// La notch est retirée (application en plein écran) : la toupie et
+    /// l'égaliseur s'arrêtent, puis reprennent là où ils en étaient.
+    /// </summary>
+    public bool Suspended
+    {
+        get => _suspended;
+        set
+        {
+            if (_suspended == value)
+            {
+                return;
+            }
+
+            _suspended = value;
+
+            if (value)
+            {
+                _spinWasRunning = _spinTimer?.IsRunning == true;
+                _danceWasRunning = _danceTimer?.IsRunning == true;
+                _spinTimer?.Stop();
+                _danceTimer?.Stop();
+                return;
+            }
+
+            if (_spinWasRunning)
+            {
+                _spinTimer?.Start();
+            }
+
+            if (_danceWasRunning)
+            {
+                _danceTimer?.Start();
+            }
+        }
+    }
+
+    private bool _suspended;
+    private bool _spinWasRunning;
+    private bool _danceWasRunning;
+
     private SpaceNotch.Platform.Windows.Audio.AudioPeakMeter? _meter;
     private Microsoft.UI.Dispatching.DispatcherQueueTimer? _danceTimer;
     private DateTime _danceStart;

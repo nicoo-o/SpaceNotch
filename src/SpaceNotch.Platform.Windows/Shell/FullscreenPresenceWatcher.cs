@@ -68,7 +68,7 @@ public sealed class FullscreenPresenceWatcher : IDisposable
         _hooks[0] = SetWinEventHook(EventSystemForeground, EventSystemForeground, IntPtr.Zero, _callback, 0, 0, WinEventOutOfContext);
         _hooks[1] = SetWinEventHook(EventSystemMinimizeStart, EventSystemMinimizeStart, IntPtr.Zero, _callback, 0, 0, WinEventOutOfContext);
         _hooks[2] = SetWinEventHook(EventSystemMinimizeEnd, EventSystemMinimizeEnd, IntPtr.Zero, _callback, 0, 0, WinEventOutOfContext);
-        _hooks[3] = SetWinEventHook(EventObjectLocationChange, EventObjectLocationChange, IntPtr.Zero, _callback, 0, 0, WinEventOutOfContext);
+        WatchForegroundLocation(GetForegroundWindow());
 
         _shouldHide = Query();
     }
@@ -155,11 +155,51 @@ public sealed class FullscreenPresenceWatcher : IDisposable
             return;
         }
 
+        // Nouvelle fenêtre au premier plan : on n'écoute plus que ses
+        // déplacements à elle.
+        if (eventType == EventSystemForeground)
+        {
+            WatchForegroundLocation(window);
+        }
+
         // Le rappel est appelé pour chaque fenêtre concernée, y compris celles qui
         // n'ont aucun rapport : la seule chose à faire ici est de relire l'état de
         // la session, et lui seul décide.
         Apply(Query());
     }
+
+    /// <summary>
+    /// Écoute les déplacements des seules fenêtres du processus au premier plan.
+    /// Un crochet sur tout le bureau réveillait le fil d'interface à chaque
+    /// mouvement de la souris (le curseur est un « objet » qui se déplace) —
+    /// de 125 à 1 000 fois par seconde.
+    /// </summary>
+    private void WatchForegroundLocation(IntPtr foreground)
+    {
+        _ = GetWindowThreadProcessId(foreground, out uint processId);
+
+        if (foreground != IntPtr.Zero && processId == _locationProcess && _hooks[3] != IntPtr.Zero)
+        {
+            return;
+        }
+
+        if (_hooks[3] != IntPtr.Zero)
+        {
+            UnhookWinEvent(_hooks[3]);
+            _hooks[3] = IntPtr.Zero;
+        }
+
+        _locationProcess = processId;
+
+        if (foreground == IntPtr.Zero || processId == 0 || processId == (uint)Environment.ProcessId)
+        {
+            return;
+        }
+
+        _hooks[3] = SetWinEventHook(EventObjectLocationChange, EventObjectLocationChange, IntPtr.Zero, _callback, processId, 0, WinEventOutOfContext);
+    }
+
+    private uint _locationProcess;
 
     private void Apply(bool shouldHide)
     {
@@ -216,12 +256,9 @@ public sealed class FullscreenPresenceWatcher : IDisposable
             return false;
         }
 
-        // Nos propres fenêtres ne se recouvrent pas elles-mêmes : ni l'Island, ni
-        // sa surface atmosphérique, ni la fenêtre de réglages ne comptent comme
-        // « une autre application ».
         _ = GetWindowThreadProcessId(foreground, out uint processId);
 
-        if (processId == (uint)Environment.ProcessId || IsSpaceNotchProcess(processId))
+        if (processId == (uint)Environment.ProcessId)
         {
             return false;
         }
@@ -241,11 +278,19 @@ public sealed class FullscreenPresenceWatcher : IDisposable
         }
 
         // Plein écran : la fenêtre couvre tout le moniteur de l'Island.
-        return rect.Left <= info.Monitor.Left
+        bool covers = rect.Left <= info.Monitor.Left
             && rect.Top <= info.Monitor.Top
             && rect.Right >= info.Monitor.Right
             && rect.Bottom >= info.Monitor.Bottom;
+
+        // Nos propres fenêtres (l'installeur, un autre processus) ne comptent
+        // pas. Vérifié en dernier, et mémorisé : interroger un processus est la
+        // partie la plus coûteuse de la mesure.
+        return covers && !IsSpaceNotchProcess(processId);
     }
+
+    private uint _ownProcessChecked;
+    private bool _ownProcessIsOurs;
 
     /// <summary>Le bureau et la barre des tâches : jamais « une application en plein écran ».</summary>
     private static bool IsShellWindow(IntPtr window)
@@ -264,7 +309,19 @@ public sealed class FullscreenPresenceWatcher : IDisposable
     }
 
     /// <summary>L'installeur (SpaceNotch-Setup) est un autre processus, mais pas un autre produit.</summary>
-    private static bool IsSpaceNotchProcess(uint processId)
+    private bool IsSpaceNotchProcess(uint processId)
+    {
+        if (processId == _ownProcessChecked)
+        {
+            return _ownProcessIsOurs;
+        }
+
+        _ownProcessChecked = processId;
+        _ownProcessIsOurs = ReadIsSpaceNotch(processId);
+        return _ownProcessIsOurs;
+    }
+
+    private static bool ReadIsSpaceNotch(uint processId)
     {
         try
         {

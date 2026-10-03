@@ -872,8 +872,15 @@ public sealed partial class IslandWindow : Window
 
         // Le registre démarre les fonctionnalités activées en isolant les échecs :
         // l'indisponibilité d'une API système ne doit jamais empêcher l'Island de
-        // s'afficher.
-        await _featureRegistry.StartEnabledAsync();
+        // s'afficher. Gardé quand même : une exception ici fermerait l'application.
+        try
+        {
+            await _featureRegistry.StartEnabledAsync();
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log("[WARN] Démarrage des fonctionnalités", ex);
+        }
 
         MiniLogger.Log($"Fonctionnalités actives : {_featureRegistry.RunningCount}/{_featureRegistry.Features.Count}");
 
@@ -945,6 +952,48 @@ public sealed partial class IslandWindow : Window
     /// Projette l'activité présentée dans la vue correspondant à sa clé de scène.
     /// </summary>
     private void Render()
+    {
+        // Jamais imbriqué. Un rendu peut déclencher, de façon synchrone, un autre
+        // rendu (animations réduites : le ressort se pose aussitôt, son achèvement
+        // redemande un rendu ; un changement d'état aussi). Imbriqué, le second
+        // jouait annonces et célébrations en double, et le premier continuait avec
+        // des valeurs périmées. Il est donc noté, et rejoué juste après.
+        if (_rendering)
+        {
+            _renderAgain = true;
+            return;
+        }
+
+        _rendering = true;
+
+        try
+        {
+            int passes = 0;
+
+            do
+            {
+                _renderAgain = false;
+                RenderOnce();
+            }
+            while (_renderAgain && ++passes < 3);
+        }
+        finally
+        {
+            _rendering = false;
+        }
+
+        // Encore demandé après trois passes : la suite attend le prochain tour.
+        if (_renderAgain)
+        {
+            _renderAgain = false;
+            _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, RequestRender);
+        }
+    }
+
+    private bool _rendering;
+    private bool _renderAgain;
+
+    private void RenderOnce()
     {
         // L'achèvement d'un dépôt occupe la notch le temps de sa convergence :
         // le rendu reprend à sa fin, et rattrape alors tout ce qui a changé.
@@ -1493,12 +1542,12 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     /// <summary>
     /// Annonce une activité à Narrateur, une seule fois par activité et par
-    /// titre : un téléchargement qui progresse ne parle pas à chaque bloc, mais
+    /// titre — chiffres exclus, sans quoi un minuteur parlait chaque seconde : un téléchargement qui progresse ne parle pas à chaque bloc, mais
     /// « Téléchargé » est dit. Un appel interrompt la lecture ; le reste attend.
     /// </summary>
     private void Announce(IslandActivity? activity)
     {
-        string key = activity is null ? string.Empty : $"{activity.Id}\u001F{activity.Title}";
+        string key = Announcement.Key(activity);
         bool isNew = !string.Equals(key, _announcedKey, StringComparison.Ordinal);
 
         _announcedKey = key;
@@ -1989,8 +2038,9 @@ public sealed partial class IslandWindow : Window
         // Les bascules plein écran qui ne changent pas de fenêtre au premier plan
         // — certaines vidéos — n'émettent aucun des événements surveilllés. Elles
         // changent en revanche l'environnement du bureau, donc la relecture est
-        // faite ici : c'est ce qui les rattrape.
-        _presence.Recheck();
+        // faite ici : c'est ce qui les rattrape — regroupée, car la fenêtre reçoit
+        // des dizaines de messages par seconde pendant un morphing.
+        SchedulePresenceRecheck();
     }
 
     /// <summary>
@@ -2030,6 +2080,7 @@ public sealed partial class IslandWindow : Window
             _atmosphere.PlaceBehind(_hWnd);
             _appWindow.Show(activateWindow: false);
             UpdateBubble();
+            SuspendLife(false);
             return;
         }
 
@@ -2037,6 +2088,29 @@ public sealed partial class IslandWindow : Window
         _atmosphere.SetVisible(false);
         _appWindow.Hide();
         UpdateBubble();
+        SuspendLife(true);
+    }
+
+    /// <summary>
+    /// Retirée devant un jeu ou une présentation, la notch ne doit plus rien
+    /// consommer : regard et vie de Pixel, assoupissement, aimant, toupie et
+    /// égaliseur s'arrêtent. Ils reprennent au retour, par le rendu.
+    /// </summary>
+    private void SuspendLife(bool suspend)
+    {
+        SignalTrailing.Suspended = suspend;
+        CardTrailing.Suspended = suspend;
+
+        if (suspend)
+        {
+            StopRestPixel();
+            _dozeTimer?.Stop();
+            StopMagnet();
+            return;
+        }
+
+        StartMagnet();
+        RequestRender();
     }
 
     private void OnEnvironmentChanged(object? sender, ScreenChangeKind kind)
@@ -2610,7 +2684,11 @@ public sealed partial class IslandWindow : Window
 
         // Double-clic (F7) : le second clic arrive pendant que la notch s'ouvre ;
         // au lieu de la refermer, il ouvre la note. Le premier clic n'attend rien.
+        // Seulement quand rien n'est présenté : avec une activité, le premier clic
+        // l'ouvrait, et recliquer vite pour se raviser ouvrait la note au lieu de
+        // refermer.
         if (properties.IsLeftButtonPressed
+            && _doubleClickOpensNote
             && Environment.TickCount64 - _lastClickAt < (long)DoubleClickDelay().TotalMilliseconds
             && !UsesFloatingGeometry)
         {
@@ -2653,10 +2731,15 @@ public sealed partial class IslandWindow : Window
 
     /// <summary>Clic validé au relâcher, sur une forme compacte.</summary>
     private long _lastClickAt;
+    private bool _doubleClickOpensNote;
 
     private void CommitClick()
     {
         _lastClickAt = Environment.TickCount64;
+
+        // Le double-clic n'ouvre la note que depuis le repos, sans activité.
+        _doubleClickOpensNote = _controller.PresentedActivity is null
+            && _controller.State is IslandState.Closed or IslandState.Preview;
 
         // « Annuler » est affiché : le clic rattrape ce qui vient d'être écarté.
         if (TryUndo())
@@ -2676,6 +2759,15 @@ public sealed partial class IslandWindow : Window
         if (opening && _controller.State is IslandState.Expanded or IslandState.Expanding)
         {
             PlayCue(SpaceNotch.Core.Sound.SoundCueKind.Open);
+
+            // Ouverte par l'utilisateur, la notch prend le clavier comme la
+            // recherche : Échap la referme, et cliquer ailleurs la désactive —
+            // ce qui la referme aussi. Sans cela, une musique ou un téléchargement
+            // ouverts ne se refermaient que par un nouveau clic sur la notch.
+            // Les ouvertures automatiques (une notification qui arrive) ne
+            // prennent jamais le focus de l'application en cours.
+            CaptureKeyboardForTyping();
+            _ = IslandBody.Focus(FocusState.Programmatic);
         }
     }
 
@@ -2836,6 +2928,21 @@ public sealed partial class IslandWindow : Window
     /// celle que la fonctionnalité a désignée comme principale.
     /// </summary>
     private async void OnIslandKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        // Gardé : une exception dans l'action principale fermait l'application.
+        // Le cœur s'exécute de façon synchrone jusqu'à son premier « await » :
+        // e.Handled y est posé à temps.
+        try
+        {
+            await HandleIslandKeyAsync(e);
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log("[WARN] Touche sur la notch", ex);
+        }
+    }
+
+    private async Task HandleIslandKeyAsync(KeyRoutedEventArgs e)
     {
         // Une touche tapée dans un champ lui appartient : les flèches changeaient
         // d'activité, Espace lançait l'action principale. Seul Échap, que le
@@ -3564,6 +3671,19 @@ public sealed partial class IslandWindow : Window
         Application.Current.Exit();
     }
 
+    /// <summary>Une étape de l'arrêt, isolée : son échec est journalisé, la suite continue.</summary>
+    private static void Safely(string what, Action step)
+    {
+        try
+        {
+            step();
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log($"[WARN] Arrêt : {what}", ex);
+        }
+    }
+
     private async Task ShutdownAsync()
     {
         if (_isClosed)
@@ -3588,48 +3708,64 @@ public sealed partial class IslandWindow : Window
         _bubbleRestTimer?.Stop();
         HookDetachFrames();
 
+        // Le raccourci global d'abord : c'est la seule chose qu'un arrêt raté
+        // laisserait à Windows (Alt+Espace ne marcherait plus nulle part).
+        Safely("raccourci global", () => SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Unregister(_hWnd));
+
+        // L'arrêt des fonctionnalités libère réellement leurs écouteurs système et
+        // retire leurs activités : c'est la garantie symétrique du démarrage.
         try
         {
-            // L'arrêt des fonctionnalités libère réellement leurs écouteurs
-            // système et retire leurs activités : c'est la garantie symétrique du
-            // démarrage.
             await _featureRegistry.DisposeAsync();
-            _pluginLoader.Dispose();
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log("[WARN] Arrêt des fonctionnalités", ex);
+        }
 
-            _settingsService.Changed -= OnSettingsChanged;
-
+        // Chaque libération a son propre filet : une seule qui échoue sautait
+        // toutes les suivantes.
+        Safely("greffons", _pluginLoader.Dispose);
+        Safely("réglages", () => _settingsService.Changed -= OnSettingsChanged);
+        Safely("scènes", () =>
+        {
             foreach (IIslandSceneView scene in _scenes.Values.Distinct())
             {
                 scene.ActionRequested -= OnSceneActionRequested;
             }
-
+        });
+        Safely("fenêtre de réglages", () =>
+        {
             _settingsWindow?.Close();
             _settingsWindow = null;
-
-            _bubble.Close();
-
-            _dropCompletionTimer?.Stop();
+        });
+        Safely("bulle", _bubble.Close);
+        Safely("dépôt", () => _dropCompletionTimer?.Stop());
+        Safely("hypnotique", () =>
+        {
             _signalHypnotic?.Dispose();
             _cardHypnotic?.Dispose();
             _tabHypnotic?.Dispose();
             _dropHypnotic?.Dispose();
+        });
+        Safely("presse-papier", _clipboardMonitor.Dispose);
+        Safely("Bluetooth", _bluetoothWatcher.Dispose);
+        Safely("volume", _volumeListener.Dispose);
+        Safely("luminosité", _brightnessService.Dispose);
+        Safely("pistes", () => _mediaFeature.SessionManager.TrackChanged -= OnTrackForExtras);
+        Safely("médias", _mediaSessionManager.Shutdown);
+        Safely("contrôleur", _controller.Dispose);
+        Safely("diagnostic", _diagnostics.Dispose);
+        Safely("écrans", _screenWatcher.Dispose);
+        Safely("notifications", _notificationListener.Dispose);
 
-            _clipboardMonitor.Dispose();
-            _bluetoothWatcher.Dispose();
-            _volumeListener.Dispose();
-            _brightnessService.Dispose();
-            _mediaSessionManager.Shutdown();
-            _controller.Dispose();
-            _diagnostics.Dispose();
-            _screenWatcher.Dispose();
-            _notificationListener.Dispose();
-            SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Unregister(_hWnd);
-            _messageMonitor?.Dispose();
-        }
-        catch (Exception ex)
-        {
-            MiniLogger.Log("[WARN] Erreur pendant l'arrêt", ex);
-        }
+        // Oubliés jusqu'en v1.13 : quatre crochets du plein écran, la fenêtre au
+        // premier plan, la caméra du miroir, le crête-mètre de Pixel.
+        Safely("plein écran", _presence.Dispose);
+        Safely("premier plan", () => _foreground?.Dispose());
+        Safely("miroir", () => _mirror?.Dispose());
+        Safely("crête-mètre", () => _peakMeter?.Dispose());
+        Safely("messages", () => _messageMonitor?.Dispose());
 
         MiniLogger.Log("IslandWindow fermée");
         MiniLogger.Flush(TimeSpan.FromMilliseconds(400));

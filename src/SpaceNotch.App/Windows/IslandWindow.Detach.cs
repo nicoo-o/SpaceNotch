@@ -294,6 +294,20 @@ public sealed partial class IslandWindow
                 break;
 
             case DragPhase.Pulling:
+                // Un clic qui a un peu glissé (pavé tactile, doigt) reste un clic.
+                (double rx, double ry) = CursorDip();
+                (double dx, double dy) = (rx - _pressX, ry - _pressY);
+
+                if (click && Detachment.IsClickRelease(PullOf((dx, dy)), _edge is NotchEdge.Left or NotchEdge.Right ? dy : dx))
+                {
+                    _pull = 0;
+                    _dragPhase = DragPhase.None;
+                    _detachDisplay = null;
+                    ApplyGeometry(_controller.CurrentFootprint);
+                    CommitClick();
+                    break;
+                }
+
                 double pullVelocity = PullOf(_velocity.Velocity(now));
 
                 if (UseSpringAnimations())
@@ -1409,9 +1423,11 @@ public sealed partial class IslandWindow
     private DisplayInfo DetachDisplay() => _detachDisplay ??= ResolveDisplay();
 
     /// <summary>Position du pointeur en DIPs, relative à l'écran figé.</summary>
-    private (double X, double Y) CursorDip()
+    private (double X, double Y) CursorDip() => CursorDipOn(DetachDisplay());
+
+    /// <summary>Position du pointeur en DIPs, relative à un écran donné.</summary>
+    private (double X, double Y) CursorDipOn(DisplayInfo display)
     {
-        DisplayInfo display = DetachDisplay();
         double scale = display.DpiScale;
 
         if (!NativeMethods.GetCursorPos(out NativeMethods.POINT point))
@@ -1471,7 +1487,31 @@ public sealed partial class IslandWindow
 
         if (recheck)
         {
-            _presence.Recheck();
+            SchedulePresenceRecheck();
+        }
+    }
+
+    private DispatcherQueueTimer? _presenceRecheck;
+
+    /// <summary>
+    /// Relit le plein écran au plus quatre fois par seconde. La relecture
+    /// interroge le shell et la fenêtre au premier plan : faite à chaque image
+    /// du ressort et à chaque message de la fenêtre (cinq à sept par
+    /// redimensionnement), elle mangeait le budget d'image pendant les morphings.
+    /// </summary>
+    private void SchedulePresenceRecheck()
+    {
+        _presenceRecheck ??= CreateOneShotTimer(TimeSpan.FromMilliseconds(250), () =>
+        {
+            if (!_isClosed)
+            {
+                _presence.Recheck();
+            }
+        });
+
+        if (!_presenceRecheck.IsRunning)
+        {
+            _presenceRecheck.Start();
         }
     }
 

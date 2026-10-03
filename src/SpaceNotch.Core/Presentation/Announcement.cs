@@ -24,6 +24,33 @@ public readonly record struct Announcement(string Text, bool Assertive)
     /// une activité qui interrompt interrompt aussi la lecture.
     /// </para>
     /// </summary>
+    /// <summary>
+    /// Ce qui distingue une annonce de la précédente : l'activité, et son titre
+    /// <b>sans ses chiffres</b>. Un minuteur ou un Pomodoro ont pour titre
+    /// l'heure qui défile (« 12:34 ») : avec les chiffres, le Narrateur
+    /// réannonçait chaque seconde. Sans eux, « 12:34 » et « 12:33 » sont la même
+    /// annonce, alors que « Téléchargé » ou « Temps écoulé » restent dits.
+    /// </summary>
+    public static string Key(IslandActivity? activity)
+    {
+        if (activity is null)
+        {
+            return string.Empty;
+        }
+
+        var title = new System.Text.StringBuilder(activity.Title.Length);
+
+        foreach (char c in activity.Title)
+        {
+            if (!char.IsDigit(c))
+            {
+                title.Append(c);
+            }
+        }
+
+        return $"{activity.Id}\u001F{title}";
+    }
+
     public static Announcement? For(IslandActivity? activity, bool isNew)
     {
         if (activity is null || !isNew)

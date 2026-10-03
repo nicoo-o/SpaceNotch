@@ -42,6 +42,14 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
             MiniLogger.Log($"[FATAL] AppDomain.UnhandledException : {args.ExceptionObject}");
 
+        // Les tâches lancées sans attente (« _ = … ») qui échouent : sans ce
+        // gestionnaire, leur erreur disparaissait sans laisser de trace.
+        System.Threading.Tasks.TaskScheduler.UnobservedTaskException += (sender, args) =>
+        {
+            MiniLogger.Log($"[WARN] Tâche en échec non observée : {args.Exception}");
+            args.SetObserved();
+        };
+
         AppDomain.CurrentDomain.ProcessExit += (sender, args) =>
             MiniLogger.Log("Arrêt du processus.");
     }
