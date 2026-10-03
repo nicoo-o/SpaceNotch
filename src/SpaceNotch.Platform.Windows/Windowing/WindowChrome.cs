@@ -173,6 +173,27 @@ public static class WindowChrome
         }
     }
 
+    /// <summary>Fenêtre actuellement au premier plan.</summary>
+    public static IntPtr Foreground() => NativeMethods.GetForegroundWindow();
+
+    /// <summary>
+    /// Rend le premier plan à <paramref name="previous"/> si la notch l'a encore :
+    /// après Échap, l'utilisateur retrouve sa fenêtre et peut taper sans cliquer
+    /// (audit SN-15). Rien si un autre clic a déjà choisi une autre fenêtre.
+    /// </summary>
+    public static void ReturnForeground(IntPtr self, IntPtr previous)
+    {
+        if (previous == IntPtr.Zero || previous == self || !NativeMethods.IsWindow(previous))
+        {
+            return;
+        }
+
+        if (NativeMethods.GetForegroundWindow() == self)
+        {
+            NativeMethods.SetForegroundWindow(previous);
+        }
+    }
+
     /// <summary>
     /// Donne le premier plan à la fenêtre, pour qu'elle reçoive la frappe.
     /// Windows ne l'accorde qu'au processus qui vient de recevoir une entrée de

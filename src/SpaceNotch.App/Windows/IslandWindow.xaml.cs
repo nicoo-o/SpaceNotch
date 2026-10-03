@@ -430,7 +430,8 @@ public sealed partial class IslandWindow : Window
 
         _featureRegistry = new IslandFeatureRegistry(
             features,
-            onFault: (featureId, exception) => MiniLogger.Log($"[FEATURE] {featureId} en échec", exception));
+            onFault: (featureId, exception) => MiniLogger.Log($"[FEATURE] {featureId} en échec", exception),
+            startsOffThread: plugins.Features.Contains);
 
         _controller = new IslandController(
             _stateManager,
@@ -776,10 +777,19 @@ public sealed partial class IslandWindow : Window
             {
                 _typingCapture = false;
                 WindowChrome.SetKeyboardCapture(_hWnd, enabled: false);
+                WindowChrome.ReturnForeground(_hWnd, _foregroundBeforeTyping);
+                _foregroundBeforeTyping = IntPtr.Zero;
             }
 
-            // La note se range à la fermeture ; son texte est déjà enregistré.
-            if (state == IslandState.Closed && _noteFeature.IsShown)
+            // Les scènes passagères (note, recherche, présentation, menu rapide)
+            // se retirent dès le DÉBUT du repli : retirées seulement une fois
+            // fermée, la notch se repliait d'abord vers leur forme compacte
+            // (186×52), s'y arrêtait 0,4 s, puis repartait vers le repos
+            // (audit SN-06). Maintenant, un seul mouvement jusqu'au repos.
+            bool folding = state is IslandState.Collapsing or IslandState.Closed;
+
+            // La note se range ; son texte est déjà enregistré.
+            if (folding && _noteFeature.IsShown)
             {
                 _noteFeature.Dismiss();
             }
@@ -787,19 +797,19 @@ public sealed partial class IslandWindow : Window
             // Le lanceur ne vit que tant qu'il est ouvert — même quand une autre
             // scène (le menu rapide) l'a remplacé avant la fermeture : sinon il
             // restait dans la pile et la pastille affichait « Rechercher ».
-            if (state == IslandState.Closed && _launcherFeature.IsShown)
+            if (folding && _launcherFeature.IsShown)
             {
                 _launcherFeature.Dismiss();
             }
 
             // Refermer la notch pendant la présentation, c'est la passer.
-            if (state == IslandState.Closed && _welcomeFeature.IsShown)
+            if (folding && _welcomeFeature.IsShown)
             {
                 _welcomeFeature.Finish();
             }
 
             // Le menu rapide aussi : refermé, il ne reste pas en tête de pile.
-            if (state == IslandState.Closed && _quickMenuFeature.IsShown)
+            if (folding && _quickMenuFeature.IsShown)
             {
                 _quickMenuFeature.Dismiss();
                 _activityManager.PinPresentation(null);
@@ -855,7 +865,7 @@ public sealed partial class IslandWindow : Window
         // déclare ses actions, la fenêtre les route vers la fonctionnalité
         // propriétaire. La fenêtre n'appelle donc plus directement la session
         // média, ce qui était exactement le couplage qu'il fallait retirer.
-        NotificationSceneView.DismissRequested += () => _controller.RequestCollapse();
+        NotificationSceneView.DismissRequested += () => CollapseByUser("notification écartée");
 
         Closed += OnWindowClosed;
         Activated += OnWindowActivated;
@@ -2256,8 +2266,14 @@ public sealed partial class IslandWindow : Window
     /// Activité ouverte par l'utilisateur, épargnée par l'expiration : une
     /// notification ouverte ne laisse pas place à la musique pendant qu'on la lit.
     /// </summary>
+    /// <summary>
+    /// L'activité que l'utilisateur regarde, épargnée de l'expiration. Une
+    /// activité ouverte d'elle-même n'est pas épargnée (audit SN-07).
+    /// </summary>
     private string? OpenedActivityId()
-        => _controller.State is IslandState.Expanding or IslandState.Expanded ? _controller.PresentedActivity?.Id : null;
+        => (_controller.State is IslandState.Expanding or IslandState.Expanded) && (_controller.OpenedByUser || _pixelHovered)
+            ? _controller.PresentedActivity?.Id
+            : null;
 
     private DispatcherQueueTimer? _clockTimer;
 
@@ -2312,7 +2328,7 @@ public sealed partial class IslandWindow : Window
         _controller.TabRowHeight = row;
         ContentArea.Padding = new Thickness(0, row, 0, 0);
         SceneTabs.Animate = UseSpringAnimations();
-        SceneTabs.Show(tabs, activity?.Id, (Brush)Application.Current.Resources["NfTextPrimaryBrush"], (Brush)Application.Current.Resources["NfTextTertiaryBrush"]);
+        SceneTabs.Show(tabs, activity?.Id, SpaceNotch_App.UI.ThemeBrushes.Get("NfTextPrimaryBrush"), SpaceNotch_App.UI.ThemeBrushes.Get("NfTextTertiaryBrush"));
     }
 
     private IslandActivity? _lastRenderedActivity;
@@ -2535,6 +2551,7 @@ public sealed partial class IslandWindow : Window
         // qui ne se rattrape ni par une couleur ni par une marge — c'est un
         // désaccord de thème, pas un problème de palette.
         RootLayout.RequestedTheme = light ? ElementTheme.Light : ElementTheme.Dark;
+        SpaceNotch_App.UI.ThemeBrushes.IslandTheme = RootLayout.RequestedTheme;
 
         // L'encre, elle, n'est plus posée ici : les styles de texte résolvent
         // leur pinceau depuis les jetons de thème, qui connaissent déjà le thème
@@ -2596,6 +2613,7 @@ public sealed partial class IslandWindow : Window
         ArmGestureHelp(true);
 
         _pixelHovered = true;
+        RearmExpirationTimer();
 
         // Une entrée annule la fermeture en attente : le pointeur qui revient
         // dans le délai de grâce retrouve l'aperçu au lieu de le faire renaître.
@@ -2658,12 +2676,22 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void CaptureKeyboardForTyping()
     {
+        IntPtr before = WindowChrome.Foreground();
+
+        if (!_typingCapture && before != _hWnd)
+        {
+            _foregroundBeforeTyping = before;
+        }
+
         WindowChrome.SetKeyboardCapture(_hWnd, enabled: true);
         WindowChrome.BringToForeground(_hWnd);
         _typingCapture = true;
     }
 
     private bool _typingCapture;
+
+    /// <summary>La fenêtre de l'utilisateur avant que la notch prenne le clavier.</summary>
+    private IntPtr _foregroundBeforeTyping;
 
     /// <summary>
     /// Sortie du pointeur : l'aperçu se retire après un délai de grâce.
@@ -2679,6 +2707,9 @@ public sealed partial class IslandWindow : Window
         ArmGestureHelp(false);
 
         _pixelHovered = false;
+
+        // Une carte ouverte d'elle-même reprend son échéance quand la main part.
+        RearmExpirationTimer();
 
         // Un passage trop bref n'a jamais été une intention : l'aperçu n'a pas
         // lieu du tout.
@@ -2818,7 +2849,9 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        _controller.ToggleFromUser();
+        // Notch ouverte : l'appui la referme tout de suite (pas de Press/Release
+        // pour l'ombre sur ce chemin).
+        ToggleByUser("clic sur la notch ouverte");
     }
 
     /// <summary>Clic validé au relâcher, sur une forme compacte.</summary>
@@ -2877,7 +2910,7 @@ public sealed partial class IslandWindow : Window
         if (_controller.State != IslandState.Closed
             && _controller.PresentedActivity?.SceneKey == IslandSceneCatalog.Launcher)
         {
-            _controller.RequestCollapse();
+            CollapseByUser("recherche refermée");
             return;
         }
 
@@ -2956,6 +2989,12 @@ public sealed partial class IslandWindow : Window
             // Une fonctionnalité désactivée ne publie rien : ouvrir une forme vide
             // serait pire que ne rien faire.
             return;
+        }
+
+        // Ouverture voulue (clic, menu, raccourci) : l'ombre l'apprend comme un raccourci.
+        if (_controller.State is not (IslandState.Expanded or IslandState.Expanding))
+        {
+            Shadow(SpaceNotch.Core.Machine.NotchTrigger.HotKey, "ouverture demandée");
         }
 
         _controller.RequestExpand();
@@ -3282,7 +3321,7 @@ public sealed partial class IslandWindow : Window
             windowManager.MinWidth = 0;
             windowManager.MinHeight = 0;
             windowManager.IsVisibleInTray = true;
-            windowManager.TrayIconSelected += (_, _) => _controller.ToggleFromUser();
+            windowManager.TrayIconSelected += (_, _) => ToggleByUser("icône de notification");
 
             windowManager.TrayIconContextMenu += (_, e) => e.Flyout = BuildTrayMenu();
         }
@@ -3320,7 +3359,7 @@ public sealed partial class IslandWindow : Window
             Text = expanded ? Lang.T("Réduire la notch", "Collapse the notch") : Lang.T("Déployer la notch", "Expand the notch"),
             Icon = new FontIcon { Glyph = expanded ? "\uE70E" : "\uE70D" }
         };
-        toggleItem.Click += (_, _) => _controller.ToggleFromUser();
+        toggleItem.Click += (_, _) => ToggleByUser("menu");
 
         flyout.Items.Add(toggleItem);
 
@@ -3704,7 +3743,7 @@ public sealed partial class IslandWindow : Window
 
         if (_controller.State is not (IslandState.Expanded or IslandState.Expanding))
         {
-            _controller.ToggleFromUser();
+            ToggleByUser("seconde instance");
         }
     }
 

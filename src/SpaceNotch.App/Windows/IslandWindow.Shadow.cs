@@ -43,6 +43,29 @@ public sealed partial class IslandWindow
 
     private void Shadow(NotchTrigger trigger, string context) => Shadow(new NotchInput(trigger), context);
 
+    /// <summary>
+    /// Fermeture demandée par l'utilisateur hors du clavier de la fenêtre
+    /// (bouton, menu, Échap dans une scène) : l'ombre l'apprend comme un Échap.
+    /// Sans cela, elle restait « ouverte » quand la notch se refermait
+    /// (audit SN-10).
+    /// </summary>
+    private void CollapseByUser(string context)
+    {
+        if (_controller.State is IslandState.Expanded or IslandState.Expanding)
+        {
+            Shadow(NotchTrigger.Escape, context);
+        }
+
+        _controller.RequestCollapse();
+    }
+
+    /// <summary>Bascule demandée par l'utilisateur (clic, icône, menu) : l'ombre suit la même intention.</summary>
+    private void ToggleByUser(string context)
+    {
+        Shadow(_controller.State is IslandState.Expanded or IslandState.Expanding ? NotchTrigger.Escape : NotchTrigger.HotKey, context);
+        _controller.ToggleFromUser();
+    }
+
     /// <summary>Le placement réel, donné à l'ombre s'il a changé.</summary>
     private void SyncShadowPlacement()
     {

@@ -118,8 +118,8 @@ public sealed partial class VolumeHudScene : UserControl, IIslandSceneView
         bool crossed = _litTicks >= 0;
         _litTicks = lit;
 
-        var on = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["NfTextPrimaryBrush"];
-        var off = (Microsoft.UI.Xaml.Media.Brush)Application.Current.Resources["NfStrokeStrongBrush"];
+        var on = SpaceNotch_App.UI.ThemeBrushes.Get("NfTextPrimaryBrush");
+        var off = SpaceNotch_App.UI.ThemeBrushes.Get("NfStrokeStrongBrush");
 
         for (int i = 0; i < _ticks.Length; i++)
         {

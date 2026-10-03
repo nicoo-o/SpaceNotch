@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using SpaceNotch.Infrastructure.Config;
 using System.Runtime.Loader;
+using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Features;
 
 namespace SpaceNotch.Infrastructure.Plugins;
@@ -313,7 +314,14 @@ public sealed class PluginLoader : IDisposable
                     continue;
                 }
 
-                foreach (IIslandFeature feature in plugin.CreateFeatures(context))
+                // Chaque greffon ne voit et ne touche que ses propres activités
+                // (audit SN-19).
+                IslandFeatureContext scoped = context with
+                {
+                    Activities = new ScopedActivityManager(context.Activities)
+                };
+
+                foreach (IIslandFeature feature in plugin.CreateFeatures(scoped))
                 {
                     features.Add(feature);
                 }

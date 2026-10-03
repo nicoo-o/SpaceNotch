@@ -107,6 +107,11 @@ public sealed class ScreenChangeWatcher : IDisposable
         NativeConstants.SPI_SETUIEFFECTS => ScreenChangeKind.VisualStateChanged,
         NativeConstants.SPI_SETHIGHCONTRAST => ScreenChangeKind.VisualStateChanged,
 
+        // « Effets d'animation » : sans ces deux-là, couper les animations à
+        // chaud n'était jamais relu (audit SN-11).
+        NativeConstants.SPI_SETCLIENTAREAANIMATION => ScreenChangeKind.VisualStateChanged,
+        NativeConstants.SPI_SETANIMATION => ScreenChangeKind.VisualStateChanged,
+
         // Un WM_SETTINGCHANGE avec wParam à 0 est diffusé à tous les niveaux
         // supérieurs et peut porter n'importe quel changement.
         0 => ScreenChangeKind.SettingsChanged,

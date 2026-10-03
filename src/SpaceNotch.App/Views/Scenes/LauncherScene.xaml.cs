@@ -1206,9 +1206,7 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
     };
 
     private static Brush Brush(string key)
-        => Application.Current.Resources.TryGetValue(key, out object value) && value is Brush brush
-            ? brush
-            : new SolidColorBrush(Microsoft.UI.Colors.White);
+        => SpaceNotch_App.UI.ThemeBrushes.Get(key, new SolidColorBrush(Microsoft.UI.Colors.White));
 
     private void Raise(string actionId, string? value = null)
     {

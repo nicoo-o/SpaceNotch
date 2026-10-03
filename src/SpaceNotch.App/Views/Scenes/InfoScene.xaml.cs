@@ -648,9 +648,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     /// utilisable. Une exception de ressource, elle, viderait la scène.
     /// </summary>
     private static Brush Ink(string key, byte fallbackAlpha)
-        => Application.Current?.Resources?.TryGetValue(key, out object? value) == true && value is Brush brush
-            ? brush
-            : new SolidColorBrush(Color.FromArgb(fallbackAlpha, 0xFF, 0xFF, 0xFF));
+        => SpaceNotch_App.UI.ThemeBrushes.Get(key, new SolidColorBrush(Color.FromArgb(fallbackAlpha, 0xFF, 0xFF, 0xFF)));
 
     /// <summary>Lit une valeur des jetons, avec repli sur celle du code.</summary>
     private static double Token(string key, double fallback)

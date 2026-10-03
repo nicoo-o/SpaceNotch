@@ -13,10 +13,24 @@ namespace SpaceNotch_App.UI;
 /// </summary>
 public static class ThemeBrushes
 {
+    /// <summary>
+    /// Thème de la notch, posé par la fenêtre quand elle applique son
+    /// apparence. Sert aux scènes qui construisent leurs éléments en code sans
+    /// élément sous la main (audit SN-09 : la cloche restait blanche sur une
+    /// carte claire).
+    /// </summary>
+    public static ElementTheme IslandTheme { get; set; } = ElementTheme.Dark;
+
+    /// <summary>Le pinceau <paramref name="key"/> pour le thème de la notch.</summary>
+    public static Brush Get(string key, Brush? fallback = null) => Resolve(IslandTheme == ElementTheme.Light, key, fallback);
+
     /// <summary>Le pinceau <paramref name="key"/> pour le thème effectif de <paramref name="owner"/>.</summary>
     public static Brush Get(FrameworkElement? owner, string key, Brush? fallback = null)
+        => Resolve(owner?.ActualTheme == ElementTheme.Light, key, fallback);
+
+    private static Brush Resolve(bool light, string key, Brush? fallback)
     {
-        string theme = owner?.ActualTheme == ElementTheme.Light ? "Light" : "Default";
+        string theme = light ? "Light" : "Default";
 
         try
         {

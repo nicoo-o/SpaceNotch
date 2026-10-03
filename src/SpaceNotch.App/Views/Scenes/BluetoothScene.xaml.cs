@@ -58,7 +58,7 @@ public sealed partial class BluetoothScene : UserControl, IIslandSceneView
             : low ? Lang.T($"Batterie faible · {payload.BatteryPercent} %", $"Low battery · {payload.BatteryPercent}%") : Lang.T("Connecté", "Connected");
         StateText.Foreground = low
             ? new SolidColorBrush(Amber)
-            : (Brush)Application.Current.Resources["NfTextSecondaryBrush"];
+            : SpaceNotch_App.UI.ThemeBrushes.Get("NfTextSecondaryBrush");
 
         if (payload.IsConnected && payload.BatteryPercent is int level)
         {

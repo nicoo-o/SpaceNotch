@@ -56,6 +56,9 @@ public sealed class UpdateFeature : IslandFeatureBase
         return Task.CompletedTask;
     }
 
+    /// <summary>Durée d'affichage de la proposition : ensuite, elle se retire d'elle-même.</summary>
+    public static readonly TimeSpan OfferLifetime = TimeSpan.FromSeconds(20);
+
     /// <summary>Une version plus récente est prête (ou, en portable, disponible).</summary>
     public void ShowReady(Version version, bool canInstall)
     {
@@ -76,6 +79,10 @@ public sealed class UpdateFeature : IslandFeatureBase
             State = IslandActivityState.Idle,
             MotionState = ActivityMotionState.Idle,
             Priority = ActivityPriority.Normal,
+
+            // Proposée, puis effacée : elle ne doit pas occuper la notch tant
+            // que personne n'y répond (audit SN-05).
+            Duration = OfferLifetime,
             Actions = canInstall
                 ?
                 [

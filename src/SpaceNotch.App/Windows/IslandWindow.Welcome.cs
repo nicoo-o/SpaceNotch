@@ -76,7 +76,7 @@ public sealed partial class IslandWindow
             _settingsService.Update(s => s.WelcomeCompleted = true);
         }
 
-        _controller.RequestCollapse();
+        CollapseByUser("présentation");
     }
 
     private static string AccessKey(NotificationAccess access) => access switch

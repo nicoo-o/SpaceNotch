@@ -140,7 +140,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
         LikeButton.Visibility = liked is null ? Visibility.Collapsed : Visibility.Visible;
         LikeIcon.Tint = liked == true
             ? new SolidColorBrush(global::Windows.UI.Color.FromArgb(0xFF, 0x1E, 0xD7, 0x60))
-            : (Brush)Application.Current.Resources["NfTextSecondaryBrush"];
+            : SpaceNotch_App.UI.ThemeBrushes.Get("NfTextSecondaryBrush");
         LyricsLikeIcon.Tint = liked == true ? LikedBrush : UnlikedBrush;
         LyricsSide.Visibility = liked is null ? Visibility.Collapsed : Visibility.Visible;
     }
@@ -458,7 +458,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
             string source = MediaSource.FriendlyName(track?.AppId);
 
             LiveText.Text = source.Length == 0 ? state : $"{state} · {source}";
-            LiveBars.Tint = (Brush)Application.Current.Resources["NfTextSecondaryBrush"];
+            LiveBars.Tint = SpaceNotch_App.UI.ThemeBrushes.Get("NfTextSecondaryBrush");
             LiveBars.Show(playing ? new CompactTrailing(TrailingKind.Equalizer, 0) : CompactTrailing.None);
         }
     }

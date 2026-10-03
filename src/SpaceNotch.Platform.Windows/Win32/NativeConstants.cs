@@ -96,6 +96,12 @@ public static class NativeConstants
 
     public const uint SPI_GETUIEFFECTS = 0x103E;
     public const uint SPI_SETUIEFFECTS = 0x103F;
+
+    /// <summary>« Effets d'animation » de Windows (Paramètres › Accessibilité).</summary>
+    public const uint SPI_SETCLIENTAREAANIMATION = 0x1043;
+
+    /// <summary>Animation des fenêtres (réduction, agrandissement).</summary>
+    public const uint SPI_SETANIMATION = 0x0049;
     public const uint SPI_GETCLIENTAREAANIMATION = 0x1042;
     public const uint SPI_GETHIGHCONTRAST = 0x0042;
     public const uint SPI_SETHIGHCONTRAST = 0x0043;

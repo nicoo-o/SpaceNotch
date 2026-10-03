@@ -211,7 +211,7 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
         {
             Style = (Style)Application.Current.Resources["NfMenuRowButtonStyle"],
             Content = content,
-            Tag = Application.Current.Resources["NfSelectionBrush"],
+            Tag = SpaceNotch_App.UI.ThemeBrushes.Get("NfSelectionBrush"),
             IsEnabled = enabled,
             Name = actionId
         };
@@ -474,9 +474,7 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
     };
 
     private static Brush Brush(string key)
-        => Application.Current.Resources.TryGetValue(key, out object value) && value is Brush brush
-            ? brush
-            : new SolidColorBrush(Colors.White);
+        => SpaceNotch_App.UI.ThemeBrushes.Get(key, new SolidColorBrush(Colors.White));
 
     private void Raise(string actionId, string? value = null)
     {

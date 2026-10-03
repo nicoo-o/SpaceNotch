@@ -108,7 +108,7 @@ public sealed partial class IslandWindow
             return;
         }
 
-        _controller.RequestCollapse();
+        CollapseByUser("travail");
         _capturing = true;
 
         try
