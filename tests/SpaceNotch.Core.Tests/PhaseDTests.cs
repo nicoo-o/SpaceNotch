@@ -92,6 +92,57 @@ public sealed class PhaseDTests
         Assert.Equal(0, fan.Count);
     }
 
+    [Fact]
+    public void Un_branchement_rate_ne_laisse_pas_l_horloge_se_croire_branchee()
+    {
+        // v1.16.0 : un abonnement venu d'un autre fil faisait échouer le
+        // branchement, mais l'horloge se croyait branchée — toutes les
+        // animations restaient figées, la notch vide et sans yeux.
+        bool refuse = true;
+        int attached = 0;
+        var fan = new FrameFanOut(
+            () =>
+            {
+                if (refuse)
+                {
+                    throw new InvalidOperationException("mauvais fil");
+                }
+
+                attached++;
+            },
+            () => { });
+
+        EventHandler<object> a = (_, _) => { };
+        Assert.Throws<InvalidOperationException>(() => fan.Add(a));
+        Assert.False(fan.IsAttached);
+        Assert.Equal(0, fan.Count);
+
+        refuse = false;
+        fan.Add(a);
+        Assert.True(fan.IsAttached);
+        Assert.Equal(1, attached);
+    }
+
+    [Fact]
+    public void Une_animation_qui_echoue_est_retiree_sans_arreter_les_autres()
+    {
+        var errors = new List<Exception>();
+        var fan = new FrameFanOut(() => { }, () => { }, errors.Add);
+        int frames = 0;
+
+        EventHandler<object> broken = (_, _) => throw new InvalidOperationException("cassée");
+        EventHandler<object> healthy = (_, _) => frames++;
+
+        fan.Add(broken);
+        fan.Add(healthy);
+        fan.Raise(null, new object());
+        fan.Raise(null, new object());
+
+        Assert.Equal(2, frames);
+        Assert.Single(errors);
+        Assert.Equal(1, fan.Count);
+    }
+
     // ---------------- Cache des contours ----------------
 
     [Fact]

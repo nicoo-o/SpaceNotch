@@ -246,6 +246,7 @@ public sealed partial class IslandWindow : Window
         InitializeComponent();
 
         _dispatcherQueue = DispatcherQueue;
+        SpaceNotch_App.Animations.FrameClock.Attach(DispatcherQueue);
 
         // La configuration est lue avant toute création de fenêtre : c'est elle
         // qui détermine la géométrie, le moniteur cible et le mode de fond.

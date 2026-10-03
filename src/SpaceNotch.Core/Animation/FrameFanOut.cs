@@ -21,14 +21,17 @@ public sealed class FrameFanOut
     private readonly List<EventHandler<object>> _handlers = [];
     private readonly Action _attach;
     private readonly Action _detach;
+    private readonly Action<Exception>? _onError;
     private bool _attached;
 
     /// <param name="attach">Pose l'abonnement unique au signal d'image.</param>
     /// <param name="detach">Le retire.</param>
-    public FrameFanOut(Action attach, Action detach)
+    /// <param name="onError">Reçoit l'erreur d'un abonné, qui est alors retiré.</param>
+    public FrameFanOut(Action attach, Action detach, Action<Exception>? onError = null)
     {
         _attach = attach ?? throw new ArgumentNullException(nameof(attach));
         _detach = detach ?? throw new ArgumentNullException(nameof(detach));
+        _onError = onError;
     }
 
     /// <summary>Nombre d'abonnés.</summary>
@@ -49,8 +52,21 @@ public sealed class FrameFanOut
 
         if (!_attached)
         {
+            // Branché seulement si le branchement a réussi (v1.16.1) : marqué
+            // avant, un échec — un abonnement venu d'un autre fil — laissait
+            // l'horloge se croire branchée sans jamais battre, et toutes les
+            // animations de la notch restaient figées jusqu'au redémarrage.
+            try
+            {
+                _attach();
+            }
+            catch
+            {
+                _handlers.RemoveAt(_handlers.Count - 1);
+                throw;
+            }
+
             _attached = true;
-            _attach();
         }
     }
 
@@ -76,10 +92,17 @@ public sealed class FrameFanOut
         }
     }
 
+    private void Fail(EventHandler<object> handler, Exception exception)
+    {
+        Remove(handler);
+        _onError?.Invoke(exception);
+    }
+
     /// <summary>
     /// Une image : chaque abonné est appelé une fois. Un abonné retiré pendant
     /// l'image par un autre n'est plus appelé ; un abonné ajouté pendant
-    /// l'image l'est à la suivante.
+    /// l'image l'est à la suivante. Un abonné qui lève une erreur est retiré :
+    /// il n'empêche plus les autres d'avancer.
     /// </summary>
     public void Raise(object? sender, object args)
     {
@@ -94,7 +117,14 @@ public sealed class FrameFanOut
         {
             if (_handlers.Contains(handler))
             {
-                handler(sender, args);
+                try
+                {
+                    handler(sender, args);
+                }
+                catch (Exception ex)
+                {
+                    Fail(handler, ex);
+                }
             }
         }
     }

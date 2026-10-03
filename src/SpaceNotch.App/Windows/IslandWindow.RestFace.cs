@@ -125,6 +125,18 @@ public sealed partial class IslandWindow
             return;
         }
 
+        // Filet (v1.16.1) : une transition yeux ↔ heure qui ne s'achève pas
+        // laissait les yeux invisibles et l'heure repliée — une notch vide.
+        if (_morphTarget is not null && DateTime.UtcNow - _morphStartedAt > MorphTimeout)
+        {
+            SpaceNotch.Infrastructure.Logging.MiniLogger.Log("[REPOS] transition du visage bloquée : les yeux sont remis");
+            CancelFaceMorph();
+            IdleClock.UnfoldAll();
+            _restFace = RestFace.Eyes;
+            _restFaceShown = false;
+            RequestRender();
+        }
+
         bool idle = _tourDoze ?? (!_touring && LastInputIdle() >= DozeAfter);
 
         if (idle && !_dozing && !_eyesClosing)
@@ -250,6 +262,12 @@ public sealed partial class IslandWindow
     /// <summary>Visage vers lequel une transition est en route, ou null.</summary>
     private RestFace? _morphTarget;
 
+    /// <summary>Début de la transition en cours, pour le filet de <see cref="CheckDoze"/>.</summary>
+    private DateTime _morphStartedAt;
+
+    /// <summary>Une transition complète dure moins d'une seconde et demie.</summary>
+    private static readonly TimeSpan MorphTimeout = TimeSpan.FromSeconds(3);
+
     /// <summary>Où étaient les yeux au dernier regard, et leur forme : la transition part de là.</summary>
     private (global::Windows.Foundation.Point Left, global::Windows.Foundation.Point Right)? _lastEyeOffsets;
 
@@ -327,6 +345,7 @@ public sealed partial class IslandWindow
         double r = PixelClockView.ColonHalfGap, dot = PixelClockView.ColonDot;
         int generation = _morphGeneration;
         _morphTarget = RestFace.Clock;
+        _morphStartedAt = DateTime.UtcNow;
 
         // 1. Ils se rapprochent et deviennent deux points, côte à côte.
         RunMorph(MorphGather, t =>
@@ -377,6 +396,7 @@ public sealed partial class IslandWindow
 
         int generation = ++_morphGeneration;
         _morphTarget = RestFace.Eyes;
+        _morphStartedAt = DateTime.UtcNow;
         SetWeatherOpacity(0);
         TimeSpan fold = IdleClock.FoldToColon();
 
