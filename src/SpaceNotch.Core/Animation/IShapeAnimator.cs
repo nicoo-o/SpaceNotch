@@ -13,6 +13,12 @@ public interface IShapeAnimator
     /// <summary>Encombrement courant, à mi-parcours compris.</summary>
     IslandFootprint Current { get; }
 
+    /// <summary>
+    /// Encombrement que la fenêtre doit offrir pendant le mouvement en cours,
+    /// dépassement et écrasement compris ; <see cref="Current"/> au repos.
+    /// </summary>
+    IslandFootprint Envelope { get; }
+
     /// <summary>Vitesse verticale courante, en DIP/s (0 au repos).</summary>
     double HeightVelocity { get; }
 

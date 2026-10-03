@@ -242,6 +242,10 @@ public sealed class ClipboardFeature : IslandFeatureBase
             Duration = TimeSpan.FromSeconds(10),
             Payload = new ColorPayload(color)
         });
+
+        // L'utilisateur vient de copier : la réponse passe devant tout, Focus
+        // compris, le temps de sa durée ; l'épingle se lève à l'expiration.
+        Activities.PinPresentation(ColorActivityId);
     }
 
     private bool Paste(string? entryId)

@@ -23,6 +23,8 @@ public sealed class IslandControllerTests
 
         public IslandFootprint Target { get; private set; } = Rest;
 
+        public IslandFootprint Envelope => Current;
+
         public double HeightVelocity { get; private set; }
 
         public bool IsRunning { get; private set; }

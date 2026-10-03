@@ -157,8 +157,11 @@ public sealed partial class IslandWindow
         }
 
         double scale = RootLayout.XamlRoot?.RasterizationScale ?? 1.0;
-        double centerX = _appWindow.Position.X + (_appWindow.Size.Width / 2.0);
-        double centerY = _appWindow.Position.Y + (_appWindow.Size.Height / 2.0);
+        // Le centre de la forme, pas celui de la fenêtre : accrochée en haut, la
+        // fenêtre est une toile plus grande que la notch (IslandWindow.Canvas).
+        (int boundsX, int boundsY, int boundsWidth, int boundsHeight) = IslandScreenBounds();
+        double centerX = boundsX + (boundsWidth / 2.0);
+        double centerY = boundsY + (boundsHeight / 2.0);
         (double x, double y) = PixelGaze.Look((cursor.X - centerX) / scale, (cursor.Y - centerY) / scale);
         RestEyes.Look(x, y);
     }

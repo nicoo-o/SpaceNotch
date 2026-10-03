@@ -788,9 +788,12 @@ public sealed partial class IslandWindow : Window
             // (audit SN-06). Maintenant, un seul mouvement jusqu'au repos.
             bool folding = state is IslandState.Collapsing or IslandState.Closed;
 
-            // La note se range ; son texte est déjà enregistré.
+            // La note se range. Les frappes encore dans le délai
+            // d'enregistrement sont écrites d'abord : l'activité retirée, plus
+            // personne ne revendiquerait l'enregistrement.
             if (folding && _noteFeature.IsShown)
             {
+                NoteSceneView.Flush();
                 _noteFeature.Dismiss();
             }
 
@@ -843,7 +846,7 @@ public sealed partial class IslandWindow : Window
         // L'Island dit où elle se trouve, le veilleur dit si une autre fenêtre
         // occupe cette place. Sans ce rectangle, un navigateur agrandi laisserait
         // l'Island posée sur sa barre d'onglets.
-        _presence.IslandBounds = () => (_lastWindowX, _lastWindowY, _lastWindowWidth, _lastWindowHeight);
+        _presence.IslandBounds = IslandScreenBounds;
 
         _presence.Changed += (_, _) => ApplyPresence();
 
@@ -852,10 +855,10 @@ public sealed partial class IslandWindow : Window
 
         // Le raccourci global ouvre la recherche de n'importe où : Alt+Espace,
         // ou Win+Maj+Espace si une autre application tient déjà le premier.
-        _launcherFeature.Hotkey = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.RegisterLauncher(_hWnd);
+        _launcherFeature.Hotkey = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.RegisterLauncher(_hWnd, _settings.LauncherHotkey);
         _focusHotkey = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.RegisterFocus(_hWnd);
         MiniLogger.Log($"Raccourci « aller à la notch » : {_focusHotkey ?? "indisponible"}");
-        MiniLogger.Log($"Raccourci de recherche : {_launcherFeature.Hotkey ?? "aucun (les deux sont pris)"}");
+        MiniLogger.Log($"Raccourci de recherche : {_launcherFeature.Hotkey ?? "aucun (tous sont pris)"}");
 
         _shelfManager.ShareRequested += path => OnUiThread(() => _shareFeature.Share(path));
         _shelfManager.ShelfUpdated += (_, _) =>
@@ -1161,6 +1164,7 @@ public sealed partial class IslandWindow : Window
 
             scene.Apply(activity);
             scene.Root.Visibility = Visibility.Visible;
+            FitOpenedScene(scene, activity);
 
             // Entrée de la scène, une seule fois : son contenu apparaît sur place
             // pendant que la forme grandit, et les éléments ancrés grandissent
@@ -1737,6 +1741,11 @@ public sealed partial class IslandWindow : Window
 
         UpdateFocusTrace(footprint);
 
+        // Le sablier se pose sous les lignes de la carte : tant que la forme n'a
+        // pas sa hauteur de repos, le bas de la carte est encore à la hauteur du
+        // texte, et ses pixels mordaient le nom du fichier.
+        CardHeap.Opacity = footprint.Height + 0.5 >= _restFootprint.Height ? 1 : 0;
+
         // Le reflet suit la même courbe, borné à sa bande. La borne est ce qui
         // l'empêche de mordre dans les congés sur les paliers bas : à 34 de haut,
         // une bande de 22 lui ferait dessiner sa propre arête.
@@ -1773,7 +1782,18 @@ public sealed partial class IslandWindow : Window
     private const double SignalGlyphSpan = 14 + 8;
 
     /// <summary>Glyphe du palier carte, en DIPs (jeton NfCardGlyphSize), et son écart aux lignes.</summary>
-    private const double CardGlyphSpan = 20 + 10;
+    private const double CardGlyphSpan = CardGlyphSize + CardColumnGap;
+
+    /// <summary>Jetons NfSignalGlyphSize et NfCardGlyphSize.</summary>
+    private const double SignalGlyphSize = 14;
+
+    private const double CardGlyphSize = 20;
+
+    /// <summary>
+    /// ColumnSpacing de la carte au repos : la grille l'applique entre ses trois
+    /// colonnes, donc deux fois — y compris devant une colonne de fin vide.
+    /// </summary>
+    private const double CardColumnGap = 10;
 
     /// <summary>
     /// Forme au repos ajustée à ce qu'elle porte. Les textes sont mesurés hors
@@ -1844,9 +1864,17 @@ public sealed partial class IslandWindow : Window
             stack += trailing.Width + 6;
         }
 
+        // Clawd occupe la place du glyphe, mais il est plus large que lui : sans
+        // ce supplément, la forme était mesurée trop étroite, le texte coupé,
+        // et la notch s'élargissait une seconde fois après coup.
+        double clawd = activity.Payload is ClawdPayload
+            ? (SpaceNotch.Core.Motion.Clawd.Width * (tier == IslandPresentationTier.Signal ? SignalClawdPitch : CardClawdPitch))
+                - (tier == IslandPresentationTier.Signal ? SignalGlyphSize : CardGlyphSize)
+            : 0;
+
         double content = tier == IslandPresentationTier.Signal
-            ? SignalGlyphSpan + Measure(_measureSignal, activity.Title)
-            : CardGlyphSpan + Math.Max(
+            ? SignalGlyphSpan + clawd + Measure(_measureSignal, activity.Title)
+            : CardGlyphSpan + clawd + CardColumnGap + Math.Max(
                 Measure(_measureSubhead, SubheadFor(activity)),
                 Measure(_measureHeadline, activity.Title));
 
@@ -1940,12 +1968,14 @@ public sealed partial class IslandWindow : Window
         // IslandWindow.Detach. Tirée vers le bas, elle s'allonge en résistant.
         if (UsesFloatingGeometry)
         {
+            LeaveCanvas();
             ApplyFloatingGeometry(footprint);
             return;
         }
 
         if (UsesSideTab)
         {
+            LeaveCanvas();
             ApplySideGeometry(footprint);
             return;
         }
@@ -1980,7 +2010,18 @@ public sealed partial class IslandWindow : Window
         // L'Island qui change de place change aussi ce qu'elle recouvre : la
         // présence plein écran est relue, mais seulement quand le rectangle a
         // réellement bougé, et jamais à chaque image.
-        MoveWindow(x, y, widthPx, heightPx, recheck: true);
+        //
+        // Pendant une transition, la fenêtre prend d'emblée l'enveloppe du
+        // mouvement et ne bouge plus jusqu'à l'arrêt du ressort : la forme
+        // s'anime à l'intérieur, centrée par la mise en page. Une fenêtre
+        // redimensionnée à chaque image était peinte avec du retard — forme
+        // décalée, coins coupés, zones grises.
+        IslandFootprint frame = WindowFrameFor(footprint);
+        int frameWidthPx = MonitorDpi.ToPhysicalPixels(frame.Width, scale);
+        int frameHeightPx = MonitorDpi.ToPhysicalPixels(frame.Height, scale);
+        // La fenêtre, elle, est une toile qui ne fait que grandir ; seule sa
+        // région suit la forme. Voir IslandWindow.Canvas.
+        PlaceOnCanvas(display, display.Left + (display.Width / 2) + offsetX, y, frameWidthPx, frameHeightPx);
 
         // Le corps XAML, lui, suit chaque image : c'est lui qui porte le morphing
         // sous-pixel, et il ne coûte qu'une passe de disposition sur un arbre
@@ -2009,6 +2050,49 @@ public sealed partial class IslandWindow : Window
             display,
             new ScreenRect((x - display.Left) / scale, 0, footprint.Width, footprint.Height),
             footprint);
+    }
+
+    /// <summary>
+    /// La carte générique déclare une hauteur forfaitaire (titre, sous-titre et
+    /// une rangée de boutons). Son contenu réel est mesuré à la largeur de la
+    /// scène, et la forme ouverte l'épouse : plus de moitié basse vide quand il
+    /// n'y a pas de boutons. Les autres scènes ont déjà leur propre hauteur.
+    /// </summary>
+    private void FitOpenedScene(IIslandSceneView scene, IslandActivity activity)
+    {
+        // Les notifications déclarent leur hauteur, mais pour le cas le plus long
+        // (une conversation en éventail) : la mesure ne peut que la réduire.
+        bool generic = scene is InfoScene && activity.ExpandedFootprint is not { IsValid: true };
+
+        if (!generic && scene is not NotificationScene)
+        {
+            return;
+        }
+
+        double width = Math.Max(1, activity.Footprint.Width - (2 * _settings.Geometry.Shoulder));
+        scene.Root.Measure(new global::Windows.Foundation.Size(width, double.PositiveInfinity));
+        double height = Math.Ceiling(scene.Root.DesiredSize.Height);
+
+        if (height > 0)
+        {
+            _controller.FitOpenedHeight(activity.Id, height);
+        }
+    }
+
+    /// <summary>
+    /// Rectangle de la fenêtre pour un encombrement : la forme elle-même au
+    /// repos, l'enveloppe du ressort pendant une transition. Le ressort appelle
+    /// déjà la géométrie pendant la construction, avant que le contrôleur existe.
+    /// </summary>
+    private IslandFootprint WindowFrameFor(IslandFootprint footprint)
+    {
+        if (_controller is not { IsAnimating: true } controller)
+        {
+            return footprint;
+        }
+
+        IslandFootprint envelope = controller.AnimationEnvelope;
+        return new IslandFootprint(Math.Max(footprint.Width, envelope.Width), Math.Max(footprint.Height, envelope.Height));
     }
 
     /// <summary>
@@ -2290,10 +2374,11 @@ public sealed partial class IslandWindow : Window
             return false;
         }
 
-        global::Windows.Graphics.PointInt32 position = _appWindow.Position;
-        global::Windows.Graphics.SizeInt32 size = _appWindow.Size;
-        bool over = cursor.X >= position.X && cursor.X < position.X + size.Width
-            && cursor.Y >= position.Y && cursor.Y < position.Y + size.Height;
+        // La forme, pas la toile : accrochée en haut, la fenêtre est plus grande
+        // que la notch (IslandWindow.Canvas).
+        (int x, int y, int width, int height) = IslandScreenBounds();
+        bool over = cursor.X >= x && cursor.X < x + width
+            && cursor.Y >= y && cursor.Y < y + height;
 
         if (!over)
         {
@@ -3725,8 +3810,23 @@ public sealed partial class IslandWindow : Window
         bool displayChanged = settings.DisplayMode != _settings.DisplayMode
             || settings.CustomDisplayHandle != _settings.CustomDisplayHandle;
 
+        bool hotkeyChanged = settings.LauncherHotkey != _settings.LauncherHotkey;
+
         _settings = settings;
         _clipboardFeature.IgnoreSecrets = settings.ClipboardIgnoreSecrets;
+
+        // Le raccourci choisi dans les réglages remplace l'actuel tout de suite ;
+        // s'il est pris, le suivant libre est retenu et affiché tel quel.
+        if (hotkeyChanged)
+        {
+            _launcherFeature.Hotkey = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.RegisterLauncher(_hWnd, settings.LauncherHotkey);
+            MiniLogger.Log($"Raccourci de recherche : {_launcherFeature.Hotkey ?? "aucun (tous sont pris)"}");
+
+            if (_settingsWindow is not null)
+            {
+                _settingsWindow.SearchHotkey = _launcherFeature.Hotkey;
+            }
+        }
         _weatherFeature.SetCity(settings.WeatherCity);
         _notificationFeature.IgnoredApps = settings.IgnoredNotificationApps;
         _launcherFeature.WebSearchEngine = settings.WebSearchEngine;

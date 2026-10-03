@@ -94,7 +94,7 @@
                     x:Name="TimeText"
                     Grid.Column="1"
                     Text="0:00 / 0:00"
-                    FontSize="9.5"
+                    FontSize="10.5"
                     Typography.NumeralAlignment="Tabular"
                     Foreground="{ThemeResource NfTextTertiaryBrush}"
                     VerticalAlignment="Center" />
@@ -111,7 +111,7 @@
                 <views:TrailingView x:Name="LiveBars" VerticalAlignment="Center" />
                 <TextBlock
                     x:Name="LiveText"
-                    FontSize="11"
+                    FontSize="11.5"
                     Foreground="{ThemeResource NfTextTertiaryBrush}"
                     VerticalAlignment="Center" />
             </StackPanel>

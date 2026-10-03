@@ -1,13 +1,18 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using SpaceNotch.Core.Localization;
 using System.Runtime.InteropServices;
 
 namespace SpaceNotch.Platform.Windows.Launcher;
 
 /// <summary>
-/// Le raccourci global qui ouvre la recherche depuis n'importe où. Alt+Espace
-/// d'abord ; si une autre application l'a déjà pris, Win+Maj+Espace. Le
-/// message WM_HOTKEY arrive à la fenêtre qui l'a enregistré.
+/// Le raccourci global qui ouvre la recherche depuis n'importe où. Celui que
+/// l'utilisateur a choisi d'abord, puis les autres dans l'ordre de
+/// <see cref="Choices"/> : Alt+Espace est souvent pris (PowerToys, palette de
+/// commandes) et Win+Maj+Espace l'est par Windows (langue de saisie) — sans un
+/// troisième choix, la recherche n'avait plus de raccourci du tout. Le message
+/// WM_HOTKEY arrive à la fenêtre qui l'a enregistré.
 /// </summary>
 public static partial class GlobalHotkey
 {
@@ -17,6 +22,9 @@ public static partial class GlobalHotkey
     /// <summary>Raccourci « aller à la notch » (phase C) : le clavier et le focus vont à la notch.</summary>
     public const int FocusId = 0x534E; // « SN »
 
+    /// <summary>Clé du réglage qui laisse SpaceNotch prendre le premier raccourci libre.</summary>
+    public const string Auto = "auto";
+
     private const uint ModAlt = 0x0001;
     private const uint ModControl = 0x0002;
     private const uint VkN = 0x4E;
@@ -25,20 +33,44 @@ public static partial class GlobalHotkey
     private const uint ModNoRepeat = 0x4000;
     private const uint VkSpace = 0x20;
 
-    /// <summary>
-    /// Enregistre le raccourci de la recherche. Renvoie celui qui a été retenu,
-    /// pour l'afficher, ou <c>null</c> si les deux étaient pris.
-    /// </summary>
-    public static string? RegisterLauncher(IntPtr window)
+    /// <summary>Un raccourci proposé : sa clé de réglage, ses modificateurs et son libellé.</summary>
+    public sealed record Choice(string Key, uint Modifiers, string French, string English)
     {
-        if (RegisterHotKey(window, LauncherId, ModAlt | ModNoRepeat, VkSpace))
-        {
-            return Lang.T("Alt+Espace", "Alt+Space");
-        }
+        public string Label => Lang.T(French, English);
+    }
 
-        if (RegisterHotKey(window, LauncherId, ModWin | ModShift | ModNoRepeat, VkSpace))
+    /// <summary>Les raccourcis proposés, dans l'ordre d'essai en mode automatique.</summary>
+    public static IReadOnlyList<Choice> Choices { get; } =
+    [
+        new("alt-space", ModAlt, "Alt+Espace", "Alt+Space"),
+        new("ctrl-alt-space", ModControl | ModAlt, "Ctrl+Alt+Espace", "Ctrl+Alt+Space"),
+        new("win-shift-space", ModWin | ModShift, "Win+Maj+Espace", "Win+Shift+Space"),
+        new("ctrl-shift-space", ModControl | ModShift, "Ctrl+Maj+Espace", "Ctrl+Shift+Space")
+    ];
+
+    /// <summary>Vrai si <paramref name="key"/> est <see cref="Auto"/> ou l'un des <see cref="Choices"/>.</summary>
+    public static bool IsKnown(string? key) => key == Auto || Choices.Any(c => c.Key == key);
+
+    /// <summary>
+    /// Enregistre le raccourci de la recherche, en remplaçant le précédent.
+    /// Renvoie celui qui a été retenu, pour l'afficher, ou <c>null</c> si tous
+    /// étaient pris.
+    /// </summary>
+    /// <param name="window">Fenêtre qui recevra WM_HOTKEY.</param>
+    /// <param name="preferred">Clé du raccourci voulu, essayé en premier ; <see cref="Auto"/> ou <c>null</c> : l'ordre de <see cref="Choices"/>.</param>
+    public static string? RegisterLauncher(IntPtr window, string? preferred = null)
+    {
+        UnregisterHotKey(window, LauncherId);
+
+        IEnumerable<Choice> order = Choices
+            .OrderBy(c => c.Key == preferred ? 0 : 1);
+
+        foreach (Choice choice in order)
         {
-            return Lang.T("Win+Maj+Espace", "Win+Shift+Space");
+            if (RegisterHotKey(window, LauncherId, choice.Modifiers | ModNoRepeat, VkSpace))
+            {
+                return choice.Label;
+            }
         }
 
         return null;

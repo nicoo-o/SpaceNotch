@@ -91,9 +91,24 @@ public sealed partial class IslandWindow
     /// </summary>
     private void TourShow(IslandActivity activity, bool open)
     {
-        _controller.RequestCollapse();
+        // Déjà ouverte vers une autre scène ouverte : la notch passe de l'une à
+        // l'autre d'un seul mouvement, comme dans l'usage réel. La refermer
+        // d'abord montrait un aller-retour par la pastille qui n'existe pas hors
+        // de la visite.
+        bool morph = open && _controller.State is IslandState.Expanded or IslandState.Expanding;
+
+        if (!morph)
+        {
+            _controller.RequestCollapse();
+        }
+
         _activityManager.PostActivity(activity);
         _activityManager.PinPresentation(activity.Id);
+
+        if (morph)
+        {
+            return;
+        }
 
         if (open)
         {
@@ -106,6 +121,12 @@ public sealed partial class IslandWindow
     /// <summary>Ouvre une activité déjà publiée par une fonctionnalité.</summary>
     private void TourOpen(string id)
     {
+        if (_controller.State is IslandState.Expanded or IslandState.Expanding)
+        {
+            _activityManager.PinPresentation(id);
+            return;
+        }
+
         _controller.RequestCollapse();
         _activityManager.PinPresentation(id);
         _tourOpen ??= CreateOneShotTimer(TimeSpan.FromMilliseconds(700), () => _controller.RequestExpand());
@@ -414,7 +435,20 @@ public sealed partial class IslandWindow
             ("retour en haut", () => DockFromMenu(NotchEdge.Top)),
             ("pastille détachée · avec bulle", () => { _controller.RequestCollapse(); DetachFromMenu(); }),
             ("pastille lancée · rebonds", TourThrow),
-            ("raccrochée", () => ReattachTo(NotchEdge.Top, 0.5)),
+            // Le lancer peut déjà avoir raccroché la pastille à un bord : la
+            // visite la ramène en haut quoi qu'il arrive, sinon elle laissait la
+            // notch (et le réglage enregistré) sur le bord où le lancer l'avait posée.
+            ("raccrochée", () =>
+            {
+                if (UsesFloatingGeometry)
+                {
+                    ReattachTo(NotchEdge.Top, 0.5);
+                }
+                else
+                {
+                    DockFromMenu(NotchEdge.Top);
+                }
+            }),
             .. GesturesTour(Music),
             ("présentation · premier lancement", () => { TourClear("tour.media", "tour.download"); ShowWelcome(); }),
             ("réglages", () => { TourClear(); OpenSettingsWindow(); }),

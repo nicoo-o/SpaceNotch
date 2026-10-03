@@ -140,7 +140,7 @@ public sealed partial class IslandWindow
             _pomodoroFeature.NextMeeting = () => _meetingFeature.Current is { } m ? (m.Start, m.Subject) : null;
             TourClear();
             PublishCapture(
-                Lang.T("Texte copié · 3 ligne(s)", "Text copied · 3 line(s)"),
+                Lang.T("Texte copié · ", "Text copied · ") + Lang.Count(3, "ligne", "lignes", "line", "lines"),
                 OcrPreview(),
                 3);
             TourLater(700, () => TourOpen(CaptureActivityId));

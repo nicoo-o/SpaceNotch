@@ -35,6 +35,18 @@ public static class Lang
         return French ? french : english;
     }
 
+    /// <summary>
+    /// Un nombre et son nom accordé : « 1 notification retenue », « 3 notifications
+    /// retenues ». En français, 0 et 1 sont au singulier ; en anglais, seul 1 l'est.
+    /// Remplace les « notification(s) » qui se lisent comme un formulaire.
+    /// </summary>
+    public static string Count(int count, string frenchOne, string frenchMany, string englishOne, string englishMany)
+    {
+        bool one = French ? Math.Abs(count) < 2 : Math.Abs(count) == 1;
+        string noun = T(one ? frenchOne : frenchMany, one ? englishOne : englishMany);
+        return count.ToString(CultureInfo.CurrentCulture) + " " + noun;
+    }
+
     /// <summary>Vrai pour toute variante du français (fr-FR, fr-BE, fr-CA…).</summary>
     public static bool IsFrench(CultureInfo culture)
     {

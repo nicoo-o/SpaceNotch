@@ -225,7 +225,8 @@
                                 <TextBlock Text="{l:Loc Fr='Raccourci de la recherche', En='Search shortcut'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Ouvre et referme la recherche depuis n’importe quelle application.', En='Opens and closes search from any app.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
                             </StackPanel>
-                            <StackPanel x:Name="HotkeyCaps" Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="4" />
+                            <ComboBox x:Name="HotkeyBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnHotkeyChanged" />
+                            <StackPanel x:Name="HotkeyCaps" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,8,0,0" Orientation="Horizontal" Spacing="4" />
                         </Grid>
                     </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Moteur de recherche web Utilisé quand aucune application ne correspond.">
@@ -660,7 +661,7 @@
                                     <TextBlock
                                         x:Name="PreviewCardSubhead"
                                         Text="Read sidebar.tsx · 741 lines"
-                                        FontSize="11"
+                                        FontSize="11.5"
                                         LineHeight="14"
                                         Foreground="#9EFFFFFF" />
                                     <TextBlock
@@ -685,7 +686,7 @@
                         <TextBlock
                             x:Name="PreviewExpandedText"
                             Text="{l:Loc Fr='Notch ouverte', En='Open notch'}"
-                            FontSize="11"
+                            FontSize="11.5"
                             Foreground="#CCFFFFFF"
                             HorizontalAlignment="Center"
                             VerticalAlignment="Center" />

@@ -48,19 +48,32 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
     /// </summary>
     private static readonly TimeSpan CalmPeriod = TimeSpan.FromSeconds(5);
 
+    /// <summary>
+    /// Fenêtre de confirmation : fermer une application peut faire perdre un
+    /// travail non enregistré (un rendu, un document). Le premier clic arme
+    /// le bouton, seul un second clic dans ce délai ferme.
+    /// </summary>
+    public static readonly TimeSpan ConfirmWindow = TimeSpan.FromSeconds(3);
+
     private readonly CpuSampler _sampler = new();
     private readonly CpuWatch _watch = new();
     private readonly Timer _timer;
     private readonly object _gate = new();
+    private readonly Func<DateTimeOffset> _now;
     private HeavyProcess? _heaviest;
     private double _last;
     private volatile bool _sampling;
+    private DateTimeOffset _armedUntil;
 
-    public SystemMonitorFeature(IActivityManager activities, IEventBus events, bool isEnabled = true)
+    public SystemMonitorFeature(IActivityManager activities, IEventBus events, bool isEnabled = true, Func<DateTimeOffset>? now = null)
         : base(FeatureKey, "Moniteur", activities, events, isEnabled)
     {
+        _now = now ?? (() => DateTimeOffset.UtcNow);
         _timer = new Timer(_ => Tick(), null, Timeout.Infinite, Timeout.Infinite);
     }
+
+    /// <summary>Vrai entre le premier et le second clic sur « Fermer ».</summary>
+    public bool IsCloseArmed => _now() < _armedUntil;
 
     protected override Task OnStartAsync(CancellationToken cancellationToken)
     {
@@ -156,10 +169,24 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
             return Task.FromResult(false);
         }
 
+        // Premier clic : le bouton demande confirmation, rien n'est fermé.
+        if (!IsCloseArmed)
+        {
+            _armedUntil = _now() + ConfirmWindow;
+            Publish();
+            return Task.FromResult(true);
+        }
+
+        _armedUntil = default;
+
         if (CpuSampler.TryClose(process.Id))
         {
             _heaviest = null;
             RemoveActivity(ActivityId);
+        }
+        else
+        {
+            Publish();
         }
 
         return Task.FromResult(true);
@@ -188,9 +215,13 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
             Priority = ActivityPriority.Normal,
             Policy = ActivityPresentationPolicy.Passive,
             Payload = new MonitorPayload(_watch.History, name, process?.Id ?? 0, process?.Percent ?? 0),
+            // Armé, le libellé change : c'est la confirmation. Il revient de
+            // lui-même au relevé suivant une fois le délai passé.
             Actions = process is null
                 ? []
-                : [new ActivityAction(CloseAction, Lang.T($"Fermer {name}", $"Close {name}"), "Close", ActivityActionKind.Invoke, IsPrimary: true)]
+                : [IsCloseArmed
+                    ? new ActivityAction(CloseAction, Lang.T("Forcer la fermeture ?", "Force quit?"), "Close", ActivityActionKind.Invoke, IsPrimary: true)
+                    : new ActivityAction(CloseAction, Lang.T($"Fermer {name}", $"Close {name}"), "Close", ActivityActionKind.Invoke, IsPrimary: true)]
         });
     }
 }

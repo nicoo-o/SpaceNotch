@@ -627,6 +627,13 @@ public sealed class AppSettings
     /// <summary>Moteur de la recherche web de repli : « bing », « google », « duckduckgo ».</summary>
     public string WebSearchEngine { get; set; } = "bing";
 
+    /// <summary>
+    /// Raccourci de la recherche : « auto » (le premier libre) ou la clé d'un
+    /// des choix de <c>GlobalHotkey.Choices</c>. Un raccourci pris par une autre
+    /// application laisse la place au suivant.
+    /// </summary>
+    public string LauncherHotkey { get; set; } = "auto";
+
     /// <summary>Greffons approuvés : nom de fichier → empreinte SHA-256. Voir <c>PluginAllowlist</c>.</summary>
     public Dictionary<string, string> ApprovedPlugins { get; set; } = [];
 
@@ -835,6 +842,7 @@ public sealed class AppSettings
         IgnoredNotificationApps ??= [];
         ApprovedPlugins ??= [];
         WebSearchEngine = WebSearchEngine is "bing" or "google" or "duckduckgo" ? WebSearchEngine : "bing";
+        LauncherHotkey = string.IsNullOrWhiteSpace(LauncherHotkey) ? "auto" : LauncherHotkey;
         LauncherRecents ??= [];
         LauncherLaunches ??= [];
 

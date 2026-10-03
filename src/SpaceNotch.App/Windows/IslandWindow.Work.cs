@@ -149,7 +149,7 @@ public sealed partial class IslandWindow
             global::Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
 
             int lines = OcrText.LineCount(text);
-            PublishCapture(Lang.T($"Texte copié · {lines} ligne(s)", $"Text copied · {lines} line(s)"), OcrText.Preview(text), lines);
+            PublishCapture(Lang.T("Texte copié · ", "Text copied · ") + Lang.Count(lines, "ligne", "lignes", "line", "lines"), OcrText.Preview(text), lines);
         }
         catch (Exception ex)
         {
@@ -175,6 +175,11 @@ public sealed partial class IslandWindow
             Priority = ActivityPriority.Normal,
             Duration = TimeSpan.FromSeconds(5)
         });
+
+        // C'est la réponse à un geste de l'utilisateur : elle passe devant tout,
+        // Focus compris, le temps de sa durée — l'épingle se lève d'elle-même à
+        // l'expiration, et l'activité d'avant revient.
+        _activityManager.PinPresentation(CaptureActivityId);
     }
 
     // ---- Écran de veille (P5) ---------------------------------------------
