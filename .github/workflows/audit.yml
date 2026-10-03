@@ -21,6 +21,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONIOENCODING: utf-8
+
 jobs:
   build-test:
     if: ${{ inputs.pass != '2' }}

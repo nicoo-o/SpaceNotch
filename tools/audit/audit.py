@@ -293,7 +293,8 @@ grab = mss.mss()
 
 
 def region():
-    return {"left": max(0, SW // 2 - 700), "top": 0, "width": min(1400, SW), "height": 520}
+    width = min(1400, SW)
+    return {"left": max(0, SW // 2 - width // 2), "top": 0, "width": width, "height": min(520, SH)}
 
 
 def shape(img=None):
@@ -479,6 +480,9 @@ def log_findings(tag):
 # ================================================================== SCÉNARIO
 phase("environnement")
 prepare_desktop()
+# La taille de l'écran se relit APRÈS le changement de résolution (sinon on capture 1024×768).
+SW, SH = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+grab = mss.mss()
 env_info()
 for d in (os.path.dirname(CONFIG), os.path.join(LOCAL, "SpaceNotch")):
     shutil.rmtree(d, ignore_errors=True)

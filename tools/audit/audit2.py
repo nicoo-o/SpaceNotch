@@ -158,7 +158,8 @@ SW, SH = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
 
 
 def shape():
-    reg = {"left": SW // 2 - 700, "top": 0, "width": 1400, "height": 520}
+    width = min(1400, SW)
+    reg = {"left": max(0, SW // 2 - width // 2), "top": 0, "width": width, "height": 520}
     img = np.asarray(grab.grab(reg))[:, :, :3]
     dark = img.mean(axis=2) < 110
     top = dark[:6].any(axis=0)
@@ -193,6 +194,9 @@ def sha(path):
 # ==========================================================================
 phase("environnement")
 prepare_desktop()
+SW, SH = user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
+grab = mss.mss()
+record("env.screen", "INFO", screen=(SW, SH))
 kill_app()
 shutil.rmtree(os.path.join(LOCAL, "SpaceNotch"), ignore_errors=True)
 shutil.rmtree(os.path.dirname(CONFIG), ignore_errors=True)
@@ -212,10 +216,17 @@ phase("signature-auto-signee")
 os.makedirs(PLUGINS, exist_ok=True)
 signed = os.path.join(PLUGINS, "SpaceNotch.AuditProbe.dll")
 shutil.copy(PROBE, signed)
-sig = ps(
+pfx = os.path.join(OUT, "attacker.pfx")
+mk = subprocess.run(["powershell", "-NoProfile", "-Command",
     "$c = New-SelfSignedCertificate -Type CodeSigningCert -Subject 'CN=Audit Attacker' -CertStoreLocation Cert:\\CurrentUser\\My;"
-    f"$r = Set-AuthenticodeSignature -FilePath '{signed}' -Certificate $c -HashAlgorithm SHA256;"
-    f"(Get-AuthenticodeSignature '{signed}').Status")
+    f"$p = ConvertTo-SecureString -String 'audit' -Force -AsPlainText; Export-PfxCertificate -Cert $c -FilePath '{pfx}' -Password $p | Out-Null; 'ok'"],
+    capture_output=True, text=True)
+tools = sorted(__import__("glob").glob(r"C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe"))
+signing = subprocess.run([tools[-1], "sign", "/fd", "SHA256", "/f", pfx, "/p", "audit", signed],
+                         capture_output=True, text=True) if tools else None
+sig = ps(f"(Get-AuthenticodeSignature '{signed}').Status")
+record("plugin.self_signed.signing", "INFO", cert=mk.stdout.strip() + mk.stderr.strip()[:300],
+       signtool=(signing.stdout + signing.stderr)[-400:] if signing else "signtool introuvable")
 record("plugin.self_signed.status_seen_by_windows", "INFO", windows_status=sig)
 edit_config(ApprovedPlugins={"SpaceNotch.AuditProbe.dll": sha(signed)})
 
