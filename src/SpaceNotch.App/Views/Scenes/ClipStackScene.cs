@@ -30,16 +30,39 @@ public sealed partial class ClipStackScene : Grid, IIslandSceneView
         Children.Add(_stack);
         Children.Add(_status);
         Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent);
+
+        // Joignable au clavier et nommée (phase C) : Entrée ou Espace recolle,
+        // comme le clic.
+        IsTabStop = true;
+        UseSystemFocusVisuals = true;
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetAutomationControlType(this, Microsoft.UI.Xaml.Automation.Peers.AutomationControlType.Button);
+
         Tapped += (_, e) =>
         {
-            if (_activityId is null)
+            if (Paste())
             {
-                return;
+                e.Handled = true;
             }
-
-            e.Handled = true;
-            ActionRequested?.Invoke(this, new IslandActionRequest(_activityId, SpaceNotch.Features.Clipboard.ClipboardFeature.StackPasteAction));
         };
+
+        KeyDown += (_, e) =>
+        {
+            if (e.Key is global::Windows.System.VirtualKey.Enter or global::Windows.System.VirtualKey.Space && Paste())
+            {
+                e.Handled = true;
+            }
+        };
+    }
+
+    private bool Paste()
+    {
+        if (_activityId is null)
+        {
+            return false;
+        }
+
+        ActionRequested?.Invoke(this, new IslandActionRequest(_activityId, SpaceNotch.Features.Clipboard.ClipboardFeature.StackPasteAction));
+        return true;
     }
 
     public event EventHandler<IslandActionRequest>? ActionRequested;
@@ -70,6 +93,14 @@ public sealed partial class ClipStackScene : Grid, IIslandSceneView
         }
 
         _status.Text = stack.Recalled ? "✓ " + Lang.T("Recollé", "Pasted again") : $"{stack.Index + 1} / {stack.Entries.Count}";
+
+        ClipboardEntry front = stack.Entries[stack.Index % stack.Entries.Count];
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(this, Lang.T(
+            $"Presse-papier, {KindLabel(front.Kind)} {stack.Index + 1} sur {stack.Entries.Count} : {front.Preview}",
+            $"Clipboard, {KindLabel(front.Kind)} {stack.Index + 1} of {stack.Entries.Count}: {front.Preview}"));
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(this, Lang.T(
+            "Entrée pour recoller, Ctrl et molette pour parcourir.",
+            "Enter to paste again, Ctrl and wheel to browse."));
         _status.Foreground = new SolidColorBrush(stack.Recalled ? Mint : Microsoft.UI.ColorHelper.FromArgb(0x99, 0xFF, 0xFF, 0xFF));
     }
 
@@ -78,7 +109,7 @@ public sealed partial class ClipStackScene : Grid, IIslandSceneView
         var kind = new TextBlock
         {
             Text = KindLabel(entry.Kind),
-            FontSize = 10,
+            FontSize = 11,
             Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0x8C, 0xFF, 0xFF, 0xFF))
         };
         var text = new TextBlock

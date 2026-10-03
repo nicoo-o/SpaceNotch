@@ -69,6 +69,11 @@ public sealed partial class IslandWindow
         }
 
         _queueShown = count;
+
+        // Les points ont un nom : « 3 activités en attente » (phase C).
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(QueueDotsRow, count == 0
+            ? string.Empty
+            : Lang.T(count == 1 ? "1 activité en attente" : $"{count} activités en attente", count == 1 ? "1 activity waiting" : $"{count} activities waiting"));
     }
 
     // ---- Annuler en 3 s -----------------------------------------------------
@@ -102,6 +107,10 @@ public sealed partial class IslandWindow
         _undoTimer ??= CreateRepeatingTimer(TimeSpan.FromMilliseconds(50), UndoTick);
         _undoTimer.Start();
         RequestRender();
+
+        AnnounceText(Lang.T(
+            $"{activity.Title} écarté. Cliquer sur la notch dans les 3 secondes pour annuler.",
+            $"{activity.Title} dismissed. Click the notch within 3 seconds to undo."));
     }
 
     private void UndoTick()
@@ -167,7 +176,7 @@ public sealed partial class IslandWindow
     private DispatcherQueueTimer? _helpTimer;
     private bool _helpShown;
     private long _altSince;
-    private readonly TextBlock _measureHelp = new() { FontSize = 10 };
+    private readonly TextBlock _measureHelp = new() { FontSize = 11 };
 
     private void ArmGestureHelp(bool hovering)
     {
@@ -208,7 +217,7 @@ public sealed partial class IslandWindow
         {
             foreach (GestureTip tip in GestureHelp.For(_controller.PresentedActivity))
             {
-                var text = new TextBlock { FontSize = 10, Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0x99, 0xFF, 0xFF, 0xFF)) };
+                var text = new TextBlock { FontSize = 11, Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0x99, 0xFF, 0xFF, 0xFF)) };
                 text.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = tip.Gesture, FontWeight = Microsoft.UI.Text.FontWeights.SemiBold, Foreground = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0xEB, 0xFF, 0xFF, 0xFF)) });
                 text.Inlines.Add(new Microsoft.UI.Xaml.Documents.Run { Text = " · " + tip.Effect });
                 GestureHelpRow.Children.Add(new Border
@@ -222,6 +231,11 @@ public sealed partial class IslandWindow
         }
 
         GestureHelpRow.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+
+        if (shown)
+        {
+            AnnounceText(string.Join(", ", GestureHelp.For(_controller.PresentedActivity).Select(t => t.Gesture + " : " + t.Effect)));
+        }
 
         // Le contenu remonte pour laisser la rangée en dessous (la rangée reste dans la notch).
         var lift = new System.Numerics.Vector3(0, shown ? -13 : 0, 0);
@@ -251,12 +265,23 @@ public sealed partial class IslandWindow
 
     // ---- Presse-papier en pile ----------------------------------------------
 
+    private bool _clipStackHintGiven;
+
     /// <summary>Ctrl + molette : ouvre la pile ou la fait défiler d'un cran.</summary>
     private bool CycleClipStack(int delta)
     {
         // Historique désactivé (c'est le réglage par défaut) : pas de pile, et un clic dessus ne mènerait à rien.
         if (_clipboardFeature.State != SpaceNotch.Core.Features.FeatureState.Running)
         {
+            // Une fois par session : la pile restait muette, sans dire pourquoi.
+            if (!_clipStackHintGiven)
+            {
+                _clipStackHintGiven = true;
+                AnnounceText(Lang.T(
+                    "Historique du presse-papier désactivé : activez-le dans les réglages pour parcourir la pile.",
+                    "Clipboard history is off: turn it on in settings to browse the stack."));
+            }
+
             return false;
         }
 

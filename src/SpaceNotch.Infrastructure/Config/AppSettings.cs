@@ -279,6 +279,13 @@ public sealed class AppSettings
     /// </summary>
     public bool AllowBouncyAnimations { get; set; } = true;
 
+    /// <summary>
+    /// Vrai si la notch se dessine en clair : « Clair », ou « Automatique »
+    /// quand Windows est en thème clair (phase C).
+    /// </summary>
+    public bool UsesLightAppearance(bool systemLight)
+        => Appearance == IslandAppearance.Light || (Appearance == IslandAppearance.Auto && systemLight);
+
     /// <summary>Ressort de l'ouverture et de la fermeture.</summary>
     public SpringParameters Motion => SpringParameters.FromResponse(SpringResponseSeconds, SpringBounce);
 
@@ -567,7 +574,8 @@ public sealed class AppSettings
     /// </summary>
     public bool BounceOnThrow { get; set; } = true;
 
-    public bool EnableDiagnostics { get; set; } = true;
+    /// <summary>Mesures internes (cadence, rendus) : désactivées par défaut (phase C).</summary>
+    public bool EnableDiagnostics { get; set; }
 
     /// <summary>Recherche : cibles épinglées en favoris, dans l'ordre d'épinglage.</summary>
     public List<string> LauncherFavorites { get; set; } = [];
@@ -913,6 +921,19 @@ public sealed class AppSettings
 
         StretchAmount = Clamp(StretchAmount, 0, 0.10, FluidMotion.MaximumStretch);
         TearDistance = Clamp(TearDistance, Detachment.MinimumTearDistance, Detachment.MaximumTearDistance, Detachment.TearDistance);
+
+        // Encoche de la caméra : « À gauche » et « À droite » n'ont jamais rien
+        // fait ; ils deviennent l'encoche ordinaire, qui, elle, agit.
+        if (!Enum.IsDefined(CutoutMode))
+        {
+            CutoutMode = CameraCutoutMode.None;
+        }
+        else if (CutoutMode is CameraCutoutMode.Left or CameraCutoutMode.Right)
+        {
+            CutoutMode = CameraCutoutMode.Center;
+        }
+
+        CutoutWidth = CutoutWidth <= 0 ? 0 : Clamp(CutoutWidth, CameraCutout.MinimumWidth, CameraCutout.MaximumWidth, CameraCutout.DefaultWidth);
 
         if (!Enum.IsDefined(SurfaceTint))
         {

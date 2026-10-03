@@ -121,11 +121,12 @@ public sealed partial class FileShelfScene : UserControl, IIslandSceneView
         var remove = new Button
         {
             Style = (Style)Application.Current.Resources["NfIconButtonStyle"],
-            Width = 22,
-            Height = 22,
-            CornerRadius = new CornerRadius(11),
-            Background = new SolidColorBrush(ColorHelper.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)),
-            Content = new FontIcon { Glyph = "", FontSize = 9 },
+            // Zone de toucher de 32 DIP (phase C) ; le disque visible garde 22.
+            Width = 32,
+            Height = 32,
+            Padding = new Thickness(0),
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            Content = Disc(new FontIcon { Glyph = "", FontSize = 9 }),
             Opacity = 0,
             VerticalAlignment = VerticalAlignment.Center
         };
@@ -139,11 +140,12 @@ public sealed partial class FileShelfScene : UserControl, IIslandSceneView
         var share = new Button
         {
             Style = (Style)Application.Current.Resources["NfIconButtonStyle"],
-            Width = 22,
-            Height = 22,
-            CornerRadius = new CornerRadius(11),
-            Background = new SolidColorBrush(ColorHelper.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)),
-            Content = new GlyphView { Key = "Qr", Size = 10, Tint = Brush("NfTextPrimaryBrush") },
+            // Zone de toucher de 32 DIP (phase C) ; le disque visible garde 22.
+            Width = 32,
+            Height = 32,
+            Padding = new Thickness(0),
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            Content = Disc(new GlyphView { Key = "Qr", Size = 10, Tint = Brush("NfTextPrimaryBrush") }),
             Opacity = 0,
             VerticalAlignment = VerticalAlignment.Center
         };
@@ -202,4 +204,16 @@ public sealed partial class FileShelfScene : UserControl, IIslandSceneView
 
     private void Raise(string actionId, string? value = null)
         => ActionRequested?.Invoke(this, new IslandActionRequest(_activityId ?? FileShelfManager.ShelfActivityId, actionId, value));
+
+    /// <summary>Le disque visible de 22 DIP d'un bouton dont la zone de toucher fait 32.</summary>
+    private static Border Disc(UIElement content) => new()
+    {
+        Width = 22,
+        Height = 22,
+        CornerRadius = new CornerRadius(11),
+        Background = new SolidColorBrush(ColorHelper.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)),
+        Child = content,
+        HorizontalAlignment = HorizontalAlignment.Center,
+        VerticalAlignment = VerticalAlignment.Center
+    };
 }

@@ -469,6 +469,10 @@ public sealed partial class IslandWindow : Window
         SceneTabs.TabInvoked += (_, id) => _controller.PresentActivity(id);
         ApplyBackdropMode();
 
+        // « Automatique » suit le thème de Windows, à chaud (phase C).
+        SpaceNotch_App.UI.SystemTheme.Changed += OnSystemThemeChanged;
+        SpaceNotch_App.UI.SystemTheme.Watch();
+
         // Toute modification venue de la fenêtre de réglages est appliquée ici,
         // par le même chemin que les préférences du menu : il n'existe donc pas
         // deux manières d'appliquer un réglage.
@@ -829,6 +833,8 @@ public sealed partial class IslandWindow : Window
         // Le raccourci global ouvre la recherche de n'importe où : Alt+Espace,
         // ou Win+Maj+Espace si une autre application tient déjà le premier.
         _launcherFeature.Hotkey = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.RegisterLauncher(_hWnd);
+        _focusHotkey = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.RegisterFocus(_hWnd);
+        MiniLogger.Log($"Raccourci « aller à la notch » : {_focusHotkey ?? "indisponible"}");
         MiniLogger.Log($"Raccourci de recherche : {_launcherFeature.Hotkey ?? "aucun (les deux sont pris)"}");
 
         _shelfManager.ShareRequested += path => OnUiThread(() => _shareFeature.Share(path));
@@ -1557,21 +1563,30 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
+        AutomationProperties.SetName(IslandBody, announcement.Text);
+        AnnounceText(announcement.Text, announcement.Assertive, "SpaceNotch.Activity");
+    }
+
+    /// <summary>
+    /// Dit une phrase au lecteur d'écran, sans changer le nom de la notch :
+    /// « Annuler », l'aide des gestes, une pile vide (phase C).
+    /// </summary>
+    private void AnnounceText(string text, bool assertive = false, string activityId = "SpaceNotch.Hint")
+    {
         try
         {
-            AnnouncerText.Text = announcement.Text;
-            AutomationProperties.SetName(IslandBody, announcement.Text);
+            AnnouncerText.Text = text;
 
             AutomationPeer? peer = FrameworkElementAutomationPeer.FromElement(AnnouncerText)
                 ?? FrameworkElementAutomationPeer.CreatePeerForElement(AnnouncerText);
 
             peer?.RaiseNotificationEvent(
                 AutomationNotificationKind.Other,
-                announcement.Assertive
+                assertive
                     ? AutomationNotificationProcessing.ImportantAll
                     : AutomationNotificationProcessing.ImportantMostRecent,
-                announcement.Text,
-                "SpaceNotch.Activity");
+                text,
+                activityId);
         }
         catch (Exception ex)
         {
@@ -1747,7 +1762,21 @@ public sealed partial class IslandWindow : Window
     private IslandFootprint FitRest(IslandActivity? activity, IslandPresentationTier tier)
         => UsesSideTab
             ? SideTab.Rest(_settings.TabSize, _settings.SideShoulderRadius)
-            : FitRestFor(activity, tier);
+            : CoverCamera(FitRestFor(activity, tier));
+
+    /// <summary>
+    /// Encoche de la caméra : accrochée en haut, la forme au repos couvre
+    /// toujours l'échancrure de l'écran. Détachée, elle n'a plus à le faire.
+    /// </summary>
+    private IslandFootprint CoverCamera(IslandFootprint rest)
+    {
+        if (_settings.CutoutMode == CameraCutoutMode.None || UsesFloatingGeometry || _edge != NotchEdge.Top)
+        {
+            return rest;
+        }
+
+        return CameraCutout.Cover(rest, CameraCutout.WidthFor(_settings.CutoutMode == CameraCutoutMode.Custom, _settings.CutoutWidth));
+    }
 
     /// <summary>Forme au repos de la notch du haut — et de la pastille — ajustée à son contenu.</summary>
     private IslandFootprint FitRestFor(IslandActivity? activity, IslandPresentationTier tier)
@@ -1911,7 +1940,9 @@ public sealed partial class IslandWindow : Window
         int heightPx = MonitorDpi.ToPhysicalPixels(footprint.Height, scale);
         int offsetX = MonitorDpi.ToPhysicalPixels(_settings.HorizontalOffset, scale);
 
-        int x = display.Left + ((display.Width - widthPx) / 2) + offsetX;
+        // Le décalage ne sort jamais la notch de l'écran (phase C) : réglé pour
+        // un grand écran, il la poussait hors d'un portable.
+        int x = Math.Clamp(display.Left + ((display.Width - widthPx) / 2) + offsetX, display.Left, Math.Max(display.Left, display.Right - widthPx));
 
         // Règle n°1 : le bord supérieur de la notch est le bord supérieur du
         // moniteur, sans aucun décalage. Il n'existe pas de réglage qui la
@@ -2019,6 +2050,14 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
+        if (e.Message.MessageId == SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.WmHotkey
+            && (int)e.Message.WParam == SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.FocusId)
+        {
+            FocusNotchFromHotkey();
+            e.Handled = true;
+            return;
+        }
+
         // Les notifications système diffusées par message sont routées vers les
         // fonctionnalités concernées — le presse-papier en est l'exemple. Aucune
         // scrutation n'est nécessaire pour les recevoir.
@@ -2116,8 +2155,20 @@ public sealed partial class IslandWindow : Window
     private void OnEnvironmentChanged(object? sender, ScreenChangeKind kind)
     {
         _diagnostics.CountEvent();
+
+        // Seul un écran, une échelle ou une zone de travail qui change déplace
+        // la notch détachée. Une couleur d'accent, une variable
+        // d'environnement — tout WM_SETTINGCHANGE — la raccrochait et annulait
+        // le glisser en cours (phase C).
+        if (kind is ScreenChangeKind.DisplayChanged or ScreenChangeKind.DpiChanged or ScreenChangeKind.WorkAreaChanged)
+        {
+            _environmentMovesNotch = true;
+        }
+
         ScheduleEnvironmentRefresh();
     }
+
+    private bool _environmentMovesNotch;
 
     /// <summary>
     /// Les messages de changement arrivent en rafale (un changement de résolution
@@ -2140,7 +2191,12 @@ public sealed partial class IslandWindow : Window
         // détachée incertaine : elle revient au bord, sa place de référence.
         // L'écran d'accroche est recherché à nouveau.
         _dockDisplayCache = null;
-        ForceAttach();
+
+        if (_environmentMovesNotch)
+        {
+            _environmentMovesNotch = false;
+            ForceAttach();
+        }
 
         SystemVisualState updated = SystemVisualState.Read();
         SpaceNotch_App.UI.MotionSettings.Invalidate();
@@ -2427,7 +2483,7 @@ public sealed partial class IslandWindow : Window
         // plutôt que de se confondre avec une ombre invisible sur fond sombre.
         _diagnostics.ReportShadow(_atmosphere.UsesCompositionShadow);
 
-        bool light = _settings.Appearance == IslandAppearance.Light;
+        bool light = _settings.UsesLightAppearance(SpaceNotch_App.UI.SystemTheme.IsLight);
 
         // La teinte va au tracé, pas au panneau : la surface n'est plus un
         // rectangle arrondi mais une silhouette, et seule une forme sait la
@@ -2469,6 +2525,16 @@ public sealed partial class IslandWindow : Window
             $"Apparence appliquée : {mode}, thème {(light ? "clair" : "sombre")}, "
             + $"dissolution {RuntimeDiagnostics.Describe(_diagnostics.AtmospherePath)}");
     }
+
+    private void OnSystemThemeChanged()
+        => DispatcherQueue.TryEnqueue(() =>
+        {
+            if (!_isClosed && _settings.Appearance == IslandAppearance.Auto)
+            {
+                ApplyBackdropMode();
+                RequestRender();
+            }
+        });
 
     /// <summary>
     /// Surface de la notch : la teinte choisie — noir OLED par défaut,
@@ -2790,6 +2856,40 @@ public sealed partial class IslandWindow : Window
         }
 
         OpenLauncher();
+    }
+
+    /// <summary>Raccourci « aller à la notch » retenu, pour l'afficher (null s'il est pris).</summary>
+    private string? _focusHotkey;
+
+    /// <summary>
+    /// « Aller à la notch » (phase C) : la notch s'ouvre sur ce qu'elle
+    /// présente — la recherche s'il n'y a rien —, prend le clavier et le
+    /// focus. Flèches, Entrée et Échap y agissent alors dans toutes les
+    /// scènes, pas seulement dans les quatre qui capturaient le clavier.
+    /// </summary>
+    private void FocusNotchFromHotkey()
+    {
+        if (_isClosed)
+        {
+            return;
+        }
+
+        if (_controller.PresentedActivity is null)
+        {
+            OpenLauncher();
+            return;
+        }
+
+        if (_controller.State is not (IslandState.Expanded or IslandState.Expanding))
+        {
+            RevealPresented();
+        }
+
+        CaptureKeyboardForTyping();
+        _ = IslandBody.Focus(FocusState.Keyboard);
+        AnnounceText(Lang.T(
+            $"SpaceNotch : {_controller.PresentedActivity.Title}. Échap pour refermer.",
+            $"SpaceNotch: {_controller.PresentedActivity.Title}. Escape to close."));
     }
 
     /// <summary>Note éclair (F7) : la note s'ouvre dans la notch, curseur à la fin.</summary>
@@ -3718,6 +3818,7 @@ public sealed partial class IslandWindow : Window
         // Le raccourci global d'abord : c'est la seule chose qu'un arrêt raté
         // laisserait à Windows (Alt+Espace ne marcherait plus nulle part).
         Safely("raccourci global", () => SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.Unregister(_hWnd));
+        Safely("thème de Windows", () => SpaceNotch_App.UI.SystemTheme.Changed -= OnSystemThemeChanged);
 
         // L'arrêt des fonctionnalités libère réellement leurs écouteurs système et
         // retire leurs activités : c'est la garantie symétrique du démarrage.

@@ -17,6 +17,8 @@ public sealed record SetupText
     public required string ForEveryoneDetail { get; init; }
     public required string StartWithWindows { get; init; }
     public required string DesktopShortcut { get; init; }
+    public required string WindowsNotifications { get; init; }
+    public required string WindowsNotificationsDetail { get; init; }
     public required string Install { get; init; }
     public required string Update { get; init; }
     public required string Reinstall { get; init; }
@@ -99,11 +101,13 @@ public sealed record SetupText
     {
         Tagline = "Un petit morceau de nuit en haut de votre écran.",
         ForMe = "Pour moi",
-        ForMeDetail = "Sans droits d'administrateur",
+        ForMeDetail = "Dans votre dossier, pour ce compte",
         ForEveryone = "Pour tous",
         ForEveryoneDetail = "Tous les comptes de ce PC",
         StartWithWindows = "Lancer au démarrage de Windows",
         DesktopShortcut = "Raccourci sur le bureau",
+        WindowsNotifications = "Notifications Windows dans la notch",
+        WindowsNotificationsDetail = "Windows vous demandera une autorisation, à l'installation et à chaque mise à jour. Sans elle, tout le reste fonctionne.",
         Install = "Installer",
         Update = "Mettre à jour",
         Reinstall = "Réinstaller",
@@ -127,7 +131,7 @@ public sealed record SetupText
         ElevationDeclined = "Pour installer pour tous, Windows doit donner son accord. Réessayez, ou installez pour vous seul.",
         UninstallTitle = "Désinstaller SpaceNotch ?",
         UninstallDetail = "La notch, ses raccourcis et son lancement au démarrage seront retirés.",
-        RemoveSettings = "Supprimer aussi mes réglages",
+        RemoveSettings = "Supprimer aussi mes réglages et mes données (note, rappels, greffons, clés)",
         Uninstall = "Désinstaller",
         Removing = "La notch s'en va…",
         Removed = "SpaceNotch est désinstallée.",
@@ -139,11 +143,13 @@ public sealed record SetupText
     {
         Tagline = "A small piece of darkness at the top of your screen.",
         ForMe = "Just me",
-        ForMeDetail = "No administrator rights",
+        ForMeDetail = "In your folder, for this account",
         ForEveryone = "Everyone",
         ForEveryoneDetail = "Every account on this PC",
         StartWithWindows = "Start with Windows",
         DesktopShortcut = "Desktop shortcut",
+        WindowsNotifications = "Windows notifications in the notch",
+        WindowsNotificationsDetail = "Windows will ask for your permission, when installing and on each update. Without it, everything else still works.",
         Install = "Install",
         Update = "Update",
         Reinstall = "Reinstall",
@@ -167,7 +173,7 @@ public sealed record SetupText
         ElevationDeclined = "Installing for everyone needs Windows' permission. Try again, or install just for you.",
         UninstallTitle = "Uninstall SpaceNotch?",
         UninstallDetail = "The notch, its shortcuts and its start-up entry will be removed.",
-        RemoveSettings = "Also remove my settings",
+        RemoveSettings = "Also remove my settings and data (note, reminders, plugins, keys)",
         Uninstall = "Uninstall",
         Removing = "The notch is leaving…",
         Removed = "SpaceNotch is uninstalled.",
