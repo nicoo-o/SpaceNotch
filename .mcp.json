@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "microsoft-learn": {
+      "type": "http",
+      "url": "https://learn.microsoft.com/api/mcp"
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ]
+    },
+    "cwm-roslyn-navigator": {
+      "type": "stdio",
+      "command": "cwm-roslyn-navigator",
+      "args": []
+    }
+  }
+}
