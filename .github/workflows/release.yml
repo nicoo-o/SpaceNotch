@@ -451,7 +451,31 @@ jobs:
           catch { throw "L'installeur n'a pas pu réparer : $($_.Exception.Message)" }
           Assert-Identity "Après la réparation"
 
-          # 4. Désinstallation propre.
+          # 4. Mise à jour automatique (v1.17.0) : la notch lance l'installeur
+          # téléchargé avec --install --quiet --relaunch, puis se ferme ;
+          # l'installeur doit remplacer les fichiers et la relancer.
+          Get-Process SpaceNotch -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep -Seconds 1
+          $auto = Start-Process -FilePath $setup -ArgumentList "--install","--quiet","--relaunch" -PassThru
+          if (-not $auto.WaitForExit(180000)) { throw "Mise à jour automatique : figée depuis 3 minutes." }
+          if ($auto.ExitCode -ne 0) {
+            if (Test-Path $log) { Get-Content $log -Tail 40 | Write-Host }
+            throw "Mise à jour automatique : code $($auto.ExitCode)."
+          }
+          $relaunched = $null
+          for ($i = 0; $i -lt 30 -and -not $relaunched; $i++) {
+            Start-Sleep -Seconds 1
+            $relaunched = Get-Process SpaceNotch -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $exe }
+          }
+          if (-not $relaunched) {
+            if (Test-Path $log) { Get-Content $log -Tail 40 | Write-Host }
+            throw "Mise à jour automatique : la notch n'a pas été relancée."
+          }
+          Write-Host "Mise à jour automatique : installée et relancée."
+          $relaunched | Stop-Process -Force
+          Start-Sleep -Seconds 1
+
+          # 5. Désinstallation propre.
           $uninstall = Start-Process -FilePath $exe -ArgumentList "--uninstall","--quiet" -PassThru -Wait
           if ($uninstall.ExitCode -ne 0) { throw "Désinstallation : code $($uninstall.ExitCode)." }
           for ($i = 0; $i -lt 30 -and (Test-Path $dir); $i++) { Start-Sleep -Seconds 1 }
@@ -518,5 +542,6 @@ jobs:
             Démonstration : `SpaceNotch.exe --demo`.
           files: |
             ${{ runner.temp }}/dist/SpaceNotch-Setup.exe
+            ${{ runner.temp }}/dist/SHA256SUMS.txt
             ${{ runner.temp }}/dist/SpaceNotch.exe
             ${{ runner.temp }}/dist/SpaceNotch-win-x64.zip

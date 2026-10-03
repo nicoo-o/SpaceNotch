@@ -27,6 +27,7 @@ pourquoi la première avait été retenue.
 | [ADR-024](ADR-024-canal-local-et-capture.md) | Canal local (tube nommé), hooks de Claude Code, capture de texte | Accepté |
 | [ADR-025](ADR-025-assistant-local-ou-distant.md) | Assistant : règles locales d'abord, Phi Silica sur l'appareil ou Claude avec ta clé | Accepté |
 | [ADR-026](ADR-026-telephone-et-salons.md) | Téléphone (Lien avec Windows), Discord (RPC local), paroles et Spotify, miroir webcam | Accepté |
+| [ADR-027](ADR-027-mise-a-jour-automatique.md) | Mise à jour automatique depuis les releases GitHub, vérifiée par SHA-256, installée au calme | Accepté |
 
 ## Format
 

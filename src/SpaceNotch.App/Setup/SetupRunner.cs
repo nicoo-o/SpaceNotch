@@ -72,7 +72,20 @@ internal static class SetupRunner
                 }
 
                 case SetupMode.Install:
-                    return Code(await WindowsSetup.InstallAsync(command.Options, version, null, Log).ConfigureAwait(false));
+                {
+                    int code = Code(await WindowsSetup.InstallAsync(command.Options, version, null, Log).ConfigureAwait(false));
+
+                    // Mise à jour automatique : la notch fermée pour être remplacée
+                    // revient d'elle-même, dans sa nouvelle version.
+                    if (code == Succeeded && command.Relaunch)
+                    {
+                        InstallLayout layout = InstallLayout.For(command.Options.Scope, WindowsSetup.Folders());
+                        Log($"[MISE À JOUR] Relance de {layout.Executable}");
+                        WindowsSetup.Launch(layout.Executable);
+                    }
+
+                    return code;
+                }
 
                 case SetupMode.Uninstall:
                 {

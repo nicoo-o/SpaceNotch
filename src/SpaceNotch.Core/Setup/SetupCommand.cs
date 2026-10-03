@@ -76,12 +76,17 @@ public sealed record InstallOptions(InstallScope Scope, bool StartWithWindows, b
 /// Processus de l'interface qui a lancé le travail élevé : il attend sa fin et
 /// ne doit pas être fermé avec les autres notches.
 /// </param>
+/// <param name="Relaunch">
+/// Après une installation silencieuse réussie, relancer la notch installée :
+/// c'est la mise à jour automatique, qui ferme la notch pour la remplacer.
+/// </param>
 public sealed record SetupCommand(
     SetupMode Mode,
     InstallOptions Options,
     bool Quiet = false,
     bool RemoveSettings = false,
-    int? CallerProcessId = null)
+    int? CallerProcessId = null,
+    bool Relaunch = false)
 {
     /// <summary>Vrai pour les processus élevés, sans interface, qui font le travail d'administrateur.</summary>
     public bool IsWorker => Mode is SetupMode.InstallWorker or SetupMode.UninstallWorker or SetupMode.TrustIdentityWorker;
@@ -106,6 +111,7 @@ public sealed record SetupCommand(
         bool notifications = InstallOptions.Default.WindowsNotifications;
         bool quiet = false;
         bool removeSettings = false;
+        bool relaunch = false;
         int? caller = null;
 
         foreach (string raw in arguments)
@@ -141,6 +147,9 @@ public sealed record SetupCommand(
                 case "--REMOVE-SETTINGS":
                     removeSettings = true;
                     break;
+                case "--RELAUNCH":
+                    relaunch = true;
+                    break;
                 case "--SCOPE":
                     scope = string.Equals(value, "machine", StringComparison.OrdinalIgnoreCase)
                         || string.Equals(value, "all", StringComparison.OrdinalIgnoreCase)
@@ -166,7 +175,7 @@ public sealed record SetupCommand(
 
         mode ??= ModeFromFileName(executablePath);
 
-        return new SetupCommand(mode.Value, new InstallOptions(scope, startup, desktop, notifications), quiet, removeSettings, caller);
+        return new SetupCommand(mode.Value, new InstallOptions(scope, startup, desktop, notifications), quiet, removeSettings, caller, relaunch);
     }
 
     /// <summary>
@@ -231,6 +240,11 @@ public sealed record SetupCommand(
         if (RemoveSettings)
         {
             arguments.Add("--remove-settings");
+        }
+
+        if (Relaunch)
+        {
+            arguments.Add("--relaunch");
         }
 
         if (CallerProcessId is int caller)
