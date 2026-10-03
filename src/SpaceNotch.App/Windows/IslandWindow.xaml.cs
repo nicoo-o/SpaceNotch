@@ -2272,9 +2272,36 @@ public sealed partial class IslandWindow : Window
     /// activité ouverte d'elle-même n'est pas épargnée (audit SN-07).
     /// </summary>
     private string? OpenedActivityId()
-        => (_controller.State is IslandState.Expanding or IslandState.Expanded) && (_controller.OpenedByUser || _pixelHovered)
+        => (_controller.State is IslandState.Expanding or IslandState.Expanded) && (_controller.OpenedByUser || (_pixelHovered && CursorOverIsland()))
             ? _controller.PresentedActivity?.Id
             : null;
+
+    /// <summary>
+    /// Le curseur est-il vraiment sur la notch ? Le drapeau de survol peut
+    /// rester levé : quand la forme rétrécit sous un curseur immobile qui part
+    /// ensuite hors de la fenêtre, WinUI ne reçoit jamais la sortie. Une carte
+    /// ouverte d'elle-même restait alors épargnée de l'expiration pour toujours
+    /// (audit SN-07, mesuré : erreur toujours ouverte après 90 s).
+    /// </summary>
+    private bool CursorOverIsland()
+    {
+        if (!SpaceNotch.Platform.Windows.Win32.NativeMethods.GetCursorPos(out SpaceNotch.Platform.Windows.Win32.NativeMethods.POINT cursor))
+        {
+            return false;
+        }
+
+        global::Windows.Graphics.PointInt32 position = _appWindow.Position;
+        global::Windows.Graphics.SizeInt32 size = _appWindow.Size;
+        bool over = cursor.X >= position.X && cursor.X < position.X + size.Width
+            && cursor.Y >= position.Y && cursor.Y < position.Y + size.Height;
+
+        if (!over)
+        {
+            _pixelHovered = false;
+        }
+
+        return over;
+    }
 
     private DispatcherQueueTimer? _clockTimer;
 
@@ -2388,7 +2415,15 @@ public sealed partial class IslandWindow : Window
 
     private void RearmExpirationTimer()
     {
-        TimeSpan? delay = _activityManager.GetTimeUntilNextExpiration(DateTimeOffset.UtcNow, OpenedActivityId());
+        string? spared = OpenedActivityId();
+        TimeSpan? delay = _activityManager.GetTimeUntilNextExpiration(DateTimeOffset.UtcNow, spared);
+
+        // Épargnée par le seul survol : la sortie du pointeur peut ne jamais
+        // arriver, le survol est donc relu toutes les deux secondes.
+        if (spared is not null && !_controller.OpenedByUser && (delay is null || delay > HoverSpareRecheck))
+        {
+            delay = HoverSpareRecheck;
+        }
 
         if (delay is null)
         {
@@ -2406,6 +2441,8 @@ public sealed partial class IslandWindow : Window
         _expirationTimer.Stop();
         _expirationTimer.Start();
     }
+
+    private static readonly TimeSpan HoverSpareRecheck = TimeSpan.FromSeconds(2);
 
     private void OnExpirationTick()
     {

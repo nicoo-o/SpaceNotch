@@ -41,6 +41,9 @@ public static class NativeConstants
     public const int WS_EX_STATICEDGE = 0x00020000;
 
     public const int WS_EX_LAYERED = 0x00080000;
+
+    /// <summary>Opacité globale d'une fenêtre superposée.</summary>
+    public const uint LWA_ALPHA = 0x00000002;
     public const int WS_EX_TRANSPARENT = 0x00000020;
     public const int WS_EX_TOOLWINDOW = 0x00000080;
     public const int WS_EX_NOACTIVATE = 0x08000000;

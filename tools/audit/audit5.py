@@ -272,4 +272,15 @@ ok = back and back["rect"][1] == 0 and abs((back["rect"][0] + back["rect"][2]) /
 record("side.double_click_back_to_top", "PASS" if ok else "FAIL", island=back,
        log=[l for l in read_log().splitlines() if "raccroch" in l or "languette" in l][-5:])
 
+# Rendu du halo avec l'attribut de superposition : capture de la notch ouverte.
+launch()
+park()
+time.sleep(1)
+pyautogui.click(SW // 2, 6)
+time.sleep(2)
+crop("ouverte-halo", (SW // 2 - 400, 0, SW // 2 + 400, 300))
+record("render.open", "INFO", island=describe(island()), atmosphere=describe(atmosphere()))
+pyautogui.press("escape")
+time.sleep(1)
+
 subprocess.run(["taskkill", "/F", "/IM", "SpaceNotch.exe"], capture_output=True)

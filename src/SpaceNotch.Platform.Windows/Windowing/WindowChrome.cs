@@ -83,7 +83,15 @@ public static class WindowChrome
             hWnd,
             NativeConstants.WS_EX_TOOLWINDOW
             | NativeConstants.WS_EX_NOACTIVATE
+            | NativeConstants.WS_EX_LAYERED
             | NativeConstants.WS_EX_TRANSPARENT);
+
+        // Une fenêtre superposée dont les attributs n'ont jamais été posés n'est
+        // pas traversée par la souris, malgré WS_EX_TRANSPARENT (audit SN-02,
+        // mesuré : WindowFromPoint rendait le halo, et le clic à côté de la
+        // notch n'atteignait pas l'application en dessous). Une opacité pleine
+        // ne change rien au rendu composé par WinUI.
+        NativeMethods.SetLayeredWindowAttributes(hWnd, 0, 255, NativeConstants.LWA_ALPHA);
 
         DisableDwmRounding(hWnd);
         ForceTopmost(hWnd);

@@ -878,7 +878,7 @@ for name, pts in cases.items():
     shot(f"drag-{name}")
     record(f"drag.{name}", "INFO", **analyse(s, rest), full_bbox=bbox, windows=visible_windows())
     # Retour au bord : double-clic sur la notch flottante, sinon Échap.
-    if bbox and bbox[1] > 20:
+    if bbox and (bbox[1] > 2 or abs((bbox[0] + bbox[2]) // 2 - SW // 2) >= 30):
         pyautogui.doubleClick((bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2)
         time.sleep(2.5)
         b2 = full_shape_bbox()
@@ -897,7 +897,7 @@ for name, (tx, ty) in {"fling_corner_bottom_right": (SW - 40, SH - 120), "fling_
     bbox = full_shape_bbox()
     shot(f"{name}")
     record(f"drag.{name}", "INFO", full_bbox=bbox, windows=visible_windows())
-    if bbox and bbox[1] > 20:
+    if bbox and (bbox[1] > 2 or abs((bbox[0] + bbox[2]) // 2 - SW // 2) >= 30):
         pyautogui.doubleClick((bbox[0] + bbox[2]) // 2, (bbox[1] + bbox[3]) // 2)
         time.sleep(3)
     b2 = full_shape_bbox()
