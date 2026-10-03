@@ -45,7 +45,7 @@ def read_log():
 def launch(**cfg):
     subprocess.run(["taskkill", "/F", "/IM", "SpaceNotch.exe"], capture_output=True)
     time.sleep(1.5)
-    base = dict(WelcomeCompleted=True, DockEdge="Top", UpdateMode="Off", ShowPixel=False, ApprovedPlugins={})
+    base = dict(WelcomeCompleted=True, DockEdge="Top", UpdateMode="Off", ShowPixel=False, PixelDefaultApplied=True, ApprovedPlugins={})
     base.update(cfg)
     os.makedirs(os.path.dirname(CONFIG), exist_ok=True)
     json.dump(base, open(CONFIG, "w", encoding="utf-8"))

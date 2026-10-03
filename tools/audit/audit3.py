@@ -129,7 +129,7 @@ def launch(*args, **config):
     """Relance propre : notch au bord haut, réglages donnés, journal neuf."""
     global APP
     kill_app()
-    base = dict(WelcomeCompleted=True, DockEdge="Top", UpdateMode="Off", ShowPixel=False, Appearance="Dark",
+    base = dict(WelcomeCompleted=True, DockEdge="Top", UpdateMode="Off", ShowPixel=False, PixelDefaultApplied=True, Appearance="Dark",
                 ApprovedPlugins={})
     base.update(config)
     edit_config(**base)

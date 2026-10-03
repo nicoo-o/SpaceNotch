@@ -515,7 +515,7 @@ save_log("log-02-arret.txt")
 kill_app()
 
 # Les essais suivants partent d'un utilisateur qui a vu la présentation.
-edit_config(WelcomeCompleted=True, EnableDiagnostics=True)
+edit_config(WelcomeCompleted=True, EnableDiagnostics=True, ShowPixel=False, PixelDefaultApplied=True)
 
 # ---------------------------------------------------------------- 2. repos silencieux
 phase("repos-sans-pixel")

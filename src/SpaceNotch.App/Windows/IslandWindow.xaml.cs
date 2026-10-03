@@ -2838,6 +2838,19 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
+        // Double-clic sur une languette latérale : retour en haut (audit SN-08).
+        // Le premier clic l'a ouverte ; le second la referme et la raccroche au
+        // centre haut, comme le double-clic d'une pastille flottante.
+        if (properties.IsLeftButtonPressed
+            && UsesSideTab
+            && Environment.TickCount64 - _lastClickAt < (long)DoubleClickDelay().TotalMilliseconds)
+        {
+            e.Handled = true;
+            _lastClickAt = 0;
+            ReturnSideTabToTop();
+            return;
+        }
+
         // Double-clic (F7) : le second clic arrive pendant que la notch s'ouvre ;
         // au lieu de la refermer, il ouvre la note. Le premier clic n'attend rien.
         // Seulement quand rien n'est présenté : avec une activité, le premier clic

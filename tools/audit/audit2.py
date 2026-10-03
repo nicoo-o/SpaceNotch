@@ -200,7 +200,7 @@ record("env.screen", "INFO", screen=(SW, SH))
 kill_app()
 shutil.rmtree(os.path.join(LOCAL, "SpaceNotch"), ignore_errors=True)
 shutil.rmtree(os.path.dirname(CONFIG), ignore_errors=True)
-edit_config(WelcomeCompleted=True)
+edit_config(WelcomeCompleted=True, ShowPixel=False, PixelDefaultApplied=True)
 
 # Référence : démarrage sans greffon, puis forme au repos.
 pyautogui.moveTo(SW - 200, SH // 2)
