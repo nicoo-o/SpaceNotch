@@ -27,21 +27,46 @@ public sealed partial class IslandWindow
     private bool PixelAtRest => _settings.ShowPixel && !UsesSideTab;
 
     /// <summary>Montre ou cache les yeux, et arme ou arrête ce qui les fait vivre.</summary>
+    /// <remarks>
+    /// Chaque rendu cache puis remontre les yeux : arrêter et relancer à chaque
+    /// fois ce qui les fait vivre relisait batterie, processeur et réseau à
+    /// chaque rendu, et faisait repartir regard et clignement. L'arrêt est donc
+    /// différé à la fin du rendu, et n'a lieu que si les yeux sont restés cachés.
+    /// </remarks>
     private void ShowRestPixel(bool visible)
     {
         RestEyes.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
 
         if (!visible)
         {
-            _gazeTimer?.Stop();
-            _blinkTimer?.Stop();
-            StopPixelLife();
+            if (_pixelLive && !_pixelStopQueued)
+            {
+                _pixelStopQueued = true;
+                _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+                {
+                    _pixelStopQueued = false;
+
+                    if (RestEyes.Visibility != Visibility.Visible)
+                    {
+                        StopRestPixel();
+                    }
+                });
+            }
+
             return;
         }
 
+        RestEyes.Animate = UseSpringAnimations();
+
+        if (_pixelLive)
+        {
+            PixelTick();
+            return;
+        }
+
+        _pixelLive = true;
         StartPixelLife();
 
-        RestEyes.Animate = UseSpringAnimations();
         _gazeTimer ??= CreateRepeatingTimer(GazeInterval, PixelTick);
         PixelTick();
         _gazeTimer.Start();
@@ -49,6 +74,18 @@ public sealed partial class IslandWindow
         {
             ArmBlink();
         }
+    }
+
+    private bool _pixelLive;
+    private bool _pixelStopQueued;
+
+    /// <summary>Arrête tout ce qui fait vivre les yeux (regard, clignement, constantes).</summary>
+    private void StopRestPixel()
+    {
+        _pixelLive = false;
+        _gazeTimer?.Stop();
+        _blinkTimer?.Stop();
+        StopPixelLife();
     }
 
     /// <summary>Une notification arrive : les yeux s'arrondissent un instant.</summary>

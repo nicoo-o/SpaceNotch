@@ -33,6 +33,14 @@ public sealed partial class IslandWindow
         _magnetTimer.Start();
     }
 
+    /// <summary>La notch retirée (plein écran) : l'aimant n'a rien à attirer.</summary>
+    private void StopMagnet()
+    {
+        _magnetTimer?.Stop();
+        _controller.Lean(1);
+        LeanToward(0);
+    }
+
     private DispatcherQueueTimer CreateMagnetTimer()
     {
         DispatcherQueueTimer timer = _dispatcherQueue.CreateTimer();
@@ -59,8 +67,11 @@ public sealed partial class IslandWindow
             return;
         }
 
-        DisplayInfo display = DetachDisplay();
-        (double x, double y) = _tourCursor ?? CursorDip();
+        // L'écran est lu sans être mémorisé : DetachDisplay() le figeait pour de
+        // bon (jusqu'au prochain glisser), et la notch ne suivait plus ni le mode
+        // « écran du curseur » ni un changement d'écran.
+        DisplayInfo display = _detachDisplay ?? ResolveDisplay();
+        (double x, double y) = _tourCursor ?? CursorDipOn(display);
         IslandFootprint rest = _restFootprint;
         var notch = new ScreenRect(AttachCenterX(display) - (rest.Width / 2), 0, rest.Width, rest.Height);
 
@@ -70,8 +81,12 @@ public sealed partial class IslandWindow
 
         // Loin : un regard toutes les 250 ms suffit ; proche : 40 ms, pour que
         // l'attraction suive la main sans à-coup.
+        // « Proche » se mesure dans les deux sens : un pointeur en haut de l'écran
+        // mais loin sur le côté (des onglets, une barre de titre) n'a rien à voir
+        // avec la notch, et ne doit pas faire passer l'aimant à 25 Hz.
         double gap = Math.Max(0, y - notch.Bottom);
-        timer.Interval = gap < Magnet.Reach * 2 ? MagnetNear : MagnetFar;
+        double side = Math.Max(0, Math.Abs(x - (notch.X + (notch.Width / 2))) - (notch.Width / 2));
+        timer.Interval = gap < Magnet.Reach * 2 && side < Magnet.Reach * 2 ? MagnetNear : MagnetFar;
     }
 
     private double _leanX;

@@ -164,6 +164,18 @@ public static class Detachment
     public static bool ExceedsClickSlop(double dx, double dy)
         => (dx * dx) + (dy * dy) > ClickSlop * ClickSlop;
 
+    /// <summary>Dérive latérale tolérée pour un clic (pavé tactile, doigt).</summary>
+    public const double LateralClickSlop = 12;
+
+    /// <summary>
+    /// Vrai quand un appui qui a un peu bougé reste un clic au lâcher : à peine
+    /// tiré vers le bas (moins de <see cref="ClickSlop"/>) et peu dévié de côté.
+    /// Sans cela, un clic au pavé tactile qui glissait de 7 DIP passait en
+    /// traction, et le lâcher ne faisait rien.
+    /// </summary>
+    public static bool IsClickRelease(double pull, double lateral)
+        => pull < ClickSlop && Math.Abs(lateral) < LateralClickSlop;
+
     /// <summary>
     /// Forme accrochée étirée par le tirage : plus haute, un peu plus étroite —
     /// l'aire reste à peu près constante, comme une goutte qui s'allonge.
