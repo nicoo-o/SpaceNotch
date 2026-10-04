@@ -194,6 +194,7 @@ public sealed class ActivityManager : IActivityManager
                 && activity.Priority > pinned.Priority)
             {
                 _pinnedActivityId = null;
+                _pinnedUntil = null;
             }
 
             EvictOverflowBackground(activity.Id, ref evicted);

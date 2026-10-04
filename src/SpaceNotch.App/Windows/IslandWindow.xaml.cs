@@ -3245,6 +3245,14 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
+        // Au repos, la molette ne sort la pile (une copie) qu'après la pose du
+        // survol : défiler sur les onglets du navigateur, sous la lèvre, ne doit
+        // rien faire apparaître pendant 8 s.
+        if (_controller.PresentedActivity is null && _controller.State != IslandState.Preview)
+        {
+            return;
+        }
+
         if (_controller.CyclePresentation(delta > 0 ? 1 : -1))
         {
             _diagnostics.CountEvent();

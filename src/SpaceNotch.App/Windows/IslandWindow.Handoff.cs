@@ -66,7 +66,8 @@ public sealed partial class IslandWindow
         }
 
         // Départ : l'activité s'en va, les morceaux sont relevés tant qu'ils sont visibles.
-        if (previous is not null && activity is null && _controller.PresentedActivity is null)
+        if (previous is not null && activity is null && _controller.PresentedActivity is null
+            && !string.Equals(previous.Id, SpaceNotch.Features.Clipboard.ClipboardFeature.SignalActivityId, StringComparison.Ordinal))
         {
             HandoffRecipe recipe = PixelHandoff.For(previous);
 

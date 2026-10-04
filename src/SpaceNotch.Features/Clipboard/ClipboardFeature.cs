@@ -327,7 +327,7 @@ public sealed class ClipboardFeature : IslandFeatureBase
             // compte vit dans la mesure, qui roule sur place.
             Title = Lang.T("Copié", "Copied"),
             Metric = count > 1 ? "· " + count.ToString(System.Globalization.CultureInfo.InvariantCulture) : null,
-            Source = "Clipboard",
+            Source = Lang.T("Presse-papier", "Clipboard"),
             IconKey = "Clipboard",
             State = IslandActivityState.Idle,
             Priority = ActivityPriority.Normal,
