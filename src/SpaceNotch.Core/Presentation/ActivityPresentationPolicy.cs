@@ -25,7 +25,14 @@ public enum ActivityPresentationPolicy
     Temporary = 2,
 
     /// <summary>Réclame l'attention tout de suite : un appel entrant.</summary>
-    Interrupting = 3
+    Interrupting = 3,
+
+    /// <summary>
+    /// Dans la pile seulement : jamais présentée d'office, atteinte par la
+    /// molette. Une copie : la carte « Presse-papier » restait présentée sans
+    /// fin, et la notch ne revenait jamais au repos (constats du 2026-10-03).
+    /// </summary>
+    Listed = 4
 }
 
 /// <summary>
@@ -113,6 +120,12 @@ public static class ActivityPolicies
         }
 
         ActivityPresentationPolicy policy = Resolve(incoming);
+
+        // Une entrée de la pile ne réclame rien : elle attend qu'on vienne la chercher.
+        if (policy == ActivityPresentationPolicy.Listed)
+        {
+            return ActivityInterruption.Ignore;
+        }
 
         if (policy == ActivityPresentationPolicy.Interrupting)
         {
