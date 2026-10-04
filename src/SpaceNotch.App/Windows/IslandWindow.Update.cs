@@ -56,6 +56,15 @@ public sealed partial class IslandWindow
     {
         Version current = CurrentVersion;
 
+        // Une copie qui n'est pas celle installée (build de développement) ne
+        // touche ni à l'installation ni à la version mémorisée dans les réglages,
+        // partagés avec elle.
+        if (WindowsSetup.FindInstalled() is { } installed && !UpdateRules.MayUpdateItself(Environment.ProcessPath, installed.Executable))
+        {
+            MiniLogger.Log($"[MISE À JOUR] Copie hors installation ({Environment.ProcessPath}) : pas de mise à jour");
+            return;
+        }
+
         if (UpdateRules.JustUpdated(_settings.LastRunVersion, current))
         {
             MiniLogger.Log($"[MISE À JOUR] Version {UpdateRules.Display(current)} en service (avant : {_settings.LastRunVersion})");

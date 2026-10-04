@@ -174,4 +174,27 @@ public sealed class UpdateRulesTests
         settings.Sanitize();
         Assert.Equal(UpdateMode.Automatic, settings.UpdateMode);
     }
+    // Copie de développement (2026-10-04) : un build lancé depuis bin a trouvé
+    // l'installation dans le registre, l'a mise à jour par-dessus et a relancé
+    // la notch de l'utilisateur. Seule la copie installée se met à jour.
+
+    [Fact]
+    public void La_copie_installee_se_met_a_jour()
+        => Assert.True(UpdateRules.MayUpdateItself(
+            @"C:\Users\x\AppData\Local\Programs\SpaceNotch\SpaceNotch.exe",
+            @"c:\users\x\appdata\local\programs\spacenotch\SpaceNotch.exe"));
+
+    [Fact]
+    public void Une_copie_de_developpement_ne_touche_pas_a_l_installation()
+        => Assert.False(UpdateRules.MayUpdateItself(
+            @"C:\dev\SpaceNotch\src\SpaceNotch.App\bin\x64\Release\SpaceNotch.App.exe",
+            @"C:\Users\x\AppData\Local\Programs\SpaceNotch\SpaceNotch.exe"));
+
+    [Fact]
+    public void Sans_installation_la_version_portable_garde_sa_surveillance()
+        => Assert.True(UpdateRules.MayUpdateItself(@"D:\Outils\SpaceNotch\SpaceNotch.exe", installedExecutable: null));
+
+    [Fact]
+    public void Un_chemin_d_executable_inconnu_ne_met_rien_a_jour()
+        => Assert.False(UpdateRules.MayUpdateItself(runningExecutable: null, @"C:\Programs\SpaceNotch\SpaceNotch.exe"));
 }
