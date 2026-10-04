@@ -107,7 +107,11 @@ public sealed partial class IslandWindow
         }
 
         _handoffView = view;
-        view.Opacity = 0;
+
+        // Le contenu arrive pendant que la notch s'ouvre, et non après le voyage
+        // des pixels : caché jusque-là, il laissait 400 à 800 ms une forme large
+        // et vide (constats du 2026-10-03). Les pixels voyagent par-dessus.
+        SpaceNotch_App.Animations.ContentTransition.Play(view, true, TimeSpan.FromMilliseconds(120), TimeSpan.FromMilliseconds(260));
         global::Windows.UI.Color tint = TintOf(recipe, activity);
         (Border a, Border b) = MorphPixels(EyeColor);
         int generation = _morphGeneration;
@@ -317,23 +321,18 @@ public sealed partial class IslandWindow
         {
             case HandoffAfter.Read when HandoffElementsOf(activity).Title is { } title:
             {
-                // Les yeux lisent le titre de gauche à droite ; il apparaît sous leur regard.
+                // Les yeux lisent le titre de gauche à droite.
                 global::Windows.Foundation.Rect r = LayerBounds(title);
                 double width = Math.Min(r.Width, Measure(_measureAny, title.Text, title));
-                var clip = new RectangleGeometry { Rect = new global::Windows.Foundation.Rect(0, 0, 0, r.Height) };
-                title.Clip = clip;
+                // Le titre est déjà là (il est arrivé avec la forme) : les yeux le
+                // parcourent sans le découper — découpé, il apparaissait puis s'effaçait.
                 double y = r.Y + (r.Height / 2);
                 RunMorph(TimeSpan.FromMilliseconds(900), t =>
                 {
                     double x = r.X + (width * t);
                     PlaceSpot(a, new Spot(x - 2, y, 3, 4, 0.3));
                     PlaceSpot(b, new Spot(x + 3, y, 3, 4, 0.3));
-                    clip.Rect = new global::Windows.Foundation.Rect(0, 0, (width * t) + 4, r.Height);
-                }, () =>
-                {
-                    title.Clip = null;
-                    Done();
-                });
+                }, Done);
                 return;
             }
 
