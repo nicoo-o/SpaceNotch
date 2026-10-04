@@ -679,11 +679,21 @@ public sealed partial class SettingsWindow : Window
         => Apply(s => s.DisplayMode = (IslandDisplayMode)Math.Max(0, DisplayBox.SelectedIndex));
 
     private void OnCutoutChanged(object sender, SelectionChangedEventArgs e)
-        => Apply(s => s.CutoutMode = CutoutBox.SelectedIndex switch
+        => Apply(s =>
         {
-            1 => CameraCutoutMode.Center,
-            2 => CameraCutoutMode.Custom,
-            _ => CameraCutoutMode.None
+            s.CutoutMode = CutoutBox.SelectedIndex switch
+            {
+                1 => CameraCutoutMode.Center,
+                2 => CameraCutoutMode.Custom,
+                _ => CameraCutoutMode.None
+            };
+
+            // « Personnalisée » écrit la largeur que le curseur affiche : sans
+            // largeur, Sanitize la ramène à « Aucune » (piège de la v1.16).
+            if (s.CutoutMode == CameraCutoutMode.Custom && s.CutoutWidth <= 0)
+            {
+                s.CutoutWidth = SpaceNotch.Core.Presentation.CameraCutout.DefaultWidth;
+            }
         });
 
     private void OnUpdateModeChanged(object sender, SelectionChangedEventArgs e)

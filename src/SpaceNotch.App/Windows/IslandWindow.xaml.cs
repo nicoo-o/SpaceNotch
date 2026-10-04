@@ -1773,10 +1773,15 @@ public sealed partial class IslandWindow : Window
     /// de 10 à 20 %. Le survol invite, c'est le clic qui ouvre. Voir
     /// <see cref="IslandFootprint.PreviewOf"/>.
     /// </summary>
+    /// <remarks>
+    /// Jamais plus petit que le repos : l'aperçu météo a sa propre largeur (150),
+    /// et avec une encoche de caméra le repos en couvre 200 — la notch
+    /// rétrécissait au survol (constats du 2026-10-03).
+    /// </remarks>
     private IslandFootprint ResolvePreviewFootprint()
         => UsesSideTab
             ? SideTab.Preview(_restFootprint)
-            : RestWeatherPreview() ?? IslandFootprint.PreviewOf(_tier, _restFootprint);
+            : (RestWeatherPreview() ?? IslandFootprint.PreviewOf(_tier, _restFootprint)).AtLeast(_restFootprint);
 
     /// <summary>Glyphe du palier signal, en DIPs (jeton NfSignalGlyphSize), et son écart au libellé.</summary>
     private const double SignalGlyphSpan = 14 + 8;
