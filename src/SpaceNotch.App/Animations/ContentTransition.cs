@@ -95,6 +95,76 @@ internal static class ContentTransition
         }
     }
 
+    /// <summary>
+    /// Sortie d'une scène au repli : 180 ms, pour un retrait de la forme qui en
+    /// dure ~230. À 120 ms, la forme finissait de se refermer vide pendant
+    /// ~110 ms (rafale à 16 ms du 2026-10-04). Le repos qui la remplace attend
+    /// cette durée.
+    /// </summary>
+    public static readonly TimeSpan LeaveDuration = TimeSpan.FromMilliseconds(180);
+
+    /// <summary>
+    /// Fait sortir un contenu en fondu, sans dépassement ; <paramref name="completed"/>
+    /// est appelé à la fin du fondu. Renvoie faux quand rien n'est joué (animations
+    /// réduites, compositeur qui refuse) : l'appelant replie alors le contenu tout de suite.
+    /// </summary>
+    public static bool Leave(UIElement element, bool animate, Action completed)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+        ArgumentNullException.ThrowIfNull(completed);
+
+        if (!animate)
+        {
+            return false;
+        }
+
+        try
+        {
+            Visual visual = ElementCompositionPreview.GetElementVisual(element);
+            Compositor compositor = visual.Compositor;
+
+            // Accélération (0.4, 0, 1, 1) : le contenu reste lisible au début du
+            // retrait, puis s'efface avant que le repos n'arrive.
+            CompositionEasingFunction easeIn = compositor.CreateCubicBezierEasingFunction(
+                new Vector2(0.4f, 0f),
+                new Vector2(1f, 1f));
+
+            ScalarKeyFrameAnimation fade = compositor.CreateScalarKeyFrameAnimation();
+            fade.InsertKeyFrame(1f, 0f, easeIn);
+            fade.Duration = LeaveDuration;
+
+            CompositionScopedBatch batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
+            visual.StartAnimation("Opacity", fade);
+            batch.End();
+            batch.Completed += (_, _) => completed();
+            return true;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Rend son opacité à un contenu sorti en fondu : sans cela, rouvert sous
+    /// animations réduites (où rien n'est joué), il resterait invisible.
+    /// </summary>
+    public static void Settle(UIElement element)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+
+        try
+        {
+            Visual visual = ElementCompositionPreview.GetElementVisual(element);
+            visual.StopAnimation("Opacity");
+            visual.Opacity = 1f;
+        }
+        catch (Exception)
+        {
+            // Un visuel déjà détaché n'a plus rien à rétablir.
+        }
+    }
+
     /// <summary>Durée d'un chiffre qui roule : court, pour suivre une mesure qui change souvent.</summary>
     public static readonly TimeSpan RollDuration = TimeSpan.FromMilliseconds(180);
 
