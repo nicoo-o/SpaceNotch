@@ -111,7 +111,13 @@ public sealed partial class IslandWindow
         // Le contenu arrive pendant que la notch s'ouvre, et non après le voyage
         // des pixels : caché jusque-là, il laissait 400 à 800 ms une forme large
         // et vide (constats du 2026-10-03). Les pixels voyagent par-dessus.
-        SpaceNotch_App.Animations.ContentTransition.Play(view, true, TimeSpan.FromMilliseconds(120), TimeSpan.FromMilliseconds(260));
+        // Une scène ouverte a déjà son entrée (RenderOnce) : la rejouer ici la
+        // ramenait à zéro en plein fondu, après une relance de 50 ms.
+        if (ReferenceEquals(view, SignalRestView) || ReferenceEquals(view, CardRestView))
+        {
+            SpaceNotch_App.Animations.ContentTransition.Play(view, UseSpringAnimations(), TimeSpan.FromMilliseconds(120), TimeSpan.FromMilliseconds(260));
+        }
+
         global::Windows.UI.Color tint = TintOf(recipe, activity);
         (Border a, Border b) = MorphPixels(EyeColor);
         int generation = _morphGeneration;
@@ -382,6 +388,10 @@ public sealed partial class IslandWindow
         }
 
         CancelFaceMorph();
+
+        // Le repos qui suit une scène entre en fondu (RenderOnce) ; ici, ce sont
+        // les pixels qui révèlent les yeux : leur conteneur doit déjà être là.
+        SpaceNotch_App.Animations.ContentTransition.Settle(IdleRestView);
         RestEyes.Opacity = 0;
         (Border a, Border b) = MorphPixels(leaving.Color);
         int generation = _morphGeneration;

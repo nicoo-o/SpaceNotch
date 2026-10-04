@@ -42,11 +42,13 @@ public sealed class NotchCanvasTests
     }
 
     [Fact]
-    public void La_toile_initiale_ne_depasse_jamais_l_ecran()
+    public void La_toile_initiale_ne_depasse_jamais_l_ecran_ni_ne_le_couvre_en_entier()
     {
+        // Couvrant exactement le moniteur, la fenêtre au premier plan passerait
+        // pour un plein écran (relecture WinUI du 2026-10-04).
         (int width, int height) = NotchCanvas.InitialSize(scale: 2.0, displayWidthPx: 1280, displayHeightPx: 720);
 
         Assert.Equal(1280, width);
-        Assert.Equal(720, height);
+        Assert.Equal(719, height);
     }
 }

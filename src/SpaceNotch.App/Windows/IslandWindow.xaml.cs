@@ -701,6 +701,15 @@ public sealed partial class IslandWindow : Window
         {
             _diagnostics.CountEvent();
 
+            // Une scène qui sort en fondu garde le clavier jusqu'à la fermeture :
+            // un second Entrée tapé pendant le fondu relançait l'application
+            // choisie dans le lanceur, ou détachait deux fois depuis le menu.
+            if (_leavingSceneRoot is { } leaving
+                && (ReferenceEquals(sender, leaving) || (sender is IIslandSceneView view && ReferenceEquals(view.Root, leaving))))
+            {
+                return;
+            }
+
             // Les commandes du menu rapide touchent la fenêtre : elles sont
             // exécutées ici, pas par une fonctionnalité.
             if (HandleQuickMenuAction(request) || await HandleWelcomeActionAsync(request))
@@ -1038,7 +1047,8 @@ public sealed partial class IslandWindow : Window
     /// <summary>
     /// La scène quittée sort en fondu : figée à sa taille et centrée, pour que
     /// la forme qui se retire la découpe au lieu de la remettre en page à chaque
-    /// image, transparente au pointeur, puis repliée à la fin du fondu.
+    /// image, transparente au pointeur, puis repliée à la fin du fondu. Ses
+    /// commandes sont ignorées pendant le fondu (OnSceneActionRequested).
     /// </summary>
     private void BeginSceneLeave(FrameworkElement root)
     {
@@ -1058,18 +1068,23 @@ public sealed partial class IslandWindow : Window
         root.VerticalAlignment = VerticalAlignment.Top;
         root.IsHitTestVisible = false;
 
-        bool leaving = ContentTransition.Leave(root, UseSpringAnimations(), () => _dispatcherQueue.TryEnqueue(() =>
+        void Finish()
         {
-            if (generation == _sceneLeaveGeneration)
+            if (generation == _sceneLeaveGeneration && !_isClosed)
             {
                 EndSceneLeave(collapse: true);
             }
-        }));
+        }
 
-        if (!leaving)
+        if (!ContentTransition.Leave(root, UseSpringAnimations(), () => _dispatcherQueue.TryEnqueue(Finish)))
         {
             EndSceneLeave(collapse: true);
+            return;
         }
+
+        // Filet : un lot de composition qui ne s'achève jamais (périphérique
+        // graphique perdu) laisserait la scène à demi visible sur le repos.
+        RunAfter(ContentTransition.LeaveDuration + TimeSpan.FromMilliseconds(150), Finish);
     }
 
     /// <summary>
@@ -1226,7 +1241,7 @@ public sealed partial class IslandWindow : Window
 
             // Après une scène, le repos attend qu'elle soit sortie : l'heure se
             // posait sur le texte de la scène encore lisible.
-            if (wasShowingScene)
+            if (wasShowingScene && _leavingSceneRoot is not null)
             {
                 ContentTransition.Play(IdleRestView, UseSpringAnimations(), ContentTransition.LeaveDuration);
             }
@@ -1325,7 +1340,9 @@ public sealed partial class IslandWindow : Window
 
             if (VisibleRestView() is { } rest)
             {
-                ContentTransition.Play(rest, UseSpringAnimations(), ContentTransition.LeaveDuration);
+                // Sans fondu de sortie (compositeur qui refuse), rien à attendre.
+                TimeSpan wait = _leavingSceneRoot is not null ? ContentTransition.LeaveDuration : TimeSpan.FromMilliseconds(60);
+                ContentTransition.Play(rest, UseSpringAnimations(), wait);
             }
         }
         else if (changedActivity)
@@ -1822,12 +1839,20 @@ public sealed partial class IslandWindow : Window
     private void ApplyShape(IslandFootprint footprint)
     {
         NotchGeometry geometry = _settings.Geometry;
+        long shapeStarted = SpaceNotch_App.Animations.FrameClock.Measuring ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+
+        // Les images lentes de la forme tombent sur un GC de génération 0 (pause
+        // de 11 à 14 ms, 2026-10-04) : la ligne le dit, pour suivre le correctif.
+        TimeSpan gcBefore = shapeStarted != 0 ? GC.GetTotalPauseDuration() : TimeSpan.Zero;
+        int gen0Before = shapeStarted != 0 ? GC.CollectionCount(0) : 0;
 
         double radius = geometry.RadiusFor(footprint);
         double shoulder = geometry.ShoulderFor(footprint);
 
         Geometry? silhouette = DeformedSilhouette(footprint) ?? _shape.Build(footprint, radius, geometry.Smoothing, shoulder: shoulder);
+        long afterSilhouette = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         RememberOutline(() => geometry.Silhouette(footprint));
+        long afterVeil = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
 
         // Une géométrie nulle signifie « identique à la précédente » : le tracé
         // déjà posé est conservé, ce qui évite une reconstruction par image
@@ -1837,6 +1862,7 @@ public sealed partial class IslandWindow : Window
             SurfaceFill.Data = silhouette;
         }
 
+        long afterFill = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         UpdateFocusTrace(footprint);
 
         // Le sablier se pose sous les lignes de la carte : tant que la forme n'a
@@ -1848,11 +1874,26 @@ public sealed partial class IslandWindow : Window
         // l'empêche de mordre dans les congés sur les paliers bas : à 34 de haut,
         // une bande de 22 lui ferait dessiner sa propre arête.
         double band = Math.Min(_specularHeight, footprint.Height * 0.45);
+        long afterFocus = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         Geometry? specular = _shape.Build(footprint, radius, geometry.Smoothing, band, shoulder);
+        long afterSpecularBuild = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
 
         if (specular is not null)
         {
             SpecularFill.Data = specular;
+        }
+
+        if (shapeStarted != 0)
+        {
+            SpaceNotch_App.Animations.FrameClock.ReportBreakdown(
+                $"forme (GC {GC.CollectionCount(0) - gen0Before} · pause {(GC.GetTotalPauseDuration() - gcBefore).TotalMilliseconds:0.0} ms)",
+                shapeStarted,
+                ("silhouette", afterSilhouette),
+                ("voile", afterVeil),
+                ("tracé", afterFill),
+                ("focus", afterFocus),
+                ("reflet", afterSpecularBuild),
+                ("pose du reflet", System.Diagnostics.Stopwatch.GetTimestamp()));
         }
 
         // Le contenu se mesure depuis les flancs, pas depuis les épaules : les

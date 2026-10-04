@@ -24,35 +24,36 @@ public static class NotchCanvas
     public const double OvershootShare = 0.10;
 
     /// <summary>
-    /// Marge de l'enveloppe du mouvement au-delà de la forme : 15 % du trajet
-    /// (IslandSpringAnimator.Envelope), comptés ici sur toute la taille.
-    /// </summary>
-    public const double EnvelopeShare = 0.15;
-
-    /// <summary>
-    /// Le plus grand cadre de fenêtre qu'une transition puisse demander, en
-    /// DIPs : la plus grande scène du répertoire (le lanceur à sa hauteur
+    /// Le plus grand cadre de fenêtre qu'une transition du répertoire puisse
+    /// demander, en DIPs : la plus grande scène (le lanceur à sa hauteur
     /// maximale), avec son dépassement, la marge de l'enveloppe et, en largeur,
-    /// l'écrasement maximal.
+    /// l'écrasement maximal. Une scène de greffon plus grande, ou une forme
+    /// étirée par le geste, fait encore grandir la toile en mouvement.
     /// </summary>
     public static IslandFootprint LargestFrame()
     {
         double width = Math.Max(LauncherLayout.Width, IslandSceneCatalog.AllKeys.Max(k => IslandSceneCatalog.FootprintFor(k).Width));
         double height = Math.Max(LauncherLayout.MaxHeight, IslandSceneCatalog.AllKeys.Max(k => IslandSceneCatalog.FootprintFor(k).Height));
-        double growth = 1 + OvershootShare + EnvelopeShare;
+        // L'enveloppe est comptée sur toute la taille, et non sur le seul trajet.
+        double growth = 1 + OvershootShare + MotionPresets.EnvelopeShare;
 
         return new IslandFootprint(
             Math.Ceiling(width * growth * (1 + MotionPresets.MaxSquash)),
             Math.Ceiling(height * growth));
     }
 
-    /// <summary>Taille de départ de la toile, en pixels physiques, bornée par l'écran.</summary>
+    /// <summary>
+    /// Taille de départ de la toile, en pixels physiques, bornée par l'écran —
+    /// et d'un pixel plus basse que lui : une fenêtre au premier plan qui couvre
+    /// exactement le moniteur passe pour un plein écran aux yeux du shell, et la
+    /// notch se masquerait elle-même pendant la frappe.
+    /// </summary>
     public static (int Width, int Height) InitialSize(double scale, int displayWidthPx, int displayHeightPx)
     {
         IslandFootprint frame = LargestFrame();
         int width = (int)Math.Ceiling(frame.Width * scale);
         int height = (int)Math.Ceiling(frame.Height * scale);
 
-        return (Math.Min(width, Math.Max(1, displayWidthPx)), Math.Min(height, Math.Max(1, displayHeightPx)));
+        return (Math.Min(width, Math.Max(1, displayWidthPx)), Math.Min(height, Math.Max(1, displayHeightPx - 1)));
     }
 }
