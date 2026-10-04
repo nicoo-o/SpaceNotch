@@ -39,14 +39,16 @@ public sealed partial class IslandWindow
     /// </summary>
     private void PlaceOnCanvas(DisplayInfo display, int centerX, int top, int frameWidthPx, int frameHeightPx)
     {
-        // Un autre écran, une autre échelle : la toile repart de la forme.
+        // Un autre écran, une autre échelle : la toile repart, d'emblée à la taille
+        // de la plus grande scène. Partie de la forme du repos, elle grandissait à
+        // la première grande ouverture, et la notch était peinte décalée de la
+        // moitié de l'agrandissement pendant deux images (NotchCanvas).
         var identity = (display.Left, display.Top, display.Width, display.DpiScale);
 
         if (identity != _canvasDisplay)
         {
             _canvasDisplay = identity;
-            _canvasWidth = 0;
-            _canvasHeight = 0;
+            (_canvasWidth, _canvasHeight) = SpaceNotch.Core.Scenes.NotchCanvas.InitialSize(display.DpiScale, display.Width, display.Height);
         }
 
         _canvasWidth = Math.Max(_canvasWidth, frameWidthPx);
