@@ -15,6 +15,29 @@ public sealed class PhaseDTests
     // ---------------- Horloge unique ----------------
 
     [Fact]
+    public void L_horloge_chronometre_chaque_abonne_quand_on_le_lui_demande()
+    {
+        var fan = new FrameFanOut(() => { }, () => { });
+        var timed = new List<(EventHandler<object> Handler, double Ms)>();
+        EventHandler<object> slow = (_, _) => System.Threading.Thread.Sleep(20);
+        EventHandler<object> quick = (_, _) => { };
+        fan.Add(slow);
+        fan.Add(quick);
+
+        fan.Raise(null, new object());
+        Assert.Empty(timed);
+
+        fan.Timed = (handler, elapsed) => timed.Add((handler, elapsed.TotalMilliseconds));
+        fan.Raise(null, new object());
+
+        Assert.Equal(2, timed.Count);
+        Assert.Same(slow, timed[0].Handler);
+        Assert.True(timed[0].Ms >= 15);
+        Assert.Same(quick, timed[1].Handler);
+    }
+
+
+    [Fact]
     public void Un_seul_abonnement_reel_pose_au_premier_et_retire_au_dernier()
     {
         int attached = 0;

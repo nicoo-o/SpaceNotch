@@ -34,6 +34,13 @@ public static class FrameClock
     private static Func<string>? _context;
     private static string _runStart = string.Empty;
     private static TimeSpan? _lastFrame;
+    private static bool _runStarted;
+
+    /// <summary>Vrai pendant que les abonnés sont appelés pour une image.</summary>
+    private static bool _raising;
+
+    /// <summary>Le dernier abonné est parti pendant l'image : la rafale se clôt à sa fin.</summary>
+    private static bool _closePending;
 
     /// <summary>Retient le fil d'interface. Appelé une fois, depuis ce fil.</summary>
     public static void Attach(DispatcherQueue queue) => _queue ??= queue;
@@ -83,14 +90,25 @@ public static class FrameClock
         // de l'appel : c'est elle qui dit si une image a été sautée.
         TimeSpan? frame = (e as RenderingEventArgs)?.RenderingTime;
 
-        if (_lastFrame is null)
+        if (!_runStarted)
         {
+            _runStarted = true;
             _runStart = SafeContext();
         }
 
         FrameCosts.Clear();
         long started = Stopwatch.GetTimestamp();
-        Fan.Raise(sender, e);
+        _raising = true;
+
+        try
+        {
+            Fan.Raise(sender, e);
+        }
+        finally
+        {
+            _raising = false;
+        }
+
         double cost = Stopwatch.GetElapsedTime(started).TotalMilliseconds;
 
         // Une image qui dépasse le budget de 60 Hz se voit : on dit qui l'a prise.
@@ -98,21 +116,47 @@ public static class FrameClock
         {
             LogSlowFrame(cost);
         }
+
+        // Sans heure de rendu, l'intervalle est inconnu (NaN), jamais compté
+        // depuis zéro : il passerait pour une pause aussi longue que la session.
         double interval = frame is { } now && _lastFrame is { } last ? (now - last).TotalMilliseconds : double.NaN;
-        _lastFrame = frame ?? _lastFrame ?? TimeSpan.Zero;
+        _lastFrame = frame ?? _lastFrame;
         run.Add(interval, cost);
+
+        // Le dernier abonné est parti pendant cette image : la rafale se clôt
+        // maintenant, avec elle, et pas au milieu (voir Detach).
+        if (_closePending)
+        {
+            _closePending = false;
+            CloseRun();
+        }
     }
 
     private static void Detach()
     {
         CompositionTarget.Rendering -= OnRendering;
 
+        // Un abonné qui se retire dans son propre gestionnaire (fin d'un
+        // passage) peut être le dernier : clore ici, au milieu de l'image,
+        // versait cette image dans la rafale suivante avec un début périmé.
+        if (_raising)
+        {
+            _closePending = true;
+            return;
+        }
+
+        CloseRun();
+    }
+
+    private static void CloseRun()
+    {
         if (_run is { } run && run.Finish() is { } report)
         {
             MiniLogger.Log(report.ToLogLine(_runStart + " → " + SafeContext()));
         }
 
         _lastFrame = null;
+        _runStarted = false;
     }
 
     /// <summary>Vrai quand la mesure de fluidité est allumée (<c>--frames</c>).</summary>
@@ -125,9 +169,11 @@ public static class FrameClock
     /// </summary>
     public static void ReportSlow(string what, double ms)
     {
-        if (_run is not null && ms > FrameRunStats.Budget60)
+        // Un rendu lancé depuis un abonné (fin de ressort) est déjà compté dans
+        // l'image lente de cet abonné : le journaliser aussi le compterait deux fois.
+        if (_run is not null && !_raising && ms > FrameRunStats.Budget60)
         {
-            MiniLogger.Log(string.Format(System.Globalization.CultureInfo.GetCultureInfo("fr-FR"), "[IMAGES] {0} lent {1:0.0} ms ({2})", what, ms, SafeContext()));
+            MiniLogger.Log(string.Format(FrameRunStats.LogCulture, "[IMAGES] {0} lent {1:0.0} ms ({2})", what, ms, SafeContext()));
         }
     }
 
@@ -144,10 +190,10 @@ public static class FrameClock
             (EventHandler<object> handler, double ms) = FrameCosts[i];
             parts.Append(i == 0 ? string.Empty : ", ")
                 .Append(handler.Method.DeclaringType?.Name).Append('.').Append(handler.Method.Name)
-                .Append(' ').Append(ms.ToString("0.0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))).Append(" ms");
+                .Append(' ').Append(ms.ToString("0.0", FrameRunStats.LogCulture)).Append(" ms");
         }
 
-        MiniLogger.Log(string.Format(System.Globalization.CultureInfo.GetCultureInfo("fr-FR"), "[IMAGES] image lente {0:0.0} ms ({1}) : {2}", cost, SafeContext(), parts));
+        MiniLogger.Log(string.Format(FrameRunStats.LogCulture, "[IMAGES] image lente {0:0.0} ms ({1}) : {2}", cost, SafeContext(), parts));
     }
 
     private static string SafeContext()

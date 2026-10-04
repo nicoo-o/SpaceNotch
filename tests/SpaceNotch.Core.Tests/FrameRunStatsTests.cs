@@ -84,6 +84,25 @@ public sealed class FrameRunStatsTests
     }
 
     [Fact]
+    public void Un_intervalle_nul_ne_fausse_pas_la_cadence()
+    {
+        var run = new FrameRunStats();
+        run.Add(double.NaN, 1);
+
+        // Le signal d'image peut être levé deux fois pour la même image : un
+        // intervalle nul n'est pas une image, il ne doit pas tirer la cadence à 0.
+        foreach (double interval in new[] { 0, 0, 4.2, 4.2, 4.2, 4.2, 9, 4.2, 4.2, 4.2 })
+        {
+            run.Add(interval, 1);
+        }
+
+        FrameRunReport report = run.Finish()!.Value;
+
+        Assert.Equal(4.2, report.CadenceMs, 1);
+        Assert.Equal(1, report.Missed);
+    }
+
+    [Fact]
     public void Le_cout_est_compare_aux_budgets_de_120_et_60_Hz()
     {
         var run = new FrameRunStats();
@@ -96,28 +115,6 @@ public sealed class FrameRunStatsTests
 
         Assert.Equal(2, report.OverBudget120);
         Assert.Equal(1, report.OverBudget60);
-    }
-
-    [Fact]
-    public void L_horloge_chronometre_chaque_abonne_quand_on_le_lui_demande()
-    {
-        var fan = new FrameFanOut(() => { }, () => { });
-        var timed = new List<(EventHandler<object> Handler, double Ms)>();
-        EventHandler<object> slow = (_, _) => System.Threading.Thread.Sleep(20);
-        EventHandler<object> quick = (_, _) => { };
-        fan.Add(slow);
-        fan.Add(quick);
-
-        fan.Raise(null, new object());
-        Assert.Empty(timed);
-
-        fan.Timed = (handler, elapsed) => timed.Add((handler, elapsed.TotalMilliseconds));
-        fan.Raise(null, new object());
-
-        Assert.Equal(2, timed.Count);
-        Assert.Same(slow, timed[0].Handler);
-        Assert.True(timed[0].Ms >= 15);
-        Assert.Same(quick, timed[1].Handler);
     }
 
     [Fact]

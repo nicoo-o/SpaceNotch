@@ -31,6 +31,9 @@ public sealed class FrameRunStats
     /// </summary>
     public const double PauseMs = 100;
 
+    /// <summary>Culture des lignes de journal de la mesure : virgule décimale, comme le reste du journal.</summary>
+    public static readonly CultureInfo LogCulture = CultureInfo.GetCultureInfo("fr-FR");
+
     private readonly List<double> _intervals = [];
     private readonly List<double> _costs = [];
 
@@ -41,7 +44,10 @@ public sealed class FrameRunStats
     /// <param name="costMs">Temps passé par les animateurs sur le fil d'interface pour cette image.</param>
     public void Add(double intervalMs, double costMs)
     {
-        if (double.IsFinite(intervalMs) && intervalMs >= 0)
+        // Un intervalle nul n'est pas une image : le signal d'image peut être
+        // levé deux fois pour la même image, et ces zéros tiraient la cadence
+        // (dixième centile) à 0, ce qui éteignait le compte des images manquées.
+        if (double.IsFinite(intervalMs) && intervalMs > 0)
         {
             _intervals.Add(intervalMs);
         }
@@ -141,11 +147,10 @@ public readonly record struct FrameRunReport(
     int OverBudget120,
     int OverBudget60)
 {
-    private static readonly CultureInfo French = CultureInfo.GetCultureInfo("fr-FR");
 
     /// <summary>Une ligne de journal, préfixée <c>[IMAGES]</c>, avec le contexte de la rafale.</summary>
     public string ToLogLine(string context) => string.Format(
-        French,
+        FrameRunStats.LogCulture,
         "[IMAGES] {0} : {1} images en {2:0.0} ms · cadence {3:0.0} ms · intervalle p50 {4:0.0} / p95 {5:0.0} / max {6:0.0} ms · manquées : {7} · pauses : {8} · coût p50 {9:0.0} / p95 {10:0.0} / max {11:0.0} ms · > 8,3 ms : {12} · > 16,7 ms : {13}",
         context,
         Frames,
