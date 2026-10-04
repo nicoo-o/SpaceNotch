@@ -387,8 +387,10 @@ public sealed class ClipboardFeature : IslandFeatureBase
         if (written)
         {
             // La capture correspond à l'entrée déjà présente : le filtre de
-            // OnClipboardUpdated empêche le doublon.
-            RemoveActivity(ActivityId);
+            // OnClipboardUpdated empêche le doublon. L'entrée reste dans la pile
+            // (la retirer vidait la molette et le menu jusqu'à la copie
+            // suivante) : on rend seulement la main, ce qui referme la vue.
+            Activities.PinPresentation(null);
         }
 
         return written;
