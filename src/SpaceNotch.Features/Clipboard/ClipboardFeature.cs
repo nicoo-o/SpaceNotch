@@ -322,7 +322,11 @@ public sealed class ClipboardFeature : IslandFeatureBase
             Id = SignalActivityId,
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Clipboard,
-            Title = count > 1 ? Lang.T($"Copié · {count}", $"Copied · {count}") : Lang.T("Copié", "Copied"),
+            // Le titre ne change jamais pendant une rafale : un titre qui change se
+            // décode sous un voile, qui recouvrait la notch à chaque copie. Le
+            // compte vit dans la mesure, qui roule sur place.
+            Title = Lang.T("Copié", "Copied"),
+            Metric = count > 1 ? "· " + count.ToString(System.Globalization.CultureInfo.InvariantCulture) : null,
             Source = "Clipboard",
             IconKey = "Clipboard",
             State = IslandActivityState.Idle,

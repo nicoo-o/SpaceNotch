@@ -103,7 +103,14 @@ public sealed class ActivityManager : IActivityManager
         {
             previous = _currentActivity;
             _pinnedActivityId = activityId;
-            _pinnedUntil = null;
+
+            // Une entrée de la pile épinglée (menu rapide) rend aussi la main :
+            // sans bail, elle restait présentée après la fermeture.
+            _pinnedUntil = activityId is not null
+                && _activities.TryGetValue(activityId, out IslandActivity? target)
+                && Presentation.ActivityPolicies.Resolve(target) == Presentation.ActivityPresentationPolicy.Listed
+                    ? _clock() + ListedPinLease
+                    : null;
             next = EvaluateTop();
             _currentActivity = next;
 

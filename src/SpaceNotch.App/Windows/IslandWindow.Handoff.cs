@@ -54,8 +54,10 @@ public sealed partial class IslandWindow
             return;
         }
 
-        // Arrivée : les yeux étaient là, une activité arrive.
+        // Arrivée : les yeux étaient là, une activité arrive. Pas pour le signal
+        // de copie : geste et voyage (jusqu'à 940 ms) mangeraient un signal de 2,5 s.
         if (previous is null && activity is not null && _restFace == RestFace.Eyes && _morphTarget is null
+            && !string.Equals(activity.Id, SpaceNotch.Features.Clipboard.ClipboardFeature.SignalActivityId, StringComparison.Ordinal)
             && _lastEyeOffsets is { } eyes)
         {
             EyeShape shape = _lastEyeShape;
@@ -158,18 +160,18 @@ public sealed partial class IslandWindow
                 return;
 
             case HandoffLead.Shake:
-            {
-                // Yeux ronds de surprise, et le tremblement du téléphone.
-                EyeShape round = PixelGaze.Shape(PixelMood.Surprised);
-                Spot rl = l with { W = round.Width, H = round.Width, R = 1 }, rr = r with { W = round.Width, H = round.Width, R = 1 };
-                RunMorph(d, t =>
                 {
-                    double dx = 1.5 * Math.Sin(t * Math.PI * 8);
-                    PlaceSpot(a, rl.Move(dx, 0));
-                    PlaceSpot(b, rr.Move(dx, 0));
-                }, () => next(rl, rr));
-                return;
-            }
+                    // Yeux ronds de surprise, et le tremblement du téléphone.
+                    EyeShape round = PixelGaze.Shape(PixelMood.Surprised);
+                    Spot rl = l with { W = round.Width, H = round.Width, R = 1 }, rr = r with { W = round.Width, H = round.Width, R = 1 };
+                    RunMorph(d, t =>
+                    {
+                        double dx = 1.5 * Math.Sin(t * Math.PI * 8);
+                        PlaceSpot(a, rl.Move(dx, 0));
+                        PlaceSpot(b, rr.Move(dx, 0));
+                    }, () => next(rl, rr));
+                    return;
+                }
 
             case HandoffLead.Shutter:
                 RunMorph(d, t =>
@@ -203,75 +205,75 @@ public sealed partial class IslandWindow
                 return;
 
             case HandoffLead.Worry:
-            {
-                Spot wl = l with { H = 5 }, wr = r with { H = 5 };
-                RunMorph(d, t =>
                 {
-                    PlaceSpot(a, Spot.Lerp(l, wl, t));
-                    PlaceSpot(b, Spot.Lerp(r, wr, t));
-                    Rotate(a, 14 * t);
-                    Rotate(b, -14 * t);
-                    Tint(a, Blend(EyeColor, tint, t));
-                    Tint(b, Blend(EyeColor, tint, t));
-                }, () =>
-                {
-                    Rotate(a, 0);
-                    Rotate(b, 0);
-                    next(wl, wr);
-                });
-                return;
-            }
+                    Spot wl = l with { H = 5 }, wr = r with { H = 5 };
+                    RunMorph(d, t =>
+                    {
+                        PlaceSpot(a, Spot.Lerp(l, wl, t));
+                        PlaceSpot(b, Spot.Lerp(r, wr, t));
+                        Rotate(a, 14 * t);
+                        Rotate(b, -14 * t);
+                        Tint(a, Blend(EyeColor, tint, t));
+                        Tint(b, Blend(EyeColor, tint, t));
+                    }, () =>
+                    {
+                        Rotate(a, 0);
+                        Rotate(b, 0);
+                        next(wl, wr);
+                    });
+                    return;
+                }
 
             case HandoffLead.Arc:
-            {
-                // L'arceau du casque se dessine au-dessus des yeux, qui prennent sa couleur.
-                var arc = new Border
                 {
-                    Width = 25,
-                    Height = 12,
-                    BorderThickness = new Thickness(2, 2, 2, 0),
-                    BorderBrush = new SolidColorBrush(tint),
-                    CornerRadius = new CornerRadius(12.5, 12.5, 0, 0),
-                    Opacity = 0,
-                    IsHitTestVisible = false
-                };
-                FaceMorphLayer.Children.Add(arc);
-                Canvas.SetLeft(arc, ((l.X + r.X) / 2) - 12.5);
-                Canvas.SetTop(arc, l.Y - (l.H / 2) - 7);
-                RunMorph(d, t =>
-                {
-                    arc.Opacity = Math.Min(1, t * 1.6) * (t > 0.8 ? (1 - t) / 0.2 : 1);
-                    Tint(a, Blend(EyeColor, tint, t));
-                    Tint(b, Blend(EyeColor, tint, t));
-                }, () =>
-                {
-                    FaceMorphLayer.Children.Remove(arc);
-                    next(l, r);
-                });
-                return;
-            }
+                    // L'arceau du casque se dessine au-dessus des yeux, qui prennent sa couleur.
+                    var arc = new Border
+                    {
+                        Width = 25,
+                        Height = 12,
+                        BorderThickness = new Thickness(2, 2, 2, 0),
+                        BorderBrush = new SolidColorBrush(tint),
+                        CornerRadius = new CornerRadius(12.5, 12.5, 0, 0),
+                        Opacity = 0,
+                        IsHitTestVisible = false
+                    };
+                    FaceMorphLayer.Children.Add(arc);
+                    Canvas.SetLeft(arc, ((l.X + r.X) / 2) - 12.5);
+                    Canvas.SetTop(arc, l.Y - (l.H / 2) - 7);
+                    RunMorph(d, t =>
+                    {
+                        arc.Opacity = Math.Min(1, t * 1.6) * (t > 0.8 ? (1 - t) / 0.2 : 1);
+                        Tint(a, Blend(EyeColor, tint, t));
+                        Tint(b, Blend(EyeColor, tint, t));
+                    }, () =>
+                    {
+                        FaceMorphLayer.Children.Remove(arc);
+                        next(l, r);
+                    });
+                    return;
+                }
 
             case HandoffLead.Stretch:
-            {
-                // Les yeux s'écartent en tendant une barre fine entre eux.
-                var bar = new Border { Height = 1.5, Background = new SolidColorBrush(tint), Opacity = 0.6, IsHitTestVisible = false };
-                FaceMorphLayer.Children.Add(bar);
-                Spot sl = l with { W = 3, H = 3, R = 1 }, sr = r with { W = 3, H = 3, R = 1 };
-                RunMorph(d, t =>
                 {
-                    Spot nl = Spot.Lerp(l, sl.Move(-6, 0), t), nr = Spot.Lerp(r, sr.Move(6, 0), t);
-                    PlaceSpot(a, nl);
-                    PlaceSpot(b, nr);
-                    bar.Width = Math.Max(0, nr.X - nl.X);
-                    Canvas.SetLeft(bar, nl.X);
-                    Canvas.SetTop(bar, nl.Y - 0.75);
-                }, () =>
-                {
-                    FaceMorphLayer.Children.Remove(bar);
-                    next(sl.Move(-6, 0), sr.Move(6, 0));
-                });
-                return;
-            }
+                    // Les yeux s'écartent en tendant une barre fine entre eux.
+                    var bar = new Border { Height = 1.5, Background = new SolidColorBrush(tint), Opacity = 0.6, IsHitTestVisible = false };
+                    FaceMorphLayer.Children.Add(bar);
+                    Spot sl = l with { W = 3, H = 3, R = 1 }, sr = r with { W = 3, H = 3, R = 1 };
+                    RunMorph(d, t =>
+                    {
+                        Spot nl = Spot.Lerp(l, sl.Move(-6, 0), t), nr = Spot.Lerp(r, sr.Move(6, 0), t);
+                        PlaceSpot(a, nl);
+                        PlaceSpot(b, nr);
+                        bar.Width = Math.Max(0, nr.X - nl.X);
+                        Canvas.SetLeft(bar, nl.X);
+                        Canvas.SetTop(bar, nl.Y - 0.75);
+                    }, () =>
+                    {
+                        FaceMorphLayer.Children.Remove(bar);
+                        next(sl.Move(-6, 0), sr.Move(6, 0));
+                    });
+                    return;
+                }
 
             default:
                 next(l, r);
@@ -313,52 +315,52 @@ public sealed partial class IslandWindow
         switch (recipe.After)
         {
             case HandoffAfter.Read when HandoffElementsOf(activity).Title is { } title:
-            {
-                // Les yeux lisent le titre de gauche à droite ; il apparaît sous leur regard.
-                global::Windows.Foundation.Rect r = LayerBounds(title);
-                double width = Math.Min(r.Width, Measure(_measureAny, title.Text, title));
-                var clip = new RectangleGeometry { Rect = new global::Windows.Foundation.Rect(0, 0, 0, r.Height) };
-                title.Clip = clip;
-                double y = r.Y + (r.Height / 2);
-                RunMorph(TimeSpan.FromMilliseconds(900), t =>
                 {
-                    double x = r.X + (width * t);
-                    PlaceSpot(a, new Spot(x - 2, y, 3, 4, 0.3));
-                    PlaceSpot(b, new Spot(x + 3, y, 3, 4, 0.3));
-                    clip.Rect = new global::Windows.Foundation.Rect(0, 0, (width * t) + 4, r.Height);
-                }, () =>
-                {
-                    title.Clip = null;
-                    Done();
-                });
-                return;
-            }
+                    // Les yeux lisent le titre de gauche à droite ; il apparaît sous leur regard.
+                    global::Windows.Foundation.Rect r = LayerBounds(title);
+                    double width = Math.Min(r.Width, Measure(_measureAny, title.Text, title));
+                    var clip = new RectangleGeometry { Rect = new global::Windows.Foundation.Rect(0, 0, 0, r.Height) };
+                    title.Clip = clip;
+                    double y = r.Y + (r.Height / 2);
+                    RunMorph(TimeSpan.FromMilliseconds(900), t =>
+                    {
+                        double x = r.X + (width * t);
+                        PlaceSpot(a, new Spot(x - 2, y, 3, 4, 0.3));
+                        PlaceSpot(b, new Spot(x + 3, y, 3, 4, 0.3));
+                        clip.Rect = new global::Windows.Foundation.Rect(0, 0, (width * t) + 4, r.Height);
+                    }, () =>
+                    {
+                        title.Clip = null;
+                        Done();
+                    });
+                    return;
+                }
 
             case HandoffAfter.Orbit when HandoffElementsOf(activity).Trailing is { } ring:
-            {
-                // L'œil droit fait le tour de l'anneau du compte à rebours.
-                global::Windows.Foundation.Rect r = LayerBounds(ring);
-                double cx = r.X + (r.Width / 2), cy = r.Y + (r.Height / 2), radius = (r.Width / 2) - 1;
-                RunMorph(TimeSpan.FromMilliseconds(700), t =>
                 {
-                    double angle = (-Math.PI / 2) + (t * 2 * Math.PI * 0.8);
-                    PlaceSpot(b, new Spot(cx + (radius * Math.Cos(angle)), cy + (radius * Math.Sin(angle)), 2.6, 2.6, 1));
-                }, Done);
-                return;
-            }
+                    // L'œil droit fait le tour de l'anneau du compte à rebours.
+                    global::Windows.Foundation.Rect r = LayerBounds(ring);
+                    double cx = r.X + (r.Width / 2), cy = r.Y + (r.Height / 2), radius = (r.Width / 2) - 1;
+                    RunMorph(TimeSpan.FromMilliseconds(700), t =>
+                    {
+                        double angle = (-Math.PI / 2) + (t * 2 * Math.PI * 0.8);
+                        PlaceSpot(b, new Spot(cx + (radius * Math.Cos(angle)), cy + (radius * Math.Sin(angle)), 2.6, 2.6, 1));
+                    }, Done);
+                    return;
+                }
 
             case HandoffAfter.Caret when HandoffElementsOf(activity).Glyph is null:
-            {
-                // La note : l'œil gauche glisse dans le curseur et s'y fond, rien ne reste sur le texte.
-                Spot from = SpotOf(a), into = SpotOf(b);
-                RunMorph(TimeSpan.FromMilliseconds(180), t =>
                 {
-                    double k = EaseSpring(t);
-                    PlaceSpot(a, Spot.Lerp(from, into, k));
-                    a.Opacity = 1 - (t * 0.6);
-                }, Done);
-                return;
-            }
+                    // La note : l'œil gauche glisse dans le curseur et s'y fond, rien ne reste sur le texte.
+                    Spot from = SpotOf(a), into = SpotOf(b);
+                    RunMorph(TimeSpan.FromMilliseconds(180), t =>
+                    {
+                        double k = EaseSpring(t);
+                        PlaceSpot(a, Spot.Lerp(from, into, k));
+                        a.Opacity = 1 - (t * 0.6);
+                    }, Done);
+                    return;
+                }
 
             default:
                 Done();
@@ -464,67 +466,67 @@ public sealed partial class IslandWindow
         switch (recipe.Anchor)
         {
             case HandoffAnchor.Clawd when e.Clawd is { ActualWidth: > 0 } clawd:
-            {
-                global::Windows.Foundation.Rect r = LayerBounds(clawd);
-                double k = clawd.Pitch;
-                return new Spot(r.X + (spot.X * k), r.Y + (spot.Y * k), spot.Width * k, spot.Height * k, spot.Roundness);
-            }
-
-            case HandoffAnchor.Trailing when e.Trailing is { ActualWidth: > 0 } trailing:
-            {
-                global::Windows.Foundation.Rect r = LayerBounds(trailing);
-                return new Spot(r.X + (r.Width / 2) + spot.X, r.Y + (r.Height / 2) + spot.Y, spot.Width, spot.Height, spot.Roundness);
-            }
-
-            case HandoffAnchor.Colon when e.Title is { ActualWidth: > 0 } title && title.Text.IndexOf(':', StringComparison.Ordinal) is var i and >= 0:
-            {
-                global::Windows.Foundation.Rect r = LayerBounds(title);
-                double x = r.X + Measure(_measureAny, title.Text[..i], title) + (Measure(_measureAny, ":", title) / 2);
-                return new Spot(x + spot.X, r.Y + (r.Height / 2) + spot.Y, spot.Width, spot.Height, spot.Roundness);
-            }
-
-            case HandoffAnchor.Title when e.Title is { ActualWidth: > 0 } title:
-            {
-                global::Windows.Foundation.Rect r = LayerBounds(title);
-                return new Spot(r.X + spot.X, r.Y + (r.Height / 2) + spot.Y, spot.Width, spot.Height, spot.Roundness);
-            }
-
-            case HandoffAnchor.Actions when e.Actions.Count > (int)spot.X && e.Actions[(int)spot.X] is { ActualWidth: > 0 } button:
-            {
-                global::Windows.Foundation.Rect r = LayerBounds(button);
-                return new Spot(r.X + (r.Width / 2), r.Y + (r.Height / 2), r.Width, r.Height, 1);
-            }
-
-            case HandoffAnchor.Field when spot == recipe.Left && e.Glyph is { ActualWidth: > 0 } lens:
-            {
-                // La recherche : l'œil gauche se pose sur la loupe, pas sur le texte d'invite.
-                global::Windows.Foundation.Rect r = LayerBounds(lens);
-                return new Spot(r.X + (r.Width / 2), r.Y + (r.Height / 2), spot.Width, spot.Height, spot.Roundness);
-            }
-
-            case HandoffAnchor.Field when e.Field is { ActualWidth: > 0 } field:
-            {
-                global::Windows.Foundation.Rect r = LayerBounds(field);
-                return new Spot(TextStart(field, r) + spot.X, r.Y + (r.Height / 2) + spot.Y, spot.Width, spot.Height, spot.Roundness);
-            }
-
-            default:
-            {
-                // Le glyphe 7 × 7, ou l'ancre de repli quand celle de la recette manque.
-                FrameworkElement? glyph = e.Glyph ?? e.Clawd ?? e.Field ?? (FrameworkElement?)e.Title;
-
-                if (glyph is not { ActualWidth: > 0 })
                 {
-                    return null;
+                    global::Windows.Foundation.Rect r = LayerBounds(clawd);
+                    double k = clawd.Pitch;
+                    return new Spot(r.X + (spot.X * k), r.Y + (spot.Y * k), spot.Width * k, spot.Height * k, spot.Roundness);
                 }
 
-                global::Windows.Foundation.Rect r = LayerBounds(glyph);
-                double size = glyph is GlyphView g ? g.Size : Math.Min(Math.Min(r.Width, r.Height), 20);
-                double k = size / 7;
-                double ox = r.X + ((r.Width - size) / 2), oy = r.Y + ((r.Height - size) / 2);
-                HandoffSpot s = recipe.Anchor == HandoffAnchor.Glyph ? spot : new HandoffSpot(spot == recipe.Left ? 2 : 4, 3, 1, 1);
-                return new Spot(ox + ((s.X + 0.5) * k), oy + ((s.Y + 0.5) * k), s.Width * k, s.Height * k, s.Roundness);
-            }
+            case HandoffAnchor.Trailing when e.Trailing is { ActualWidth: > 0 } trailing:
+                {
+                    global::Windows.Foundation.Rect r = LayerBounds(trailing);
+                    return new Spot(r.X + (r.Width / 2) + spot.X, r.Y + (r.Height / 2) + spot.Y, spot.Width, spot.Height, spot.Roundness);
+                }
+
+            case HandoffAnchor.Colon when e.Title is { ActualWidth: > 0 } title && title.Text.IndexOf(':', StringComparison.Ordinal) is var i and >= 0:
+                {
+                    global::Windows.Foundation.Rect r = LayerBounds(title);
+                    double x = r.X + Measure(_measureAny, title.Text[..i], title) + (Measure(_measureAny, ":", title) / 2);
+                    return new Spot(x + spot.X, r.Y + (r.Height / 2) + spot.Y, spot.Width, spot.Height, spot.Roundness);
+                }
+
+            case HandoffAnchor.Title when e.Title is { ActualWidth: > 0 } title:
+                {
+                    global::Windows.Foundation.Rect r = LayerBounds(title);
+                    return new Spot(r.X + spot.X, r.Y + (r.Height / 2) + spot.Y, spot.Width, spot.Height, spot.Roundness);
+                }
+
+            case HandoffAnchor.Actions when e.Actions.Count > (int)spot.X && e.Actions[(int)spot.X] is { ActualWidth: > 0 } button:
+                {
+                    global::Windows.Foundation.Rect r = LayerBounds(button);
+                    return new Spot(r.X + (r.Width / 2), r.Y + (r.Height / 2), r.Width, r.Height, 1);
+                }
+
+            case HandoffAnchor.Field when spot == recipe.Left && e.Glyph is { ActualWidth: > 0 } lens:
+                {
+                    // La recherche : l'œil gauche se pose sur la loupe, pas sur le texte d'invite.
+                    global::Windows.Foundation.Rect r = LayerBounds(lens);
+                    return new Spot(r.X + (r.Width / 2), r.Y + (r.Height / 2), spot.Width, spot.Height, spot.Roundness);
+                }
+
+            case HandoffAnchor.Field when e.Field is { ActualWidth: > 0 } field:
+                {
+                    global::Windows.Foundation.Rect r = LayerBounds(field);
+                    return new Spot(TextStart(field, r) + spot.X, r.Y + (r.Height / 2) + spot.Y, spot.Width, spot.Height, spot.Roundness);
+                }
+
+            default:
+                {
+                    // Le glyphe 7 × 7, ou l'ancre de repli quand celle de la recette manque.
+                    FrameworkElement? glyph = e.Glyph ?? e.Clawd ?? e.Field ?? (FrameworkElement?)e.Title;
+
+                    if (glyph is not { ActualWidth: > 0 })
+                    {
+                        return null;
+                    }
+
+                    global::Windows.Foundation.Rect r = LayerBounds(glyph);
+                    double size = glyph is GlyphView g ? g.Size : Math.Min(Math.Min(r.Width, r.Height), 20);
+                    double k = size / 7;
+                    double ox = r.X + ((r.Width - size) / 2), oy = r.Y + ((r.Height - size) / 2);
+                    HandoffSpot s = recipe.Anchor == HandoffAnchor.Glyph ? spot : new HandoffSpot(spot == recipe.Left ? 2 : 4, 3, 1, 1);
+                    return new Spot(ox + ((s.X + 0.5) * k), oy + ((s.Y + 0.5) * k), s.Width * k, s.Height * k, s.Roundness);
+                }
         }
     }
 

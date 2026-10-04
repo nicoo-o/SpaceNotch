@@ -1859,7 +1859,20 @@ public sealed partial class IslandWindow : Window
 
         // Le fil de niveau n'existe que dans la pastille ; les formes carrées,
         // dans les deux paliers.
-        if (trailing.Kind != TrailingKind.None && (trailing.Kind != TrailingKind.Level || tier == IslandPresentationTier.Signal))
+        bool hasTrailing = trailing.Kind != TrailingKind.None && (trailing.Kind != TrailingKind.Level || tier == IslandPresentationTier.Signal);
+
+        if (tier == IslandPresentationTier.Signal)
+        {
+            // La colonne de fin de la pastille (IslandWindow.xaml, SignalRestView)
+            // garde sa marge de 8 même vide, et l'espacement de 6 ne joue
+            // qu'entre deux éléments : compté autrement, « Copié » était mesuré
+            // 8 DIP trop court, s'affichait « Copi… », et la forme s'élargissait
+            // une seconde fois après coup ([FIT] du journal).
+            bool hasMetric = stack > 0;
+            stack = (hasMetric ? stack : 8)
+                + (hasTrailing ? (hasMetric ? 6 : 0) + trailing.Width : 0);
+        }
+        else if (hasTrailing)
         {
             stack += trailing.Width + 6;
         }

@@ -98,6 +98,22 @@ public sealed class CopyQuietTests
     }
 
     [Fact]
+    public void Une_entree_en_pile_epinglee_par_le_menu_rend_aussi_la_main()
+    {
+        // Menu rapide › Presse-papier épingle l'entrée : sans bail, la carte
+        // restait présentée après la fermeture — le défaut d'origine.
+        DateTimeOffset now = Start;
+        var manager = new ActivityManager(() => now);
+        manager.PostActivity(Entry("copie", ActivityPresentationPolicy.Listed));
+        manager.PinPresentation("copie");
+        Assert.Equal("copie", manager.CurrentActivity?.Id);
+
+        now += TimeSpan.FromSeconds(9);
+        manager.ExpireOverdue(now);
+        Assert.Null(manager.CurrentActivity);
+    }
+
+    [Fact]
     public void Le_bail_ne_ferme_pas_une_entree_que_l_utilisateur_regarde()
     {
         DateTimeOffset now = Start;
@@ -180,8 +196,23 @@ public sealed class CopyQuietTests
         feature.Capture("trois");
 
         IslandActivity signal = manager.GetActiveActivities().Single(a => a.Id == ClipboardFeature.SignalActivityId);
-        Assert.Contains("3", signal.Title, StringComparison.Ordinal);
+        Assert.Equal("· 3", signal.Metric);
         Assert.Equal(ClipboardFeature.SignalActivityId, manager.CurrentActivity?.Id);
+    }
+
+    [Fact]
+    public void Le_titre_du_signal_ne_change_pas_pendant_une_rafale()
+    {
+        // Un titre qui change se décode sous un voile (IslandWindow.SetText) : le
+        // compteur vit dans la mesure, qui roule sur place, sans voile.
+        (ClipboardFeature feature, ActivityManager manager, Func<TimeSpan, DateTimeOffset> advance) = Build();
+
+        feature.Capture("un");
+        string first = manager.GetActiveActivities().Single(a => a.Id == ClipboardFeature.SignalActivityId).Title;
+        advance(TimeSpan.FromMilliseconds(300));
+        feature.Capture("deux");
+
+        Assert.Equal(first, manager.GetActiveActivities().Single(a => a.Id == ClipboardFeature.SignalActivityId).Title);
     }
 
     [Fact]
@@ -194,7 +225,7 @@ public sealed class CopyQuietTests
         feature.Capture("deux");
 
         IslandActivity signal = manager.GetActiveActivities().Single(a => a.Id == ClipboardFeature.SignalActivityId);
-        Assert.DoesNotContain("2", signal.Title, StringComparison.Ordinal);
+        Assert.Null(signal.Metric);
     }
 
     [Fact]
@@ -221,7 +252,7 @@ public sealed class CopyQuietTests
 
         Assert.Equal(1, feature.EntryCount);
         IslandActivity signal = manager.GetActiveActivities().Single(a => a.Id == ClipboardFeature.SignalActivityId);
-        Assert.DoesNotContain("2", signal.Title, StringComparison.Ordinal);
+        Assert.Null(signal.Metric);
     }
 
     [Fact]
@@ -252,7 +283,7 @@ public sealed class CopyQuietTests
         }
 
         Assert.Equal(5, feature.EntryCount);
-        Assert.Contains("5", manager.GetActiveActivities().Single(a => a.Id == ClipboardFeature.SignalActivityId).Title, StringComparison.Ordinal);
+        Assert.Equal("· 5", manager.GetActiveActivities().Single(a => a.Id == ClipboardFeature.SignalActivityId).Metric);
     }
 
     [Fact]
