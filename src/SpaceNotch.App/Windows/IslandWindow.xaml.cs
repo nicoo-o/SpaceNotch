@@ -1774,14 +1774,21 @@ public sealed partial class IslandWindow : Window
     /// <see cref="IslandFootprint.PreviewOf"/>.
     /// </summary>
     /// <remarks>
-    /// Jamais plus petit que le repos : l'aperçu météo a sa propre largeur (150),
-    /// et avec une encoche de caméra le repos en couvre 200 — la notch
-    /// rétrécissait au survol (constats du 2026-10-03).
+    /// Jamais plus petit que l'aperçu ordinaire du repos : l'aperçu météo a sa
+    /// propre largeur (150), et avec une encoche de caméra le repos en couvre
+    /// 200 — la notch rétrécissait au survol (constats du 2026-10-03), ou ne
+    /// grandissait plus du tout.
     /// </remarks>
     private IslandFootprint ResolvePreviewFootprint()
-        => UsesSideTab
-            ? SideTab.Preview(_restFootprint)
-            : (RestWeatherPreview() ?? IslandFootprint.PreviewOf(_tier, _restFootprint)).AtLeast(_restFootprint);
+    {
+        if (UsesSideTab)
+        {
+            return SideTab.Preview(_restFootprint);
+        }
+
+        IslandFootprint preview = IslandFootprint.PreviewOf(_tier, _restFootprint);
+        return RestWeatherPreview()?.AtLeast(preview) ?? preview;
+    }
 
     /// <summary>Glyphe du palier signal, en DIPs (jeton NfSignalGlyphSize), et son écart au libellé.</summary>
     private const double SignalGlyphSpan = 14 + 8;
