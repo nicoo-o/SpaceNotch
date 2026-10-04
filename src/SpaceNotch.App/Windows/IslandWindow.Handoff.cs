@@ -54,8 +54,10 @@ public sealed partial class IslandWindow
             return;
         }
 
-        // Arrivée : les yeux étaient là, une activité arrive.
+        // Arrivée : les yeux étaient là, une activité arrive. Pas pour le signal
+        // de copie : geste et voyage (jusqu'à 940 ms) mangeraient un signal de 2,5 s.
         if (previous is null && activity is not null && _restFace == RestFace.Eyes && _morphTarget is null
+            && !string.Equals(activity.Id, SpaceNotch.Features.Clipboard.ClipboardFeature.SignalActivityId, StringComparison.Ordinal)
             && _lastEyeOffsets is { } eyes)
         {
             EyeShape shape = _lastEyeShape;
@@ -64,7 +66,8 @@ public sealed partial class IslandWindow
         }
 
         // Départ : l'activité s'en va, les morceaux sont relevés tant qu'ils sont visibles.
-        if (previous is not null && activity is null && _controller.PresentedActivity is null)
+        if (previous is not null && activity is null && _controller.PresentedActivity is null
+            && !string.Equals(previous.Id, SpaceNotch.Features.Clipboard.ClipboardFeature.SignalActivityId, StringComparison.Ordinal))
         {
             HandoffRecipe recipe = PixelHandoff.For(previous);
 

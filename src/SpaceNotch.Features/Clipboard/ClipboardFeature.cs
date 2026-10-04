@@ -54,12 +54,34 @@ public sealed class ClipboardFeature : IslandFeatureBase
     /// <summary>Recolle l'élément de devant de la pile.</summary>
     public const string StackPasteAction = "clipboard.stack-paste";
 
+    /// <summary>
+    /// Le signal bref « Copié » (session du 2026-10-04) : une copie ne présente
+    /// plus la carte du presse-papier, qui restait affichée sans fin ; elle fait
+    /// apparaître ce signal, puis la notch revient au repos.
+    /// </summary>
+    public const string SignalActivityId = "feature.clipboard.copied";
+
+    /// <summary>Durée du signal après la dernière copie (décision de l'utilisateur).</summary>
+    public static readonly TimeSpan SignalDuration = TimeSpan.FromSeconds(2.5);
+
+    /// <summary>Des copies plus rapprochées forment une rafale : un seul signal, qui compte.</summary>
+    public static readonly TimeSpan BurstWindow = TimeSpan.FromSeconds(1);
+
+    /// <summary>
+    /// Une copie qui en prolonge une autre aussi vite est une réécriture : un mod
+    /// qui nettoie le texte copié, une copie à la sélection qui suit la souris.
+    /// </summary>
+    public static readonly TimeSpan RewriteWindow = TimeSpan.FromMilliseconds(500);
+
     /// <summary>Longueur maximale d'une prévisualisation, en caractères.</summary>
     private const int PreviewLength = 120;
 
     private readonly ClipboardMonitor _monitor;
     private readonly IntPtr _windowHandle;
     private readonly int _capacity;
+    private readonly Func<DateTimeOffset> _now;
+    private DateTimeOffset? _lastCaptureAt;
+    private int _burstCount;
 
     private readonly List<Entry> _entries = [];
     private (Entry Entry, int Index)? _lastRemoved;
@@ -72,12 +94,14 @@ public sealed class ClipboardFeature : IslandFeatureBase
         ClipboardMonitor monitor,
         IntPtr windowHandle,
         bool isEnabled = false,
-        int capacity = 25)
+        int capacity = 25,
+        Func<DateTimeOffset>? now = null)
         : base(FeatureKey, "Presse-papier", activities, events, isEnabled)
     {
         _monitor = monitor ?? throw new ArgumentNullException(nameof(monitor));
         _windowHandle = windowHandle;
         _capacity = Math.Clamp(capacity, 1, 200);
+        _now = now ?? (() => DateTimeOffset.UtcNow);
     }
 
     /// <summary>Nombre de captures dans l'historique, exposé aux diagnostics.</summary>
@@ -186,10 +210,28 @@ public sealed class ClipboardFeature : IslandFeatureBase
             ? ClipboardAccess.TryReadTextForHistory(out string text, out _)
             : ClipboardAccess.TryReadText(out text);
 
-        if (!read || string.IsNullOrWhiteSpace(text))
+        if (!read)
         {
             return;
         }
+
+        Capture(text);
+    }
+
+    /// <summary>
+    /// Une copie lue (déjà filtrée des mots de passe par l'appelant) : elle
+    /// entre dans l'historique et fait apparaître le signal bref. Appelable
+    /// directement par les tests et la visite, sans presse-papier réel.
+    /// </summary>
+    public void Capture(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+        {
+            return;
+        }
+
+        DateTimeOffset now = _now();
+        bool rewrite;
 
         // Le signal système se déclenche aussi lorsque c'est nous qui écrivons :
         // sans ce filtre, coller une entrée créerait une capture de sa propre
@@ -201,29 +243,111 @@ public sealed class ClipboardFeature : IslandFeatureBase
                 return;
             }
 
-            _entries.Insert(0, new Entry(
-                Id: Guid.NewGuid().ToString("N"),
-                Content: text,
-                Kind: Classify(text),
-                IsPinned: false));
+            rewrite = _entries.Count > 0
+                && _lastCaptureAt is { } last
+                && now - last <= RewriteWindow
+                && IsRewriteOf(_entries[0].Content, text);
 
-            Trim();
+            if (rewrite)
+            {
+                _entries[0] = _entries[0] with { Content = text, Kind = Classify(text) };
+            }
+            else
+            {
+                _entries.Insert(0, new Entry(
+                    Id: Guid.NewGuid().ToString("N"),
+                    Content: text,
+                    Kind: Classify(text),
+                    IsPinned: false));
+
+                Trim();
+            }
+        }
+
+        // Une réécriture ne compte pas comme une copie de plus ; elle prolonge la rafale.
+        bool burst = _lastCaptureAt is { } previous && now - previous <= BurstWindow;
+        _lastCaptureAt = now;
+
+        if (!rewrite)
+        {
+            _burstCount = burst ? _burstCount + 1 : 1;
         }
 
         PublishEvent(new ClipboardChangedEvent(Kind: "changed", Preview: null));
         Publish();
-        PublishColor(text);
+
+        // Une couleur a déjà sa propre réponse (la nuance, épinglée) : pas de signal en plus.
+        if (!PublishColor(text))
+        {
+            PublishSignal(now);
+        }
+    }
+
+    /// <summary>
+    /// Vrai si <paramref name="next"/> prolonge ou nettoie <paramref name="previous"/> :
+    /// l'un commence par l'autre (sélection qui grandit, espaces retirés), ou c'est
+    /// la même adresse sans ses paramètres de suivi.
+    /// </summary>
+    private static bool IsRewriteOf(string previous, string next)
+    {
+        string a = previous.Trim(), b = next.Trim();
+
+        if (a.Length == 0 || b.Length == 0)
+        {
+            return false;
+        }
+
+        if (a.StartsWith(b, StringComparison.Ordinal) || b.StartsWith(a, StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return Uri.TryCreate(a, UriKind.Absolute, out Uri? first)
+            && Uri.TryCreate(b, UriKind.Absolute, out Uri? second)
+            && string.Equals(first.GetLeftPart(UriPartial.Path), second.GetLeftPart(UriPartial.Path), StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Le signal « Copié », compact, qui compte les copies d'une rafale. Il
+    /// recouvre ce qui est présenté puis rend la main (Temporary) ; son
+    /// échéance part de la dernière copie, d'où <c>CreatedAt</c> à l'heure de
+    /// la fonctionnalité.
+    /// </summary>
+    private void PublishSignal(DateTimeOffset now)
+    {
+        int count = _burstCount;
+
+        PublishActivity(new IslandActivity
+        {
+            Id = SignalActivityId,
+            FeatureId = FeatureKey,
+            SceneKey = IslandSceneCatalog.Clipboard,
+            // Le titre ne change jamais pendant une rafale : un titre qui change se
+            // décode sous un voile, qui recouvrait la notch à chaque copie. Le
+            // compte vit dans la mesure, qui roule sur place.
+            Title = Lang.T("Copié", "Copied"),
+            Metric = count > 1 ? "· " + count.ToString(System.Globalization.CultureInfo.InvariantCulture) : null,
+            Source = Lang.T("Presse-papier", "Clipboard"),
+            IconKey = "Clipboard",
+            State = IslandActivityState.Idle,
+            Priority = ActivityPriority.Normal,
+            Presentation = IslandPresentationTier.Signal,
+            Policy = ActivityPresentationPolicy.Temporary,
+            Duration = SignalDuration,
+            CreatedAt = now,
+            Payload = new ClipboardPayload(Previews())
+        });
     }
 
     /// <summary>
     /// Couleur copiée (F5) : un code couleur seul dans le presse-papier fait
     /// apparaître la nuance dans la notch ; ouverte, elle donne HEX, RGB et HSL.
     /// </summary>
-    private void PublishColor(string text)
+    private bool PublishColor(string text)
     {
         if (!ColorCode.TryParse(text, out ColorCode color))
         {
-            return;
+            return false;
         }
 
         PublishActivity(new IslandActivity
@@ -246,6 +370,7 @@ public sealed class ClipboardFeature : IslandFeatureBase
         // L'utilisateur vient de copier : la réponse passe devant tout, Focus
         // compris, le temps de sa durée ; l'épingle se lève à l'expiration.
         Activities.PinPresentation(ColorActivityId);
+        return true;
     }
 
     private bool Paste(string? entryId)
@@ -262,8 +387,10 @@ public sealed class ClipboardFeature : IslandFeatureBase
         if (written)
         {
             // La capture correspond à l'entrée déjà présente : le filtre de
-            // OnClipboardUpdated empêche le doublon.
-            RemoveActivity(ActivityId);
+            // OnClipboardUpdated empêche le doublon. L'entrée reste dans la pile
+            // (la retirer vidait la molette et le menu jusqu'à la copie
+            // suivante) : on rend seulement la main, ce qui referme la vue.
+            Activities.PinPresentation(null);
         }
 
         return written;
@@ -483,6 +610,12 @@ public sealed class ClipboardFeature : IslandFeatureBase
             IconKey = "Clipboard",
             State = IslandActivityState.Idle,
             Priority = ActivityPriority.Normal,
+
+            // Dans la pile seulement : la carte restait présentée sans fin et la
+            // notch ne revenait jamais au repos (constats du 2026-10-03). Le
+            // signal bref dit qu'on a copié ; la molette retrouve l'historique.
+            Policy = ActivityPresentationPolicy.Listed,
+            CreatedAt = _now(),
             Actions =
             [
                 new ActivityAction(PasteAction, Lang.T("Coller", "Paste"), "Paste"),
