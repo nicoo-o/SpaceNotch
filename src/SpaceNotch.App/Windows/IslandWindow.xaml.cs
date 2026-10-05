@@ -172,7 +172,7 @@ public sealed partial class IslandWindow : Window
 
     /// <summary>Scène qui sort en fondu pendant le repli, et ce que le fondu lui a pris.</summary>
     private FrameworkElement? _leavingSceneRoot;
-    private (double Width, double Height, HorizontalAlignment Horizontal, VerticalAlignment Vertical, bool HitTest) _leavingSceneSaved;
+    private (double Width, double Height, HorizontalAlignment Horizontal, VerticalAlignment Vertical, bool HitTest, Thickness Margin) _leavingSceneSaved;
     private int _sceneLeaveGeneration;
 
     /// <summary>Octets de la pochette compacte affichée, pour ne la décoder qu'au changement.</summary>
@@ -1050,7 +1050,13 @@ public sealed partial class IslandWindow : Window
     /// image, transparente au pointeur, puis repliée à la fin du fondu. Ses
     /// commandes sont ignorées pendant le fondu (OnSceneActionRequested).
     /// </summary>
-    private void BeginSceneLeave(FrameworkElement root)
+    /// <param name="root">Racine de la scène quittée.</param>
+    /// <param name="tabRowLost">
+    /// Hauteur de la rangée d'onglets que le même rendu vient de retirer
+    /// (<see cref="UpdateTabs"/> remet le retrait du contenu à zéro) : rendue à
+    /// la scène figée, qui sinon remontait d'autant à la première image du fondu.
+    /// </param>
+    private void BeginSceneLeave(FrameworkElement root, double tabRowLost)
     {
         EndSceneLeave(collapse: true);
 
@@ -1061,12 +1067,18 @@ public sealed partial class IslandWindow : Window
 
         int generation = ++_sceneLeaveGeneration;
         _leavingSceneRoot = root;
-        _leavingSceneSaved = (root.Width, root.Height, root.HorizontalAlignment, root.VerticalAlignment, root.IsHitTestVisible);
+        _leavingSceneSaved = (root.Width, root.Height, root.HorizontalAlignment, root.VerticalAlignment, root.IsHitTestVisible, root.Margin);
         root.Width = root.ActualWidth;
         root.Height = root.ActualHeight;
         root.HorizontalAlignment = HorizontalAlignment.Center;
         root.VerticalAlignment = VerticalAlignment.Top;
         root.IsHitTestVisible = false;
+
+        if (tabRowLost > 0)
+        {
+            Thickness margin = root.Margin;
+            root.Margin = new Thickness(margin.Left, margin.Top + tabRowLost, margin.Right, margin.Bottom);
+        }
 
         void Finish()
         {
@@ -1101,7 +1113,7 @@ public sealed partial class IslandWindow : Window
 
         _sceneLeaveGeneration++;
         _leavingSceneRoot = null;
-        (root.Width, root.Height, root.HorizontalAlignment, root.VerticalAlignment, root.IsHitTestVisible) = _leavingSceneSaved;
+        (root.Width, root.Height, root.HorizontalAlignment, root.VerticalAlignment, root.IsHitTestVisible, root.Margin) = _leavingSceneSaved;
         ContentTransition.Settle(root);
 
         if (collapse)
@@ -1137,6 +1149,7 @@ public sealed partial class IslandWindow : Window
         IslandState previousState = _lastRenderedState;
         _lastPresentedId = activity?.Id;
         Celebrate(activity);
+        double tabRowBefore = ContentArea.Padding.Top;
         UpdateTabs(activity, expanded);
         UpdateFocusTrace();
         _lastRenderedState = _controller.State;
@@ -1168,7 +1181,7 @@ public sealed partial class IslandWindow : Window
         }
         else if (_visibleSceneRoot is { } leaving)
         {
-            BeginSceneLeave(leaving);
+            BeginSceneLeave(leaving, tabRowBefore - ContentArea.Padding.Top);
         }
 
         foreach (FrameworkElement root in _sceneRoots)
