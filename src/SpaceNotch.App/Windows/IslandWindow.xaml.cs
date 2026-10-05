@@ -1313,6 +1313,9 @@ public sealed partial class IslandWindow : Window
         {
             StopRestingHypnotic();
 
+            // Une leçon de geste ne se dessine pas sur une scène ouverte.
+            EndGestureLesson();
+
             if (scene is InfoScene generic)
             {
                 generic.AnimateHypnotic = AnimateHypnotic();
@@ -1386,6 +1389,7 @@ public sealed partial class IslandWindow : Window
         RestMirror();
 
         PresentResting(activity);
+        ConsiderGestureLesson(activity);
 
         if (wasShowingScene)
         {
@@ -3443,6 +3447,7 @@ public sealed partial class IslandWindow : Window
         // Ctrl + molette : le presse-papier en pile (vague 7).
         if (ctrl && !properties.IsHorizontalMouseWheel && CycleClipStack(delta))
         {
+            LearnGesture(SpaceNotch.Core.Presentation.GestureCoach.WheelStack);
             e.Handled = true;
             return;
         }
@@ -3478,6 +3483,7 @@ public sealed partial class IslandWindow : Window
             }
 
             _volumeListener.SetLevel((float)VolumeFader.Wheel(level, delta / 120.0));
+            LearnGesture(SpaceNotch.Core.Presentation.GestureCoach.WheelVolume);
             _diagnostics.CountEvent();
             e.Handled = true;
             return;
