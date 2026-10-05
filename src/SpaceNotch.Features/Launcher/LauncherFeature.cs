@@ -320,8 +320,9 @@ public sealed class LauncherFeature : IslandFeatureBase
             State = IslandActivityState.Idle,
             Priority = ActivityPriority.Normal,
 
-            // La notch prend la hauteur de ce qu'elle montre.
-            ExpandedFootprint = LauncherLayout.FootprintFor(sections, _actionsOpen),
+            // La notch prend la hauteur de ce qu'elle montre — tuiles comprises
+            // tant que rien n'est tapé (ADR-028).
+            ExpandedFootprint = LauncherLayout.FootprintFor(sections, _actionsOpen, tiles: string.IsNullOrWhiteSpace(_query)),
 
             // Pendant la première lecture du catalogue — un vrai travail —, la
             // grille « Search » le dit. Filtrer une liste chargée est instantané.

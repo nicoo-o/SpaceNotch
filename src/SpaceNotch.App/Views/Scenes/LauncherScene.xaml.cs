@@ -159,6 +159,7 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
         _query = payload.Query ?? string.Empty;
         _favorites = payload.Favorites ?? (IReadOnlyCollection<string>)[];
+        ShowTiles(string.IsNullOrWhiteSpace(_query));
 
         HotkeyText.Text = payload.Hotkey is { Length: > 0 } hotkey
             ? (French ? $"{hotkey} pour rouvrir" : $"{hotkey} to reopen")
@@ -1249,6 +1250,46 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
     private static Brush Brush(string key)
         => SpaceNotch_App.UI.ThemeBrushes.Get(key, new SolidColorBrush(Microsoft.UI.Colors.White));
+
+    /// <summary>
+    /// Tableau de bord (ADR-028) : sous la recherche vide, les tuiles du menu
+    /// rapide, construites une fois. Le champ garde le focus : taper part comme
+    /// avant, et la première lettre fait disparaître la rangée.
+    /// </summary>
+    private void ShowTiles(bool show)
+    {
+        if (show && TilesRow.Children.Count == 0)
+        {
+            IReadOnlyList<SpaceNotch.Features.Menu.QuickMenuTile> tiles = SpaceNotch.Features.Menu.QuickMenuTiles.All();
+
+            for (int i = 0; i < tiles.Count; i++)
+            {
+                SpaceNotch.Features.Menu.QuickMenuTile tile = tiles[i];
+                string position = i.ToString(CultureInfo.InvariantCulture);
+
+                var content = new StackPanel { Spacing = 4, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                content.Children.Add(new GlyphView { Key = tile.IconKey, Size = 16, Tint = Brush("NfTextSecondaryBrush"), HorizontalAlignment = HorizontalAlignment.Center });
+                content.Children.Add(new TextBlock { Text = tile.Label, FontSize = 12, Foreground = Brush("NfTextPrimaryBrush"), HorizontalAlignment = HorizontalAlignment.Center });
+
+                var button = new Button
+                {
+                    Style = (Style)Application.Current.Resources["NfSecondaryButtonStyle"],
+                    Content = content,
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch
+                };
+
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, tile.Label);
+                button.Click += (_, _) => Raise(SpaceNotch.Features.Menu.QuickMenuTiles.TileAction, position);
+
+                TilesRow.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                Grid.SetColumn(button, i);
+                TilesRow.Children.Add(button);
+            }
+        }
+
+        TilesRow.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+    }
 
     private void Raise(string actionId, string? value = null)
     {

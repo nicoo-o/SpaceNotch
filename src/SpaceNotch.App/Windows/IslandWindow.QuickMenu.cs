@@ -89,6 +89,24 @@ public sealed partial class IslandWindow
     {
         switch (request.ActionId)
         {
+            case QuickMenuTiles.TileAction:
+                // Tableau de bord (ADR-028) : la recherche cède la place à la
+                // commande de la tuile, exécutée comme depuis le menu rapide.
+                if (QuickMenuTiles.At(request.Value) is not { } tile)
+                {
+                    return true;
+                }
+
+                _launcherFeature.Dismiss();
+
+                if (tile.ActionId == QuickMenuFeature.MoreAction)
+                {
+                    ToggleQuickMenu();
+                    return true;
+                }
+
+                return HandleQuickMenuAction(request with { ActionId = tile.ActionId, Value = tile.Value });
+
             case QuickMenuFeature.SearchAction:
                 CloseQuickMenu();
                 OpenLauncher();

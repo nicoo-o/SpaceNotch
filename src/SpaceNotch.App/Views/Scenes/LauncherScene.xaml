@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <UserControl
     x:Class="SpaceNotch_App.Views.Scenes.LauncherScene"
     xmlns:l="using:SpaceNotch_App.Views"
@@ -20,6 +20,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="52" />
             <RowDefinition Height="1" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="40" />
         </Grid.RowDefinitions>
@@ -71,10 +72,23 @@
 
         <Border Grid.Row="1" Background="{ThemeResource NfStrokeSubtleBrush}" />
 
+        <!--
+            Tableau de bord (ADR-028) : sous la recherche vide, quatre tuiles qui
+            mènent aux commandes du menu rapide. 72 de haut (LauncherLayout.Tiles) ;
+            elles disparaissent dès qu'on tape.
+        -->
+        <Grid
+            x:Name="TilesRow"
+            Grid.Row="2"
+            Height="72"
+            Padding="8,8,8,8"
+            ColumnSpacing="8"
+            Visibility="Collapsed" />
+
         <!-- Liste : pilule de sélection sous les lignes, qui glisse de l'une à l'autre. -->
         <ScrollViewer
             x:Name="ListScroller"
-            Grid.Row="2"
+            Grid.Row="3"
             Padding="8,6,8,0"
             HorizontalScrollMode="Disabled"
             HorizontalScrollBarVisibility="Disabled"
@@ -95,7 +109,7 @@
         <!-- État vide ou chargement : une ligne d'aide, pas un écran blanc. -->
         <StackPanel
             x:Name="EmptyState"
-            Grid.Row="2"
+            Grid.Row="3"
             Padding="24,14,24,0"
             Spacing="2"
             Visibility="Collapsed">
@@ -108,7 +122,7 @@
 
         <!-- Pied : rappels clavier, raccourci global à droite. -->
         <Grid
-            Grid.Row="3"
+            Grid.Row="4"
             Padding="20,0,16,0"
             BorderBrush="{ThemeResource NfStrokeSubtleBrush}"
             BorderThickness="0,1,0,0">
@@ -125,7 +139,7 @@
         <Border
             x:Name="ActionsPanel"
             Grid.Row="0"
-            Grid.RowSpan="4"
+            Grid.RowSpan="5"
             Width="300"
             Margin="0,0,12,6"
             Padding="6"
