@@ -260,6 +260,26 @@ public static class UpdateRules
     public static bool JustUpdated(string? lastRunVersion, Version current)
         => ParseTag(lastRunVersion) is { } last && IsNewer(current, last);
 
+    /// <summary>
+    /// Vrai si la copie qui tourne peut surveiller et installer les mises à jour :
+    /// la copie installée, ou une version portable quand rien n'est installé.
+    /// Une autre copie — un build de développement lancé depuis son dossier
+    /// <c>bin</c> — trouvait l'installation dans le registre, l'écrasait avec la
+    /// dernière release et relançait la notch de l'utilisateur (2026-10-04).
+    /// </summary>
+    /// <param name="runningExecutable">Exécutable du processus, ou <c>null</c> s'il est inconnu.</param>
+    /// <param name="installedExecutable">Exécutable installé, ou <c>null</c> sans installation.</param>
+    public static bool MayUpdateItself(string? runningExecutable, string? installedExecutable)
+    {
+        if (installedExecutable is null)
+        {
+            return true;
+        }
+
+        return runningExecutable is not null
+            && string.Equals(runningExecutable.Replace('/', '\\'), installedExecutable.Replace('/', '\\'), StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsGitHubDownload(string? url)
         => Uri.TryCreate(url, UriKind.Absolute, out Uri? uri)
             && uri.Scheme == Uri.UriSchemeHttps
