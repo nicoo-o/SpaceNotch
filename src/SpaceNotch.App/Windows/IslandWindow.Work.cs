@@ -87,7 +87,7 @@ public sealed partial class IslandWindow
 
         view.Pitch = pitch;
         view.PixelStyle = _settings.ClawdStyle;
-        view.Animate = UseSpringAnimations();
+        view.Animate = UseSpringAnimations() && LoopsShown();
         view.Mood = clawd.Mood;
         view.Visibility = Visibility.Visible;
     }

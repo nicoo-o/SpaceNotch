@@ -58,8 +58,9 @@ public sealed partial class IslandWindow
 
         RestEyes.Animate = UseSpringAnimations();
 
-        // Session verrouillée : les yeux restent fermés, rien ne tourne.
-        if (_sessionLocked)
+        // Session verrouillée ou notch retirée : les yeux restent fermés, rien ne
+        // tourne — un rendu pendant le retrait les relançait.
+        if (!LoopsShown())
         {
             return;
         }

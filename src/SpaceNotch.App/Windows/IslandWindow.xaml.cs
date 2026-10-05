@@ -537,9 +537,28 @@ public sealed partial class IslandWindow : Window
 
     /// <summary>
     /// Le mouvement hypnotique est-il joué ? Sous réduction des animations, ou
-    /// si l'utilisateur l'a éteint, la composition est posée fixe.
+    /// si l'utilisateur l'a éteint, la composition est posée fixe — et aussi
+    /// tant que personne ne la voit (<see cref="LoopsShown"/>).
     /// </summary>
-    private bool AnimateHypnotic() => UseSpringAnimations() && _settings.AllowHypnoticMotion;
+    private bool AnimateHypnotic() => UseSpringAnimations() && _settings.AllowHypnoticMotion && LoopsShown();
+
+    /// <summary>
+    /// La matière qui boucle (grilles, pulsation de l'atmosphère, pluie, Clawd)
+    /// ne tourne que devant quelqu'un. Retirée devant un plein écran ou derrière
+    /// l'écran de verrouillage, la notch la laissait tourner : 26 à 37 % d'un
+    /// cœur sur le fil du compositeur (constats du 2026-10-03). Le rendu
+    /// demandé par <see cref="SuspendLife"/> la pose fixe, puis la relance au retour.
+    /// </summary>
+    private bool LoopsShown() => _islandShown && !_sessionLocked;
+
+    /// <summary>
+    /// Le reflet d'un texte au travail est une animation dépendante : elle
+    /// recalcule chaque image sur le fil d'interface, ~8 % d'un cœur tant que
+    /// Claude travaillait, notch retirée comprise (mesure du 2026-10-05). Il ne
+    /// tourne que devant quelqu'un, et se fige avec la grille au bout de
+    /// l'apaisement : passé 20 s, il n'apprend plus rien.
+    /// </summary>
+    private bool AnimateShimmer() => UseSpringAnimations() && LoopsShown() && !HypnoticResting();
 
     /// <summary>
     /// Donne à un emplacement de glyphe sa grille hypnotique, ou son glyphe.
@@ -1293,7 +1312,7 @@ public sealed partial class IslandWindow : Window
             SignalGlyph.Key = activity.IconKey;
             PlayArrival(activity, SignalGlyph);
             SetText(SignalLabel, activity.Title, _signalWasVisible, veil: true);
-            ShimmerText.Set(SignalLabel, activity.MotionState == ActivityMotionState.Working, UseSpringAnimations());
+            ShimmerText.Set(SignalLabel, activity.MotionState == ActivityMotionState.Working, AnimateShimmer());
             ShimmerText.Set(CardHeadline, working: false, animate: false);
             SetText(SignalMetric, metric, _signalWasVisible, metric: true);
             SignalMetric.Visibility = metricVisibility;
@@ -1332,7 +1351,7 @@ public sealed partial class IslandWindow : Window
         // déjà visible se remplace sur place, par un fondu : la carte reste.
         SetText(CardSubhead, SubheadFor(activity), _cardWasVisible);
         SetText(CardHeadline, activity.Title, _cardWasVisible, veil: true);
-        ShimmerText.Set(CardHeadline, activity.MotionState == ActivityMotionState.Working, UseSpringAnimations());
+        ShimmerText.Set(CardHeadline, activity.MotionState == ActivityMotionState.Working, AnimateShimmer());
         ShimmerText.Set(SignalLabel, working: false, animate: false);
         SetText(CardMetric, metric, _cardWasVisible, metric: true);
         CardMetric.Visibility = metricVisibility;
@@ -2254,6 +2273,10 @@ public sealed partial class IslandWindow : Window
             StopRestPixel();
             _dozeTimer?.Stop();
             StopMagnet();
+
+            // Grilles, pulsation, pluie et Clawd : le rendu les pose fixes,
+            // puisque LoopsShown() est maintenant faux.
+            RequestRender();
             return;
         }
 
