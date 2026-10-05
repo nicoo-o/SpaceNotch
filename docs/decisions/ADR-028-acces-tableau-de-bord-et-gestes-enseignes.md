@@ -63,8 +63,9 @@ dépendance Windows, et se testent sans fenêtre. Le retenu (gestes appris) va d
   recherche vide ne doit pas déclencher une tuile par erreur.
 - L'aide qui s'affiche seule doit rester rare. Un compteur par geste est mémorisé dans les
   réglages, et il faut décider ce qui compte comme « appris ».
-- Deux chemins vers les mêmes fonctions (tuiles et menu rapide) sont à garder cohérents :
-  libellés, icônes et ordre viennent d'une seule source.
+- Deux chemins vers les mêmes fonctions (tuiles et menu rapide) sont à garder cohérents. Les
+  tuiles ont leur source (`SpaceNotch.Features.Menu.QuickMenuTiles`) ; le menu rapide garde la
+  sienne tant qu'il n'y a pas été branché : libellés et icônes s'alignent à la main.
 - Plus difficile : toute nouvelle fonction de premier plan doit choisir si elle mérite une
   tuile. Quatre places, pas plus, sinon le tableau redevient un menu.
 

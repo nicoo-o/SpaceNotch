@@ -14,7 +14,8 @@ public sealed record QuickMenuTile(string IconKey, string Label, string ActionId
 /// <summary>
 /// Les quatre tuiles qui suivent la recherche au clic sur le repos (ADR-028).
 /// Elles mènent aux mêmes commandes que le menu rapide, qui reste le raccourci
-/// du clic droit : une seule source pour les deux chemins.
+/// du clic droit. Cette liste est la source des tuiles ; les lignes du menu ont
+/// encore la leur (libellés et icônes à garder alignés).
 /// </summary>
 public static class QuickMenuTiles
 {

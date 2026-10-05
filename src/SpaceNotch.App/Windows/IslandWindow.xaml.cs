@@ -1161,6 +1161,10 @@ public sealed partial class IslandWindow : Window
             {
                 clipboard.AnimateSwipe = UseSpringAnimations();
             }
+            else if (scene is LauncherScene launcherTiles)
+            {
+                launcherTiles.ClipboardEmpty = !HasActivity(ClipboardFeature.ActivityId);
+            }
 
             scene.Apply(activity);
             scene.Root.Visibility = Visibility.Visible;

@@ -794,6 +794,12 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
                 Move(-1);
                 break;
 
+            // Tableau de bord (ADR-028) : sur la recherche vide, Tab entre dans les
+            // tuiles ; ←/→ les parcourent, ↑ ou Échap ramènent au champ.
+            case VirtualKey.Tab when !shift && _query.Length == 0 && TilesRow.Visibility == Visibility.Visible && _tiles.Count > 0:
+                _tiles[0].Focus(FocusState.Keyboard);
+                break;
+
             case VirtualKey.Tab:
                 Move(shift ? -1 : 1);
                 break;
@@ -1252,14 +1258,27 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
         => SpaceNotch_App.UI.ThemeBrushes.Get(key, new SolidColorBrush(Microsoft.UI.Colors.White));
 
     /// <summary>
+    /// Vrai quand le presse-papier n'a rien : sa tuile est alors désactivée, comme
+    /// la ligne « vide » du menu rapide. Active, elle refermait la notch sans rien dire.
+    /// </summary>
+    public bool ClipboardEmpty { get; set; }
+
+    private readonly List<Button> _tiles = [];
+    private Button? _clipboardTile;
+
+    /// <summary>
     /// Tableau de bord (ADR-028) : sous la recherche vide, les tuiles du menu
-    /// rapide, construites une fois. Le champ garde le focus : taper part comme
-    /// avant, et la première lettre fait disparaître la rangée.
+    /// rapide, construites une fois. Le champ garde le focus à la souris (les
+    /// tuiles ne le prennent pas au clic) : taper part comme avant, et la
+    /// première lettre fait disparaître la rangée.
     /// </summary>
     private void ShowTiles(bool show)
     {
         if (show && TilesRow.Children.Count == 0)
         {
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(TilesRow, SpaceNotch.Core.Localization.Lang.T("Raccourcis", "Shortcuts"));
+            TilesRow.KeyDown += OnTilesKeyDown;
+
             IReadOnlyList<SpaceNotch.Features.Menu.QuickMenuTile> tiles = SpaceNotch.Features.Menu.QuickMenuTiles.All();
 
             for (int i = 0; i < tiles.Count; i++)
@@ -1268,17 +1287,37 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
                 string position = i.ToString(CultureInfo.InvariantCulture);
 
                 var content = new StackPanel { Spacing = 4, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-                content.Children.Add(new GlyphView { Key = tile.IconKey, Size = 16, Tint = Brush("NfTextSecondaryBrush"), HorizontalAlignment = HorizontalAlignment.Center });
-                content.Children.Add(new TextBlock { Text = tile.Label, FontSize = 12, Foreground = Brush("NfTextPrimaryBrush"), HorizontalAlignment = HorizontalAlignment.Center });
+                var glyph = new GlyphView { Key = tile.IconKey, Size = 16, HorizontalAlignment = HorizontalAlignment.Center };
+                content.Children.Add(glyph);
+                content.Children.Add(new TextBlock { Text = tile.Label, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Center });
 
                 var button = new Button
                 {
                     Style = (Style)Application.Current.Resources["NfSecondaryButtonStyle"],
                     Content = content,
                     HorizontalAlignment = HorizontalAlignment.Stretch,
-                    VerticalAlignment = VerticalAlignment.Stretch
+                    VerticalAlignment = VerticalAlignment.Stretch,
+
+                    // Pris au clic, le focus quittait le champ sur un clic annulé
+                    // (appui puis glisser hors de la tuile) : la frappe se perdait,
+                    // et les flèches faisaient défiler les activités.
+                    AllowFocusOnInteraction = false
                 };
 
+                if (tile.ActionId == SpaceNotch.Features.Menu.QuickMenuFeature.TimerAction)
+                {
+                    Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(button, SpaceNotch.Core.Localization.Lang.T("Lance 15 minutes", "Starts 15 minutes"));
+                }
+                else if (tile.ActionId == SpaceNotch.Features.Menu.QuickMenuFeature.ClipboardAction)
+                {
+                    _clipboardTile = button;
+                }
+
+                _tiles.Add(button);
+
+                // Couleurs prises au bouton, dont le style suit le thème : lues une fois
+                // à la construction, elles restaient celles du thème de départ.
+                glyph.SetBinding(GlyphView.TintProperty, new Microsoft.UI.Xaml.Data.Binding { Source = button, Path = new PropertyPath(nameof(Button.Foreground)) });
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, tile.Label);
                 button.Click += (_, _) => Raise(SpaceNotch.Features.Menu.QuickMenuTiles.TileAction, position);
 
@@ -1288,7 +1327,46 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
             }
         }
 
+        if (_clipboardTile is not null)
+        {
+            _clipboardTile.IsEnabled = !ClipboardEmpty;
+        }
+
         TilesRow.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>Clavier dans la rangée : ←/→ d'une tuile à l'autre ; ↑, ↓, Échap ou Maj+Tab rendent le champ.</summary>
+    private void OnTilesKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        int index = _tiles.FindIndex(t => t.FocusState != FocusState.Unfocused);
+
+        switch (e.Key)
+        {
+            case VirtualKey.Left or VirtualKey.Right when index >= 0:
+                // Une tuile désactivée (presse-papier vide) est sautée : la flèche y butait.
+                int step = e.Key == VirtualKey.Right ? 1 : -1;
+
+                for (int next = index + step; next >= 0 && next < _tiles.Count; next += step)
+                {
+                    if (_tiles[next].IsEnabled)
+                    {
+                        _tiles[next].Focus(FocusState.Keyboard);
+                        break;
+                    }
+                }
+
+                break;
+
+            case VirtualKey.Up or VirtualKey.Down or VirtualKey.Escape:
+            case VirtualKey.Tab when IsDown(VirtualKey.Shift):
+                SearchBox.Focus(FocusState.Keyboard);
+                break;
+
+            default:
+                return;
+        }
+
+        e.Handled = true;
     }
 
     private void Raise(string actionId, string? value = null)
