@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Features;
+using SpaceNotch.Core.Scenes;
 
 namespace SpaceNotch.Core.Presentation;
 
@@ -48,13 +49,15 @@ public static class GestureCoach
             return null;
         }
 
-        // La fonctionnalité, pas la scène : la musique de la visite ou de la
-        // démo a la scène Media, mais la molette n'y règle pas le volume
-        // (NotchGestures.WheelControlsVolume regarde aussi la fonctionnalité).
-        string? key = presented.FeatureId switch
+        // La fonctionnalité et la scène : la musique de la visite ou de la démo a
+        // la scène Media, mais la molette n'y règle pas le volume
+        // (NotchGestures.WheelControlsVolume regarde aussi la fonctionnalité) ;
+        // la couleur copiée vient du presse-papier, mais son aide n'est pas la
+        // pile, et la leçon montrée doit être celle de sa clé.
+        string? key = (presented.FeatureId, presented.SceneKey) switch
         {
-            FeatureKeys.Media => WheelVolume,
-            FeatureKeys.Clipboard => WheelStack,
+            (FeatureKeys.Media, IslandSceneCatalog.Media) => WheelVolume,
+            (FeatureKeys.Clipboard, IslandSceneCatalog.Clipboard) => WheelStack,
             _ => null
         };
 

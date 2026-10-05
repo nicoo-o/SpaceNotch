@@ -63,4 +63,22 @@ public sealed class GestureCoachTests
     [Fact]
     public void La_musique_de_la_demo_ou_de_la_visite_n_enseigne_rien()
         => Assert.Null(GestureCoach.Next(Scene(IslandSceneCatalog.Media, featureId: "test"), atRest: true, learned: [], shown: []));
+
+    // Relecture de la PR #44 : la couleur copiée vient du presse-papier mais n'a
+    // pas sa scène ; elle enseignait « Clic ou tirer ↓ · ouvrir » sous la clé de
+    // la pile, et la vraie leçon était perdue pour la session.
+
+    [Fact]
+    public void La_lecon_montre_toujours_le_geste_de_sa_cle()
+    {
+        GestureLesson? stack = GestureCoach.Next(Scene(IslandSceneCatalog.Clipboard), atRest: true, learned: [], shown: []);
+
+        Assert.NotNull(stack);
+        Assert.Equal(GestureHelp.For(Scene(IslandSceneCatalog.Clipboard))[0], stack.Value.Tip);
+        Assert.StartsWith("Ctrl", stack.Value.Tip.Gesture, System.StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Une_couleur_copiee_n_enseigne_rien()
+        => Assert.Null(GestureCoach.Next(Scene(IslandSceneCatalog.Color, featureId: FeatureKeys.Clipboard), atRest: true, learned: [], shown: []));
 }
