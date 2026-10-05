@@ -26,7 +26,9 @@ Deux faits dictent la forme du brief (guides officiels Opus 5 et 5.5, relus le 2
 - Écrire en une phrase le résultat voulu et pourquoi il compte. Garder les observations de
   l'utilisateur dans ses mots : ce sont des **constats à reproduire**, pas des spécifications.
 - Argument vide, ou trop vague pour savoir ce que « fini » veut dire : poser la question (étape 3) d'abord.
-- Argument = fichier de relais (`docs/plans/relais-*.md`) : repartir de son état, pas de zéro.
+- Argument = fichier de relais (`docs/plans/relais-*.md`) : repartir de son état, pas de zéro. S'il vit sur
+  une branche non fusionnée, le lire avec `git show origin/<branche>:<chemin>` et dire dans le brief où
+  lire ces documents (ils n'existent pas dans `main` tant que la PR n'est pas fusionnée).
 - Une demande qui mêle corriger, concevoir et découvrir reste **un** brief, en jalons. La scinder en
   plusieurs briefs seulement si l'utilisateur le demande.
 
@@ -49,9 +51,11 @@ questions chacun. Le reste devient une hypothèse écrite. Ne pas reposer ce que
 conversation ont déjà réglé. Questions types :
 
 1. **Tâches ou priorités**, si la demande est un lot.
-2. **Autorisations** (choix multiple) : git (branche, commits, push, PR — jamais de merge) ;
-   computer-use ; Workflow / « ultracode » ; plugins. Une case décochée devient un interdit écrit dans
-   le brief.
+2. **Autorisations** (choix multiple) : git (branche, commits, push, PR) ; computer-use ; Workflow ;
+   plugins. Une case décochée devient un interdit écrit dans le brief, et Opus le suit à la lettre : la
+   première session a laissé 8 PR ouvertes parce que le brief interdisait de fusionner. Si la **fusion
+   des PR** fait partie de la tâche, la poser comme question à part (quelles PR, méthode, ordre, CI
+   verte exigée).
 3. **Cadence des questions d'Opus** : un lot au début puis autonome, jalons fixes, ou au fil de l'eau.
 4. **Critères de réussite**, quand l'utilisateur n'en donne pas et que les proposer ne suffit pas.
 

@@ -115,7 +115,8 @@ Dans cet ordre :
 1. {{PR(s) ouvertes, jamais fusionnées, CI lue / autre livrable principal.}}
 2. {{Documents de suivi à jour (`docs/plans/…`).}}
 3. `docs/plans/relais-AAAA-MM-JJ.md` : état, décisions et leur raison en une ligne, reste à faire, et le
-   texte du prochain brief, prêt à coller. AAAA-MM-JJ est la date du jour.
+   texte du prochain brief, prêt à coller — il n'est pas facultatif (la première session l'avait omis).
+   AAAA-MM-JJ est la date du jour.
 4. Mémoire : enregistre les faits qu'on ne retrouve pas dans le code.
 5. Rapport final dans la conversation : le résultat d'abord ; un tableau critères ↔ preuves ; le bilan
    d'outillage (chaque famille : employée pour quoi, ou écartée pourquoi) ; les risques et les questions

@@ -87,12 +87,17 @@ mode « ultracode » ne sont pas autorisés.]
 |---|---|---|
 | Sous-agents, web, MCP du projet | « lancer des sous-agents des types nommés ci-dessus ; la recherche web et les serveurs MCP du projet » (accordés d'office) | — |
 | Git | « créer une branche par sujet depuis `main` à jour (`fix/…`, `feat/…`, `chore/…`), commiter en français, pousser ces branches et ouvrir les PR en français ; lire la CI par les outils `ccd_pr` » | « commiter, pousser ou ouvrir une PR » |
-| Toujours refusé | — | « fusionner ou activer l'auto-merge, pousser sur `main`, créer un tag ou une release, changer la version » |
+| Fusion des PR | « fusionner les PR {{liste}} avec `gh pr merge --squash`, une à la fois dans cet ordre : {{ordre}} ; seulement après relecture et CI verte ; sans `--admin`, sans supprimer les branches » | « fusionner une PR » |
+| Toujours refusé | — | « activer l'auto-merge, pousser sur `main`, créer un tag ou une release, changer la version, créer un compte ou déposer une demande sur un service externe » |
 | computer-use | « computer-use limité à {{applications}} » | « computer-use » |
-| Workflow / ultracode | « l'outil Workflow (charge d'abord le skill `workflow-authoring`), plafonné à {{N}} agents, pour {{usage}} » | « l'outil Workflow et le mode « ultracode » » |
+| Workflow | « utilise l'outil Workflow (charge d'abord le skill `workflow-authoring`) pour {{usage en lecture seule}} ; plafond : {{N}} agents par workflow, {{M}} workflows ; ses agents ne commitent, ne poussent ni ne fusionnent rien » | « l'outil Workflow et le mode « ultracode » » |
 | Plugins | « chercher (`SearchPlugins`) et installer ce qui aide, en me le disant » | « installer ou activer un plugin ou un connecteur » |
 | Téléchargements, dépendances | — | toujours : « télécharger un outil ou ajouter une dépendance NuGet sans me demander d'abord (nom, source, taille) » |
 | Artifacts | — | toujours : « publier un Artifact » |
+
+Pour Workflow, écrire « utilise l'outil Workflow » (une demande dans les mots de l'utilisateur suffit à
+l'autoriser) et ne pas y mettre le mot « ultracode » : il peut basculer toute la session en orchestration à
+grande échelle, au lieu de la borner à l'usage voulu.
 
 ## Ce que la session contient (2026-10-03)
 
