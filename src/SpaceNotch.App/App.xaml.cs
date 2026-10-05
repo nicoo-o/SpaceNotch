@@ -114,6 +114,11 @@ public partial class App : Application
                 MiniLogger.Log("Lancement automatique au démarrage de Windows.");
             }
 
+            if (options.MeasureFrames)
+            {
+                SpaceNotch_App.Animations.FrameClock.MeasureRuns(island.MotionContext);
+            }
+
             if (options.OpenSettings)
             {
                 island.ShowSettings();

@@ -1000,6 +1000,7 @@ public sealed partial class IslandWindow : Window
         try
         {
             int passes = 0;
+            long started = SpaceNotch_App.Animations.FrameClock.Measuring ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
 
             do
             {
@@ -1007,6 +1008,11 @@ public sealed partial class IslandWindow : Window
                 RenderOnce();
             }
             while (_renderAgain && ++passes < 3);
+
+            if (started != 0)
+            {
+                SpaceNotch_App.Animations.FrameClock.ReportSlow("rendu", System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+            }
         }
         finally
         {
@@ -3929,6 +3935,13 @@ public sealed partial class IslandWindow : Window
             ToggleByUser("seconde instance");
         }
     }
+
+    /// <summary>
+    /// Contexte d'une rafale d'images pour la mesure de fluidité (<c>--frames</c>) :
+    /// l'état de la notch et ce qu'elle présente.
+    /// </summary>
+    public string MotionContext()
+        => _controller.State + (_controller.PresentedActivity is { } activity ? "[" + activity.SceneKey + "]" : "[repos]");
 
     /// <summary>
     /// Rejoue le scénario de démonstration dans la vraie notch : chaque étape est
