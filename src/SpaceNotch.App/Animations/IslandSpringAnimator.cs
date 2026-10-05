@@ -128,8 +128,9 @@ public sealed class IslandSpringAnimator : IShapeAnimator
             // Écrasement : MaxSquash de largeur au plus, voir Squash. Un mouvement
             // semé (tirer pour ouvrir) peut dépasser davantage : la fenêtre prend
             // alors aussi la forme elle-même, voir IslandWindow.WindowFrameFor.
-            double width = Math.Max(Math.Max(_fromWidth, _toWidth), _width) + (0.15 * Math.Abs(_toWidth - _fromWidth));
-            double height = Math.Max(Math.Max(_fromHeight, _toHeight), _height) + (0.15 * Math.Abs(_toHeight - _fromHeight));
+            const double share = SpaceNotch.Core.Motion.MotionPresets.EnvelopeShare;
+            double width = Math.Max(Math.Max(_fromWidth, _toWidth), _width) + (share * Math.Abs(_toWidth - _fromWidth));
+            double height = Math.Max(Math.Max(_fromHeight, _toHeight), _height) + (share * Math.Abs(_toHeight - _fromHeight));
 
             return new IslandFootprint(Math.Ceiling(width * (1 + SpaceNotch.Core.Motion.MotionPresets.MaxSquash)), Math.Ceiling(height));
         }

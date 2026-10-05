@@ -177,6 +177,41 @@ public static class FrameClock
         }
     }
 
+    /// <summary>
+    /// Détail d'une étape lourde (la géométrie de la notch) : journalisé seulement
+    /// au-delà du budget de 120 Hz, pour désigner la sous-étape qui coûte.
+    /// </summary>
+    /// <param name="what">Nom de l'étape.</param>
+    /// <param name="started">Horodatage <see cref="Stopwatch.GetTimestamp"/> du début.</param>
+    /// <param name="marks">Fin de chaque sous-étape, dans l'ordre.</param>
+    public static void ReportBreakdown(string what, long started, params (string Name, long At)[] marks)
+    {
+        if (_run is null || marks.Length == 0)
+        {
+            return;
+        }
+
+        double total = Stopwatch.GetElapsedTime(started, marks[^1].At).TotalMilliseconds;
+
+        if (total <= FrameRunStats.Budget120)
+        {
+            return;
+        }
+
+        var parts = new System.Text.StringBuilder();
+        long previous = started;
+
+        foreach ((string name, long at) in marks)
+        {
+            parts.Append(parts.Length == 0 ? string.Empty : ", ")
+                .Append(name).Append(' ')
+                .Append(Stopwatch.GetElapsedTime(previous, at).TotalMilliseconds.ToString("0.0", FrameRunStats.LogCulture));
+            previous = at;
+        }
+
+        MiniLogger.Log(string.Format(FrameRunStats.LogCulture, "[IMAGES] {0} lente {1:0.0} ms : {2}", what, total, parts));
+    }
+
     /// <summary>Coût de chaque abonné dans l'image en cours (mesure seulement).</summary>
     private static readonly System.Collections.Generic.List<(EventHandler<object> Handler, double Ms)> FrameCosts = [];
 

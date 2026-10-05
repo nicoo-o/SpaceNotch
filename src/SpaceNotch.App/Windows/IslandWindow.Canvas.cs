@@ -29,7 +29,7 @@ public sealed partial class IslandWindow
 {
     private int _canvasWidth;
     private int _canvasHeight;
-    private (int Left, int Top, int Width, double Scale) _canvasDisplay;
+    private (int Left, int Top, int Width, int Height, double Scale) _canvasDisplay;
     private (int X, int Y, int Width, int Height) _hitRect = (int.MinValue, 0, 0, 0);
 
     /// <summary>
@@ -39,14 +39,22 @@ public sealed partial class IslandWindow
     /// </summary>
     private void PlaceOnCanvas(DisplayInfo display, int centerX, int top, int frameWidthPx, int frameHeightPx)
     {
-        // Un autre écran, une autre échelle : la toile repart de la forme.
-        var identity = (display.Left, display.Top, display.Width, display.DpiScale);
+        // Un autre écran, une autre échelle : la toile repart, d'emblée à la taille
+        // de la plus grande scène. Partie de la forme du repos, elle grandissait à
+        // la première grande ouverture, et la notch était peinte décalée de la
+        // moitié de l'agrandissement pendant deux images (NotchCanvas).
+        //
+        // Sauf en plein mouvement (raccrochage d'une pastille détachée, retour
+        // d'une languette) : sauter d'un coup à la grande toile décalerait
+        // davantage la forme qui s'anime. Elle part alors de la forme, comme avant.
+        var identity = (display.Left, display.Top, display.Width, display.Height, display.DpiScale);
 
         if (identity != _canvasDisplay)
         {
             _canvasDisplay = identity;
-            _canvasWidth = 0;
-            _canvasHeight = 0;
+            (_canvasWidth, _canvasHeight) = _controller is { IsAnimating: true }
+                ? (0, 0)
+                : SpaceNotch.Core.Scenes.NotchCanvas.InitialSize(display.DpiScale, display.Width, display.Height);
         }
 
         _canvasWidth = Math.Max(_canvasWidth, frameWidthPx);

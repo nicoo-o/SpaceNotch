@@ -132,6 +132,14 @@ public static class MotionPresets
     public const double MaxSquash = 0.07;
 
     /// <summary>
+    /// Marge de l'enveloppe d'un mouvement de forme, en part du trajet : 15 %
+    /// couvrent le dépassement d'un amortissement jusqu'à 0,5. La fenêtre
+    /// (IslandSpringAnimator.Envelope) et sa toile (NotchCanvas) la partagent :
+    /// une toile plus petite que l'enveloppe grandirait en pleine transition.
+    /// </summary>
+    public const double EnvelopeShare = 0.15;
+
+    /// <summary>
     /// Bas de la forme gonflé par la vitesse verticale (Liquide doux), en DIP :
     /// positif quand la forme descend (le bas se bombe), négatif quand elle
     /// remonte (le bas se creuse un peu). 0,35 × clamp(v / 120, −6, 10).
