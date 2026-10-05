@@ -1356,7 +1356,7 @@
                             <ComboBox x:Name="DisplayBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="200" SelectionChanged="OnDisplayModeChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Encoche de la caméra Réserve la place de la caméra des portables à encoche. Largeur personnalisée.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Encoche de la caméra Seulement si l&#x27;écran de ton portable a une encoche pour la caméra. Largeur personnalisée. Camera notch Only if your laptop screen has a camera notch.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1370,7 +1370,7 @@
                             <views:GlyphView Key="Camera" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Encoche de la caméra', En='Camera notch'}" Style="{StaticResource NfSettingsTitleStyle}" />
-                                <TextBlock Text="{l:Loc Fr='Réserve la place de la caméra des portables à encoche.', En='Leaves room for the camera on laptops with a notch.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                                <TextBlock Text="{l:Loc Fr='Seulement si l’écran de ton portable a une encoche pour la caméra : la notch au repos la recouvre et s’élargit d’autant.', En='Only if your laptop screen has a camera notch: the resting notch covers it and gets wider.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
                             </StackPanel>
                             <ComboBox x:Name="CutoutBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="200" SelectionChanged="OnCutoutChanged" />
                             <Grid x:Name="CutoutWidthRow" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" ColumnSpacing="10" Visibility="Collapsed">
