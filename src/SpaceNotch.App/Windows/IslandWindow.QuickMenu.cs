@@ -158,15 +158,18 @@ public sealed partial class IslandWindow
     /// <summary>Presse-papier, étagère : le menu cède la place à l'activité demandée.</summary>
     private void PresentFromMenu(string activityId)
     {
-        _quickMenuFeature.Dismiss();
-
         if (HasActivity(activityId))
         {
+            // L'épingle avant de retirer le menu : au repos, une entrée de la pile
+            // seulement (le presse-papier) ne prend pas la tête d'elle-même ; menu
+            // retiré d'abord, la notch se repliait un instant avant de rouvrir.
             _activityManager.PinPresentation(activityId);
+            _quickMenuFeature.Dismiss();
             RevealPresented();
         }
         else
         {
+            _quickMenuFeature.Dismiss();
             _activityManager.PinPresentation(null);
             CollapseByUser("menu rapide");
         }

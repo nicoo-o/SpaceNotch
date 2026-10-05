@@ -41,6 +41,16 @@ public sealed class ActivityManager : IActivityManager
     /// </summary>
     private string? _pinnedActivityId;
 
+    /// <summary>
+    /// Échéance de l'épingle posée par la molette sur une entrée de la pile
+    /// (<see cref="Presentation.ActivityPresentationPolicy.Listed"/>) : une copie
+    /// qu'on vient regarder rend la main d'elle-même, sans minuteur propre.
+    /// </summary>
+    private DateTimeOffset? _pinnedUntil;
+
+    /// <summary>Temps pendant lequel une entrée de la pile, montrée par la molette, reste présentée.</summary>
+    public static readonly TimeSpan ListedPinLease = TimeSpan.FromSeconds(8);
+
     public ActivityManager()
         : this(() => DateTimeOffset.UtcNow)
     {
@@ -93,6 +103,14 @@ public sealed class ActivityManager : IActivityManager
         {
             previous = _currentActivity;
             _pinnedActivityId = activityId;
+
+            // Une entrée de la pile épinglée (menu rapide) rend aussi la main :
+            // sans bail, elle restait présentée après la fermeture.
+            _pinnedUntil = activityId is not null
+                && _activities.TryGetValue(activityId, out IslandActivity? target)
+                && Presentation.ActivityPolicies.Resolve(target) == Presentation.ActivityPresentationPolicy.Listed
+                    ? _clock() + ListedPinLease
+                    : null;
             next = EvaluateTop();
             _currentActivity = next;
 
@@ -117,8 +135,11 @@ public sealed class ActivityManager : IActivityManager
         lock (_lock)
         {
             List<IslandActivity> ordered = Order(_activities.Values).ToList();
+            int count = ordered.Count;
 
-            if (ordered.Count < 2)
+            // Depuis le repos, une seule entrée de la pile suffit à parcourir ;
+            // depuis une activité présentée, il faut une autre activité.
+            if (count == 0 || (_currentActivity is not null && count < 2))
             {
                 return false;
             }
@@ -126,16 +147,17 @@ public sealed class ActivityManager : IActivityManager
             int index = ordered.FindIndex(
                 a => string.Equals(a.Id, _currentActivity?.Id, StringComparison.Ordinal));
 
-            if (index < 0)
-            {
-                index = 0;
-            }
-
-            int count = ordered.Count;
-            int target = (((index + delta) % count) + count) % count;
+            // Au repos, la molette commence par la première (ou la dernière)
+            // entrée, au lieu de sauter d'un cran comme depuis une activité.
+            int target = index < 0
+                ? (delta > 0 ? 0 : count - 1)
+                : (((index + delta) % count) + count) % count;
 
             next = ordered[target];
             _pinnedActivityId = next.Id;
+            _pinnedUntil = Presentation.ActivityPolicies.Resolve(next) == Presentation.ActivityPresentationPolicy.Listed
+                ? _clock() + ListedPinLease
+                : null;
             _currentActivity = next;
             EnqueueChanged(next);
         }
@@ -172,6 +194,7 @@ public sealed class ActivityManager : IActivityManager
                 && activity.Priority > pinned.Priority)
             {
                 _pinnedActivityId = null;
+                _pinnedUntil = null;
             }
 
             EvictOverflowBackground(activity.Id, ref evicted);
@@ -301,7 +324,20 @@ public sealed class ActivityManager : IActivityManager
                 .Where(a => a.IsExpiredAt(now) && !string.Equals(a.Id, spare, StringComparison.Ordinal))
                 .ToList();
 
-            if (expired.Count == 0)
+            // Le bail d'une entrée de la pile montrée par la molette : échu, la
+            // notch rend la main — sauf si l'utilisateur la regarde (ouverte,
+            // survolée), comme pour l'expiration ordinaire.
+            bool leaseOver = _pinnedUntil is { } until
+                && until <= now
+                && !string.Equals(_pinnedActivityId, spare, StringComparison.Ordinal);
+
+            if (leaseOver)
+            {
+                _pinnedActivityId = null;
+                _pinnedUntil = null;
+            }
+
+            if (expired.Count == 0 && !leaseOver)
             {
                 return 0;
             }
@@ -337,6 +373,7 @@ public sealed class ActivityManager : IActivityManager
             DateTimeOffset? nearest = _activities.Values
                 .Where(a => !string.Equals(a.Id, spare, StringComparison.Ordinal))
                 .Select(a => a.ExpiresAt)
+                .Append(string.Equals(_pinnedActivityId, spare, StringComparison.Ordinal) ? null : _pinnedUntil)
                 .Where(e => e.HasValue)
                 .Select(e => e!.Value)
                 .DefaultIfEmpty()
@@ -505,9 +542,11 @@ public sealed class ActivityManager : IActivityManager
             // revient d'elle-même à l'arbitrage automatique. Sans cette remise à
             // zéro, la pile resterait figée sur une référence morte.
             _pinnedActivityId = null;
+            _pinnedUntil = null;
         }
 
-        return Order(_activities.Values).FirstOrDefault();
+        // Une entrée de la pile seulement n'est jamais présentée d'office.
+        return Order(_activities.Values.Where(a => Presentation.ActivityPolicies.Resolve(a) != Presentation.ActivityPresentationPolicy.Listed)).FirstOrDefault();
     }
 
     private static IEnumerable<IslandActivity> Order(IEnumerable<IslandActivity> source)

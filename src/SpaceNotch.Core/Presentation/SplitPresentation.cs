@@ -136,9 +136,11 @@ public static class SplitPresentation
             return null;
         }
 
+        // Une entrée de la pile seulement (une copie) n'est jamais montrée
+        // d'office, pas plus dans la bulle que dans la notch.
         List<IslandActivity> others = active
             .Where(a => !string.Equals(a.Id, presented.Id, StringComparison.Ordinal))
-            .Where(a => ActivityPolicies.Resolve(a) != ActivityPresentationPolicy.Temporary)
+            .Where(a => ActivityPolicies.Resolve(a) is not (ActivityPresentationPolicy.Temporary or ActivityPresentationPolicy.Listed))
             .OrderByDescending(a => a.Priority)
             .ThenByDescending(a => a.CreatedAt)
             .ToList();
@@ -167,15 +169,20 @@ public static class SplitPresentation
     {
         ArgumentNullException.ThrowIfNull(active);
 
+        // Au repos, les entrées de la pile seulement ne font pas de point : la
+        // lèvre reste nue, la molette sait les retrouver.
         List<IslandActivity> hidden = active
             .Where(a => presented is null || !string.Equals(a.Id, presented.Id, StringComparison.Ordinal))
             .Where(a => bubble is null || !string.Equals(a.Id, bubble.Id, StringComparison.Ordinal))
+            .Where(a => presented is not null || ActivityPolicies.Resolve(a) != ActivityPresentationPolicy.Listed)
             .ToList();
 
         if (presented is not null && ActivityPolicies.Resolve(presented) == ActivityPresentationPolicy.Temporary)
         {
+            // Ce que la notch retrouvera après le retour temporaire : jamais une
+            // entrée de la pile, qui ne revient pas d'office.
             IslandActivity? beneath = hidden
-                .Where(a => ActivityPolicies.Resolve(a) != ActivityPresentationPolicy.Temporary)
+                .Where(a => ActivityPolicies.Resolve(a) is not (ActivityPresentationPolicy.Temporary or ActivityPresentationPolicy.Listed))
                 .OrderByDescending(a => a.Priority)
                 .ThenByDescending(a => a.CreatedAt)
                 .FirstOrDefault();
