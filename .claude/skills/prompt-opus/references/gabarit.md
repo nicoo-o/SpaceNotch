@@ -3,9 +3,9 @@
 Forme relue le 2026-10-03 d'après « Prompting Claude Opus 5.5 » et « Prompting Claude Opus 5 »
 (`platform.claude.com/docs/en/build-with-claude/prompt-engineering/`). À relire si le modèle cible change.
 
-Remplacer chaque `{{…}}`. Les blocs sans `{{…}}` (`<conduite>` hors cadence, `<fin_de_session>`) sont
-stables : les garder tels quels, ils portent les parades aux défauts connus d'Opus 5.x (arrêts
-prématurés, sur-vérification, périmètre qui s'élargit).
+Remplacer chaque `{{…}}`. Le reste de `<conduite>` (hors cadence) et de `<fin_de_session>` est
+stable : le garder tel quel, il porte les parades aux défauts connus d'Opus 5.x (arrêts prématurés,
+sur-vérification, périmètre qui s'élargit).
 
 ## En-tête pour l'utilisateur (hors brief, dans le même fichier)
 
@@ -112,7 +112,7 @@ partout ; textes d'interface bilingues via `Lang.T`.
 
 <fin_de_session>
 Dans cet ordre :
-1. {{PR(s) ouvertes, jamais fusionnées, CI lue / autre livrable principal.}}
+1. {{PR(s) ouvertes et CI lue — fusionnées seulement si l'autorisation à part (SKILL.md §3) l'accorde — / autre livrable principal.}}
 2. {{Documents de suivi à jour (`docs/plans/…`).}}
 3. `docs/plans/relais-AAAA-MM-JJ.md` : état, décisions et leur raison en une ligne, reste à faire, et le
    texte du prochain brief, prêt à coller — il n'est pas facultatif (la première session l'avait omis).
