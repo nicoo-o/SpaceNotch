@@ -58,9 +58,17 @@ public static class LauncherLayout
     /// </summary>
     public const double ActionsPanelMinHeight = 380;
 
-    public static IslandFootprint FootprintFor(IReadOnlyList<LauncherSection> sections, bool actionsOpen = false)
+    /// <summary>
+    /// Rangée des quatre tuiles sous la recherche vide (ADR-028) : tuiles de 56,
+    /// marges de 8 au-dessus et au-dessous.
+    /// </summary>
+    public const double Tiles = 72;
+
+    public static IslandFootprint FootprintFor(IReadOnlyList<LauncherSection> sections, bool actionsOpen = false, bool tiles = false)
     {
-        double height = HeightFor(sections);
+        // Les tuiles s'ajoutent à ce que montre la recherche vide ; au-delà du
+        // plafond, c'est la liste qui défile, la toile ne grandit pas (NotchCanvas).
+        double height = Math.Min(MaxHeight, HeightFor(sections) + (tiles ? Tiles : 0));
 
         if (actionsOpen)
         {

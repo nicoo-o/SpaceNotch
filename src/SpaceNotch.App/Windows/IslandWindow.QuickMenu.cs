@@ -89,6 +89,35 @@ public sealed partial class IslandWindow
     {
         switch (request.ActionId)
         {
+            case QuickMenuTiles.TileAction:
+                // Tableau de bord (ADR-028) : la recherche cède la place à la
+                // commande de la tuile, exécutée comme depuis le menu rapide.
+                if (QuickMenuTiles.At(request.Value) is not { } tile)
+                {
+                    return true;
+                }
+
+                _launcherFeature.Dismiss();
+
+                if (tile.ActionId == QuickMenuFeature.MoreAction)
+                {
+                    ToggleQuickMenu();
+                    return true;
+                }
+
+                // Un minuteur qui tourne est montré, pas relancé à 15 min : le menu
+                // propose alors « Arrêter », la tuile ne doit pas l'écraser.
+                if (tile.ActionId == QuickMenuFeature.TimerAction && _timerFeature.IsMeasuring)
+                {
+                    PresentFromMenu(SpaceNotch.Features.Productivity.TimerFeature.ActivityId);
+                    return true;
+                }
+
+                // Une commande inconnue ne repart pas vers les fonctionnalités : le
+                // lanceur est déjà fermé, et la requête d'origine n'a pas de destinataire.
+                HandleQuickMenuAction(request with { ActionId = tile.ActionId, Value = tile.Value });
+                return true;
+
             case QuickMenuFeature.SearchAction:
                 CloseQuickMenu();
                 OpenLauncher();
