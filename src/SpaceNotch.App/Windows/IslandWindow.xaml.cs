@@ -1148,6 +1148,9 @@ public sealed partial class IslandWindow : Window
         {
             StopRestingHypnotic();
 
+            // Une leçon de geste ne se dessine pas sur une scène ouverte.
+            EndGestureLesson();
+
             if (scene is InfoScene generic)
             {
                 generic.AnimateHypnotic = AnimateHypnotic();

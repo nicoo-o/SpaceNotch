@@ -185,7 +185,14 @@ public sealed partial class IslandWindow
         if (!hovering)
         {
             _helpTimer?.Stop();
-            SetGestureHelp(false);
+
+            // La rangée d'une leçon n'appartient pas à l'aide Alt : la sortie du
+            // pointeur ne l'efface pas, le minuteur de la leçon s'en charge.
+            if (_lessonKey is null)
+            {
+                SetGestureHelp(false);
+            }
+
             return;
         }
 
@@ -194,6 +201,13 @@ public sealed partial class IslandWindow
         {
             // Alt doit rester enfoncé un instant au survol : un Alt bref, qui
             // vise la barre de menus de l'application, ne montre rien.
+            // Pendant une leçon, la rangée est à elle : sans cette garde, le
+            // pointeur qui entrait pour essayer le geste l'effaçait en 100 ms.
+            if (_lessonKey is not null)
+            {
+                return;
+            }
+
             long now = Environment.TickCount64;
             bool alt = NativeMethods.IsKeyDown(AltKey);
             _altSince = alt ? (_altSince == 0 ? now : _altSince) : 0;
@@ -240,7 +254,7 @@ public sealed partial class IslandWindow
 
         if (shown)
         {
-            AnnounceText(string.Join(", ", _helpTips.Select(t => t.Gesture + " : " + t.Effect)));
+            AnnounceText((tips is null ? string.Empty : Lang.T("Astuce : ", "Tip: ")) + string.Join(", ", _helpTips.Select(t => t.Gesture + " : " + t.Effect)));
         }
 
         // Le contenu remonte pour laisser la rangée en dessous (la rangée reste dans la notch).
@@ -322,7 +336,9 @@ public sealed partial class IslandWindow
     /// </summary>
     private void ConsiderGestureLesson(IslandActivity? activity)
     {
-        if (_helpShown || !_islandShown)
+        // Ni languette (la rangée la déformerait), ni retrait, ni verrouillage
+        // (consommée sans être vue), ni visite filmée.
+        if (_helpShown || !_islandShown || _sessionLocked || _touring || UsesSideTab)
         {
             return;
         }
@@ -332,15 +348,21 @@ public sealed partial class IslandWindow
             return;
         }
 
-        _lessonsShown.Add(lesson.Key);
         _lessonKey = lesson.Key;
 
         // Hors du rendu en cours : la rangée change la forme et redemande un rendu.
+        // Comptée « montrée » seulement quand elle s'affiche vraiment : remplacée
+        // avant, elle restait due.
         _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
         {
-            if (_lessonKey == lesson.Key)
+            if (_lessonKey == lesson.Key && !_isClosed && _controller.State == IslandState.Closed)
             {
+                _lessonsShown.Add(lesson.Key);
                 SetGestureHelp(true, [lesson.Tip]);
+            }
+            else if (_lessonKey == lesson.Key)
+            {
+                _lessonKey = null;
             }
         });
 

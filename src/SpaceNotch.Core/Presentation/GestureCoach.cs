@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using SpaceNotch.Core.Activities;
-using SpaceNotch.Core.Scenes;
+using SpaceNotch.Core.Features;
 
 namespace SpaceNotch.Core.Presentation;
 
@@ -48,10 +48,13 @@ public static class GestureCoach
             return null;
         }
 
-        string? key = presented.SceneKey switch
+        // La fonctionnalité, pas la scène : la musique de la visite ou de la
+        // démo a la scène Media, mais la molette n'y règle pas le volume
+        // (NotchGestures.WheelControlsVolume regarde aussi la fonctionnalité).
+        string? key = presented.FeatureId switch
         {
-            IslandSceneCatalog.Media => WheelVolume,
-            IslandSceneCatalog.Clipboard => WheelStack,
+            FeatureKeys.Media => WheelVolume,
+            FeatureKeys.Clipboard => WheelStack,
             _ => null
         };
 

@@ -1,4 +1,5 @@
 using SpaceNotch.Core.Activities;
+using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using Xunit;
@@ -12,10 +13,15 @@ namespace SpaceNotch.Core.Tests;
 /// </summary>
 public sealed class GestureCoachTests
 {
-    private static IslandActivity Scene(string sceneKey) => new()
+    private static IslandActivity Scene(string sceneKey, string? featureId = null) => new()
     {
         Id = "test",
-        FeatureId = "test",
+        FeatureId = featureId ?? sceneKey switch
+        {
+            IslandSceneCatalog.Media => FeatureKeys.Media,
+            IslandSceneCatalog.Clipboard => FeatureKeys.Clipboard,
+            _ => "test"
+        },
         SceneKey = sceneKey,
         Title = "Titre",
         Priority = ActivityPriority.Normal
@@ -53,4 +59,8 @@ public sealed class GestureCoachTests
     [Fact]
     public void Rien_pour_une_activite_sans_geste_a_enseigner()
         => Assert.Null(GestureCoach.Next(Scene(IslandSceneCatalog.Notification), atRest: true, learned: [], shown: []));
+
+    [Fact]
+    public void La_musique_de_la_demo_ou_de_la_visite_n_enseigne_rien()
+        => Assert.Null(GestureCoach.Next(Scene(IslandSceneCatalog.Media, featureId: "test"), atRest: true, learned: [], shown: []));
 }
