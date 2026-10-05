@@ -1,6 +1,6 @@
 # ADR-028 — Accès aux fonctions : un tableau de bord au clic, des gestes enseignés en contexte
 
-**Statut** : Proposé
+**Statut** : Accepté (version à préciser à la publication)
 
 ## Contexte
 
