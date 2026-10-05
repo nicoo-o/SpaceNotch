@@ -112,7 +112,7 @@ public sealed partial class IslandWindow
     /// <summary>Arme la surveillance de l'inactivité tant que le repos est montré.</summary>
     private void ArmDozeWatch(bool atRest)
     {
-        if (!atRest || !PixelAtRest || _sessionLocked)
+        if (!atRest || !PixelAtRest || !LoopsShown())
         {
             _dozeTimer?.Stop();
             return;

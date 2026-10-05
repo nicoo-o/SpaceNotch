@@ -28,6 +28,7 @@ pourquoi la première avait été retenue.
 | [ADR-025](ADR-025-assistant-local-ou-distant.md) | Assistant : règles locales d'abord, Phi Silica sur l'appareil ou Claude avec ta clé | Accepté |
 | [ADR-026](ADR-026-telephone-et-salons.md) | Téléphone (Lien avec Windows), Discord (RPC local), paroles et Spotify, miroir webcam | Accepté |
 | [ADR-027](ADR-027-mise-a-jour-automatique.md) | Mise à jour automatique depuis les releases GitHub, vérifiée par SHA-256, installée au calme | Accepté |
+| [ADR-028](ADR-028-acces-tableau-de-bord-et-gestes-enseignes.md) | Le clic au repos ouvre la recherche et quatre tuiles ; les gestes s'enseignent au moment utile, dans la notch | Accepté |
 
 ## Format
 

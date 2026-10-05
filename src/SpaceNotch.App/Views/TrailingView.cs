@@ -77,7 +77,7 @@ public sealed partial class TrailingView : Grid
         Unloaded += (_, _) =>
         {
             StopDancing();
-            _spinTimer?.Stop();
+            RunSpin(false);
         };
     }
 
@@ -139,7 +139,7 @@ public sealed partial class TrailingView : Grid
         if (!visible)
         {
             StopDancing();
-            _spinTimer?.Stop();
+            RunSpin(false);
             _shown = trailing;
             return;
         }
@@ -163,12 +163,12 @@ public sealed partial class TrailingView : Grid
         }
         else if (equalizer)
         {
-            _spinTimer?.Stop();
+            RunSpin(false);
             StartDancing();
         }
         else
         {
-            _spinTimer?.Stop();
+            RunSpin(false);
             StopDancing();
             double sweep = trailing.Kind == TrailingKind.Battery ? BatterySweep : 360;
             double start = trailing.Kind == TrailingKind.Battery ? 135 : -90;
@@ -210,7 +210,7 @@ public sealed partial class TrailingView : Grid
 
             if (GlyphView.AnimationsEnabled)
             {
-                _spinTimer.Start();
+                RunSpin(true);
             }
 
             PlaceSpinner(SpinnerCheck.Ring((DateTime.UtcNow - _spinStart).TotalSeconds), _tint);
@@ -220,7 +220,7 @@ public sealed partial class TrailingView : Grid
         // Fin sans avoir tourné, ou animations réduites : la coche d'emblée.
         if (!wasSpinning || !GlyphView.AnimationsEnabled)
         {
-            _spinTimer.Stop();
+            RunSpin(false);
             _morphing = false;
             PlaceSpinner(SpinnerCheck.Done(), new SolidColorBrush(CheckGreen));
             return;
@@ -229,7 +229,7 @@ public sealed partial class TrailingView : Grid
         _frozenAt = (DateTime.UtcNow - _spinStart).TotalSeconds;
         _morphStart = DateTime.UtcNow;
         _morphing = true;
-        _spinTimer.Start();
+        RunSpin(true);
     }
 
     private Microsoft.UI.Dispatching.DispatcherQueueTimer CreateSpinTimer()
@@ -245,7 +245,7 @@ public sealed partial class TrailingView : Grid
                 if (p >= 1)
                 {
                     _morphing = false;
-                    timer.Stop();
+                    RunSpin(false);
                     PlaceSpinner(SpinnerCheck.Done(), new SolidColorBrush(CheckGreen));
                     return;
                 }
@@ -353,7 +353,7 @@ public sealed partial class TrailingView : Grid
                 _danceTimer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) => Dance());
             }
 
-            _danceTimer.Start();
+            RunDance(true);
         }
         catch (Exception)
         {
@@ -377,30 +377,47 @@ public sealed partial class TrailingView : Grid
 
             _suspended = value;
 
-            if (value)
-            {
-                _spinWasRunning = _spinTimer?.IsRunning == true;
-                _danceWasRunning = _danceTimer?.IsRunning == true;
-                _spinTimer?.Stop();
-                _danceTimer?.Stop();
-                return;
-            }
-
-            if (_spinWasRunning)
-            {
-                _spinTimer?.Start();
-            }
-
-            if (_danceWasRunning)
-            {
-                _danceTimer?.Start();
-            }
+            // Ce qui est voulu, et non ce qui tournait : pendant le retrait, le
+            // rendu peut redemander la toupie (il la relançait, notch cachée),
+            // ou une coche peut remplacer la toupie (elle repartait au retour).
+            RunSpin(_spinWanted);
+            RunDance(_danceWanted);
         }
     }
 
     private bool _suspended;
-    private bool _spinWasRunning;
-    private bool _danceWasRunning;
+    private bool _spinWanted;
+    private bool _danceWanted;
+
+    /// <summary>Démarre ou arrête la toupie, jamais pendant le retrait.</summary>
+    private void RunSpin(bool on)
+    {
+        _spinWanted = on;
+
+        if (on && !_suspended)
+        {
+            _spinTimer?.Start();
+        }
+        else
+        {
+            _spinTimer?.Stop();
+        }
+    }
+
+    /// <summary>Démarre ou arrête l'égaliseur, jamais pendant le retrait.</summary>
+    private void RunDance(bool on)
+    {
+        _danceWanted = on;
+
+        if (on && !_suspended)
+        {
+            _danceTimer?.Start();
+        }
+        else
+        {
+            _danceTimer?.Stop();
+        }
+    }
 
     private SpaceNotch.Platform.Windows.Audio.AudioPeakMeter? _meter;
     private Microsoft.UI.Dispatching.DispatcherQueueTimer? _danceTimer;
@@ -426,7 +443,7 @@ public sealed partial class TrailingView : Grid
         }
 
         _dancing = false;
-        _danceTimer?.Stop();
+        RunDance(false);
         _level = 0;
 
         try

@@ -33,6 +33,9 @@ public sealed class QuickMenuFeature : IslandFeatureBase
     public const string SettingsAction = "menu.settings";
     public const string QuitAction = "menu.quit";
 
+    /// <summary>Tuile « Plus » du tableau de bord (ADR-028) : ouvre ce menu.</summary>
+    public const string MoreAction = "menu.more";
+
     public const string ActivityId = "feature.quickmenu.current";
 
     private QuickMenuPayload? _state;

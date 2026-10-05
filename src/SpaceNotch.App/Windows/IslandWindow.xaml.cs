@@ -170,6 +170,11 @@ public sealed partial class IslandWindow : Window
     /// <summary>Racine de la scène ouverte affichée, pour ne jouer son entrée qu'une fois.</summary>
     private FrameworkElement? _visibleSceneRoot;
 
+    /// <summary>Scène qui sort en fondu pendant le repli, et ce que le fondu lui a pris.</summary>
+    private FrameworkElement? _leavingSceneRoot;
+    private (double Width, double Height, HorizontalAlignment Horizontal, VerticalAlignment Vertical, bool HitTest, Thickness Margin) _leavingSceneSaved;
+    private int _sceneLeaveGeneration;
+
     /// <summary>Octets de la pochette compacte affichée, pour ne la décoder qu'au changement.</summary>
     private byte[]? _restArtworkBytes;
 
@@ -537,9 +542,28 @@ public sealed partial class IslandWindow : Window
 
     /// <summary>
     /// Le mouvement hypnotique est-il joué ? Sous réduction des animations, ou
-    /// si l'utilisateur l'a éteint, la composition est posée fixe.
+    /// si l'utilisateur l'a éteint, la composition est posée fixe — et aussi
+    /// tant que personne ne la voit (<see cref="LoopsShown"/>).
     /// </summary>
-    private bool AnimateHypnotic() => UseSpringAnimations() && _settings.AllowHypnoticMotion;
+    private bool AnimateHypnotic() => UseSpringAnimations() && _settings.AllowHypnoticMotion && LoopsShown();
+
+    /// <summary>
+    /// La matière qui boucle (grilles, pulsation de l'atmosphère, pluie, Clawd)
+    /// ne tourne que devant quelqu'un. Retirée devant un plein écran ou derrière
+    /// l'écran de verrouillage, la notch la laissait tourner : 26 à 37 % d'un
+    /// cœur sur le fil du compositeur (constats du 2026-10-03). Le rendu
+    /// demandé par <see cref="SuspendLife"/> la pose fixe, puis la relance au retour.
+    /// </summary>
+    private bool LoopsShown() => _islandShown && !_sessionLocked;
+
+    /// <summary>
+    /// Le reflet d'un texte au travail est une animation dépendante : elle
+    /// recalcule chaque image sur le fil d'interface, ~8 % d'un cœur tant que
+    /// Claude travaillait, notch retirée comprise (mesure du 2026-10-05). Il ne
+    /// tourne que devant quelqu'un, et se fige avec la grille au bout de
+    /// l'apaisement : passé 20 s, il n'apprend plus rien.
+    /// </summary>
+    private bool AnimateShimmer() => UseSpringAnimations() && LoopsShown() && !HypnoticResting();
 
     /// <summary>
     /// Donne à un emplacement de glyphe sa grille hypnotique, ou son glyphe.
@@ -572,16 +596,22 @@ public sealed partial class IslandWindow : Window
         HypnoticPreset preset = HypnoticField.Resolve(activity.MotionState, activity.MotionPreset);
         bool looking = _controller.State is IslandState.Preview or IslandState.Expanding or IslandState.Expanded;
 
-        if (preset != _runningPreset || looking)
+        // Une autre activité relance aussi le compte : de même préréglage que la
+        // précédente, elle naissait déjà apaisée — grille figée, sans reflet.
+        if (preset != _runningPreset || looking || !string.Equals(activity.Id, _runningActivityId, StringComparison.Ordinal))
         {
             _runningPreset = preset;
             _runningSince = DateTimeOffset.UtcNow;
+            _runningActivityId = activity.Id;
         }
 
         ArmAttenuation();
 
         return preset;
     }
+
+    /// <summary>Activité dont l'apaisement compte le temps.</summary>
+    private string? _runningActivityId;
 
     /// <summary>
     /// Vrai lorsqu'une boucle compacte tourne depuis assez longtemps pour se
@@ -620,6 +650,18 @@ public sealed partial class IslandWindow : Window
         _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
         _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
         _tabHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+        StopRestingShimmer();
+    }
+
+    /// <summary>
+    /// Le reflet des textes de repos : une scène ouverte, le repos vide ou la
+    /// languette ne passent pas par PresentResting, et il tournait sous eux
+    /// (animation dépendante, fil d'interface), notch retirée comprise.
+    /// </summary>
+    private void StopRestingShimmer()
+    {
+        ShimmerText.Set(SignalLabel, working: false, animate: false);
+        ShimmerText.Set(CardHeadline, working: false, animate: false);
     }
 
     // ------------------------------------------------------------------
@@ -695,6 +737,15 @@ public sealed partial class IslandWindow : Window
         try
         {
             _diagnostics.CountEvent();
+
+            // Une scène qui sort en fondu garde le clavier jusqu'à la fermeture :
+            // un second Entrée tapé pendant le fondu relançait l'application
+            // choisie dans le lanceur, ou détachait deux fois depuis le menu.
+            if (_leavingSceneRoot is { } leaving
+                && (ReferenceEquals(sender, leaving) || (sender is IIslandSceneView view && ReferenceEquals(view.Root, leaving))))
+            {
+                return;
+            }
 
             // Les commandes du menu rapide touchent la fenêtre : elles sont
             // exécutées ici, pas par une fonctionnalité.
@@ -1030,6 +1081,84 @@ public sealed partial class IslandWindow : Window
     private bool _rendering;
     private bool _renderAgain;
 
+    /// <summary>
+    /// La scène quittée sort en fondu : figée à sa taille et centrée, pour que
+    /// la forme qui se retire la découpe au lieu de la remettre en page à chaque
+    /// image, transparente au pointeur, puis repliée à la fin du fondu. Ses
+    /// commandes sont ignorées pendant le fondu (OnSceneActionRequested).
+    /// </summary>
+    /// <param name="root">Racine de la scène quittée.</param>
+    /// <param name="tabRowLost">
+    /// Hauteur de la rangée d'onglets que le même rendu vient de retirer
+    /// (<see cref="UpdateTabs"/> remet le retrait du contenu à zéro) : rendue à
+    /// la scène figée, qui sinon remontait d'autant à la première image du fondu.
+    /// </param>
+    private void BeginSceneLeave(FrameworkElement root, double tabRowLost)
+    {
+        EndSceneLeave(collapse: true);
+
+        if (root.Visibility != Visibility.Visible || root.ActualWidth <= 0 || root.ActualHeight <= 0)
+        {
+            return;
+        }
+
+        int generation = ++_sceneLeaveGeneration;
+        _leavingSceneRoot = root;
+        _leavingSceneSaved = (root.Width, root.Height, root.HorizontalAlignment, root.VerticalAlignment, root.IsHitTestVisible, root.Margin);
+        root.Width = root.ActualWidth;
+        root.Height = root.ActualHeight;
+        root.HorizontalAlignment = HorizontalAlignment.Center;
+        root.VerticalAlignment = VerticalAlignment.Top;
+        root.IsHitTestVisible = false;
+
+        if (tabRowLost > 0)
+        {
+            Thickness margin = root.Margin;
+            root.Margin = new Thickness(margin.Left, margin.Top + tabRowLost, margin.Right, margin.Bottom);
+        }
+
+        void Finish()
+        {
+            if (generation == _sceneLeaveGeneration && !_isClosed)
+            {
+                EndSceneLeave(collapse: true);
+            }
+        }
+
+        if (!ContentTransition.Leave(root, UseSpringAnimations(), () => _dispatcherQueue.TryEnqueue(Finish)))
+        {
+            EndSceneLeave(collapse: true);
+            return;
+        }
+
+        // Filet : un lot de composition qui ne s'achève jamais (périphérique
+        // graphique perdu) laisserait la scène à demi visible sur le repos.
+        RunAfter(ContentTransition.LeaveDuration + TimeSpan.FromMilliseconds(150), Finish);
+    }
+
+    /// <summary>
+    /// Fin du fondu de sortie : la scène retrouve sa mise en page, et n'est
+    /// repliée que si elle n'est pas aussitôt rouverte (replier puis réafficher
+    /// lui ferait perdre le focus).
+    /// </summary>
+    private void EndSceneLeave(bool collapse)
+    {
+        if (_leavingSceneRoot is not { } root)
+        {
+            return;
+        }
+
+        _sceneLeaveGeneration++;
+        _leavingSceneRoot = null;
+        (root.Width, root.Height, root.HorizontalAlignment, root.VerticalAlignment, root.IsHitTestVisible, root.Margin) = _leavingSceneSaved;
+        ContentTransition.Settle(root);
+
+        if (collapse)
+        {
+            root.Visibility = Visibility.Collapsed;
+        }
+    }
+
     private void RenderOnce()
     {
         // L'achèvement d'un dépôt occupe la notch le temps de sa convergence :
@@ -1057,6 +1186,7 @@ public sealed partial class IslandWindow : Window
         IslandState previousState = _lastRenderedState;
         _lastPresentedId = activity?.Id;
         Celebrate(activity);
+        double tabRowBefore = ContentArea.Padding.Top;
         UpdateTabs(activity, expanded);
         UpdateFocusTrace();
         _lastRenderedState = _controller.State;
@@ -1078,12 +1208,32 @@ public sealed partial class IslandWindow : Window
             ? targetScene.Root
             : null;
 
+        // Au repli, la scène quittée sort en fondu pendant que la forme se
+        // retire : repliée à t = 0, elle laissait une forme vide se refermer
+        // pendant ~260 ms (rafale du 2026-10-04). Une scène rouverte, ou une
+        // autre qui s'ouvre, arrête ce fondu.
+        if (targetRoot is not null)
+        {
+            EndSceneLeave(collapse: !ReferenceEquals(_leavingSceneRoot, targetRoot));
+        }
+        else if (_visibleSceneRoot is { } leaving)
+        {
+            BeginSceneLeave(leaving, tabRowBefore - ContentArea.Padding.Top);
+        }
+
         foreach (FrameworkElement root in _sceneRoots)
         {
-            if (!ReferenceEquals(root, targetRoot))
+            if (!ReferenceEquals(root, targetRoot) && !ReferenceEquals(root, _leavingSceneRoot))
             {
                 root.Visibility = Visibility.Collapsed;
             }
+        }
+
+        // Remis à zéro avant le repos vide aussi : il gardait la scène quittée,
+        // et la rouvrir ne rejouait ni son entrée ni la prise du clavier.
+        if (targetRoot is null)
+        {
+            _visibleSceneRoot = null;
         }
 
         // Ce qui était visible avant ce rendu : un texte remplacé sur une vue qui
@@ -1139,10 +1289,19 @@ public sealed partial class IslandWindow : Window
             // Les deux visages du repos (yeux, heure et météo) et la transition C.
             ApplyRestFace();
 
+            // Après une scène, le repos attend qu'elle soit sortie : l'heure se
+            // posait sur le texte de la scène encore lisible.
+            if (wasShowingScene && _leavingSceneRoot is not null)
+            {
+                ContentTransition.Play(IdleRestView, UseSpringAnimations(), ContentTransition.LeaveDuration);
+            }
+
             // « Annuler » prend la place des yeux le temps de l'annulation.
             ShowUndo();
             ArmDozeWatch(atRest: true);
-            ArmClockTick(IdleClock.Visibility == Visibility.Visible);
+            // Retirée ou verrouillée, l'heure n'a personne à qui parler : un rendu
+            // complet par minute, toute la nuit. Le rendu du retour la réarme.
+            ArmClockTick(IdleClock.Visibility == Visibility.Visible && LoopsShown());
             return;
         }
 
@@ -1153,6 +1312,9 @@ public sealed partial class IslandWindow : Window
         if (expanded && known && scene is not null)
         {
             StopRestingHypnotic();
+
+            // Une leçon de geste ne se dessine pas sur une scène ouverte.
+            EndGestureLesson();
 
             if (scene is InfoScene generic)
             {
@@ -1166,6 +1328,10 @@ public sealed partial class IslandWindow : Window
             else if (scene is ClipboardScene clipboard)
             {
                 clipboard.AnimateSwipe = UseSpringAnimations();
+            }
+            else if (scene is LauncherScene launcherTiles)
+            {
+                launcherTiles.ClipboardEmpty = !HasActivity(ClipboardFeature.ActivityId);
             }
 
             scene.Apply(activity);
@@ -1219,21 +1385,24 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        _visibleSceneRoot = null;
         InfoSceneView.Rest();
         RestMirror();
 
         PresentResting(activity);
+        ConsiderGestureLesson(activity);
 
         if (wasShowingScene)
         {
-            // Fermeture : la scène est partie avec la forme, la forme compacte
-            // revient floue et se précise pendant que la notch se referme.
+            // Fermeture : la scène sort en fondu avec la forme, puis la forme
+            // compacte revient floue et se précise pendant que la notch se
+            // referme — jamais deux textes lisibles l'un sur l'autre.
             PlayVeil();
 
             if (VisibleRestView() is { } rest)
             {
-                ContentTransition.Play(rest, UseSpringAnimations(), TimeSpan.FromMilliseconds(60));
+                // Sans fondu de sortie (compositeur qui refuse), rien à attendre.
+                TimeSpan wait = _leavingSceneRoot is not null ? ContentTransition.LeaveDuration : TimeSpan.FromMilliseconds(60);
+                ContentTransition.Play(rest, UseSpringAnimations(), wait);
             }
         }
         else if (changedActivity)
@@ -1286,6 +1455,7 @@ public sealed partial class IslandWindow : Window
         // ou la grille, et la jauge. Le texte attend l'ouverture.
         if (UsesSideTab)
         {
+            StopRestingShimmer();
             PresentTab(activity, preset);
             return;
         }
@@ -1299,7 +1469,7 @@ public sealed partial class IslandWindow : Window
             SignalGlyph.Key = activity.IconKey;
             PlayArrival(activity, SignalGlyph);
             SetText(SignalLabel, activity.Title, _signalWasVisible, veil: true);
-            ShimmerText.Set(SignalLabel, activity.MotionState == ActivityMotionState.Working, UseSpringAnimations());
+            ShimmerText.Set(SignalLabel, activity.MotionState == ActivityMotionState.Working, AnimateShimmer());
             ShimmerText.Set(CardHeadline, working: false, animate: false);
             SetText(SignalMetric, metric, _signalWasVisible, metric: true);
             SignalMetric.Visibility = metricVisibility;
@@ -1338,7 +1508,7 @@ public sealed partial class IslandWindow : Window
         // déjà visible se remplace sur place, par un fondu : la carte reste.
         SetText(CardSubhead, SubheadFor(activity), _cardWasVisible);
         SetText(CardHeadline, activity.Title, _cardWasVisible, veil: true);
-        ShimmerText.Set(CardHeadline, activity.MotionState == ActivityMotionState.Working, UseSpringAnimations());
+        ShimmerText.Set(CardHeadline, activity.MotionState == ActivityMotionState.Working, AnimateShimmer());
         ShimmerText.Set(SignalLabel, working: false, animate: false);
         SetText(CardMetric, metric, _cardWasVisible, metric: true);
         CardMetric.Visibility = metricVisibility;
@@ -1730,12 +1900,20 @@ public sealed partial class IslandWindow : Window
     private void ApplyShape(IslandFootprint footprint)
     {
         NotchGeometry geometry = _settings.Geometry;
+        long shapeStarted = SpaceNotch_App.Animations.FrameClock.Measuring ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+
+        // Les images lentes de la forme tombent sur un GC de génération 0 (pause
+        // de 11 à 14 ms, 2026-10-04) : la ligne le dit, pour suivre le correctif.
+        TimeSpan gcBefore = shapeStarted != 0 ? GC.GetTotalPauseDuration() : TimeSpan.Zero;
+        int gen0Before = shapeStarted != 0 ? GC.CollectionCount(0) : 0;
 
         double radius = geometry.RadiusFor(footprint);
         double shoulder = geometry.ShoulderFor(footprint);
 
         Geometry? silhouette = DeformedSilhouette(footprint) ?? _shape.Build(footprint, radius, geometry.Smoothing, shoulder: shoulder);
+        long afterSilhouette = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         RememberOutline(() => geometry.Silhouette(footprint));
+        long afterVeil = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
 
         // Une géométrie nulle signifie « identique à la précédente » : le tracé
         // déjà posé est conservé, ce qui évite une reconstruction par image
@@ -1745,6 +1923,7 @@ public sealed partial class IslandWindow : Window
             SurfaceFill.Data = silhouette;
         }
 
+        long afterFill = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         UpdateFocusTrace(footprint);
 
         // Le sablier se pose sous les lignes de la carte : tant que la forme n'a
@@ -1756,11 +1935,26 @@ public sealed partial class IslandWindow : Window
         // l'empêche de mordre dans les congés sur les paliers bas : à 34 de haut,
         // une bande de 22 lui ferait dessiner sa propre arête.
         double band = Math.Min(_specularHeight, footprint.Height * 0.45);
+        long afterFocus = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         Geometry? specular = _shape.Build(footprint, radius, geometry.Smoothing, band, shoulder);
+        long afterSpecularBuild = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
 
         if (specular is not null)
         {
             SpecularFill.Data = specular;
+        }
+
+        if (shapeStarted != 0)
+        {
+            SpaceNotch_App.Animations.FrameClock.ReportBreakdown(
+                $"forme (GC {GC.CollectionCount(0) - gen0Before} · pause {(GC.GetTotalPauseDuration() - gcBefore).TotalMilliseconds:0.0} ms)",
+                shapeStarted,
+                ("silhouette", afterSilhouette),
+                ("voile", afterVeil),
+                ("tracé", afterFill),
+                ("focus", afterFocus),
+                ("reflet", afterSpecularBuild),
+                ("pose du reflet", System.Diagnostics.Stopwatch.GetTimestamp()));
         }
 
         // Le contenu se mesure depuis les flancs, pas depuis les épaules : les
@@ -2016,7 +2210,10 @@ public sealed partial class IslandWindow : Window
             footprint = Detachment.Pulled(footprint, _pull);
         }
 
+        // Mesure de fluidité (--frames) : le détail des images de géométrie lentes.
+        long measured = SpaceNotch_App.Animations.FrameClock.Measuring ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         DisplayInfo display = ResolveDisplay();
+        long afterDisplay = measured != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         double scale = display.DpiScale;
 
         int widthPx = MonitorDpi.ToPhysicalPixels(footprint.Width, scale);
@@ -2053,6 +2250,7 @@ public sealed partial class IslandWindow : Window
         // La fenêtre, elle, est une toile qui ne fait que grandir ; seule sa
         // région suit la forme. Voir IslandWindow.Canvas.
         PlaceOnCanvas(display, display.Left + (display.Width / 2) + offsetX, y, frameWidthPx, frameHeightPx);
+        long afterCanvas = measured != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
 
         // Le corps XAML, lui, suit chaque image : c'est lui qui porte le morphing
         // sous-pixel, et il ne coûte qu'une passe de disposition sur un arbre
@@ -2061,6 +2259,7 @@ public sealed partial class IslandWindow : Window
         IslandBody.Height = footprint.Height;
 
         ApplyShape(footprint);
+        long afterShape = measured != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
 
         // Défensif : la géométrie est aussi calculée pendant la construction de
         // la fenêtre, avant que la couche décorative existe.
@@ -2076,11 +2275,24 @@ public sealed partial class IslandWindow : Window
             geometry.RadiusFor(footprint),
             geometry.ShoulderFor(footprint),
             DeploymentFor(footprint.Height)));
+        long afterAtmosphere = measured != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
 
         PlaceBubbleAttached(
             display,
             new ScreenRect((x - display.Left) / scale, 0, footprint.Width, footprint.Height),
             footprint);
+
+        if (measured != 0)
+        {
+            SpaceNotch_App.Animations.FrameClock.ReportBreakdown(
+                "géométrie",
+                measured,
+                ("écran", afterDisplay),
+                ("toile", afterCanvas),
+                ("forme", afterShape),
+                ("atmosphère", afterAtmosphere),
+                ("bulle", System.Diagnostics.Stopwatch.GetTimestamp()));
+        }
     }
 
     /// <summary>
@@ -2277,6 +2489,14 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void SuspendLife(bool suspend)
     {
+        // Montrée pendant le verrouillage (la présence change derrière l'écran
+        // de verrouillage) : rien ne reprend avant le déverrouillage, qui
+        // rappelle cette méthode.
+        if (!suspend && !LoopsShown())
+        {
+            return;
+        }
+
         SignalTrailing.Suspended = suspend;
         CardTrailing.Suspended = suspend;
 
@@ -2285,6 +2505,10 @@ public sealed partial class IslandWindow : Window
             StopRestPixel();
             _dozeTimer?.Stop();
             StopMagnet();
+
+            // Grilles, pulsation, pluie et Clawd : le rendu les pose fixes,
+            // puisque LoopsShown() est maintenant faux.
+            RequestRender();
             return;
         }
 
@@ -3223,6 +3447,7 @@ public sealed partial class IslandWindow : Window
         // Ctrl + molette : le presse-papier en pile (vague 7).
         if (ctrl && !properties.IsHorizontalMouseWheel && CycleClipStack(delta))
         {
+            LearnGesture(SpaceNotch.Core.Presentation.GestureCoach.WheelStack);
             e.Handled = true;
             return;
         }
@@ -3258,6 +3483,7 @@ public sealed partial class IslandWindow : Window
             }
 
             _volumeListener.SetLevel((float)VolumeFader.Wheel(level, delta / 120.0));
+            LearnGesture(SpaceNotch.Core.Presentation.GestureCoach.WheelVolume);
             _diagnostics.CountEvent();
             e.Handled = true;
             return;

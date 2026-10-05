@@ -641,6 +641,12 @@ public sealed class AppSettings
     public List<string> IgnoredNotificationApps { get; set; } = [];
 
     /// <summary>
+    /// Gestes déjà utilisés (ADR-028) : la notch ne les enseigne plus. Clés de
+    /// <c>GestureCoach</c> (« wheel.volume »…).
+    /// </summary>
+    public List<string> LearnedGestures { get; set; } = [];
+
+    /// <summary>
     /// Profondeur appliquée lorsqu'on active la surveillance sans en choisir une.
     ///
     /// Assez pour retrouver ce qu'on vient de copier, assez peu pour que
@@ -840,6 +846,7 @@ public sealed class AppSettings
     {
         LauncherFavorites ??= [];
         IgnoredNotificationApps ??= [];
+        LearnedGestures ??= [];
         ApprovedPlugins ??= [];
         WebSearchEngine = WebSearchEngine is "bing" or "google" or "duckduckgo" ? WebSearchEngine : "bing";
         LauncherHotkey = string.IsNullOrWhiteSpace(LauncherHotkey) ? "auto" : LauncherHotkey;

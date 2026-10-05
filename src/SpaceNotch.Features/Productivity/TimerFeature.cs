@@ -42,7 +42,8 @@ public sealed class TimerFeature : IslandFeatureBase
 
     public const string ResetAction = "timer.reset";
 
-    private const string ActivityId = "feature.timer.current";
+    /// <summary>Activité du minuteur : la tuile du tableau de bord la présente quand il tourne.</summary>
+    public const string ActivityId = "feature.timer.current";
 
     private static readonly TimeSpan DefaultCountdown = TimeSpan.FromMinutes(5);
 

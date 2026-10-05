@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
@@ -175,6 +176,7 @@ public sealed partial class IslandWindow
     private const int AltKey = 0x12;
     private DispatcherQueueTimer? _helpTimer;
     private bool _helpShown;
+    private IReadOnlyList<GestureTip> _helpTips = [];
     private long _altSince;
     private readonly TextBlock _measureHelp = new() { FontSize = 11 };
 
@@ -183,7 +185,14 @@ public sealed partial class IslandWindow
         if (!hovering)
         {
             _helpTimer?.Stop();
-            SetGestureHelp(false);
+
+            // La rangée d'une leçon n'appartient pas à l'aide Alt : la sortie du
+            // pointeur ne l'efface pas, le minuteur de la leçon s'en charge.
+            if (_lessonKey is null)
+            {
+                SetGestureHelp(false);
+            }
+
             return;
         }
 
@@ -192,6 +201,13 @@ public sealed partial class IslandWindow
         {
             // Alt doit rester enfoncé un instant au survol : un Alt bref, qui
             // vise la barre de menus de l'application, ne montre rien.
+            // Pendant une leçon, la rangée est à elle : sans cette garde, le
+            // pointeur qui entrait pour essayer le geste l'effaçait en 100 ms.
+            if (_lessonKey is not null)
+            {
+                return;
+            }
+
             long now = Environment.TickCount64;
             bool alt = NativeMethods.IsKeyDown(AltKey);
             _altSince = alt ? (_altSince == 0 ? now : _altSince) : 0;
@@ -203,19 +219,21 @@ public sealed partial class IslandWindow
         _helpTimer.Start();
     }
 
-    private void SetGestureHelp(bool shown)
+    private void SetGestureHelp(bool shown, IReadOnlyList<GestureTip>? tips = null)
     {
         if (shown == _helpShown)
         {
             return;
         }
 
+        // Alt tenu : toute l'aide ; une leçon (ADR-028) : le seul geste enseigné.
         _helpShown = shown;
+        _helpTips = shown ? tips ?? GestureHelp.For(_controller.PresentedActivity) : [];
         GestureHelpRow.Children.Clear();
 
         if (shown)
         {
-            foreach (GestureTip tip in GestureHelp.For(_controller.PresentedActivity))
+            foreach (GestureTip tip in _helpTips)
             {
                 // Jetons du thème de la notch (phase F) : en apparence claire,
                 // l'aide restait blanche sur fond clair.
@@ -236,7 +254,7 @@ public sealed partial class IslandWindow
 
         if (shown)
         {
-            AnnounceText(string.Join(", ", GestureHelp.For(_controller.PresentedActivity).Select(t => t.Gesture + " : " + t.Effect)));
+            AnnounceText((tips is null ? string.Empty : Lang.T("Astuce : ", "Tip: ")) + string.Join(", ", _helpTips.Select(t => t.Gesture + " : " + t.Effect)));
         }
 
         // Le contenu remonte pour laisser la rangée en dessous (la rangée reste dans la notch).
@@ -257,7 +275,7 @@ public sealed partial class IslandWindow
 
         double width = 40;
 
-        foreach (GestureTip tip in GestureHelp.For(_controller.PresentedActivity))
+        foreach (GestureTip tip in _helpTips)
         {
             width += Measure(_measureHelp, tip.Gesture + " · " + tip.Effect) + 14 + 6;
         }
@@ -302,5 +320,85 @@ public sealed partial class IslandWindow
 
         _diagnostics.CountEvent();
         return true;
+    }
+
+    // ---- Gestes enseignés (ADR-028, volet A) ---------------------------------
+
+    private readonly HashSet<string> _lessonsShown = [];
+    private string? _lessonKey;
+    private DispatcherQueueTimer? _lessonTimer;
+    private readonly HashSet<string> _learnedThisSession = [];
+
+    /// <summary>
+    /// Au repos, un geste devenu utile s'enseigne une fois par session dans la
+    /// rangée d'aide (« Molette · volume » à la première musique), le temps de
+    /// le lire. Alt tenu au survol continue de tout montrer.
+    /// </summary>
+    private void ConsiderGestureLesson(IslandActivity? activity)
+    {
+        // Ni languette (la rangée la déformerait), ni retrait, ni verrouillage
+        // (consommée sans être vue), ni visite filmée.
+        if (_helpShown || !_islandShown || _sessionLocked || _touring || UsesSideTab)
+        {
+            return;
+        }
+
+        if (GestureCoach.Next(activity, _controller.State == IslandState.Closed, _settings.LearnedGestures, _lessonsShown) is not { } lesson)
+        {
+            return;
+        }
+
+        _lessonKey = lesson.Key;
+
+        // Hors du rendu en cours : la rangée change la forme et redemande un rendu.
+        // Comptée « montrée » seulement quand elle s'affiche vraiment : remplacée
+        // avant, elle restait due.
+        _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+        {
+            if (_lessonKey == lesson.Key && !_isClosed && _controller.State == IslandState.Closed)
+            {
+                _lessonsShown.Add(lesson.Key);
+                SetGestureHelp(true, [lesson.Tip]);
+            }
+            else if (_lessonKey == lesson.Key)
+            {
+                _lessonKey = null;
+            }
+        });
+
+        _lessonTimer ??= CreateOneShotTimer(GestureCoach.ShowFor, EndGestureLesson);
+        _lessonTimer.Stop();
+        _lessonTimer.Interval = GestureCoach.ShowFor;
+        _lessonTimer.Start();
+    }
+
+    private void EndGestureLesson()
+    {
+        if (_lessonKey is null)
+        {
+            return;
+        }
+
+        _lessonKey = null;
+        _lessonTimer?.Stop();
+        SetGestureHelp(false);
+    }
+
+    /// <summary>Un geste utilisé est appris : la notch ne l'enseignera plus.</summary>
+    private void LearnGesture(string key)
+    {
+        if (_lessonKey == key)
+        {
+            EndGestureLesson();
+        }
+
+        // Une fois par session au plus : la molette tourne par dizaines de crans,
+        // et chaque enregistrement réécrit le fichier de réglages.
+        if (!_learnedThisSession.Add(key) || _settings.LearnedGestures.Contains(key, StringComparer.Ordinal))
+        {
+            return;
+        }
+
+        _settingsService.Update(s => s.LearnedGestures.Add(key));
     }
 }
