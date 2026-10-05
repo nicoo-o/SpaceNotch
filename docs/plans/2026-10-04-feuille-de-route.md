@@ -96,8 +96,33 @@ Aucune de ces apps ne documente comment elle enseigne ses gestes : c'est **un cr
 - [Fluent 2](https://fluent2.microsoft.design/motion) et le [TeachingTip](https://learn.microsoft.com/windows/apps/design/controls/dialogs-and-flyouts/teaching-tip) : un conseil par geste, de 3 à 5 mots, réparti sur plusieurs sessions.
 - [Material 3](https://github.com/material-components/material-components-android/blob/master/docs/theming/Motion.md) : la « container transform » transforme le compact en vue dépliée ; les ressorts d'effet (opacité, couleur) ne dépassent jamais leur cible.
 
+## État après la session (2026-10-05)
+
+Une PR par sujet, aucune fusionnée. Les mesures sont dans chaque PR.
+
+| # | Sujet | PR | État |
+|---|---|---|---|
+| 1 | Repos trop large | #38 | corrigé, mesuré (lèvre 80 × 18 DIP avec l'encoche « Aucune ») |
+| 2 | Copie qui occupe la notch | #39 | corrigé : signal « Copié · N » de 2,5 s, puis la pile |
+| 3 | Zones vides et sauts | #41 | saut au clic corrigé (centre stable) ; repli : forme vide ≈ 50 ms au lieu de 260 ; passage corrigé, non remesuré seul |
+| 8 | Gestes indécouvrables | #43, #44 | ADR-028 (Proposé) : tuiles sous la recherche ; gestes enseignés au moment utile |
+| 13 | CPU notch masquée | #42 | cause réelle : le reflet `ShimmerText`, animation dépendante en boucle sur le fil d'interface ; 16 % → 0,23 % d'un cœur, notch retirée, Claude au travail |
+| 14 | Fluidité (images lentes) | #41 | diagnostiqué, **non corrigé** : chaque image lente de la forme contient un GC de génération 0 de 11 à 14 ms (voir n° 46) |
+
+Nouveaux constats de la session :
+
+| # | Sujet | Preuve | Impact | Effort | Risque |
+|---|---|---|---|---|---|
+| 45 | **P0 — Un build de développement mettait à jour l'installation de l'utilisateur** (et écrivait sa version dans les réglages partagés) | journal du 2026-10-04 20:24 ; corrigé par #40 | fort | S | faible |
+| 46 | P1 — Pauses du GC (génération 0, 11 à 14 ms) pendant le ressort : 30 % d'images en retard, 103 images > 16,7 ms dans la visite. Piste : ne plus créer de tracés XAML neufs à chaque image (`IslandGeometryFactory`) | #41, lignes `[IMAGES] forme (GC 1 · pause …)` sous `--frames` | moyen | L | élevé |
+| 47 | P1 — Notch visible, agent au travail : Clawd coûte ~3,6 % d'un cœur en continu ; le reflet reste une animation dépendante pendant ses 20 premières secondes (28 %) | #42 | moyen | M | faible |
+| 48 | P2 — Boutons de la scène Minuteur sans nom pour Narrateur (deux boutons sans nom dans l'arbre UI Automation) | session du 2026-10-05 | moyen (a11y) | S | faible |
+| 49 | P2 — Boucles non suspendues quand la notch est retirée : oscillation de l'icône d'appel, accueil, défilement des paroles | relecture de #42 | faible | S | faible |
+| 50 | P2 — Le menu rapide garde ses propres lignes : libellés et icônes à aligner à la main avec les tuiles | ADR-028 | faible | S | faible |
+
 ## Ordre proposé après cette session
 
+0. Relire et fusionner les PR dans l'ordre de leurs dépendances : #37 (mesure, documents), #38, #39, #40, #41, #42, #43, #44.
 1. Trancher le modèle de vente et la distribution (6, 9, 10), car ils conditionnent 4, 5 et 7. Recommandation : Microsoft Store en MSIX complet, ADR à écrire.
 2. Fiabiliser la mise à jour et la désinstallation (7, 16, 17), tant que la distribution actuelle reste en place.
 3. Régler les accroches P1 courtes (11, 12, 15, 18, 19, 21, 22).
