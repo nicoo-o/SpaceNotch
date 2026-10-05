@@ -591,16 +591,22 @@ public sealed partial class IslandWindow : Window
         HypnoticPreset preset = HypnoticField.Resolve(activity.MotionState, activity.MotionPreset);
         bool looking = _controller.State is IslandState.Preview or IslandState.Expanding or IslandState.Expanded;
 
-        if (preset != _runningPreset || looking)
+        // Une autre activité relance aussi le compte : de même préréglage que la
+        // précédente, elle naissait déjà apaisée — grille figée, sans reflet.
+        if (preset != _runningPreset || looking || !string.Equals(activity.Id, _runningActivityId, StringComparison.Ordinal))
         {
             _runningPreset = preset;
             _runningSince = DateTimeOffset.UtcNow;
+            _runningActivityId = activity.Id;
         }
 
         ArmAttenuation();
 
         return preset;
     }
+
+    /// <summary>Activité dont l'apaisement compte le temps.</summary>
+    private string? _runningActivityId;
 
     /// <summary>
     /// Vrai lorsqu'une boucle compacte tourne depuis assez longtemps pour se
@@ -639,6 +645,18 @@ public sealed partial class IslandWindow : Window
         _signalHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
         _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
         _tabHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
+        StopRestingShimmer();
+    }
+
+    /// <summary>
+    /// Le reflet des textes de repos : une scène ouverte, le repos vide ou la
+    /// languette ne passent pas par PresentResting, et il tournait sous eux
+    /// (animation dépendante, fil d'interface), notch retirée comprise.
+    /// </summary>
+    private void StopRestingShimmer()
+    {
+        ShimmerText.Set(SignalLabel, working: false, animate: false);
+        ShimmerText.Set(CardHeadline, working: false, animate: false);
     }
 
     // ------------------------------------------------------------------
@@ -1155,7 +1173,9 @@ public sealed partial class IslandWindow : Window
             // « Annuler » prend la place des yeux le temps de l'annulation.
             ShowUndo();
             ArmDozeWatch(atRest: true);
-            ArmClockTick(IdleClock.Visibility == Visibility.Visible);
+            // Retirée ou verrouillée, l'heure n'a personne à qui parler : un rendu
+            // complet par minute, toute la nuit. Le rendu du retour la réarme.
+            ArmClockTick(IdleClock.Visibility == Visibility.Visible && LoopsShown());
             return;
         }
 
@@ -1299,6 +1319,7 @@ public sealed partial class IslandWindow : Window
         // ou la grille, et la jauge. Le texte attend l'ouverture.
         if (UsesSideTab)
         {
+            StopRestingShimmer();
             PresentTab(activity, preset);
             return;
         }
@@ -2265,6 +2286,14 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void SuspendLife(bool suspend)
     {
+        // Montrée pendant le verrouillage (la présence change derrière l'écran
+        // de verrouillage) : rien ne reprend avant le déverrouillage, qui
+        // rappelle cette méthode.
+        if (!suspend && !LoopsShown())
+        {
+            return;
+        }
+
         SignalTrailing.Suspended = suspend;
         CardTrailing.Suspended = suspend;
 

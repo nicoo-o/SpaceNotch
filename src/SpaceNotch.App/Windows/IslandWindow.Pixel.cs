@@ -188,6 +188,12 @@ public sealed partial class IslandWindow
 
     private void ArmBlink()
     {
+        // Un regard ou un réveil pendant un retrait ne relance pas le clignement.
+        if (!LoopsShown())
+        {
+            return;
+        }
+
         _blinkTimer ??= CreateRepeatingTimer(PixelGaze.NextBlink(_blinkSeed), () =>
         {
             RestEyes.Blink();
