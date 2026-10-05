@@ -62,6 +62,21 @@ public sealed class PhaseCTests
         Assert.Equal(CameraCutout.MaximumWidth, settings.CutoutWidth, 6);
     }
 
+    [Fact]
+    public void Personnalisee_sans_largeur_choisie_devient_aucune()
+    {
+        // Choisie avant la v1.16 (sans effet visible), elle élargissait la notch à
+        // 200 DIP après la mise à jour : sans largeur choisie, il n'y a rien à couvrir.
+        var settings = new AppSettings { CutoutMode = CameraCutoutMode.Custom, CutoutWidth = 0 };
+        settings.Sanitize();
+        Assert.Equal(CameraCutoutMode.None, settings.CutoutMode);
+
+        var chosen = new AppSettings { CutoutMode = CameraCutoutMode.Custom, CutoutWidth = 240 };
+        chosen.Sanitize();
+        Assert.Equal(CameraCutoutMode.Custom, chosen.CutoutMode);
+        Assert.Equal(240, chosen.CutoutWidth, 6);
+    }
+
     // ---------------- Apparence, diagnostics ----------------
 
     [Theory]
