@@ -42,7 +42,7 @@ public sealed partial class IslandWindow
             if (_pixelLive && !_pixelStopQueued)
             {
                 _pixelStopQueued = true;
-                _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+                _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, () =>
                 {
                     _pixelStopQueued = false;
 
@@ -206,13 +206,13 @@ public sealed partial class IslandWindow
         DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
         timer.Interval = interval;
         timer.IsRepeating = true;
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             if (!_isClosed)
             {
                 tick();
             }
-        };
+        });
         return TrackTimer(timer);
     }
 }

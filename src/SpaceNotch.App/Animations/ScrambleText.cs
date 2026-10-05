@@ -62,7 +62,7 @@ internal static class ScrambleText
     {
         DispatcherQueueTimer timer = target.DispatcherQueue.CreateTimer();
         timer.Interval = Frame;
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             double progress = (DateTime.UtcNow - run.Start).TotalSeconds / TextScramble.Seconds;
             run.Frame++;
@@ -75,7 +75,7 @@ internal static class ScrambleText
             }
 
             target.Text = TextScramble.Frame(run.Final, progress, run.Frame);
-        };
+        });
 
         return timer;
     }

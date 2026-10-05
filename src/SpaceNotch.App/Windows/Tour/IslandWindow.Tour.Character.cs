@@ -28,7 +28,7 @@ public sealed partial class IslandWindow
         // Un minuteur que rien ne retient peut être ramassé avant de sonner :
         // la visite les garde jusqu'à ce qu'ils aient joué.
         _tourLater.Add(timer);
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             _tourLater.Remove(timer);
 
@@ -43,7 +43,7 @@ public sealed partial class IslandWindow
             {
                 MiniLogger.Log("[TOUR] geste différé impossible", ex);
             }
-        };
+        });
         timer.Start();
     }
 

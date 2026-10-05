@@ -62,7 +62,7 @@ public sealed partial class IslandWindow
             if (i >= _queueShown && UseSpringAnimations())
             {
                 dot.Opacity = 0;
-                _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => dot.Opacity = 1);
+                _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, () => dot.Opacity = 1);
             }
 
             QueueDotsRow.Children.Add(dot);

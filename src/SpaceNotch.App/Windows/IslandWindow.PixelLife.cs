@@ -63,7 +63,7 @@ public sealed partial class IslandWindow
         if (_foreground is null)
         {
             _foreground = new ForegroundWatcher { Ignore = _hWnd };
-            _foreground.Changed += window => _ = _dispatcherQueue.TryEnqueue(() => GlanceAt(window));
+            _foreground.Changed += window => _ = _dispatcherQueue.TryEnqueueSafely(() => GlanceAt(window));
             _foreground.Start();
         }
 
@@ -237,7 +237,7 @@ public sealed partial class IslandWindow
             _nextYawn = now + PixelVitals.NextYawn(_yawnSeed++);
 
             // Différé : ce calcul tourne pendant le rendu, qui ne doit pas s'appeler lui-même.
-            _ = _dispatcherQueue.TryEnqueue(RequestRender);
+            _ = _dispatcherQueue.TryEnqueueSafely(RequestRender);
         }
 
         bool yawning = now < _yawnUntil;
@@ -284,7 +284,7 @@ public sealed partial class IslandWindow
 
         if (ended)
         {
-            _ = _dispatcherQueue.TryEnqueue(RequestRender);
+            _ = _dispatcherQueue.TryEnqueueSafely(RequestRender);
         }
     }
 

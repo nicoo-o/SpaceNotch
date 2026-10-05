@@ -86,7 +86,7 @@ public sealed partial class NoteScene : UserControl, IIslandSceneView
         DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
         timer.Interval = SaveDelay;
         timer.IsRepeating = false;
-        timer.Tick += (_, _) => SaveNow();
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) => SaveNow());
         return timer;
     }
 

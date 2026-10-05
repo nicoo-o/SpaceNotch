@@ -162,7 +162,7 @@ public sealed partial class ClawdView : Canvas
             _timer = DispatcherQueue.CreateTimer();
             _timer.Interval = TimeSpan.FromMilliseconds(1000.0 / Clawd.FramesPerSecond);
             _timer.IsRepeating = true;
-            _timer.Tick += (_, _) => Draw();
+            _timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) => Draw());
         }
 
         _timer.Start();

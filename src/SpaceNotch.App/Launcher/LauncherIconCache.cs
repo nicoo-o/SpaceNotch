@@ -81,7 +81,7 @@ internal sealed class LauncherIconCache : IDisposable
                 // glyphe de repli prend sa place.
             }
 
-            _dispatcher.TryEnqueue(() => Deliver(path, pixels));
+            _dispatcher.TryEnqueueSafely(() => Deliver(path, pixels));
         }
     }
 

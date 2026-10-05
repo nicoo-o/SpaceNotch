@@ -406,7 +406,7 @@ public sealed partial class AtmosphereWindow : Window
     {
         Microsoft.UI.Dispatching.DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
         timer.Interval = TimeSpan.FromMilliseconds(16);
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             double seconds = (DateTime.UtcNow - _raysStart).TotalSeconds;
             var pixels = SpaceNotch.Core.Motion.LightRays.At(seconds, _raysWidth);
@@ -435,7 +435,7 @@ public sealed partial class AtmosphereWindow : Window
             RaysPath.Width = half * 2;
             RaysPath.Height = 40;
             RaysPath.Data = group;
-        };
+        });
 
         return timer;
     }
