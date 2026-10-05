@@ -83,6 +83,9 @@ public sealed class ClipboardFeature : IslandFeatureBase
     private DateTimeOffset? _lastCaptureAt;
     private int _burstCount;
 
+    /// <summary>Départ du dernier signal « Copié », que garde sa republication.</summary>
+    private DateTimeOffset _signalAt;
+
     private readonly List<Entry> _entries = [];
     private (Entry Entry, int Index)? _lastRemoved;
     private int _stackIndex;
@@ -316,6 +319,7 @@ public sealed class ClipboardFeature : IslandFeatureBase
     private void PublishSignal(DateTimeOffset now)
     {
         int count = _burstCount;
+        _signalAt = now;
 
         PublishActivity(new IslandActivity
         {
@@ -337,6 +341,20 @@ public sealed class ClipboardFeature : IslandFeatureBase
             CreatedAt = now,
             Payload = new ClipboardPayload(Previews())
         });
+    }
+
+    /// <summary>
+    /// Ouverte sur le signal, la notch montre la liste qu'il porte : supprimer,
+    /// épingler ou rétablir une entrée ne republiait que la carte de la pile, et
+    /// la liste affichée restait figée (relecture de la PR #39). Le signal garde
+    /// son départ, donc son échéance ; disparu, il ne revient pas.
+    /// </summary>
+    private void RefreshSignal()
+    {
+        if (Activities.GetActiveActivities().Any(a => a.Id == SignalActivityId))
+        {
+            PublishSignal(_signalAt);
+        }
     }
 
     /// <summary>
@@ -390,7 +408,9 @@ public sealed class ClipboardFeature : IslandFeatureBase
             // OnClipboardUpdated empêche le doublon. L'entrée reste dans la pile
             // (la retirer vidait la molette et le menu jusqu'à la copie
             // suivante) : on rend seulement la main, ce qui referme la vue.
+            // Ouverte sur le signal « Copié », c'est lui qui la tient : il part.
             Activities.PinPresentation(null);
+            RemoveActivity(SignalActivityId);
         }
 
         return written;
@@ -411,6 +431,7 @@ public sealed class ClipboardFeature : IslandFeatureBase
         }
 
         Publish();
+        RefreshSignal();
         return true;
     }
 
@@ -430,6 +451,7 @@ public sealed class ClipboardFeature : IslandFeatureBase
         }
 
         Publish();
+        RefreshSignal();
         return true;
     }
 
@@ -457,6 +479,7 @@ public sealed class ClipboardFeature : IslandFeatureBase
         }
 
         Publish();
+        RefreshSignal();
         return true;
     }
 

@@ -126,6 +126,19 @@ public readonly record struct IslandFootprint(double Width, double Height)
 
     public bool IsValid => Width > 0 && Height > 0;
 
+    /// <summary>
+    /// La forme, agrandie au besoin pour n'être plus petite que <paramref name="floor"/>
+    /// dans aucune dimension.
+    ///
+    /// <para>
+    /// Sert la règle de monotonie du repos : avec une encoche de caméra, le repos
+    /// couvre l'échancrure, et l'heure avec la météo, plus étroites, rétrécissaient
+    /// la notch au survol — l'inverse de ce qu'un survol doit faire.
+    /// </para>
+    /// </summary>
+    public IslandFootprint AtLeast(IslandFootprint floor)
+        => new(Math.Max(Width, floor.Width), Math.Max(Height, floor.Height));
+
     /// <summary>Largeur minimale d'une forme ajustée, par palier.</summary>
     public static double MinimumWidth(IslandPresentationTier tier) => tier switch
     {

@@ -976,6 +976,14 @@ public sealed class AppSettings
 
         CutoutWidth = CutoutWidth <= 0 ? 0 : Clamp(CutoutWidth, CameraCutout.MinimumWidth, CameraCutout.MaximumWidth, CameraCutout.DefaultWidth);
 
+        // « Personnalisée » sans largeur choisie : réglée avant la v1.16, quand le
+        // réglage n'avait aucun effet, elle élargissait la notch au repos à 200 DIP
+        // dès la mise à jour (constats du 2026-10-03). Sans largeur, rien à couvrir.
+        if (CutoutMode == CameraCutoutMode.Custom && CutoutWidth <= 0)
+        {
+            CutoutMode = CameraCutoutMode.None;
+        }
+
         if (!Enum.IsDefined(SurfaceTint))
         {
             SurfaceTint = SurfaceTint.Oled;

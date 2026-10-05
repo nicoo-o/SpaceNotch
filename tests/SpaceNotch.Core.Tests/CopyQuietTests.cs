@@ -301,6 +301,56 @@ public sealed class CopyQuietTests
         Assert.Equal("media", manager.CurrentActivity?.Id);
     }
 
+    // Ouverte sur le signal, la notch montre la liste qu'il porte : une action sur
+    // une entrée doit s'y voir, sans prolonger le signal (relecture de la PR #39).
+
+    private static ClipboardPayload SignalList(ActivityManager manager)
+        => (ClipboardPayload)manager.GetActiveActivities().Single(a => a.Id == ClipboardFeature.SignalActivityId).Payload!;
+
+    [Fact]
+    public async Task Ouverte_sur_le_signal_une_entree_supprimee_disparait_de_la_liste()
+    {
+        (ClipboardFeature feature, ActivityManager manager, Func<TimeSpan, DateTimeOffset> advance) = Build();
+        feature.Capture("un");
+        advance(TimeSpan.FromMilliseconds(600));
+        feature.Capture("deux");
+        DateTimeOffset createdAt = manager.CurrentActivity!.CreatedAt;
+
+        string removed = SignalList(manager).Entries[0].Id;
+        Assert.True(await feature.HandleActionAsync(new IslandActionRequest(ClipboardFeature.SignalActivityId, ClipboardFeature.RemoveAction, removed)));
+
+        Assert.DoesNotContain(SignalList(manager).Entries, e => e.Id == removed);
+        Assert.Equal(ClipboardFeature.SignalActivityId, manager.CurrentActivity?.Id);
+        Assert.Equal(createdAt, manager.CurrentActivity!.CreatedAt);
+        Assert.Equal("· 2", manager.CurrentActivity.Metric);
+    }
+
+    [Fact]
+    public async Task Ouverte_sur_le_signal_une_entree_epinglee_se_montre_epinglee()
+    {
+        (ClipboardFeature feature, ActivityManager manager, _) = Build();
+        feature.Capture("texte");
+
+        string pinned = SignalList(manager).Entries[0].Id;
+        Assert.True(await feature.HandleActionAsync(new IslandActionRequest(ClipboardFeature.SignalActivityId, ClipboardFeature.PinAction, pinned)));
+
+        Assert.True(SignalList(manager).Entries.Single(e => e.Id == pinned).IsPinned);
+    }
+
+    [Fact]
+    public async Task Une_action_apres_le_signal_ne_le_fait_pas_revenir()
+    {
+        (ClipboardFeature feature, ActivityManager manager, Func<TimeSpan, DateTimeOffset> advance) = Build();
+        feature.Capture("un");
+        manager.ExpireOverdue(advance(TimeSpan.FromSeconds(3)));
+
+        string id = ((ClipboardPayload)manager.GetActiveActivities().Single(a => a.Id == ClipboardFeature.ActivityId).Payload!).Entries[0].Id;
+        Assert.True(await feature.HandleActionAsync(new IslandActionRequest(ClipboardFeature.ActivityId, ClipboardFeature.RemoveAction, id)));
+
+        Assert.DoesNotContain(manager.GetActiveActivities(), a => a.Id == ClipboardFeature.SignalActivityId);
+        Assert.Null(manager.CurrentActivity);
+    }
+
     [Fact]
     public void Une_entree_en_pile_qui_arrive_ne_reclame_rien()
     {
