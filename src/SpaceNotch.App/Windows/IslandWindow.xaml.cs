@@ -1125,7 +1125,7 @@ public sealed partial class IslandWindow : Window
             }
         }
 
-        if (!ContentTransition.Leave(root, UseSpringAnimations(), () => _dispatcherQueue.TryEnqueue(Finish)))
+        if (!ContentTransition.Leave(root, UseSpringAnimations(), () => _dispatcherQueue.TryEnqueueSafely(Finish)))
         {
             EndSceneLeave(collapse: true);
             return;

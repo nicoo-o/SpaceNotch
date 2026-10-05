@@ -353,7 +353,7 @@ public sealed partial class IslandWindow
         // Hors du rendu en cours : la rangée change la forme et redemande un rendu.
         // Comptée « montrée » seulement quand elle s'affiche vraiment : remplacée
         // avant, elle restait due.
-        _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+        _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, () =>
         {
             if (_lessonKey == lesson.Key && !_isClosed && _controller.State == IslandState.Closed)
             {
