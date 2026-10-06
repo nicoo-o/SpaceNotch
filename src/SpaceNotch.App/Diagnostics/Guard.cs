@@ -21,6 +21,12 @@ internal static class Guard
 {
     private static readonly FaultBudget Faults = new();
 
+    /// <summary>
+    /// Posé par l'installeur : là, une exception n'est pas survécue mais montrée
+    /// (<c>App.FailSetup</c>) — avalée, elle laissait l'installeur figé sans message.
+    /// </summary>
+    public static Action<Exception>? Fatal { get; set; }
+
     /// <summary>Un battement de minuteur gardé.</summary>
     public static global::Windows.Foundation.TypedEventHandler<DispatcherQueueTimer, object> Tick(
         global::Windows.Foundation.TypedEventHandler<DispatcherQueueTimer, object> tick)
@@ -35,6 +41,9 @@ internal static class Guard
             }
             catch (Exception ex)
             {
+                // Arrêté, comme FrameFanOut retire un animateur en échec : un
+                // minuteur répétitif lèverait à chaque battement, 60 fois par seconde.
+                timer.Stop();
                 Report("minuteur", ex);
             }
         };
@@ -53,6 +62,7 @@ internal static class Guard
             }
             catch (Exception ex)
             {
+                (sender as Microsoft.UI.Xaml.DispatcherTimer)?.Stop();
                 Report("minuteur XAML", ex);
             }
         };
@@ -101,6 +111,12 @@ internal static class Guard
     /// </summary>
     public static void Report(string where, Exception exception)
     {
+        if (Fatal is { } fatal)
+        {
+            fatal(exception);
+            return;
+        }
+
         FaultVerdict verdict = Faults.Record(DateTimeOffset.UtcNow);
 
         if (verdict.Log)

@@ -39,6 +39,48 @@ public sealed class FaultBudgetTests
         Assert.False(budget.Record(Start.AddSeconds(11)).Log);
     }
 
+    // Les fonctionnalités battent sur le pool de threads (System.Threading.Timer) :
+    // une exception y passe par AppDomain.UnhandledException, qui ferme toujours
+    // le processus. Leur rappel gardé la signale à l'hôte et la fonctionnalité continue.
+
+    private sealed class TickingFeature : SpaceNotch.Core.Features.IslandFeatureBase
+    {
+        public TickingFeature()
+            : base("feature.tick", "Battement", new SpaceNotch.Core.Activities.ActivityManager(), new SpaceNotch.Core.Events.EventBus())
+        {
+        }
+
+        public int Ticks { get; private set; }
+
+        public System.Threading.TimerCallback Callback(bool fail) => Guarded(() =>
+        {
+            Ticks++;
+
+            if (fail)
+            {
+                throw new InvalidOperationException("battement en échec");
+            }
+        });
+
+        protected override System.Threading.Tasks.Task OnStartAsync(System.Threading.CancellationToken cancellationToken) => System.Threading.Tasks.Task.CompletedTask;
+
+        protected override System.Threading.Tasks.Task OnStopAsync() => System.Threading.Tasks.Task.CompletedTask;
+    }
+
+    [Fact]
+    public void Un_battement_de_fonctionnalite_en_echec_est_signale_sans_lever()
+    {
+        var feature = new TickingFeature();
+        Exception? reported = null;
+        feature.ErrorReported += (_, ex) => reported = ex;
+
+        feature.Callback(fail: true)(null);
+        feature.Callback(fail: false)(null);
+
+        Assert.IsType<InvalidOperationException>(reported);
+        Assert.Equal(2, feature.Ticks);
+    }
+
     [Fact]
     public void La_minute_suivante_rejournalise_et_dit_combien_ont_ete_tues()
     {

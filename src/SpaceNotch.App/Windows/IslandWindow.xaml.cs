@@ -4295,8 +4295,16 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private async void OnWindowClosed(object sender, WindowEventArgs args)
     {
-        await ShutdownAsync();
-        ExitProcess();
+        // La sortie quoi qu'il arrive : une exception de l'arrêt, désormais
+        // « gérée » (n° 33), empêchait sinon la sortie et rappelait SN-01.
+        try
+        {
+            await ShutdownAsync();
+        }
+        finally
+        {
+            ExitProcess();
+        }
     }
 
     /// <summary>
@@ -4329,8 +4337,14 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private async void QuitApplication()
     {
-        await ShutdownAsync();
-        ExitProcess();
+        try
+        {
+            await ShutdownAsync();
+        }
+        finally
+        {
+            ExitProcess();
+        }
     }
 
     /// <summary>Une étape de l'arrêt, isolée : son échec est journalisé, la suite continue.</summary>

@@ -144,7 +144,13 @@ public partial class App : Application
             var island = new IslandWindow();
 
             _window = island;
-            _window.Closed += (_, _) => MiniLogger.Log("Fenêtre de l'Island fermée.");
+            _window.Closed += (_, _) =>
+            {
+                // L'arrêt n'est plus survécu : une exception pendant la fermeture
+                // suit le chemin ordinaire au lieu d'être tue.
+                _islandRunning = false;
+                MiniLogger.Log("Fenêtre de l'Island fermée.");
+            };
 
             _window.Activate();
             _islandRunning = true;
@@ -228,6 +234,7 @@ public partial class App : Application
             args.Handled = true;
             FailSetup(args.Exception);
         };
+        SpaceNotch_App.Diagnostics.Guard.Fatal = FailSetup;
 
         try
         {

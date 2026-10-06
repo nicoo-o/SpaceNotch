@@ -8,7 +8,7 @@ namespace SpaceNotch_App;
 /// sans passer par <c>Application.UnhandledException</c> (n° 33, voir
 /// <see cref="Guard"/>). Dans l'espace de noms racine pour servir toute
 /// l'application sans <c>using</c> ; un <c>TryEnqueue</c> nu ne devrait plus
-/// apparaître dans <c>SpaceNotch.App</c>.
+/// apparaître dans <c>SpaceNotch.App</c>, hormis l'essai <c>--fault-test</c>.
 /// </summary>
 internal static class DispatcherQueueSafety
 {

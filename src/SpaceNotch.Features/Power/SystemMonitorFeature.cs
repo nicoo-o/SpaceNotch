@@ -69,7 +69,7 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
         : base(FeatureKey, "Moniteur", activities, events, isEnabled)
     {
         _now = now ?? (() => DateTimeOffset.UtcNow);
-        _timer = new Timer(_ => Tick(), null, Timeout.Infinite, Timeout.Infinite);
+        _timer = new Timer(Guarded(Tick), null, Timeout.Infinite, Timeout.Infinite);
     }
 
     /// <summary>Vrai entre le premier et le second clic sur « Fermer ».</summary>

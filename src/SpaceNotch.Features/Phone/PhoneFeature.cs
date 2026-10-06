@@ -66,7 +66,7 @@ public sealed class PhoneFeature : IslandFeatureBase
         : base(FeatureKey, "Téléphone", activities, events, isEnabled)
     {
         _now = now ?? (() => DateTimeOffset.Now);
-        _clock = new Timer(_ => Tick(), null, Timeout.Infinite, Timeout.Infinite);
+        _clock = new Timer(Guarded(Tick), null, Timeout.Infinite, Timeout.Infinite);
     }
 
     /// <summary>Ouvrir Lien avec Windows (l'application fournit le lancement d'adresse).</summary>
