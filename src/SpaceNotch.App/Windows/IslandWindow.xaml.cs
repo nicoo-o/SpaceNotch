@@ -557,11 +557,11 @@ public sealed partial class IslandWindow : Window
     private bool LoopsShown() => _islandShown && !_sessionLocked;
 
     /// <summary>
-    /// Le reflet d'un texte au travail est une animation dépendante : elle
-    /// recalcule chaque image sur le fil d'interface, ~8 % d'un cœur tant que
-    /// Claude travaillait, notch retirée comprise (mesure du 2026-10-05). Il ne
-    /// tourne que devant quelqu'un, et se fige avec la grille au bout de
-    /// l'apaisement : passé 20 s, il n'apprend plus rien.
+    /// Le reflet d'un texte au travail avance sur le fil d'interface (30 images
+    /// par seconde, voir ShimmerText) ; notch retirée, il coûtait encore ~8 %
+    /// d'un cœur (mesure du 2026-10-05). Il ne tourne que devant quelqu'un, et se
+    /// fige avec la grille au bout de l'apaisement : passé 20 s, il n'apprend
+    /// plus rien.
     /// </summary>
     private bool AnimateShimmer() => UseSpringAnimations() && LoopsShown() && !HypnoticResting();
 
@@ -4376,6 +4376,7 @@ public sealed partial class IslandWindow : Window
         Safely("thème de Windows", () => SpaceNotch_App.UI.SystemTheme.Changed -= OnSystemThemeChanged);
         Safely("ombre", () => MiniLogger.Log(_shadow.Summary));
         Safely("mises à jour", StopUpdates);
+        Safely("reflet", StopRestingShimmer);
 
         // L'arrêt des fonctionnalités libère réellement leurs écouteurs système et
         // retire leurs activités : c'est la garantie symétrique du démarrage.

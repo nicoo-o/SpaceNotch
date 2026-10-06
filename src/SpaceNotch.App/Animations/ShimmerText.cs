@@ -81,13 +81,21 @@ internal static class ShimmerText
         brush.SpreadMethod = GradientSpreadMethod.Pad;
         target.Foreground = brush;
 
-        DateTime start = DateTime.UtcNow;
+        long start = System.Diagnostics.Stopwatch.GetTimestamp();
         Microsoft.UI.Dispatching.DispatcherQueueTimer timer = target.DispatcherQueue.CreateTimer();
         timer.Interval = Frame;
         timer.IsRepeating = true;
-        timer.Tick += (_, _) =>
+        timer.Tick += (sender, _) =>
         {
-            double phase = (DateTime.UtcNow - start).TotalSeconds % Sweep.TotalSeconds / Sweep.TotalSeconds;
+            // Un texte sorti de l'arbre sans Set(false) : le minuteur, retenu par
+            // la file, tournerait sans fin.
+            if (target.XamlRoot is null)
+            {
+                sender.Stop();
+                return;
+            }
+
+            double phase = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalSeconds % Sweep.TotalSeconds / Sweep.TotalSeconds;
             move.X = -1 + (2 * phase);
         };
         timer.Start();
