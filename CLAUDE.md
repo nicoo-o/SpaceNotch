@@ -81,6 +81,9 @@ samples/                          greffon d'exemple, écrit comme le ferait un t
 - Une demande sans critère d'acceptation : en fixer un, et le prouver (test, `/snapshot`).
 - Déboguer : lire d'abord `%LocalAppData%\SpaceNotch\logs\spacenotch.log`.
 - Gros chantier (nouvelle vague, machine à états) : proposer le mode plan avant d'écrire du code.
+- Confier une session à une autre conversation (Opus) : `/prompt-opus <tâche>` écrit le brief dans
+  `docs/prompts/` (mission, critères, outillage, autorisations). Le coller après la ligne d'amorce qu'il
+  donne.
 
 ## Pièges connus
 
