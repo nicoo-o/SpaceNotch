@@ -85,13 +85,14 @@ internal static class ShimmerText
         Microsoft.UI.Dispatching.DispatcherQueueTimer timer = target.DispatcherQueue.CreateTimer();
         timer.Interval = Frame;
         timer.IsRepeating = true;
-        timer.Tick += (sender, _) =>
+        timer.Tick += (_, _) =>
         {
             // Un texte sorti de l'arbre sans Set(false) : le minuteur, retenu par
-            // la file, tournerait sans fin.
+            // la file, tournerait sans fin. Éteint comme par Set(false), il
+            // retrouve sa couleur et pourra se rallumer.
             if (target.XamlRoot is null)
             {
-                sender.Stop();
+                Set(target, working: false, animate: false);
                 return;
             }
 
