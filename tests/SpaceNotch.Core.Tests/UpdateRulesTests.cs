@@ -258,4 +258,15 @@ public sealed class UpdateRulesTests
         Assert.NotEqual(refused.Subtitle, failed.Subtitle);
         Assert.Contains(failed.Actions, a => a.Id == SpaceNotch.Features.Update.UpdateFeature.NotesAction);
     }
+
+    [Fact]
+    public void Une_version_montee_malgre_une_etape_en_echec_n_annonce_pas_d_echec()
+    {
+        // L'exécutable a été remplacé, puis le raccourci ou le registre a échoué :
+        // c'est bien la nouvelle version qui tourne, la carte d'échec mentirait.
+        Assert.False(UpdateRules.ReportsFailure(1603, lastRunVersion: "1.17.1", new Version(1, 18, 0)));
+        Assert.True(UpdateRules.ReportsFailure(1603, lastRunVersion: "1.17.1", new Version(1, 17, 1)));
+        Assert.True(UpdateRules.ReportsFailure(1602, lastRunVersion: null, new Version(1, 17, 1)));
+        Assert.False(UpdateRules.ReportsFailure(null, lastRunVersion: "1.17.1", new Version(1, 17, 1)));
+    }
 }

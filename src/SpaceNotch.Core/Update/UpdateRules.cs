@@ -280,8 +280,9 @@ public static class UpdateRules
     /// Après une installation lancée par la mise à jour (n° 7). L'installeur a
     /// fermé la notch avant de copier : quoi qu'il arrive, elle repart. La copie
     /// de l'exécutable est atomique (fichier <c>.new</c> puis déplacement) : un
-    /// échec laisse l'ancienne version en place, c'est elle qui repart, et elle
-    /// dit pourquoi.
+    /// échec avant le déplacement laisse l'ancienne version en place, c'est elle
+    /// qui repart et dit pourquoi. Un échec après (raccourci, registre) relance
+    /// déjà la nouvelle : voir <see cref="ReportsFailure"/>.
     /// </summary>
     /// <param name="exitCode">Code de l'installeur (0 réussi, 1602 refusé, 1603 échec).</param>
     /// <param name="executableExists">L'exécutable installé est là.</param>
@@ -310,6 +311,14 @@ public static class UpdateRules
 
         return null;
     }
+
+    /// <summary>
+    /// Vrai si la notch relancée doit annoncer l'échec : un code d'échec, et une
+    /// version qui n'a pas monté. Montée, l'exécutable a été remplacé et seule une
+    /// étape suivante a échoué ; « Mise à jour faite » est alors la vérité.
+    /// </summary>
+    public static bool ReportsFailure(int? failure, string? lastRunVersion, Version current)
+        => failure is not null && !JustUpdated(lastRunVersion, current);
 
     /// <summary>Vrai si l'utilisateur a refusé l'autorisation d'administrateur.</summary>
     public static bool IsDeclined(int exitCode) => exitCode == DeclinedExitCode;

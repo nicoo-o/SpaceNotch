@@ -42,6 +42,9 @@ public sealed partial class IslandWindow
     /// <summary>Une installation a échoué pendant cette session (n° 7).</summary>
     private bool _updateFailed;
 
+    /// <summary>Copie de développement : elle n'écrit rien de la mise à jour dans les réglages partagés.</summary>
+    private bool _foreignCopy;
+
     private static Version CurrentVersion
         => UpdateRules.Normalize(typeof(IslandWindow).Assembly.GetName().Version ?? new Version(1, 0, 0));
 
@@ -58,26 +61,31 @@ public sealed partial class IslandWindow
     private void StartUpdates()
     {
         Version current = CurrentVersion;
-        bool foreignCopy = WindowsSetup.FindInstalled() is { } installed && !UpdateRules.MayUpdateItself(Environment.ProcessPath, installed.Executable);
+        _foreignCopy = WindowsSetup.FindInstalled() is { } installed && !UpdateRules.MayUpdateItself(Environment.ProcessPath, installed.Executable);
+        int? failure = UpdateRules.ParseFailure(Environment.GetCommandLineArgs());
 
         // Relancée par un installeur en échec (n° 7) : la notch le dit, et la
         // mise à jour attend l'échéance au lieu de redemander au prochain calme.
-        if (UpdateRules.ParseFailure(Environment.GetCommandLineArgs()) is { } failure)
+        if (UpdateRules.ReportsFailure(failure, _settings.LastRunVersion, current))
         {
             _updateFailed = true;
             MiniLogger.Log($"[MISE À JOUR] L'installation a échoué (code {failure}) : {UpdateRules.Display(current)} reste en place");
-            RunAfter(TimeSpan.FromSeconds(4), () => _updateFeature?.ShowFailed(current, UpdateRules.IsDeclined(failure)));
+            RunAfter(TimeSpan.FromSeconds(4), () => _updateFeature?.ShowFailed(current, UpdateRules.IsDeclined(failure!.Value)));
 
-            if (!foreignCopy)
+            if (!_foreignCopy)
             {
                 _settingsService.Update(s => s.UpdatePostponedUntil = DateTimeOffset.Now + UpdateRules.Postpone);
             }
+        }
+        else if (failure is not null)
+        {
+            MiniLogger.Log($"[MISE À JOUR] {UpdateRules.Display(current)} installée ; une étape suivante a échoué (code {failure})");
         }
 
         // Une copie qui n'est pas celle installée (build de développement) ne
         // touche ni à l'installation ni à la version mémorisée dans les réglages,
         // partagés avec elle.
-        if (foreignCopy)
+        if (_foreignCopy)
         {
             MiniLogger.Log($"[MISE À JOUR] Copie hors installation ({Environment.ProcessPath}) : pas de mise à jour");
             return;
@@ -257,7 +265,11 @@ public sealed partial class IslandWindow
 
     private void PostponeUpdate()
     {
-        _settingsService.Update(s => s.UpdatePostponedUntil = DateTimeOffset.Now + UpdateRules.Postpone);
+        if (!_foreignCopy)
+        {
+            _settingsService.Update(s => s.UpdatePostponedUntil = DateTimeOffset.Now + UpdateRules.Postpone);
+        }
+
         _updateFeature?.Clear();
         MiniLogger.Log("[MISE À JOUR] reportée de 20 h");
     }

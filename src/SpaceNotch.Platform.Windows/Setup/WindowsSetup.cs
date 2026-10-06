@@ -540,11 +540,7 @@ public static class WindowsSetup
         }
     }
 
-    /// <summary>
-    /// Copie à côté, puis remplace : une copie interrompue ne laisse jamais un
-    /// exécutable à moitié écrit à la place de l'ancien. Quelques essais, le
-    /// temps qu'un processus fermé relâche son fichier.
-    /// </summary>
+    /// <summary>Supprime un fichier s'il le peut : un reste de copie ne doit pas faire échouer l'installation.</summary>
     private static void TryDelete(string path)
     {
         try
@@ -557,6 +553,11 @@ public static class WindowsSetup
         }
     }
 
+    /// <summary>
+    /// Copie à côté, puis remplace : une copie interrompue ne laisse jamais un
+    /// exécutable à moitié écrit à la place de l'ancien. Quelques essais, le
+    /// temps qu'un processus fermé relâche son fichier.
+    /// </summary>
     private static void CopyExecutable(string source, string destination, Action<double> copied)
     {
         if (string.Equals(Path.GetFullPath(source), Path.GetFullPath(destination), StringComparison.OrdinalIgnoreCase))
@@ -608,6 +609,13 @@ public static class WindowsSetup
             catch (UnauthorizedAccessException) when (attempt < 10)
             {
                 Thread.Sleep(300);
+            }
+            catch
+            {
+                // L'exécutable en place reste verrouillé : il n'est pas remplacé,
+                // et la copie prête ne traîne pas dans le dossier (n° 7).
+                TryDelete(staging);
+                throw;
             }
         }
     }

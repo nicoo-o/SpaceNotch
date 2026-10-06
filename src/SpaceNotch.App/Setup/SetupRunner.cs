@@ -93,7 +93,15 @@ internal static class SetupRunner
                     // place (la copie est atomique), qui dit pourquoi.
                     if (command.Relaunch)
                     {
-                        Relaunch(command.Options.Scope, code);
+                        // Une relance impossible ne change pas le résultat de l'installation.
+                        try
+                        {
+                            Relaunch(command.Options.Scope, code);
+                        }
+                        catch (Exception ex)
+                        {
+                            MiniLogger.Log("[MISE À JOUR] Relance impossible", ex);
+                        }
                     }
 
                     return code;
