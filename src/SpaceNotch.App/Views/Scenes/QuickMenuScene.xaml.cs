@@ -40,7 +40,7 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
         InitializeComponent();
 
         BuildLogo();
-        _clock.Tick += (_, _) => UpdateClock();
+        _clock.Tick += SpaceNotch_App.Diagnostics.Guard.XamlTick((_, _) => UpdateClock());
 
         RegisterPropertyChangedCallback(VisibilityProperty, (_, _) =>
         {

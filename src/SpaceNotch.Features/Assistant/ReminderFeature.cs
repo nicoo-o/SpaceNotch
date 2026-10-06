@@ -59,7 +59,7 @@ public sealed class ReminderFeature : IslandFeatureBase
         _now = now ?? (() => DateTimeOffset.Now);
         _path = folder is null ? null : Path.Combine(folder, "reminders.json");
         _book = Load(_path);
-        _timer = new Timer(_ => Tick(), null, Timeout.Infinite, Timeout.Infinite);
+        _timer = new Timer(Guarded(Tick), null, Timeout.Infinite, Timeout.Infinite);
     }
 
     /// <summary>Les rappels en attente.</summary>

@@ -228,6 +228,29 @@ public abstract class IslandFeatureBase : IIslandFeature
         ErrorReported?.Invoke(this, exception);
     }
 
+    /// <summary>
+    /// Rappel de minuteur gardé (n° 33). Un <see cref="Timer"/> bat sur le pool de
+    /// threads : une exception y passe par <c>AppDomain.UnhandledException</c>,
+    /// qui ferme toujours le processus. Gardée, elle est signalée à l'hôte
+    /// (<see cref="ReportError"/>) et la fonctionnalité continue.
+    /// </summary>
+    protected TimerCallback Guarded(Action tick)
+    {
+        ArgumentNullException.ThrowIfNull(tick);
+
+        return _ =>
+        {
+            try
+            {
+                tick();
+            }
+            catch (Exception ex)
+            {
+                ReportError(ex);
+            }
+        };
+    }
+
     /// <summary>Libération finale, une seule fois pour la vie de l'objet.</summary>
     protected virtual void OnDisposed()
     {

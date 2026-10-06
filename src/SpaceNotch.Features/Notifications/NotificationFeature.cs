@@ -67,7 +67,7 @@ public sealed class NotificationFeature : IslandFeatureBase
     {
         _listener = listener ?? throw new ArgumentNullException(nameof(listener));
         _isQuiet = isQuiet ?? (() => false);
-        _quietTimer = new Timer(_ => RefreshQuiet(), null, Timeout.Infinite, Timeout.Infinite);
+        _quietTimer = new Timer(Guarded(RefreshQuiet), null, Timeout.Infinite, Timeout.Infinite);
     }
 
     /// <summary>Vrai tant que Windows est en « Ne pas déranger ».</summary>

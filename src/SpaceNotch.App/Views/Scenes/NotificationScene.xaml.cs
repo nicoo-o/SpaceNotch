@@ -238,7 +238,7 @@ public sealed partial class NotificationScene : UserControl, IIslandSceneView
             visual.StartAnimation("Scale", crush);
             visual.StartAnimation("Opacity", fade);
             batch.End();
-            batch.Completed += (_, _) => DispatcherQueue.TryEnqueue(() => DismissRequested?.Invoke());
+            batch.Completed += (_, _) => DispatcherQueue.TryEnqueueSafely(() => DismissRequested?.Invoke());
             _switchedOff = true;
 
             return true;

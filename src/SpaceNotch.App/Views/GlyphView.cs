@@ -154,7 +154,7 @@ public sealed partial class GlyphView : Grid
         if (_frameTimer is null)
         {
             _frameTimer = DispatcherQueue.CreateTimer();
-            _frameTimer.Tick += (_, _) => NextFrame();
+            _frameTimer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) => NextFrame());
         }
 
         _frameTimer.Interval = TimeSpan.FromMilliseconds(frameMilliseconds);

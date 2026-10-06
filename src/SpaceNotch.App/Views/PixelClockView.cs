@@ -162,7 +162,7 @@ public sealed partial class PixelClockView : StackPanel
             CompositionScopedBatch batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
             visual.StartAnimation("Scale.Y", fold);
             batch.End();
-            batch.Completed += (_, _) => DispatcherQueue.TryEnqueue(() =>
+            batch.Completed += (_, _) => DispatcherQueue.TryEnqueueSafely(() =>
             {
                 Paint(palette, c);
                 ScalarKeyFrameAnimation unfold = compositor.CreateScalarKeyFrameAnimation();

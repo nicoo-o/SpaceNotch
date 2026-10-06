@@ -314,7 +314,7 @@ public sealed partial class ClipboardScene : UserControl, IIslandSceneView
         CompositionScopedBatch batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
         visual.StartAnimation("Translation", exit);
         batch.End();
-        batch.Completed += (_, _) => DispatcherQueue.TryEnqueue(Remove);
+        batch.Completed += (_, _) => DispatcherQueue.TryEnqueueSafely(Remove);
     }
 
     /// <summary>La ligne revient à sa place, par un ressort sans rebond : rien n'a eu lieu.</summary>

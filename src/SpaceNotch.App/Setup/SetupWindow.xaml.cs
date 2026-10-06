@@ -165,7 +165,7 @@ public sealed partial class SetupWindow : Window
 
         // La notch s'ouvre une fois la fenêtre à l'écran : on la voit naître
         // du repos, comme l'Island s'ouvre sur un clic.
-        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+        DispatcherQueue.TryEnqueueSafely(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
         {
             FitToContent();
             PrimaryButton.Focus(FocusState.Programmatic);
@@ -300,7 +300,7 @@ public sealed partial class SetupWindow : Window
         CompositionScopedBatch batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
         visual.StartAnimation("Opacity", fade);
         batch.End();
-        batch.Completed += (_, _) => DispatcherQueue.TryEnqueue(() =>
+        batch.Completed += (_, _) => DispatcherQueue.TryEnqueueSafely(() =>
         {
             Close();
             Application.Current.Exit();
@@ -637,11 +637,11 @@ public sealed partial class SetupWindow : Window
         var timer = DispatcherQueue.CreateTimer();
         timer.IsRepeating = false;
         timer.Interval = delay;
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             timer.Stop();
             action();
-        };
+        });
         timer.Start();
     }
 

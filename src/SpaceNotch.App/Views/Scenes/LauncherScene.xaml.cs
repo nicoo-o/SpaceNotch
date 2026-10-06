@@ -883,7 +883,7 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
     {
         Microsoft.UI.Dispatching.DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
         timer.Interval = TimeSpan.FromMilliseconds(16);
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             double seconds = (DateTime.UtcNow - _shatterStart).TotalSeconds;
             IReadOnlyList<Shard> shards = PixelShatter.At(_shatterLetters, _letterWidth, SearchBox.FontSize, seconds);
@@ -907,7 +907,7 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
             ShatterPath.Data = group;
             ShatterPath.Opacity = shards.Max(s => s.Opacity);
-        };
+        });
 
         return timer;
     }
