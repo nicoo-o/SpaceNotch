@@ -4,7 +4,6 @@ using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Media.Animation;
 using Color = Windows.UI.Color;
 
 namespace SpaceNotch_App.Animations;
@@ -20,8 +19,20 @@ internal static class ShimmerText
     private sealed class Shine
     {
         public Brush? Original;
-        public Storyboard? Story;
+        public Microsoft.UI.Dispatching.DispatcherQueueTimer? Timer;
     }
+
+    /// <summary>Durée d'un passage du ruban.</summary>
+    private static readonly TimeSpan Sweep = TimeSpan.FromSeconds(1.6);
+
+    /// <summary>
+    /// Cadence du ruban : 30 images par seconde. Animé par un Storyboard, le
+    /// reflet était une animation dépendante recalculée à chaque image de l'écran
+    /// — 240 par seconde ici — et coûtait 19 % d'un cœur tant qu'un agent
+    /// travaillait (mesure du 2026-10-06, n° 47). Un ruban qui glisse lentement
+    /// ne gagne rien au-delà de 30.
+    /// </summary>
+    private static readonly TimeSpan Frame = TimeSpan.FromSeconds(1.0 / 30);
 
     private static readonly ConditionalWeakTable<TextBlock, Shine> Shines = new();
 
@@ -35,7 +46,7 @@ internal static class ShimmerText
         {
             if (shine is not null)
             {
-                shine.Story?.Stop();
+                shine.Timer?.Stop();
                 target.Foreground = shine.Original;
                 Shines.Remove(target);
             }
@@ -70,22 +81,27 @@ internal static class ShimmerText
         brush.SpreadMethod = GradientSpreadMethod.Pad;
         target.Foreground = brush;
 
-        var sweep = new DoubleAnimation
+        long start = System.Diagnostics.Stopwatch.GetTimestamp();
+        Microsoft.UI.Dispatching.DispatcherQueueTimer timer = target.DispatcherQueue.CreateTimer();
+        timer.Interval = Frame;
+        timer.IsRepeating = true;
+        timer.Tick += (_, _) =>
         {
-            From = -1,
-            To = 1,
-            Duration = new Duration(TimeSpan.FromSeconds(1.6)),
-            RepeatBehavior = RepeatBehavior.Forever,
-            EnableDependentAnimation = true
+            // Un texte sorti de l'arbre sans Set(false) : le minuteur, retenu par
+            // la file, tournerait sans fin. Éteint comme par Set(false), il
+            // retrouve sa couleur et pourra se rallumer.
+            if (target.XamlRoot is null)
+            {
+                Set(target, working: false, animate: false);
+                return;
+            }
+
+            double phase = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalSeconds % Sweep.TotalSeconds / Sweep.TotalSeconds;
+            move.X = -1 + (2 * phase);
         };
-        Storyboard.SetTarget(sweep, move);
-        Storyboard.SetTargetProperty(sweep, "X");
+        timer.Start();
 
-        var story = new Storyboard();
-        story.Children.Add(sweep);
-        story.Begin();
-
-        shine.Story = story;
+        shine.Timer = timer;
         Shines.Add(target, shine);
     }
 }
