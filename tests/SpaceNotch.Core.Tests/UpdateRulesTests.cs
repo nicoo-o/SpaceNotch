@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using SpaceNotch.Core.Setup;
 using SpaceNotch.Core.Update;
 using SpaceNotch.Infrastructure.Config;
@@ -197,4 +198,75 @@ public sealed class UpdateRulesTests
     [Fact]
     public void Un_chemin_d_executable_inconnu_ne_met_rien_a_jour()
         => Assert.False(UpdateRules.MayUpdateItself(runningExecutable: null, @"C:\Programs\SpaceNotch\SpaceNotch.exe"));
+
+    // Mise à jour ratée (n° 7) : l'installeur ferme la notch avant de copier.
+    // Un échec, ou l'élévation refusée, la laissait fermée sans un mot.
+
+    [Fact]
+    public void Apres_une_installation_reussie_la_nouvelle_version_repart()
+        => Assert.Equal(InstallFollowUp.Relaunch, UpdateRules.AfterInstall(exitCode: 0, executableExists: true));
+
+    [Theory]
+    [InlineData(1602)]
+    [InlineData(1603)]
+    public void Apres_un_echec_l_ancienne_version_repart_et_le_dit(int code)
+        => Assert.Equal(InstallFollowUp.RelaunchReportingFailure, UpdateRules.AfterInstall(code, executableExists: true));
+
+    [Fact]
+    public void Sans_executable_rien_ne_repart()
+        => Assert.Equal(InstallFollowUp.None, UpdateRules.AfterInstall(1603, executableExists: false));
+
+    [Fact]
+    public void L_argument_d_echec_porte_le_code_et_se_relit()
+    {
+        string argument = UpdateRules.FailureArgument(1602);
+
+        Assert.Equal(1602, UpdateRules.ParseFailure(["SpaceNotch.exe", argument]));
+        Assert.Null(UpdateRules.ParseFailure(["SpaceNotch.exe", "--startup"]));
+        Assert.Null(UpdateRules.ParseFailure(["SpaceNotch.exe", "--update-failed=abc"]));
+    }
+
+    [Fact]
+    public void L_elevation_refusee_se_distingue_de_l_echec()
+    {
+        Assert.True(UpdateRules.IsDeclined(1602));
+        Assert.False(UpdateRules.IsDeclined(1603));
+    }
+
+    [Fact]
+    public void Apres_un_echec_l_automatique_attend_l_echeance_au_lieu_de_reessayer_au_calme()
+    {
+        // Sans cela, une élévation refusée redemandait l'autorisation au moment
+        // calme suivant, puis au suivant.
+        Assert.Equal(UpdateAction.Wait, Decide(postponed: Now.AddHours(1)));
+        Assert.Equal(UpdateAction.Install, Decide(postponed: Now.AddHours(-1)));
+    }
+
+    [Fact]
+    public void La_carte_d_echec_dit_que_la_notch_reste_dans_sa_version()
+    {
+        var manager = new SpaceNotch.Core.Activities.ActivityManager();
+        var feature = new SpaceNotch.Features.Update.UpdateFeature(manager, new SpaceNotch.Core.Events.EventBus(), isEnabled: true);
+
+        feature.ShowFailed(new Version(1, 17, 1), declined: true);
+        SpaceNotch.Core.Activities.IslandActivity refused = manager.GetActiveActivities().Single(a => a.Id == SpaceNotch.Features.Update.UpdateFeature.ActivityId);
+
+        feature.ShowFailed(new Version(1, 17, 1), declined: false);
+        SpaceNotch.Core.Activities.IslandActivity failed = manager.GetActiveActivities().Single(a => a.Id == SpaceNotch.Features.Update.UpdateFeature.ActivityId);
+
+        Assert.Contains("1.17.1", refused.Subtitle, StringComparison.Ordinal);
+        Assert.NotEqual(refused.Subtitle, failed.Subtitle);
+        Assert.Contains(failed.Actions, a => a.Id == SpaceNotch.Features.Update.UpdateFeature.NotesAction);
+    }
+
+    [Fact]
+    public void Une_version_montee_malgre_une_etape_en_echec_n_annonce_pas_d_echec()
+    {
+        // L'exécutable a été remplacé, puis le raccourci ou le registre a échoué :
+        // c'est bien la nouvelle version qui tourne, la carte d'échec mentirait.
+        Assert.False(UpdateRules.ReportsFailure(1603, lastRunVersion: "1.17.1", new Version(1, 18, 0)));
+        Assert.True(UpdateRules.ReportsFailure(1603, lastRunVersion: "1.17.1", new Version(1, 17, 1)));
+        Assert.True(UpdateRules.ReportsFailure(1602, lastRunVersion: null, new Version(1, 17, 1)));
+        Assert.False(UpdateRules.ReportsFailure(null, lastRunVersion: "1.17.1", new Version(1, 17, 1)));
+    }
 }

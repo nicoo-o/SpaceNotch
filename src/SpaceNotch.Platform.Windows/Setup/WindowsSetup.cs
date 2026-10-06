@@ -460,15 +460,22 @@ public static class WindowsSetup
     }
 
     /// <summary>Lance la notch installée, dans le processus de l'utilisateur.</summary>
-    public static void Launch(string executable)
+    public static void Launch(string executable, string? argument = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(executable);
 
-        using Process? _ = Process.Start(new ProcessStartInfo(executable)
+        var start = new ProcessStartInfo(executable)
         {
             UseShellExecute = true,
             WorkingDirectory = Path.GetDirectoryName(executable) ?? string.Empty
-        });
+        };
+
+        if (argument is not null)
+        {
+            start.ArgumentList.Add(argument);
+        }
+
+        using Process? _ = Process.Start(start);
     }
 
     /// <summary>
@@ -533,6 +540,19 @@ public static class WindowsSetup
         }
     }
 
+    /// <summary>Supprime un fichier s'il le peut : un reste de copie ne doit pas faire échouer l'installation.</summary>
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Un reste de copie inoffensif : la prochaine installation l'écrase.
+        }
+    }
+
     /// <summary>
     /// Copie à côté, puis remplace : une copie interrompue ne laisse jamais un
     /// exécutable à moitié écrit à la place de l'ancien. Quelques essais, le
@@ -547,11 +567,12 @@ public static class WindowsSetup
 
         string staging = destination + ".new";
 
-        // Par blocs, pour que la barre avance avec la copie : l'exécutable
-        // pèse quelques centaines de mégaoctets.
-        using (var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, CopyBlock))
-        using (var output = new FileStream(staging, FileMode.Create, FileAccess.Write, FileShare.None, CopyBlock))
+        try
         {
+            // Par blocs, pour que la barre avance avec la copie : l'exécutable
+            // pèse quelques centaines de mégaoctets.
+            using var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read, CopyBlock);
+            using var output = new FileStream(staging, FileMode.Create, FileAccess.Write, FileShare.None, CopyBlock);
             byte[] buffer = new byte[CopyBlock];
             long total = Math.Max(1, input.Length);
             long done = 0;
@@ -565,6 +586,13 @@ public static class WindowsSetup
                 done += read;
                 copied((double)done / total);
             }
+        }
+        catch
+        {
+            // Disque plein, copie interrompue : l'exécutable en place n'a pas été
+            // touché (n° 7), seul le fichier à moitié copié s'en va.
+            TryDelete(staging);
+            throw;
         }
 
         for (int attempt = 1; ; attempt++)
@@ -581,6 +609,13 @@ public static class WindowsSetup
             catch (UnauthorizedAccessException) when (attempt < 10)
             {
                 Thread.Sleep(300);
+            }
+            catch
+            {
+                // L'exécutable en place reste verrouillé : il n'est pas remplacé,
+                // et la copie prête ne traîne pas dans le dossier (n° 7).
+                TryDelete(staging);
+                throw;
             }
         }
     }
