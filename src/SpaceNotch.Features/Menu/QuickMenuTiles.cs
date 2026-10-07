@@ -34,6 +34,23 @@ public static class QuickMenuTiles
         new("Command", Lang.T("Plus", "More"), QuickMenuFeature.MoreAction)
     ];
 
+    /// <summary>
+    /// La tuile d'une commande, ou <c>null</c> : le menu rapide en tire le nom et
+    /// l'icône de ses lignes communes, au lieu de les recopier (n° 50).
+    /// </summary>
+    public static QuickMenuTile? For(string actionId)
+    {
+        foreach (QuickMenuTile tile in All())
+        {
+            if (tile.ActionId == actionId)
+            {
+                return tile;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>La tuile à cette position (valeur de <see cref="TileAction"/>), ou <c>null</c>.</summary>
     public static QuickMenuTile? At(string? position)
     {

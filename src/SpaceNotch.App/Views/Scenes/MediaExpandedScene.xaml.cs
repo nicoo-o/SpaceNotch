@@ -22,8 +22,27 @@ namespace SpaceNotch_App.Views.Scenes;
 /// une piste musicale mérite une mise en page, pas une barre de boutons — mais
 /// elle n'invente aucun contrôle et n'exécute aucune action elle-même.
 /// </summary>
-public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
+public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView, ILoopingView
 {
+    /// <inheritdoc />
+    /// <remarks>
+    /// Égaliseur et horloge des paroles : arrêtés quand la notch est retirée,
+    /// la scène restant « visible » dans une fenêtre cachée (n° 49).
+    /// </remarks>
+    public void SetLoopsShown(bool shown)
+    {
+        LiveBars.Suspended = !shown;
+
+        if (!shown)
+        {
+            _lyricsClock?.Stop();
+        }
+        else if (_playing && IsLoaded)
+        {
+            _lyricsClock?.Start();
+        }
+    }
+
     public const string PreviousAction = "media.previous";
 
     public const string PlayPauseAction = "media.playpause";

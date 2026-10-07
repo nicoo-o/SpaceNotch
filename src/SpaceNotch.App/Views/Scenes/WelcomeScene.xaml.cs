@@ -23,8 +23,25 @@ namespace SpaceNotch_App.Views.Scenes;
 /// une petite illustration animée au-dessus du texte. La dernière carte
 /// demande l'accès aux notifications — ou dit pourquoi elle ne le peut pas.
 /// </summary>
-public sealed partial class WelcomeScene : UserControl, IIslandSceneView
+public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopingView
 {
+    /// <inheritdoc />
+    /// <remarks>
+    /// Les illustrations bouclent sur le compositeur : retirées, elles sont
+    /// vidées ; au retour, l'étape en cours est redessinée (n° 49).
+    /// </remarks>
+    public void SetLoopsShown(bool shown)
+    {
+        if (!shown)
+        {
+            Illustration.Children.Clear();
+        }
+        else if (_shown is { } payload)
+        {
+            BuildIllustration(payload.Step);
+        }
+    }
+
     private static readonly bool French = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
 
     private const double CanvasWidth = 402;

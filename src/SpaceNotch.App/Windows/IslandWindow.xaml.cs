@@ -2500,6 +2500,22 @@ public sealed partial class IslandWindow : Window
         SignalTrailing.Suspended = suspend;
         CardTrailing.Suspended = suspend;
 
+        // Les boucles des scènes et de la bulle (n° 49) : vibration d'un appel,
+        // illustrations de la présentation, égaliseur et paroles, toupie.
+        int looping = 0;
+
+        foreach (IIslandSceneView scene in _scenes.Values)
+        {
+            if (scene is SpaceNotch_App.Views.ILoopingView view)
+            {
+                view.SetLoopsShown(!suspend);
+                looping++;
+            }
+        }
+
+        _bubble?.SetLoopsShown(!suspend);
+        MiniLogger.Log($"[RETRAIT] {(suspend ? "boucles arrêtées" : "boucles reprises")} : {looping} scènes, bulle, toupie et égaliseur");
+
         if (suspend)
         {
             StopRestPixel();

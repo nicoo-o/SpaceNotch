@@ -71,6 +71,7 @@
                 Background="Transparent"
                 BorderThickness="1"
                 BorderBrush="{ThemeResource NfStrokeStrongBrush}"
+                AutomationProperties.Name="{l:Loc Fr='Démarrer', En='Start'}"
                 ToolTipService.ToolTip="{l:Loc Fr='Démarrer ou suspendre', En='Start or pause'}"
                 Click="OnToggleClicked">
                 <views:GlyphView
@@ -90,6 +91,7 @@
                 Background="Transparent"
                 BorderThickness="1"
                 BorderBrush="{ThemeResource NfStrokeSubtleBrush}"
+                AutomationProperties.Name="{l:Loc Fr='Remettre à zéro', En='Reset'}"
                 ToolTipService.ToolTip="{l:Loc Fr='Remettre à zéro', En='Reset'}"
                 Click="OnResetClicked">
                 <views:GlyphView
