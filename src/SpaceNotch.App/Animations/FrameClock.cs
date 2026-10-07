@@ -35,6 +35,12 @@ public static class FrameClock
     private static string _runStart = string.Empty;
     private static TimeSpan? _lastFrame;
     private static bool _runStarted;
+    private static long _runAllocated;
+    private static GcReasons? _gcReasons;
+
+    /// <summary>Octets alloués par abonné pendant la rafale en cours (mesure seulement).</summary>
+    private static readonly System.Collections.Generic.Dictionary<EventHandler<object>, long> RunAllocations = [];
+    private static (int Gen0, int Gen1, int Gen2) _runCollections;
 
     /// <summary>Vrai pendant que les abonnés sont appelés pour une image.</summary>
     private static bool _raising;
@@ -53,7 +59,12 @@ public static class FrameClock
     {
         _context = context;
         _run ??= new FrameRunStats();
-        Fan.Timed = (handler, elapsed) => FrameCosts.Add((handler, elapsed.TotalMilliseconds));
+        _gcReasons ??= new GcReasons();
+        Fan.Timed = (handler, elapsed, bytes) =>
+        {
+            FrameCosts.Add((handler, elapsed.TotalMilliseconds));
+            RunAllocations[handler] = RunAllocations.GetValueOrDefault(handler) + bytes;
+        };
         MiniLogger.Log("[IMAGES] mesure de fluidité allumée");
     }
 
@@ -94,9 +105,12 @@ public static class FrameClock
         {
             _runStarted = true;
             _runStart = SafeContext();
+            _runAllocated = GC.GetTotalAllocatedBytes(false);
+            _runCollections = (GC.CollectionCount(0), GC.CollectionCount(1), GC.CollectionCount(2));
         }
 
         FrameCosts.Clear();
+        int collections = GC.CollectionCount(0);
         long started = Stopwatch.GetTimestamp();
         _raising = true;
 
@@ -114,7 +128,7 @@ public static class FrameClock
         // Une image qui dépasse le budget de 60 Hz se voit : on dit qui l'a prise.
         if (cost > FrameRunStats.Budget60)
         {
-            LogSlowFrame(cost);
+            LogSlowFrame(cost, collections);
         }
 
         // Sans heure de rendu, l'intervalle est inconnu (NaN), jamais compté
@@ -152,11 +166,36 @@ public static class FrameClock
     {
         if (_run is { } run && run.Finish() is { } report)
         {
-            MiniLogger.Log(report.ToLogLine(_runStart + " → " + SafeContext()));
+            // Tous fils confondus (l'atmosphère a les siens) ; GC par génération :
+            // CollectionCount(n) compte aussi les GC des générations supérieures.
+            long allocated = GC.GetTotalAllocatedBytes(false) - _runAllocated;
+            int all = GC.CollectionCount(0) - _runCollections.Gen0;
+            int gen1 = GC.CollectionCount(1) - _runCollections.Gen1;
+            int gen2 = GC.CollectionCount(2) - _runCollections.Gen2;
+
+            MiniLogger.Log(report.ToLogLine(_runStart + " → " + SafeContext())
+                + string.Format(FrameRunStats.LogCulture, " · alloué {0} Ko · GC g0 {1} / g1 {2} / g2 {3}", allocated / 1024, all - gen1, gen1 - gen2, gen2)
+                + (_gcReasons?.Drain() is { Length: > 0 } reasons ? " · raisons : " + reasons : string.Empty)
+                + TopAllocators());
         }
 
         _lastFrame = null;
         _runStarted = false;
+    }
+
+    /// <summary>Les trois abonnés qui ont le plus alloué pendant la rafale, puis remise à zéro.</summary>
+    private static string TopAllocators()
+    {
+        if (RunAllocations.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        string top = string.Join(", ", System.Linq.Enumerable.Take(
+            System.Linq.Enumerable.OrderByDescending(RunAllocations, a => a.Value),
+            3).Select(a => string.Format(FrameRunStats.LogCulture, "{0}.{1} {2} Ko", a.Key.Method.DeclaringType?.Name, a.Key.Method.Name, a.Value / 1024)));
+        RunAllocations.Clear();
+        return " · par abonné : " + top;
     }
 
     /// <summary>Vrai quand la mesure de fluidité est allumée (<c>--frames</c>).</summary>
@@ -179,12 +218,19 @@ public static class FrameClock
 
     /// <summary>
     /// Détail d'une étape lourde (la géométrie de la notch) : journalisé seulement
-    /// au-delà du budget de 120 Hz, pour désigner la sous-étape qui coûte.
+    /// au-delà du budget de 120 Hz, pour désigner la sous-étape qui coûte, et le
+    /// GC tombé pendant l'étape s'il y en a eu un.
     /// </summary>
+    /// <remarks>
+    /// N'alloue rien sous le budget (n° 46) : les marques passent par une
+    /// <c>params ReadOnlySpan</c>, posée sur la pile, et rien n'est formaté avant le
+    /// test. La mesure créait sinon les GC qu'elle attribuait à la forme.
+    /// </remarks>
     /// <param name="what">Nom de l'étape.</param>
     /// <param name="started">Horodatage <see cref="Stopwatch.GetTimestamp"/> du début.</param>
+    /// <param name="collectionsBefore"><see cref="GC.CollectionCount(int)"/> de la génération 0 au début de l'étape.</param>
     /// <param name="marks">Fin de chaque sous-étape, dans l'ordre.</param>
-    public static void ReportBreakdown(string what, long started, params (string Name, long At)[] marks)
+    public static void ReportBreakdown(string what, long started, int collectionsBefore, params ReadOnlySpan<(string Name, long At)> marks)
     {
         if (_run is null || marks.Length == 0)
         {
@@ -209,13 +255,40 @@ public static class FrameClock
             previous = at;
         }
 
-        MiniLogger.Log(string.Format(FrameRunStats.LogCulture, "[IMAGES] {0} lente {1:0.0} ms : {2}", what, total, parts));
+        MiniLogger.Log(string.Format(FrameRunStats.LogCulture, "[IMAGES] {0} lente {1:0.0} ms{2} : {3}", what, total, GcSince(collectionsBefore), parts));
+    }
+
+    /// <summary>
+    /// Le dernier GC, s'il en est tombé un depuis <paramref name="collectionsBefore"/> :
+    /// sa génération, sa pause et ce qu'il a promu. <see cref="GC.CollectionCount(int)"/>
+    /// de la génération 0 compte tous les GC, il ne dit pas lequel.
+    /// </summary>
+    private static string GcSince(int collectionsBefore)
+    {
+        int count = GC.CollectionCount(0) - collectionsBefore;
+
+        if (count <= 0)
+        {
+            return string.Empty;
+        }
+
+        GCMemoryInfo info = GC.GetGCMemoryInfo(GCKind.Any);
+        double pause = info.PauseDurations.Length > 0 ? info.PauseDurations[0].TotalMilliseconds : 0;
+
+        return string.Format(
+            FrameRunStats.LogCulture,
+            " (GC {0} · dernier : génération {1}{2}, pause {3:0.0} ms, promus {4} Ko)",
+            count,
+            info.Generation,
+            info.Concurrent ? " concurrent" : string.Empty,
+            pause,
+            info.PromotedBytes / 1024);
     }
 
     /// <summary>Coût de chaque abonné dans l'image en cours (mesure seulement).</summary>
     private static readonly System.Collections.Generic.List<(EventHandler<object> Handler, double Ms)> FrameCosts = [];
 
-    private static void LogSlowFrame(double cost)
+    private static void LogSlowFrame(double cost, int collectionsBefore)
     {
         FrameCosts.Sort((a, b) => b.Ms.CompareTo(a.Ms));
         var parts = new System.Text.StringBuilder();
@@ -228,7 +301,7 @@ public static class FrameClock
                 .Append(' ').Append(ms.ToString("0.0", FrameRunStats.LogCulture)).Append(" ms");
         }
 
-        MiniLogger.Log(string.Format(FrameRunStats.LogCulture, "[IMAGES] image lente {0:0.0} ms ({1}) : {2}", cost, SafeContext(), parts));
+        MiniLogger.Log(string.Format(FrameRunStats.LogCulture, "[IMAGES] image lente {0:0.0} ms ({1}){2} : {3}", cost, SafeContext(), GcSince(collectionsBefore), parts));
     }
 
     private static string SafeContext()

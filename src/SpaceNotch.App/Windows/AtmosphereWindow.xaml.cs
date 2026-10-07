@@ -341,7 +341,11 @@ public sealed partial class AtmosphereWindow : Window
         {
             RainHost.Width = placement.WidthDip;
             RainHost.Margin = new Thickness(0, placement.HeightDip, 0, 0);
-            RainHost.Clip = new RectangleGeometry { Rect = new global::Windows.Foundation.Rect(0, 0, placement.WidthDip, RainBand) };
+            // Un seul rectangle, déplacé : un neuf à chaque image comptait parmi
+            // les objets XAML qui faisaient demander des GC (n° 46).
+            _rainClip ??= new RectangleGeometry();
+            _rainClip.Rect = new global::Windows.Foundation.Rect(0, 0, placement.WidthDip, RainBand);
+            RainHost.Clip ??= _rainClip;
         }
 
         if (_surface is not null)
@@ -402,6 +406,9 @@ public sealed partial class AtmosphereWindow : Window
         _raysTimer.Start();
     }
 
+    private RectangleGeometry? _rainClip;
+    private GeometryGroup? _raysGroup;
+
     private Microsoft.UI.Dispatching.DispatcherQueueTimer CreateRaysTimer()
     {
         Microsoft.UI.Dispatching.DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
@@ -420,21 +427,38 @@ public sealed partial class AtmosphereWindow : Window
 
             // Un seul tracé, un carré par pixel : l'opacité se porte par la
             // taille (un pixel qui s'éteint rétrécit), la couleur reste pure.
-            var group = new GeometryGroup();
+            // Le groupe et ses carrés sont réutilisés d'une image à l'autre : un
+            // groupe neuf de quelques dizaines de carrés toutes les 16 ms faisait
+            // demander des GC par XAML (n° 46). Un carré en trop est réduit à rien.
+            _raysGroup ??= new GeometryGroup();
             double half = _raysWidth / 2 + 40;
+            int index = 0;
 
             foreach (var p in pixels)
             {
                 double size = SpaceNotch.Core.Motion.LightRays.PixelDip * Math.Clamp(p.Opacity, 0.3, 1);
-                group.Children.Add(new RectangleGeometry
+                var rect = new global::Windows.Foundation.Rect(half + p.X - (size / 2), p.Y, size, size);
+
+                if (index < _raysGroup.Children.Count)
                 {
-                    Rect = new global::Windows.Foundation.Rect(half + p.X - (size / 2), p.Y, size, size)
-                });
+                    ((RectangleGeometry)_raysGroup.Children[index]).Rect = rect;
+                }
+                else
+                {
+                    _raysGroup.Children.Add(new RectangleGeometry { Rect = rect });
+                }
+
+                index++;
+            }
+
+            for (int i = index; i < _raysGroup.Children.Count; i++)
+            {
+                ((RectangleGeometry)_raysGroup.Children[i]).Rect = default;
             }
 
             RaysPath.Width = half * 2;
             RaysPath.Height = 40;
-            RaysPath.Data = group;
+            RaysPath.Data ??= _raysGroup;
         };
 
         return timer;
@@ -725,6 +749,9 @@ public sealed partial class AtmosphereWindow : Window
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
+        // Fermée pendant les 0,6 s des rayons : le minuteur ne touche plus une fenêtre fermée.
+        _raysTimer?.Stop();
+
         if (_tintRunning)
         {
             SpaceNotch_App.Animations.FrameClock.Rendering -= OnTintFrame;

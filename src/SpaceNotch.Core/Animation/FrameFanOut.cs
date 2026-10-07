@@ -19,6 +19,13 @@ namespace SpaceNotch.Core.Animation;
 public sealed class FrameFanOut
 {
     private readonly List<EventHandler<object>> _handlers = [];
+
+    /// <summary>
+    /// Copie de la liste pour l'image, refaite seulement quand la liste change :
+    /// une copie neuve à chaque image allouait sur le chemin le plus chaud (n° 46).
+    /// </summary>
+    private EventHandler<object>[] _snapshot = [];
+    private bool _snapshotStale = true;
     private readonly Action _attach;
     private readonly Action _detach;
     private readonly Action<Exception>? _onError;
@@ -36,9 +43,11 @@ public sealed class FrameFanOut
 
     /// <summary>
     /// Mesure de fluidité : reçoit, pour chaque abonné, le temps qu'il a pris
-    /// dans l'image. Null par défaut, et alors aucun chronomètre ne tourne.
+    /// dans l'image et ce qu'il a alloué sur ce fil, en octets (les GC des
+    /// animations viennent d'allocations par image, n° 46). Null par défaut, et
+    /// alors rien n'est mesuré.
     /// </summary>
-    public Action<EventHandler<object>, TimeSpan>? Timed { get; set; }
+    public Action<EventHandler<object>, TimeSpan, long>? Timed { get; set; }
 
     /// <summary>Nombre d'abonnés.</summary>
     public int Count => _handlers.Count;
@@ -55,6 +64,7 @@ public sealed class FrameFanOut
         }
 
         _handlers.Add(handler);
+        _snapshotStale = true;
 
         if (!_attached)
         {
@@ -69,6 +79,7 @@ public sealed class FrameFanOut
             catch
             {
                 _handlers.RemoveAt(_handlers.Count - 1);
+                _snapshotStale = true;
                 throw;
             }
 
@@ -89,6 +100,7 @@ public sealed class FrameFanOut
         if (index >= 0)
         {
             _handlers.RemoveAt(index);
+            _snapshotStale = true;
         }
 
         if (_handlers.Count == 0 && _attached)
@@ -117,14 +129,21 @@ public sealed class FrameFanOut
             return;
         }
 
-        EventHandler<object>[] snapshot = [.. _handlers];
-        Action<EventHandler<object>, TimeSpan>? timed = Timed;
+        if (_snapshotStale)
+        {
+            _snapshot = [.. _handlers];
+            _snapshotStale = false;
+        }
+
+        EventHandler<object>[] snapshot = _snapshot;
+        Action<EventHandler<object>, TimeSpan, long>? timed = Timed;
 
         foreach (EventHandler<object> handler in snapshot)
         {
             if (_handlers.Contains(handler))
             {
                 long started = timed is null ? 0 : System.Diagnostics.Stopwatch.GetTimestamp();
+                long allocatedBefore = timed is null ? 0 : GC.GetAllocatedBytesForCurrentThread();
 
                 try
                 {
@@ -135,7 +154,7 @@ public sealed class FrameFanOut
                     Fail(handler, ex);
                 }
 
-                timed?.Invoke(handler, System.Diagnostics.Stopwatch.GetElapsedTime(started));
+                timed?.Invoke(handler, System.Diagnostics.Stopwatch.GetElapsedTime(started), timed is null ? 0 : GC.GetAllocatedBytesForCurrentThread() - allocatedBefore);
             }
         }
     }
