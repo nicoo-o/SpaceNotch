@@ -102,6 +102,13 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopi
             BuildIllustration(payload.Step);
             PlayStepEntrance();
         }
+        else if (_illustrationCleared && _loopsShown)
+        {
+            // Vidée par un retrait pendant que la présentation était repliée :
+            // rouverte à la même étape, elle retrouve son illustration.
+            _illustrationCleared = false;
+            BuildIllustration(payload.Step);
+        }
     }
 
     // ------------------------------------------------------------------
