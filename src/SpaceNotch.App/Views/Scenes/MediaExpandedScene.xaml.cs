@@ -31,17 +31,26 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView, 
     /// </remarks>
     public void SetLoopsShown(bool shown)
     {
+        _loopsShown = shown;
         LiveBars.Suspended = !shown;
 
+        // Au retour, l'horloge ne repart que si la scène montre des paroles qui
+        // défilent (UpdateLyric en décide, comme à l'ordinaire).
         if (!shown)
         {
             _lyricsClock?.Stop();
         }
-        else if (_playing && IsLoaded)
+        else if (_playing && IsLoaded && Visibility == Visibility.Visible)
         {
             _lyricsClock?.Start();
         }
     }
+
+    /// <summary>
+    /// Faux pendant le retrait : le rendu demandé au retrait réapplique la scène,
+    /// et relançait l'horloge des paroles dans la fenêtre cachée (relecture, n° 49).
+    /// </summary>
+    private bool _loopsShown = true;
 
     public const string PreviousAction = "media.previous";
 
@@ -258,7 +267,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView, 
             ScrollLyrics(-Math.Max(sung, 0) * LyricPitch, animate: !first);
         }
 
-        if (_playing && IsLoaded)
+        if (_playing && IsLoaded && _loopsShown)
         {
             _lyricsClock ??= CreateLyricsClock();
             _lyricsClock.Start();

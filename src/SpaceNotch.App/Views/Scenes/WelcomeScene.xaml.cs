@@ -32,15 +32,24 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopi
     /// </remarks>
     public void SetLoopsShown(bool shown)
     {
+        _loopsShown = shown;
+
         if (!shown)
         {
+            _illustrationCleared |= Illustration.Children.Count > 0;
             Illustration.Children.Clear();
         }
-        else if (_shown is { } payload)
+        else if (_illustrationCleared && Visibility == Visibility.Visible && _shown is { } payload)
         {
+            _illustrationCleared = false;
             BuildIllustration(payload.Step);
         }
     }
+
+    // Retrait : l'illustration est vidée, et ne se reconstruit au retour que si la
+    // présentation est encore à l'écran (relecture, n° 49).
+    private bool _loopsShown = true;
+    private bool _illustrationCleared;
 
     private static readonly bool French = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
 
@@ -83,7 +92,12 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopi
         BuildDots(payload);
         BuildButtons(payload);
 
-        if (stepChanged)
+        if (stepChanged && !_loopsShown)
+        {
+            // Changement d'étape pendant le retrait : redessinée au retour.
+            _illustrationCleared = true;
+        }
+        else if (stepChanged)
         {
             BuildIllustration(payload.Step);
             PlayStepEntrance();

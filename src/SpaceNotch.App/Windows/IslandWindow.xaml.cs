@@ -239,6 +239,9 @@ public sealed partial class IslandWindow : Window
     /// <summary>Faux tant que l'Island est retirée devant le plein écran : la bulle se retire avec elle.</summary>
     private bool _islandShown = true;
 
+    /// <summary>Vrai une fois la visibilité posée une première fois (démarrage).</summary>
+    private bool _visibilityApplied;
+
     // Dernier rectangle physique réellement soumis au gestionnaire de fenêtres.
     // Sert uniquement à ne pas le resoumettre à l'identique (voir ApplyGeometry).
     private int _lastWindowX = int.MinValue;
@@ -2459,6 +2462,12 @@ public sealed partial class IslandWindow : Window
 
         if (visible)
         {
+            // Les boucles ne reprennent qu'à un vrai retour (ou au premier
+            // affichage) : réappliquer les réglages repasse par ici, et
+            // relançait les animations en cours (relecture, n° 49).
+            bool comingBack = !_islandShown || !_visibilityApplied;
+            _visibilityApplied = true;
+
             // La géométrie et l'ordre de superposition sont repris avant
             // l'affichage : sinon la fenêtre apparaîtrait une image à sa position
             // d'avant, ce qui se voit immédiatement après un changement d'écran.
@@ -2468,7 +2477,12 @@ public sealed partial class IslandWindow : Window
             _atmosphere.PlaceBehind(_hWnd);
             _appWindow.Show(activateWindow: false);
             UpdateBubble();
-            SuspendLife(false);
+
+            if (comingBack)
+            {
+                SuspendLife(false);
+            }
+
             Shadow(new SpaceNotch.Core.Machine.NotchInput(SpaceNotch.Core.Machine.NotchTrigger.PresenceChanged, Presence: SpaceNotch.Core.Machine.Presence.Visible), "retour");
             return;
         }
