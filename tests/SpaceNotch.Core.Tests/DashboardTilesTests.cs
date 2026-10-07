@@ -61,4 +61,18 @@ public sealed class DashboardTilesTests
 
         Assert.Equal(LauncherLayout.MaxHeight, LauncherLayout.FootprintFor(sections, tiles: true).Height);
     }
+
+    [Fact]
+    public void Le_menu_rapide_tire_ses_lignes_communes_des_tuiles()
+    {
+        // n° 50 : une seule source pour le nom et l'icône des commandes partagées.
+        foreach (string action in new[] { QuickMenuFeature.TimerAction, QuickMenuFeature.ClipboardAction, QuickMenuFeature.NoteAction })
+        {
+            QuickMenuTile? tile = QuickMenuTiles.For(action);
+            Assert.NotNull(tile);
+            Assert.Equal(action, tile.ActionId);
+        }
+
+        Assert.Null(QuickMenuTiles.For(QuickMenuFeature.SearchAction));
+    }
 }

@@ -14,8 +14,8 @@ public sealed record QuickMenuTile(string IconKey, string Label, string ActionId
 /// <summary>
 /// Les quatre tuiles qui suivent la recherche au clic sur le repos (ADR-028).
 /// Elles mènent aux mêmes commandes que le menu rapide, qui reste le raccourci
-/// du clic droit. Cette liste est la source des tuiles ; les lignes du menu ont
-/// encore la leur (libellés et icônes à garder alignés).
+/// du clic droit. Cette liste est la source des tuiles et des lignes communes
+/// du menu (<see cref="For"/>, n° 50).
 /// </summary>
 public static class QuickMenuTiles
 {
@@ -33,6 +33,23 @@ public static class QuickMenuTiles
         new("Menu", Lang.T("Note", "Note"), QuickMenuFeature.NoteAction),
         new("Command", Lang.T("Plus", "More"), QuickMenuFeature.MoreAction)
     ];
+
+    /// <summary>
+    /// La tuile d'une commande, ou <c>null</c> : le menu rapide en tire le nom et
+    /// l'icône de ses lignes communes, au lieu de les recopier (n° 50).
+    /// </summary>
+    public static QuickMenuTile? For(string actionId)
+    {
+        foreach (QuickMenuTile tile in All())
+        {
+            if (tile.ActionId == actionId)
+            {
+                return tile;
+            }
+        }
+
+        return null;
+    }
 
     /// <summary>La tuile à cette position (valeur de <see cref="TileAction"/>), ou <c>null</c>.</summary>
     public static QuickMenuTile? At(string? position)

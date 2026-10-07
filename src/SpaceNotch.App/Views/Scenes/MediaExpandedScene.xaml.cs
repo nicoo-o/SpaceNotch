@@ -22,8 +22,36 @@ namespace SpaceNotch_App.Views.Scenes;
 /// une piste musicale mérite une mise en page, pas une barre de boutons — mais
 /// elle n'invente aucun contrôle et n'exécute aucune action elle-même.
 /// </summary>
-public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
+public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView, ILoopingView
 {
+    /// <inheritdoc />
+    /// <remarks>
+    /// Égaliseur et horloge des paroles : arrêtés quand la notch est retirée,
+    /// la scène restant « visible » dans une fenêtre cachée (n° 49).
+    /// </remarks>
+    public void SetLoopsShown(bool shown)
+    {
+        _loopsShown = shown;
+        LiveBars.Suspended = !shown;
+
+        // Au retour, l'horloge ne repart que si la scène montre des paroles qui
+        // défilent (UpdateLyric en décide, comme à l'ordinaire).
+        if (!shown)
+        {
+            _lyricsClock?.Stop();
+        }
+        else if (_playing && IsLoaded && Visibility == Visibility.Visible)
+        {
+            _lyricsClock?.Start();
+        }
+    }
+
+    /// <summary>
+    /// Faux pendant le retrait : le rendu demandé au retrait réapplique la scène,
+    /// et relançait l'horloge des paroles dans la fenêtre cachée (relecture, n° 49).
+    /// </summary>
+    private bool _loopsShown = true;
+
     public const string PreviousAction = "media.previous";
 
     public const string PlayPauseAction = "media.playpause";
@@ -239,7 +267,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
             ScrollLyrics(-Math.Max(sung, 0) * LyricPitch, animate: !first);
         }
 
-        if (_playing && IsLoaded)
+        if (_playing && IsLoaded && _loopsShown)
         {
             _lyricsClock ??= CreateLyricsClock();
             _lyricsClock.Start();
