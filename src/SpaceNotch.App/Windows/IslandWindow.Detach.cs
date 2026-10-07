@@ -55,6 +55,9 @@ namespace SpaceNotch_App.Windows;
 /// </summary>
 public sealed partial class IslandWindow
 {
+    /// <summary>Le tracé de la languette de côté, mis à jour sur place (n° 46).</summary>
+    private readonly SpaceNotch_App.Composition.ReusablePath _sideTabPath = new();
+
     /// <summary>Étape du geste en cours.</summary>
     private enum DragPhase
     {
@@ -1321,9 +1324,11 @@ public sealed partial class IslandWindow
         double shoulder = _settings.SideShoulderRadius;
         ShapePoint[] outline = EdgeFrame.Silhouette(_settings.Geometry, drawn, _edge, shoulder);
 
-        if (IslandGeometryFactory.FromPolygons([outline], 0, 0) is { } silhouette)
+        // Un tracé par image de la languette : réutilisé (n° 46, voir ReusablePath).
+        if (_sideTabPath.Set(outline) is { } silhouette)
         {
             SurfaceFill.Data = silhouette;
+            SurfaceFill.InvalidateMeasure();
         }
 
         RememberOutline(() => outline);

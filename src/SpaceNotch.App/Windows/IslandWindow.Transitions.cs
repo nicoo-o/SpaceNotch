@@ -86,7 +86,10 @@ public sealed partial class IslandWindow
 
         if (VeilFill.Visibility == Visibility.Visible)
         {
-            VeilFill.Data = _veilPath.Set(outline());
+            if (_veilPath.Set(outline()) is { } veil)
+            {
+                VeilFill.Data = veil;
+            }
         }
     }
 
@@ -104,7 +107,10 @@ public sealed partial class IslandWindow
 
         int generation = ++_veilGeneration;
 
-        VeilFill.Data = _veilPath.Set(_veilOutline());
+        if (_veilPath.Set(_veilOutline()) is { } veil)
+        {
+            VeilFill.Data = veil;
+        }
         VeilFill.Visibility = Visibility.Visible;
 
         try

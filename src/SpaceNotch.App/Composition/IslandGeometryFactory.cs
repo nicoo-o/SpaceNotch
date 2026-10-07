@@ -47,6 +47,13 @@ internal sealed class IslandGeometryFactory
     private readonly ReusablePath _bandPath = new();
     private readonly ReusablePath _floatingPath = new();
 
+    private double _bandWidth = double.NaN;
+    private double _bandHeight = double.NaN;
+    private double _band = double.NaN;
+    private double _bandRadius = double.NaN;
+    private double _bandShoulder = double.NaN;
+    private double _bandSmoothing = double.NaN;
+
     /// <summary>Nombre de tracés effectivement reconstruits. Sert de preuve au repos.</summary>
     public long Rebuilds { get; private set; }
 
@@ -91,6 +98,18 @@ internal sealed class IslandGeometryFactory
             // Un tracé borné — le reflet — n'est pas mémorisé : il dépend de la
             // même géométrie et se recalcule à chaque fois que la forme change,
             // ce qui est déjà exceptionnel.
+            // Mise à jour sur place, et seulement si la forme ou la bande a bougé.
+            if (Math.Abs(footprint.Width - _bandWidth) < RebuildThreshold
+                && Math.Abs(footprint.Height - _bandHeight) < RebuildThreshold
+                && Math.Abs(band - _band) < RebuildThreshold
+                && Math.Abs(radius - _bandRadius) < RebuildThreshold
+                && Math.Abs(shoulder - _bandShoulder) < RebuildThreshold
+                && Math.Abs(smoothing - _bandSmoothing) < RebuildThreshold)
+            {
+                return null;
+            }
+
+            (_bandWidth, _bandHeight, _band, _bandRadius, _bandShoulder, _bandSmoothing) = (footprint.Width, footprint.Height, band, radius, shoulder, smoothing);
             return _bandPath.Set(Cache.Silhouette(footprint.Width, footprint.Height, radius, smoothing, band, shoulder));
         }
 
@@ -114,6 +133,7 @@ internal sealed class IslandGeometryFactory
     /// <summary>Force la reconstruction au prochain appel.</summary>
     public void Forget()
     {
+        _bandWidth = double.NaN;
         _floating = false;
         _width = double.NaN;
         _height = double.NaN;

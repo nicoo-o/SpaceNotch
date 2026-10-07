@@ -749,6 +749,9 @@ public sealed partial class AtmosphereWindow : Window
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
+        // Fermée pendant les 0,6 s des rayons : le minuteur ne touche plus une fenêtre fermée.
+        _raysTimer?.Stop();
+
         if (_tintRunning)
         {
             SpaceNotch_App.Animations.FrameClock.Rendering -= OnTintFrame;

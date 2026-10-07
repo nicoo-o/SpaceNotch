@@ -1919,7 +1919,17 @@ public sealed partial class IslandWindow : Window
         // quand le ressort ne bouge plus.
         if (silhouette is not null)
         {
-            SurfaceFill.Data = silhouette;
+            // Le même tracé, mis à jour sur place (ReusablePath) : réassigné, il ne
+            // déclenche rien ; ses limites ont pu changer sans que la notch change de
+            // taille (goutte, onde au repos), d'où la nouvelle mesure demandée.
+            if (ReferenceEquals(SurfaceFill.Data, silhouette))
+            {
+                SurfaceFill.InvalidateMeasure();
+            }
+            else
+            {
+                SurfaceFill.Data = silhouette;
+            }
         }
 
         long afterFill = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;

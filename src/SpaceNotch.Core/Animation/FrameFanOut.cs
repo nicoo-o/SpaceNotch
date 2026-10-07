@@ -19,6 +19,13 @@ namespace SpaceNotch.Core.Animation;
 public sealed class FrameFanOut
 {
     private readonly List<EventHandler<object>> _handlers = [];
+
+    /// <summary>
+    /// Copie de la liste pour l'image, refaite seulement quand la liste change :
+    /// une copie neuve à chaque image allouait sur le chemin le plus chaud (n° 46).
+    /// </summary>
+    private EventHandler<object>[] _snapshot = [];
+    private bool _snapshotStale = true;
     private readonly Action _attach;
     private readonly Action _detach;
     private readonly Action<Exception>? _onError;
@@ -57,6 +64,7 @@ public sealed class FrameFanOut
         }
 
         _handlers.Add(handler);
+        _snapshotStale = true;
 
         if (!_attached)
         {
@@ -71,6 +79,7 @@ public sealed class FrameFanOut
             catch
             {
                 _handlers.RemoveAt(_handlers.Count - 1);
+                _snapshotStale = true;
                 throw;
             }
 
@@ -91,6 +100,7 @@ public sealed class FrameFanOut
         if (index >= 0)
         {
             _handlers.RemoveAt(index);
+            _snapshotStale = true;
         }
 
         if (_handlers.Count == 0 && _attached)
@@ -119,7 +129,13 @@ public sealed class FrameFanOut
             return;
         }
 
-        EventHandler<object>[] snapshot = [.. _handlers];
+        if (_snapshotStale)
+        {
+            _snapshot = [.. _handlers];
+            _snapshotStale = false;
+        }
+
+        EventHandler<object>[] snapshot = _snapshot;
         Action<EventHandler<object>, TimeSpan, long>? timed = Timed;
 
         foreach (EventHandler<object> handler in snapshot)
