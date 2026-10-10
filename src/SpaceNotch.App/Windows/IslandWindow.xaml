@@ -519,7 +519,7 @@
                     </Grid>
 
                     <TextBlock
-                        Text="{l:Loc Fr='Déposez ici', En='Drop here'}"
+                        Text="{l:Loc Fr='Dépose ici', En='Drop here'}"
                         Style="{StaticResource NfCaptionStrongStyle}"
                         HorizontalAlignment="Center" />
                 </StackPanel>

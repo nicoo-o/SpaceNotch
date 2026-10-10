@@ -558,7 +558,7 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
             ? (French ? "Chargement des applications…" : "Loading apps…")
             : _query.Length > 0
                 ? (French ? $"Aucun résultat pour « {_query} »" : $"No results for “{_query}”")
-                : (French ? "Tapez pour chercher une application, un réglage, un fichier ou un calcul." : "Type to find an app, a setting, a file or a calculation.");
+                : (French ? "Tape pour chercher une application, un réglage, un fichier ou un calcul." : "Type to find an app, a setting, a file or a calculation.");
     }
 
     // ------------------------------------------------------------------
