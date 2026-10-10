@@ -1,4 +1,4 @@
-# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06)
+# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-10)
 
 Première version : 2026-10-04, écrite « pour vendre ». L'auteur l'a précisé le 2026-10-05 :
 SpaceNotch reste **gratuite et open source**, sans vente. Cette version re-trie tout pour ce cadre.
@@ -26,6 +26,9 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 33 | Exception non gérée = notch fermée | #45 | **ouverte** : minuteurs, travail posté, `async void`, minuteurs des fonctionnalités ; preuve `--fault-test` |
 | 7 | Mise à jour ratée = notch disparue | #46 | **ouverte** : relance dans tous les cas, carte, report ; preuve `--fault-install` |
 | 47 | CPU quand un agent travaille | #47 | **ouverte** : reflet à 30 images/s (15–22 % → ≤ 3 %) ; Clawd inchangé, par décision |
+| 46 | GC pendant le ressort | #48 | **ouverte** : cause mesurée = GC de génération 2 *demandés* après la création d'objets XAML à chaque image ; tracés réutilisés ; visite : 23,9 % → 14,1 % d'images en retard, 125 → 14 images > 16,7 ms, 0 > 50 ms (une fois sur trois : 74,7 ms à la première ouverture du menu rapide) |
+| 48–50 | Minuteur sans nom, boucles notch retirée, menu rapide | #49 | **ouverte** : 2 → 0 bouton sans nom (UIA) ; boucles arrêtées au retrait (journal) ; une seule source pour le menu |
+| 53, 10, 69 | README, confidentialité, communauté | #50 | **ouverte** ; page GitHub déjà réglée (description, topics, Discussions, signalement privé) |
 
 ## Sans objet pour un projet gratuit
 
@@ -48,13 +51,13 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 54 | **Pixel actif par défaut**, réactivé une fois par migration : contredit « Alive, never busy » (§15 : aucune animation permanente) | `AppSettings.cs:569, 833-836` ✔ | fort (identité) | S | décision (direction) |
 | 9 | **Clawd**, élément de marque d'Anthropic : fidèle par défaut, impossible à désactiver ; les règles de marque d'Anthropic n'ont pas d'exception « gratuit » | `Clawd.cs:20-30` ✔ ; ADR-024:75 ; [Anthropic trademark guidelines](https://www.anthropic.com/legal/trademark-guidelines) | moyen (juridique) | S–M | décision (direction) |
 | 10 | Page de confidentialité (`PRIVACY.md`) : ce qui sort de la machine, et quand | aucun fichier | moyen | S | faible |
-| 55 | **Hooks Claude Code peut-être muets** : `SpaceNotch.exe --hook` lancé par Git Bash n'atteint pas le tube ; écrit directement, le même message passe (session du 2026-10-06). À confirmer avec Claude Code réel | mesure n° 47 | fort (pour les utilisateurs de Claude Code) | S | faible |
+| 55 | **Hooks Claude Code peut-être muets** : `SpaceNotch.exe --hook` lancé par Git Bash n'atteint pas le tube d'une notch de développement ; écrit directement par PowerShell, le même message passe (2026-10-06). Hypothèse à tester : le client ouvre le tube avec `PipeOptions.CurrentUserOnly`, qui exige que le propriétaire du serveur soit l'utilisateur courant, ce qu'une notch lancée avec une identité de paquet pourrait ne pas remplir. Test : la notch installée, et un vrai tour de Claude Code | `ChannelPipe.cs:46` ; mesure n° 47 | fort (pour les utilisateurs de Claude Code) | S | faible |
 
 ## P1 — gêne un usage normal
 
 | # | Sujet | Preuve | Impact | Effort | Risque |
 |---|---|---|---|---|---|
-| 46 | Pauses du GC pendant le ressort de la forme : images en retard et images > 16,7 ms | #41 ; mesure du 2026-10-06 | moyen | L | élevé |
+| 46b | Suite de n° 46 : première mise en page d'une scène pendant le ressort (74,7 ms une fois) ; tableaux de points du ressort (GC de génération 0) ; scènes à créer d'avance (n° 25) | #48 | moyen | M | moyen |
 | 11 | La notch disparaît derrière une fenêtre « toujours devant » qui couvre l'écran | `FullscreenPresenceWatcher.cs:357` ✔ | fort ? | S–M | régression plein écran |
 | 12 | Notifications Windows impossibles à activer après coup | `SetupWindow.xaml.cs:546` | moyen | M | faible |
 | 15 | Textes en français dans l'interface anglaise | `ChannelFeature.cs:86`… | moyen | S | faible |
@@ -78,6 +81,10 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 64 | Molette au repos : avec « Survoler pour aperçu » éteint, la pile du presse-papier est injoignable | `IslandWindow.xaml.cs:3251` | faible | S | faible |
 | 65 | Réglages « Démarrer avec Windows » affiché activé alors que Windows l'a désactivé (Gestionnaire des tâches) | constaté sur l'installation de l'auteur le 2026-10-05 | moyen | S | faible |
 | 66 | Une copie de développement peut encore réécrire la clé de démarrage partagée (Réglages ouverts depuis le build) | `SettingsWindow.xaml.cs:387` | faible (dev) | S | faible |
+| 76 | Tutoiement partout (décision du 2026-10-06) : installeur (`SetupText.cs`) et textes restants au vous | `SetupText.cs:102-131` | moyen | S | faible |
+| 77 | « Me prévenir » par défaut pour les mises à jour (décision du 2026-10-06), puis README à ajuster | `AppSettings.cs:591` | fort (confiance) | S | faible |
+| 78 | Minuteur en pause annoncé « Démarrer » (pas « Reprendre ») ; boutons de 30 DIP | relecture de #49 | faible (a11y) | S | faible |
+| 79 | ADR-029 à appliquer : Clawd retiré, Pixel avatar des agents (humeurs), README et langage visuel autour de Pixel | ADR-029 | fort (identité) | M | moyen |
 | 36 | Coût par image du ressort (géométries neuves, mises en page) | voir n° 46 | (cause de 46) | M | moyen |
 | 37 | Caméra du miroir, crête-mètre, cache d'icônes sans borne | `IslandWindow.Phone.cs:225` | faible | S | faible |
 | 40 | Remontée des plantages sur accord explicite | `MiniLogger` | moyen | M | vie privée |
@@ -115,9 +122,9 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 
 ## Ordre proposé
 
-1. Fusionner #45, #46, #47 (à relire par l'auteur), puis n° 48–50 et n° 46 (cette session).
-2. Confiance : n° 53 (README honnête), n° 55 (hooks), n° 10 (confidentialité), n° 69 (communauté) — courts.
+1. Fusionner #45 à #51 (à relire par l'auteur) ; après #45, envelopper les `Tick` et `TryEnqueue` ajoutés par #47 et #48 (`Guard.Tick`, `TryEnqueueSafely`).
+2. Confiance : n° 55 (hooks), n° 77 (« Me prévenir »), n° 76 (tutoiement).
 3. Signature : n° 51 puis n° 4 et n° 5 (SignPath Foundation en premier), puis n° 67 (winget).
-4. Décisions de direction appliquées : n° 54 (Pixel), n° 9 (Clawd), noyau visible par défaut (n° 23, 63, 74, 75).
+4. Direction appliquée : n° 79 (ADR-029 : Pixel avatar, Clawd retiré), noyau visible par défaut (n° 23, 63, 74, 75).
 5. Accessibilité : n° 57, 58, 59, 22.
 6. Le reste des P1 courts.

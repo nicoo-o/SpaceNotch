@@ -27,19 +27,19 @@ ceux de `docs/plans/2026-10-04-feuille-de-route.md`.
 - [x] n° 33 Exception non gérée — PR #45 (minuteurs, travail posté, async void, minuteurs des fonctionnalités ;
       preuve `--fault-test` sur la vraie app)
 - [x] n° 7 Mise à jour ratée — PR #46 (relance dans tous les cas, carte, report ; preuve `--fault-install`)
-- [ ] n° 47 CPU quand un agent travaille (Clawd, reflet) — seuil à faire confirmer
-- [ ] n° 46 Pauses du GC pendant l'animation — plan d'abord (mode plan)
-- [ ] n° 48–50 Minuteur sans nom UIA, animations notch retirée, menu rapide aligné sur les tuiles
+- [x] n° 47 CPU quand un agent travaille — PR #47 (reflet 30 i/s, ≤ 3 % ; Clawd inchangé par décision)
+- [x] n° 46 Pauses du GC pendant l'animation — plan approuvé ; PR #48 (seuils tenus sur la visite finale)
+- [x] n° 48–50 — PR #49 (UIA 2 → 0 sans nom ; boucles au retrait ; une source pour le menu)
 
 ## Jalon 3 — Direction
 
-- [ ] Feuille de route re-triée pour un projet gratuit
-- [ ] Enquête (workflow, une dimension par agent)
-- [ ] Choix de fond posés à l'utilisateur
-- [ ] `docs/plans/2026-10-05-direction.md`, README, page GitHub (proposés puis appliqués)
+- [x] Feuille de route re-triée pour un projet gratuit
+- [x] Enquête (workflow, sept dimensions)
+- [x] Choix de fond posés à l'utilisateur (direction B, Pixel, Clawd, mises à jour, axes, tu)
+- [x] `docs/plans/2026-10-06-direction.md` ; README et communauté (PR #50) ; page GitHub réglée avec accord
 
 ## Clôture
 
-- [ ] Relais `docs/plans/relais-2026-10-05-b.md` avec le prochain brief
+- [x] Relais `docs/plans/relais-2026-10-10.md` avec le prochain brief
 - [ ] Mémoire
 - [ ] Rapport final

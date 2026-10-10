@@ -145,10 +145,14 @@ fichiers du dépôt passent par une PR.
 | Mises à jour | **« Me prévenir » par défaut** + **SignPath** | ne plus installer seul un exécutable non signé |
 | Axes | confiance, Pixel, accessibilité, simplicité | dans cet ordre |
 | Reflet (n° 47) | 30 images/s, ≤ 3 % ; Clawd inchangé | Clawd part de toute façon (ADR-029) |
+| Page GitHub (2026-10-07) | description, topics, Discussions, signalement privé : **appliqués** ; aperçu social à téléverser par l'auteur | confiance et visibilité |
+| README (2026-10-07) | mise à jour factuelle, refonte autour de Pixel avec ADR-029 | ne rien promettre que le code ne fait pas |
+| Communauté (2026-10-07) | modèles d'issue et de PR, CONTRIBUTING, SECURITY, code de conduite, PRIVACY | PR #50 |
+| Tu ou vous (2026-10-07) | **tutoiement** partout | cohérent avec le compagnon vivant |
 
 ## 7. Décisions qui restent à prendre
 
-1. **Tu ou vous** : un seul registre pour l'installeur, la notch, les Réglages et le README.
+1. ~~Tu ou vous~~ : tranché, le tutoiement (2026-10-07).
 2. **Langue des issues et des notes de version** : anglais, français, ou les deux.
 3. **FUNDING.yml** : accepter des dons, ou affirmer « gratuit, sans don ».
 4. **winget maintenant** (non signé, `--notifications=off`) ou après la signature.
