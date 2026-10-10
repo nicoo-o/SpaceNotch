@@ -24,11 +24,12 @@ pourquoi la première avait été retenue.
 | [ADR-021](ADR-021-transitions-et-distribution.md) | Transitions entre les états (voile de flou, respiration, bulle en goutte) et .exe produit par GitHub | Accepté |
 | [ADR-022](ADR-022-installeur-et-logo.md) | Logo (la grille hypnotique) et installeur sur mesure : l'installeur est la notch | Accepté |
 | [ADR-023](ADR-023-identite-de-paquet.md) | Identité de paquet signée, pour l'accès aux notifications | Accepté |
-| [ADR-024](ADR-024-canal-local-et-capture.md) | Canal local (tube nommé), hooks de Claude Code, capture de texte | Accepté |
+| [ADR-024](ADR-024-canal-local-et-capture.md) | Canal local (tube nommé), hooks de Claude Code, capture de texte | Accepté (Clawd : remplacé par ADR-029, proposé) |
 | [ADR-025](ADR-025-assistant-local-ou-distant.md) | Assistant : règles locales d'abord, Phi Silica sur l'appareil ou Claude avec ta clé | Accepté |
 | [ADR-026](ADR-026-telephone-et-salons.md) | Téléphone (Lien avec Windows), Discord (RPC local), paroles et Spotify, miroir webcam | Accepté |
 | [ADR-027](ADR-027-mise-a-jour-automatique.md) | Mise à jour automatique depuis les releases GitHub, vérifiée par SHA-256, installée au calme | Accepté |
 | [ADR-028](ADR-028-acces-tableau-de-bord-et-gestes-enseignes.md) | Le clic au repos ouvre la recherche et quatre tuiles ; les gestes s'enseignent au moment utile, dans la notch | Accepté |
+| [ADR-029](ADR-029-compagnon-vivant-pixel-identite.md) | Le compagnon vivant : Pixel est l'identité et l'avatar des agents (remplace Clawd) ; §15 rouvert pour Pixel au repos | Proposé |
 
 ## Format
 
