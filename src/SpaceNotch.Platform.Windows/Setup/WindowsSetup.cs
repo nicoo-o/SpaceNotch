@@ -283,7 +283,7 @@ public static class WindowsSetup
         // démarrer même si l'enregistrement est cassé) ; la copie installée la
         // reçoit, pour les notifications Windows. Échec : pas de notifications,
         // la notch tourne quand même.
-        IdentityManifestFile.Set(layout.Executable, on: true, log);
+        MakeInstalledVariant(source, layout.Executable, version, log);
 
         // Le paquet d'identité voyage avec l'exécutable : on le garde dans le
         // dossier d'installation, où l'enregistrement — et un réenregistrement
@@ -530,6 +530,41 @@ public static class WindowsSetup
         catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Fait de la copie la variante installée (n° 51). Non signée, l'identité est
+    /// rallumée sur place, comme avant. Signée, elle est refaite à l'identique de
+    /// celle que la CI a signée ; sans la signature de l'installée, ou si le
+    /// résultat n'a pas l'empreinte attendue, la copie reste identité éteinte :
+    /// pas de notifications Windows, mais une signature intacte. Jamais un
+    /// exécutable à la signature cassée.
+    /// </summary>
+    private static void MakeInstalledVariant(string source, string installed, string version, Action<string>? log)
+    {
+        if (IdentityManifestFile.IsOn(installed))
+        {
+            return;
+        }
+
+        bool signed = InstalledVariantFile.IsSigned(installed);
+        (VariantSignature Signature, string Sha256)? variant = signed ? InstalledVariantFile.Find(source, version, log) : null;
+
+        switch (InstalledVariant.Plan(signed, variant is not null))
+        {
+            case VariantPlan.FlipInPlace:
+                IdentityManifestFile.Set(installed, on: true, log);
+                break;
+
+            case VariantPlan.Rebuild when !InstalledVariantFile.Rebuild(installed, variant!.Value.Signature, variant.Value.Sha256, log):
+                CopyExecutable(source, installed, _ => { });
+                log?.Invoke("[IDENTITÉ] Copie signée gardée telle quelle : identité éteinte.");
+                break;
+
+            case VariantPlan.KeepOff:
+                log?.Invoke("[IDENTITÉ] Exécutable signé, sans la signature de la variante installée : identité éteinte, signature intacte.");
+                break;
         }
     }
 
