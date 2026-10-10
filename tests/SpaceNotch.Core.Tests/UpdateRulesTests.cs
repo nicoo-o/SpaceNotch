@@ -166,13 +166,15 @@ public sealed class UpdateRulesTests
     }
 
     [Fact]
-    public void Les_mises_a_jour_sont_automatiques_par_defaut_et_un_mode_inconnu_y_revient()
+    public void Les_mises_a_jour_previennent_par_defaut_et_un_mode_inconnu_y_revient()
     {
-        Assert.Equal(UpdateMode.Automatic, new AppSettings().UpdateMode);
+        // Décision du 2026-10-06 (n° 77) : un exécutable non signé ne s'installe
+        // plus seul ; la notch propose, l'utilisateur décide.
+        Assert.Equal(UpdateMode.Notify, new AppSettings().UpdateMode);
 
         var settings = new AppSettings { UpdateMode = (UpdateMode)42 };
         settings.Sanitize();
-        Assert.Equal(UpdateMode.Automatic, settings.UpdateMode);
+        Assert.Equal(UpdateMode.Notify, settings.UpdateMode);
     }
     // Copie de développement (2026-10-04) : un build lancé depuis bin a trouvé
     // l'installation dans le registre, l'a mise à jour par-dessus et a relancé

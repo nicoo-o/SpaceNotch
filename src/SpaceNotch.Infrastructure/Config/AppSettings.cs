@@ -584,11 +584,20 @@ public sealed class AppSettings
     // ---- Mises à jour --------------------------------------------------------
 
     /// <summary>
-    /// Mise à jour automatique : vérifie la dernière release, la télécharge, la
-    /// vérifie, puis l'installe seule au premier moment calme (Automatique) ou
-    /// la propose dans la notch (Me prévenir).
+    /// Mise à jour : vérifie la dernière release, la télécharge, la vérifie,
+    /// puis la propose dans la notch (Me prévenir, par défaut) ou l'installe
+    /// seule au premier moment calme (Automatique). « Me prévenir » par défaut
+    /// depuis le 2026-10-06 (n° 77) : un exécutable non signé ne s'installe
+    /// plus sans qu'on l'ait accepté.
     /// </summary>
-    public SpaceNotch.Core.Update.UpdateMode UpdateMode { get; set; } = SpaceNotch.Core.Update.UpdateMode.Automatic;
+    public SpaceNotch.Core.Update.UpdateMode UpdateMode { get; set; } = SpaceNotch.Core.Update.UpdateMode.Notify;
+
+    /// <summary>
+    /// Vrai une fois « Me prévenir » appliqué par défaut. Les configurations
+    /// écrites quand « Automatique » était le défaut le reçoivent une fois ;
+    /// remettre « Automatique » ensuite dans Réglages est respecté.
+    /// </summary>
+    public bool UpdateDefaultApplied { get; set; }
 
     /// <summary>Version du dernier lancement : sert à dire « Mise à jour faite » une fois.</summary>
     public string? LastRunVersion { get; set; }
@@ -835,6 +844,18 @@ public sealed class AppSettings
             ShowPixel = true;
             PixelDefaultApplied = true;
         }
+
+        // « Automatique » était le défaut : choisi ou non, rien ne le distingue.
+        // « Désactivées » et « Me prévenir » sont des choix, gardés tels quels.
+        if (!UpdateDefaultApplied)
+        {
+            if (UpdateMode == SpaceNotch.Core.Update.UpdateMode.Automatic)
+            {
+                UpdateMode = SpaceNotch.Core.Update.UpdateMode.Notify;
+            }
+
+            UpdateDefaultApplied = true;
+        }
     }
 
     /// <summary>
@@ -967,7 +988,7 @@ public sealed class AppSettings
 
         if (!Enum.IsDefined(UpdateMode))
         {
-            UpdateMode = SpaceNotch.Core.Update.UpdateMode.Automatic;
+            UpdateMode = SpaceNotch.Core.Update.UpdateMode.Notify;
         }
 
         // Encoche de la caméra : « À gauche » et « À droite » n'ont jamais rien
