@@ -174,7 +174,7 @@
                             <ToggleSwitch x:Name="StartupToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnStartupToggled" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Mises à jour automatiques Installe les nouvelles versions au premier moment calme.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Mises à jour automatiques Me prévenir Propose ou installe les nouvelles versions.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -184,7 +184,7 @@
                             <views:GlyphView Key="Download" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Mises à jour', En='Updates'}" Style="{StaticResource NfSettingsTitleStyle}" />
-                                <TextBlock x:Name="UpdateDescription" Text="{l:Loc Fr='Les nouvelles versions s’installent seules, au premier moment calme.', En='New versions install themselves at the first quiet moment.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                                <TextBlock x:Name="UpdateDescription" Text="{l:Loc Fr='La notch te propose chaque nouvelle version ; rien ne s’installe sans ton accord.', En='The notch offers each new version; nothing installs without your OK.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
                             </StackPanel>
                             <ComboBox x:Name="UpdateModeBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="170" SelectionChanged="OnUpdateModeChanged" />
                         </Grid>
