@@ -41,5 +41,5 @@ ceux de `docs/plans/2026-10-04-feuille-de-route.md`.
 ## Clôture
 
 - [x] Relais `docs/plans/relais-2026-10-10.md` avec le prochain brief
-- [ ] Mémoire
-- [ ] Rapport final
+- [x] Mémoire (dépôt et pièges, direction de 2026-10)
+- [x] Rapport final (dans la conversation)
