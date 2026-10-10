@@ -1,0 +1,19 @@
+name: Idée · Idea
+description: Une amélioration ou une nouvelle fonction · An improvement or a new feature
+labels: [idée]
+body:
+  - type: textarea
+    id: besoin
+    attributes:
+      label: Le besoin · The need
+      description: Ce que tu cherches à faire, et ce qui te gêne aujourd'hui · What you're trying to do, and what gets in the way today
+    validations:
+      required: true
+  - type: textarea
+    id: proposition
+    attributes:
+      label: Ce que tu proposes · What you suggest
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Autres pistes · Alternatives

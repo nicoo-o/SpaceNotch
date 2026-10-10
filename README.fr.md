@@ -24,13 +24,13 @@
 <br>
 
 <p align="center">
-<em>Un petit morceau de nuit en haut de votre écran.<br>
-Il se fait oublier — et s'éveille quand quelque chose mérite votre attention.</em>
+<em>Un petit morceau de nuit en haut de ton écran.<br>
+Il se fait oublier — et s'éveille quand quelque chose mérite ton attention.</em>
 </p>
 
 <br>
 
-## Voici votre notch
+## Voici ta notch
 
 <table>
   <tr>
@@ -42,8 +42,8 @@ Il se fait oublier — et s'éveille quand quelque chose mérite votre attention
     <td width="50%" valign="top"><img src="docs/assets/readme/state-bubble-fr.jpg" alt="Notch avec une bulle d'appel à côté"><br><sub><b>Elle se partage pour ce qui compte</b> — appels, enregistrements et téléchargements ont leur bulle ; un clic pour échanger</sub></td>
   </tr>
   <tr>
-    <td width="50%" valign="top"><img src="docs/assets/readme/state-side-fr.jpg" alt="Notch accrochée au bord droit, en languette"><br><sub><b>Le bord de votre choix</b> — en haut, à gauche ou à droite, même sur votre second écran</sub></td>
-    <td width="50%" valign="top"><img src="docs/assets/readme/state-floating-fr.jpg" alt="Notch arrachée du bord, flottante et étirée"><br><sub><b>Arrachez-la du bord</b> — elle s'étire, se lance vers les coins et revient en goutte</sub></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-side-fr.jpg" alt="Notch accrochée au bord droit, en languette"><br><sub><b>Le bord de ton choix</b> — en haut, à gauche ou à droite, même sur ton second écran</sub></td>
+    <td width="50%" valign="top"><img src="docs/assets/readme/state-floating-fr.jpg" alt="Notch arrachée du bord, flottante et étirée"><br><sub><b>Arrache-la du bord</b> — elle s'étire, se lance vers les coins et revient en goutte</sub></td>
   </tr>
 </table>
 
@@ -61,14 +61,14 @@ fini, la lumière se pose en un seul pixel apaisé. Quand rien ne se passe, rien
 
 <br>
 
-## Arrachez-la du bord
+## Arrache-la du bord
 
 <p align="center">
 <img src="docs/assets/readme/goo-fr.jpg" alt="La notch tirée vers le bas, qui s'étire comme une goutte d'encre, se rompt et devient une pastille flottante" width="100%">
 </p>
 
-Attrapez la notch et tirez. Elle résiste, s'étire comme une goutte d'encre, puis se détache.
-Lancez-la vers un coin, posez-la sur le côté de l'écran, emmenez-la sur votre second écran. Un
+Attrape la notch et tire. Elle résiste, s'étire comme une goutte d'encre, puis se détache.
+Lance-la vers un coin, pose-la sur le côté de l'écran, emmène-la sur ton second écran. Un
 double-clic, et elle rentre chez elle.
 
 <br>
@@ -77,14 +77,14 @@ double-clic, et elle rentre chez elle.
 
 <table>
   <tr>
-    <td width="33%" valign="top"><h3>Silencieuse</h3>Presque rien ne tourne quand rien ne se passe : moins de 0,1&nbsp;% de processeur au repos, mesuré. Aucune animation de fond — juste une forme immobile en haut de l'écran.</td>
+    <td width="33%" valign="top"><h3>Silencieuse</h3>Presque rien ne tourne quand rien ne se passe : environ 0,4&nbsp;% d'un cœur au repos (mesuré le 6&nbsp;octobre 2026, Pixel éteint). Seul Pixel, les yeux de la notch, cligne et suit ton curseur.</td>
     <td width="33%" valign="top"><h3>Discrète</h3>Elle s'efface quand un jeu ou une vidéo passe en plein écran, et ne s'ouvre jamais pour un simple changement de volume.</td>
-    <td width="33%" valign="top"><h3>Privée</h3>Aucun compte, aucune télémétrie. La seule connexion faite par défaut est la recherche de mises à jour sur GitHub (toutes les 6&nbsp;h, désactivable dans les Réglages). La météo, les paroles, Spotify et l'assistant ne se connectent qu'une fois activés.</td>
+    <td width="33%" valign="top"><h3>Privée</h3>Aucun compte, aucune télémétrie. Par défaut, la seule connexion est la mise à jour depuis GitHub : toutes les 6&nbsp;h, elle vérifie, télécharge et installe la nouvelle version au calme (« Me prévenir » ou « Désactivées » dans les Réglages). La météo, les paroles, Spotify et l'assistant ne se connectent qu'une fois activés. Tout le détail : <a href="PRIVACY.md">PRIVACY.md</a>.</td>
   </tr>
   <tr>
     <td width="33%" valign="top"><h3>Noir profond</h3>Un noir OLED pur, des épaules douces et concaves, comme si l'écran avait un peu grandi.</td>
     <td width="33%" valign="top"><h3>Douce</h3>Elle respecte le réglage <em>réduire les animations</em> de Windows et parle au Narrateur.</td>
-    <td width="33%" valign="top"><h3>À vous</h3>Couleur, transparence, arrondis, bord, sensation du ressort — réglez-la jusqu'à ce qu'elle vous ressemble.</td>
+    <td width="33%" valign="top"><h3>À toi</h3>Couleur, transparence, arrondis, bord, sensation du ressort — règle-la jusqu'à ce qu'elle te ressemble.</td>
   </tr>
 </table>
 
@@ -95,23 +95,29 @@ double-clic, et elle rentre chez elle.
 **La musique**, dont la pochette grandit en lecteur · **Le volume et la luminosité**, en surimpression
 discrète · **Les téléchargements**, de tous les navigateurs · **Les appels et enregistrements**, d'après
 le micro et la caméra · **Les notifications**, groupées par application · **Le Bluetooth** ·
-**Minuteur et concentration** · **Un lanceur** pour vos applications · **Une étagère** où glisser des
-fichiers · **L'historique du presse-papier** (désactivé par défaut, balayez pour supprimer) ·
-**Des greffons** pour tout le reste.
+**Minuteur et concentration** · **Une recherche** pour tes applications, les réglages de Windows, tes
+fichiers et le calcul rapide · **Une étagère** où glisser des fichiers · **L'historique du presse-papier**
+(désactivé par défaut, balaie pour supprimer) · **Pixel**, les yeux de la notch, qui te tient compagnie ·
+**Des greffons** pour tout le reste, chargés seulement si tu les approuves.
 
 <br>
 
 ## Pour commencer
 
-1. **[Téléchargez SpaceNotch-Setup.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe)**.
-2. Lancez-le. Windows peut dire qu'il *a protégé votre ordinateur* : choisissez **Informations complémentaires › Exécuter quand même** (l'application n'est pas encore signée).
+1. **[Télécharge SpaceNotch-Setup.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe)**.
+2. Lance-le. Windows peut dire qu'il *a protégé ton ordinateur* : choisis **Informations complémentaires › Exécuter quand même** (l'application n'est pas encore signée). Si le *Contrôle intelligent des applications* de Windows est actif, il bloque les applications non signées sans proposer de passer outre.
 3. L'installeur est la notch elle-même : elle descend du haut de l'écran et s'ouvre sur quelques
-   choix — pour vous ou pour tous, lancement au démarrage, raccourci sur le bureau. Appuyez sur
-   **Installer**, et elle se referme en notch.
-4. Levez les yeux. Survolez la notch pour un aperçu, cliquez pour l'ouvrir, clic droit pour le lanceur.
-   Les réglages sont dans l'icône de la zone de notification.
+   choix — pour toi ou pour tous, lancement au démarrage, raccourci sur le bureau. Appuie sur
+   **Installer**, et elle se referme en notch. Windows demande une autorisation d'administrateur, pour
+   que SpaceNotch puisse lire tes notifications ; il peut la redemander aux mises à jour. Refuse, et
+   tout le reste fonctionne.
+4. Lève les yeux. La notch se présente en quelques cartes. Survole-la pour un aperçu ; clique pour la
+   recherche et quatre raccourcis (minuteur, presse-papier, note, plus) ; clic droit pour le menu
+   rapide ; <kbd>Alt</kbd>+<kbd>Espace</kbd> pour chercher (ou le raccourci affiché dans le menu, s'il
+   était déjà pris) ; <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd> pour l'atteindre au clavier. Les
+   réglages sont dans le menu rapide et l'icône de la zone de notification.
 
-Envie de tout voir ? Lancez `SpaceNotch.exe --demo`.
+Envie de tout voir ? Lance `SpaceNotch.exe --demo`.
 
 <sub>Windows 11 (23H2 ou plus récent), x64. Sans installation ? <a href="https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch.exe"><code>SpaceNotch.exe</code></a> se lance tel quel, et <code>SpaceNotch-win-x64.zip</code> est dans la <a href="https://github.com/nicoo-o/SpaceNotch/releases/latest">dernière version</a>. Pour désinstaller : Paramètres › Applications › SpaceNotch.</sub>
 
@@ -148,6 +154,7 @@ Le fond d'écran des captures a été créé pour cette page.</sub>
 
 <br><br>
 
-<sub>Si SpaceNotch a rendu votre écran un peu plus beau, une ⭐ aide d'autres à la découvrir.</sub>
+<sub>Si SpaceNotch a rendu ton écran un peu plus beau, une ⭐ aide d'autres à la découvrir.<br>
+Une question, une idée, un souci ? Les <a href="https://github.com/nicoo-o/SpaceNotch/discussions">Discussions</a> et les <a href="https://github.com/nicoo-o/SpaceNotch/issues/new/choose">tickets</a> sont ouverts.</sub>
 
 </div>

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Question · Question
+    url: https://github.com/nicoo-o/SpaceNotch/discussions
+    about: Pour une question ou de l'aide, les Discussions · For questions or help, use Discussions
+  - name: Faille de sécurité · Security vulnerability
+    url: https://github.com/nicoo-o/SpaceNotch/security/advisories/new
+    about: À signaler en privé · Report it privately
