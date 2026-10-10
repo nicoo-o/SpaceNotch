@@ -54,7 +54,6 @@ public sealed partial class PixelAvatarView : Canvas
     private double _scale = 1;
     private AgentMood _mood = AgentMood.Thinking;
     private bool _animate = true;
-    private bool _suspended;
 
     public PixelAvatarView()
     {
@@ -148,27 +147,9 @@ public sealed partial class PixelAvatarView : Canvas
         }
     }
 
-    /// <summary>Vrai tant que la notch est retirée : rien ne bat (n° 49).</summary>
-    public bool Suspended
-    {
-        get => _suspended;
-        set
-        {
-            if (_suspended != value)
-            {
-                _suspended = value;
-                Sync();
-            }
-        }
-    }
-
-    /// <summary>Centre d'un œil au repos, en DIP de la vue, échelle comprise.</summary>
-    public (double X, double Y) EyeCenter(bool left)
-        => ((left ? PixelAvatar.LeftEyeX : PixelAvatar.RightEyeX) * _scale, PixelAvatar.EyeY * _scale);
-
     private void Sync()
     {
-        bool running = Visibility == Visibility.Visible && IsLoaded && _animate && !_suspended;
+        bool running = Visibility == Visibility.Visible && IsLoaded && _animate;
 
         if (!running)
         {
@@ -191,7 +172,7 @@ public sealed partial class PixelAvatarView : Canvas
     private void Draw()
     {
         double seconds = (DateTime.UtcNow - _start).TotalSeconds;
-        AvatarPose pose = PixelAvatar.Pose(_mood, seconds, _animate && !_suspended);
+        AvatarPose pose = PixelAvatar.Pose(_mood, seconds, _animate);
 
         // Inquiets : les coins intérieurs se relèvent (l'œil gauche tourne à rebours).
         PlaceEye(_leftEye, _leftArc, _leftTilt, PixelAvatar.LeftEyeX, pose, -pose.Tilt);
@@ -209,12 +190,7 @@ public sealed partial class PixelAvatarView : Canvas
         _sparkle[1].Opacity = pose.SignStep == 1 ? 1 : 0.35;
 
         // Le saut et le hochement emportent tout l'avatar, le signe compris.
-        var offset = new Vector3((float)pose.Shake, (float)pose.Hop, 0);
-
-        foreach (UIElement child in Children)
-        {
-            child.Translation = offset;
-        }
+        Translation = new Vector3((float)pose.Shake, (float)pose.Hop, 0);
     }
 
     private static void PlaceEye(Border eye, Polyline arc, RotateTransform tilt, double centerX, AvatarPose pose, double angle)

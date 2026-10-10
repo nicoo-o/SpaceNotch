@@ -67,6 +67,12 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     /// </summary>
     public bool AnimateHypnotic { get; set; } = true;
 
+    /// <summary>
+    /// Pixel en avatar bouge-t-il ? Pas le réglage de la grille : seulement la
+    /// réduction des animations et une notch visible, comme dans la pastille.
+    /// </summary>
+    public bool AnimateAvatar { get; set; } = true;
+
     private HypnoticSurface? _hypnotic;
     private byte[]? _artworkBytes;
 
@@ -96,7 +102,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
 
             // La pastille fait 38 DIP : l'avatar (39 à l'échelle 1) y tient en entier.
             SceneAvatar.AvatarScale = 0.95;
-            SceneAvatar.Animate = AnimateHypnotic;
+            SceneAvatar.Animate = AnimateAvatar;
             SceneAvatar.Mood = agent.Mood;
             SceneAvatar.Visibility = Visibility.Visible;
             return;

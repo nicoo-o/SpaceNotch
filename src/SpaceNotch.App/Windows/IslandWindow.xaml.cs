@@ -1319,6 +1319,7 @@ public sealed partial class IslandWindow : Window
             if (scene is InfoScene generic)
             {
                 generic.AnimateHypnotic = AnimateHypnotic();
+                generic.AnimateAvatar = UseSpringAnimations() && LoopsShown();
             }
             else if (scene is VolumeHudScene hud)
             {
