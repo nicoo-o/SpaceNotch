@@ -10,8 +10,8 @@ public enum HandoffAnchor
     /// <summary>Le glyphe 7 × 7 de la pastille : coordonnées en cases, depuis son coin haut-gauche.</summary>
     Glyph,
 
-    /// <summary>Clawd : coordonnées en cases de son dessin recadré (24 × 17).</summary>
-    Clawd,
+    /// <summary>Pixel en avatar d'agent : coordonnées en DIP de l'avatar, à l'échelle 1.</summary>
+    Avatar,
 
     /// <summary>L'élément de fin de ligne (égaliseur, anneau) : décalage en DIP depuis son centre.</summary>
     Trailing,
@@ -80,9 +80,6 @@ public enum HandoffAfter
     /// <summary>Ils se fondent dans ce qui s'allume autour d'eux.</summary>
     Merge,
 
-    /// <summary>Ils restent sombres : les yeux de Clawd.</summary>
-    Holes,
-
     /// <summary>Ils dansent : les barres de l'égaliseur.</summary>
     Dance,
 
@@ -147,9 +144,12 @@ public static class PixelHandoff
         // Les charges utiles d'abord : elles disent exactement ce qui est montré.
         switch (activity.Payload)
         {
-            case ClawdPayload:
-                // Les trous des yeux de Clawd, recadré : colonnes 8-9 et 15-16, rangées 8-9.
-                return new("clawd", HandoffLead.None, HandoffAnchor.Clawd, new(9, 9, 2, 2), new(16, 9, 2, 2), HandoffAfter.Holes, "#000000");
+            case AgentPayload:
+                // Les yeux de Pixel deviennent ceux de l'avatar : ils y vont tels quels (ADR-029).
+                EyeShape eye = PixelGaze.Shape(PixelMood.Awake);
+                return new("agent", HandoffLead.LookUpRight, HandoffAnchor.Avatar,
+                    new(PixelAvatar.LeftEyeX, PixelAvatar.EyeY, eye.Width, eye.Height, eye.Roundness),
+                    new(PixelAvatar.RightEyeX, PixelAvatar.EyeY, eye.Width, eye.Height, eye.Roundness));
             case ProgressStepsPayload:
                 return new("progress", HandoffLead.Stretch, HandoffAnchor.Glyph, new(1, 3, 1.6, 1.6), new(5, 3, 1.6, 1.6), Tint: ActivityTint);
             case DeliveryPayload:

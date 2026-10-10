@@ -548,7 +548,7 @@ public sealed partial class IslandWindow : Window
     private bool AnimateHypnotic() => UseSpringAnimations() && _settings.AllowHypnoticMotion && LoopsShown();
 
     /// <summary>
-    /// La matière qui boucle (grilles, pulsation de l'atmosphère, pluie, Clawd)
+    /// La matière qui boucle (grilles, pulsation de l'atmosphère, pluie, Pixel en avatar)
     /// ne tourne que devant quelqu'un. Retirée devant un plein écran ou derrière
     /// l'écran de verrouillage, la notch la laissait tourner : 26 à 37 % d'un
     /// cœur sur le fil du compositeur (constats du 2026-10-03). Le rendu
@@ -1255,9 +1255,9 @@ public sealed partial class IslandWindow : Window
         TabRestView.Visibility = Visibility.Collapsed;
         ShowRestPixel(false);
 
-        // Clawd ne bat que là où il est montré : la branche qui le montre le rallume.
-        SignalClawd.Visibility = Visibility.Collapsed;
-        CardClawd.Visibility = Visibility.Collapsed;
+        // Pixel ne bat que là où il est montré : la branche qui le montre le rallume.
+        SignalAvatar.Visibility = Visibility.Collapsed;
+        CardAvatar.Visibility = Visibility.Collapsed;
 
         UpdateStackIndicator();
         Announce(activity);
@@ -1319,7 +1319,7 @@ public sealed partial class IslandWindow : Window
             if (scene is InfoScene generic)
             {
                 generic.AnimateHypnotic = AnimateHypnotic();
-                generic.ClawdStyle = _settings.ClawdStyle;
+                generic.ShowAvatar = _settings.ShowPixel;
             }
             else if (scene is VolumeHudScene hud)
             {
@@ -1483,7 +1483,7 @@ public sealed partial class IslandWindow : Window
             ApplyHypnoticSlot(_signalHypnotic, SignalHypnoticHost, SignalGlyph, preset);
             ApplyRestArtwork(activity, SignalArtwork, SignalArtworkImage, SignalGlyph, preset);
             CardArtwork.Visibility = Visibility.Collapsed;
-            ApplyClawd(activity, SignalClawd, SignalClawdPitch, _signalHypnotic, SignalHypnoticHost, SignalGlyph, SignalArtwork);
+            ApplyAvatar(activity, SignalAvatar, SignalAvatarScale, _signalHypnotic, SignalHypnoticHost, SignalGlyph, SignalArtwork);
             return;
         }
 
@@ -1520,7 +1520,7 @@ public sealed partial class IslandWindow : Window
         ApplyHypnoticSlot(_cardHypnotic, CardHypnoticHost, CardGlyph, preset);
         ApplyRestArtwork(activity, CardArtwork, CardArtworkImage, CardGlyph, preset);
         SignalArtwork.Visibility = Visibility.Collapsed;
-        ApplyClawd(activity, CardClawd, CardClawdPitch, _cardHypnotic, CardHypnoticHost, CardGlyph, CardArtwork);
+        ApplyAvatar(activity, CardAvatar, CardAvatarScale, _cardHypnotic, CardHypnoticHost, CardGlyph, CardArtwork);
     }
 
     /// <summary>
@@ -2089,17 +2089,17 @@ public sealed partial class IslandWindow : Window
             stack += trailing.Width + 6;
         }
 
-        // Clawd occupe la place du glyphe, mais il est plus large que lui : sans
+        // Pixel occupe la place du glyphe, mais il est plus large que lui : sans
         // ce supplément, la forme était mesurée trop étroite, le texte coupé,
         // et la notch s'élargissait une seconde fois après coup.
-        double clawd = activity.Payload is ClawdPayload
-            ? (SpaceNotch.Core.Motion.Clawd.Width * (tier == IslandPresentationTier.Signal ? SignalClawdPitch : CardClawdPitch))
-                - (tier == IslandPresentationTier.Signal ? SignalGlyphSize : CardGlyphSize)
+        double avatar = activity.Payload is AgentPayload && _settings.ShowPixel
+            ? Math.Max(0, (SpaceNotch.Core.Motion.PixelAvatar.Width * (tier == IslandPresentationTier.Signal ? SignalAvatarScale : CardAvatarScale))
+                - (tier == IslandPresentationTier.Signal ? SignalGlyphSize : CardGlyphSize))
             : 0;
 
         double content = tier == IslandPresentationTier.Signal
-            ? SignalGlyphSpan + clawd + Measure(_measureSignal, activity.Title)
-            : CardGlyphSpan + clawd + CardColumnGap + Math.Max(
+            ? SignalGlyphSpan + avatar + Measure(_measureSignal, activity.Title)
+            : CardGlyphSpan + avatar + CardColumnGap + Math.Max(
                 Measure(_measureSubhead, SubheadFor(activity)),
                 Measure(_measureHeadline, activity.Title));
 
@@ -2506,7 +2506,7 @@ public sealed partial class IslandWindow : Window
             _dozeTimer?.Stop();
             StopMagnet();
 
-            // Grilles, pulsation, pluie et Clawd : le rendu les pose fixes,
+            // Grilles, pulsation, pluie et Pixel en avatar : le rendu les pose fixes,
             // puisque LoopsShown() est maintenant faux.
             RequestRender();
             return;

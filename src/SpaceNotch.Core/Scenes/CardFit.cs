@@ -20,7 +20,7 @@ public static class CardFit
     /// <summary>Largeur du contenu de la carte, celle du répertoire.</summary>
     public const double Width = 312;
 
-    /// <summary>Pastille de la carte (icône, grille, Clawd).</summary>
+    /// <summary>Pastille de la carte (icône, grille, Pixel).</summary>
     public const double Badge = 38;
 
     /// <summary>Ligne de contexte au-dessus du titre (légende 11, interligne 14).</summary>

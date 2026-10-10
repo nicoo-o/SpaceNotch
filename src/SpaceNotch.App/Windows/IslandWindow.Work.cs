@@ -54,27 +54,28 @@ public sealed partial class IslandWindow
             : null;
     }
 
-    // ---- Clawd (I4) -------------------------------------------------------
+    // ---- Pixel, avatar des agents (ADR-029) -----------------------------------
 
-    /// <summary>Un pixel de Clawd dans la pastille : il remplit sa hauteur (≈ 20 DIP).</summary>
-    private const double SignalClawdPitch = 1.15;
+    /// <summary>Pixel dans la pastille : ses yeux au repos, un peu agrandis.</summary>
+    private const double SignalAvatarScale = 1.1;
 
-    private const double CardClawdPitch = 1.3;
+    private const double CardAvatarScale = 1.3;
 
     /// <summary>
-    /// Claude Code a sa mascotte : quand l'activité porte un <see cref="ClawdPayload"/>,
-    /// Clawd prend la place du glyphe, de la pochette et de la grille qui tourne.
+    /// Un agent a Pixel pour avatar : quand l'activité porte un <see cref="AgentPayload"/>
+    /// et que Pixel est allumé, il prend la place du glyphe, de la pochette et de
+    /// la grille qui tourne. Pixel éteint, la grille reste.
     /// </summary>
-    private void ApplyClawd(
+    private void ApplyAvatar(
         IslandActivity activity,
-        SpaceNotch_App.Views.ClawdView view,
-        double pitch,
+        SpaceNotch_App.Views.PixelAvatarView view,
+        double scale,
         SpaceNotch_App.Composition.HypnoticSurface? surface,
         FrameworkElement host,
         FrameworkElement glyph,
         FrameworkElement artwork)
     {
-        if (activity.Payload is not ClawdPayload clawd)
+        if (activity.Payload is not AgentPayload agent || !_settings.ShowPixel)
         {
             view.Visibility = Visibility.Collapsed;
             return;
@@ -85,10 +86,9 @@ public sealed partial class IslandWindow
         glyph.Visibility = Visibility.Collapsed;
         artwork.Visibility = Visibility.Collapsed;
 
-        view.Pitch = pitch;
-        view.PixelStyle = _settings.ClawdStyle;
+        view.AvatarScale = scale;
         view.Animate = UseSpringAnimations() && LoopsShown();
-        view.Mood = clawd.Mood;
+        view.Mood = agent.Mood;
         view.Visibility = Visibility.Visible;
     }
 

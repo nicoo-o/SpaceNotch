@@ -507,12 +507,6 @@ public sealed class AppSettings
     public bool ShowChannel { get; set; } = true;
 
     /// <summary>
-    /// Clawd, la mascotte de Claude Code (I4) : son rendu en pixels. Par défaut
-    /// fidèle au terminal (carrés pleins) ; « entre les deux » ou matière SpaceNotch au choix.
-    /// </summary>
-    public SpaceNotch.Core.Motion.ClawdStyle ClawdStyle { get; set; } = SpaceNotch.Core.Motion.ClawdStyle.Faithful;
-
-    /// <summary>
     /// Assistant (vague 6c) : aucun modèle par défaut — le résumé et la grammaire
     /// du lanceur marchent alors par règles locales. « Local » : Phi Silica sur
     /// PC Copilot+. « Claude » : la clé de l'utilisateur, gardée dans le coffre de
@@ -877,11 +871,6 @@ public sealed class AppSettings
         if (ClaudeModel.Length > 64 || ClaudeModel.Any(c => !(char.IsAsciiLetterOrDigit(c) || c is '-' or '.' or '_')))
         {
             ClaudeModel = string.Empty;
-        }
-
-        if (!Enum.IsDefined(ClawdStyle))
-        {
-            ClawdStyle = SpaceNotch.Core.Motion.ClawdStyle.Faithful;
         }
 
         if (!Enum.IsDefined(Density))

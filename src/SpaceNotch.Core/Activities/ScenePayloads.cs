@@ -204,13 +204,13 @@ public sealed record BytesPayload(long Bytes)
 public sealed record ProgressStepsPayload(IReadOnlyList<double> Segments);
 
 /// <summary>
-/// Agent Claude Code (I4) : la notch montre Clawd, sa mascotte, dans l'humeur
+/// Un agent (I4, ADR-029) : la notch montre Pixel, son avatar, dans l'humeur
 /// donnée, à la place de la grille qui tourne. <see cref="Recent"/> garde ses
 /// dernières actions (fichier lu, modifié, commande lancée) : la carte reste
 /// compacte, et un appui la développe pour les lire (<see cref="Expanded"/>).
 /// </summary>
-public sealed record ClawdPayload(
-    SpaceNotch.Core.Motion.ClawdMood Mood,
+public sealed record AgentPayload(
+    SpaceNotch.Core.Motion.AgentMood Mood,
     IReadOnlyList<string>? Recent = null,
     bool Expanded = false)
 {

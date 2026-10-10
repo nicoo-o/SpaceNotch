@@ -272,9 +272,9 @@
                             IsHitTestVisible="False"
                             Visibility="Collapsed" />
 
-                        <!-- Clawd (I4) : la mascotte de Claude Code, à la place de la grille. -->
-                        <views:ClawdView
-                            x:Name="SignalClawd"
+                        <!-- Pixel, avatar des agents (ADR-029), à la place de la grille. -->
+                        <views:PixelAvatarView
+                            x:Name="SignalAvatar"
                             VerticalAlignment="Center"
                             Visibility="Collapsed" />
                     </Grid>
@@ -374,8 +374,8 @@
                             IsHitTestVisible="False"
                             Visibility="Collapsed" />
 
-                        <views:ClawdView
-                            x:Name="CardClawd"
+                        <views:PixelAvatarView
+                            x:Name="CardAvatar"
                             VerticalAlignment="Center"
                             Visibility="Collapsed" />
                     </Grid>
