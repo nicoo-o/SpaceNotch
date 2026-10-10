@@ -123,4 +123,17 @@ public class EmptyStateTests
     [Fact]
     public void TheHeadsetCard_HasNoBlankBelow()
         => Assert.Equal(40 + SceneInsets.Top + SceneInsets.Bottom, IslandSceneCatalog.FootprintFor(IslandSceneCatalog.Bluetooth).Height);
+
+    [Fact]
+    public void EveryAgent_HasPixelForAvatar_NotOnlyClaudeCode()
+    {
+        // ADR-029 : Pixel est l'avatar de chaque agent ; Clawd ne l'était que de Claude Code.
+        var activities = new ActivityManager();
+        var feature = new ChannelFeature(activities, new EventBus());
+
+        feature.Receive(new AgentMessage("codex.1", "Codex", "Lit le dépôt", null, ChannelState.Working));
+
+        var agent = Assert.IsType<AgentPayload>(Assert.Single(activities.GetActiveActivities()).Payload);
+        Assert.Equal(SpaceNotch.Core.Motion.AgentMood.Thinking, agent.Mood);
+    }
 }

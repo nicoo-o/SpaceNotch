@@ -144,12 +144,17 @@ public static class PixelHandoff
         // Les charges utiles d'abord : elles disent exactement ce qui est montré.
         switch (activity.Payload)
         {
-            case AgentPayload:
-                // Les yeux de Pixel deviennent ceux de l'avatar : ils y vont tels quels (ADR-029).
-                EyeShape eye = PixelGaze.Shape(PixelMood.Awake);
+            case AgentPayload agent:
+            {
+                // Les yeux de Pixel deviennent ceux de l'avatar (ADR-029) : ils arrivent
+                // là où l'avatar les dessine au début de l'humeur, et de la même forme.
+                AvatarPose pose = PixelAvatar.Pose(agent.Mood, 0);
+                EyeShape eye = pose.Eye;
+                double y = PixelAvatar.EyeY + pose.LookY + pose.Hop;
                 return new("agent", HandoffLead.LookUpRight, HandoffAnchor.Avatar,
-                    new(PixelAvatar.LeftEyeX, PixelAvatar.EyeY, eye.Width, eye.Height, eye.Roundness),
-                    new(PixelAvatar.RightEyeX, PixelAvatar.EyeY, eye.Width, eye.Height, eye.Roundness));
+                    new(PixelAvatar.LeftEyeX + pose.LookX, y, eye.Width, eye.Height, eye.Roundness),
+                    new(PixelAvatar.RightEyeX + pose.LookX, y, eye.Width, eye.Height, eye.Roundness));
+            }
             case ProgressStepsPayload:
                 return new("progress", HandoffLead.Stretch, HandoffAnchor.Glyph, new(1, 3, 1.6, 1.6), new(5, 3, 1.6, 1.6), Tint: ActivityTint);
             case DeliveryPayload:

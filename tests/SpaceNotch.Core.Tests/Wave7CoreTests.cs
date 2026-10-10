@@ -72,6 +72,11 @@ public class Wave7CoreTests
         Assert.Equal(PixelAvatar.RightEyeX, agent.Right.X);
         Assert.Equal(PixelGaze.Shape(PixelMood.Awake).Height, agent.Left.Height);
 
+        // Les yeux arrivent dans la forme de l'humeur : ronds quand l'agent demande.
+        HandoffRecipe asking = PixelHandoff.For(Activity("card", "Agent", new AgentPayload(AgentMood.Asking)));
+        Assert.Equal(PixelAvatar.Pose(AgentMood.Asking, 0).Eye.Width, asking.Left.Width);
+        Assert.Equal(1, asking.Left.Roundness);
+
         // Les deux-points : l'un au-dessus de l'autre, au même endroit en largeur.
         HandoffRecipe timer = PixelHandoff.For(Activity("timer"));
         Assert.Equal(timer.Left.X, timer.Right.X);

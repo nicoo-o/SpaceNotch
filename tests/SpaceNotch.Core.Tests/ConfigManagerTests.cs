@@ -250,4 +250,16 @@ public class ConfigManagerTests : IDisposable
         Assert.Equal(0.30, loaded.SpringResponseSeconds, 3);
         Assert.Equal(0.50, loaded.SpringBounce, 3);
     }
+
+    [Fact]
+    public void Load_UneConfigurationQuiNommeEncoreClawdSeCharge()
+    {
+        // ADR-029 : le réglage « Style de Clawd » a disparu ; une configuration qui le porte garde le reste.
+        var manager = CreateManager();
+
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(manager.ConfigFilePath, """{ "ClawdStyle": "Notch", "SpringResponseSeconds": 0.30 }""");
+
+        Assert.Equal(0.30, new SettingsService(manager).Current.SpringResponseSeconds, 3);
+    }
 }

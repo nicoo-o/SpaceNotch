@@ -137,8 +137,16 @@ public sealed class PixelAvatarTests
                 AvatarPose pose = PixelAvatar.Pose(mood, t);
                 double half = pose.Eye.Width / 2;
 
-                Assert.True(PixelAvatar.LeftEyeX - half + pose.LookX + pose.Shake >= 0, $"{mood} à {t:0.00} s : œil gauche coupé");
-                Assert.True(PixelAvatar.RightEyeX + half + pose.LookX <= PixelAvatar.SignLeft, $"{mood} à {t:0.00} s : œil droit sur le signe");
+                // Un œil penché occupe un peu plus que sa forme : sa boîte englobante.
+                double tilt = Math.Abs(pose.Tilt) * Math.PI / 180;
+                double halfWidth = ((pose.Eye.Width * Math.Cos(tilt)) + (pose.Eye.Height * Math.Sin(tilt))) / 2;
+                double halfHeight = ((pose.Eye.Width * Math.Sin(tilt)) + (pose.Eye.Height * Math.Cos(tilt))) / 2;
+                double top = PixelAvatar.EyeY + pose.LookY + pose.Hop - halfHeight;
+                double bottom = PixelAvatar.EyeY + pose.LookY + pose.Hop + halfHeight;
+
+                Assert.True(PixelAvatar.LeftEyeX - Math.Max(half, halfWidth) + pose.LookX + Math.Min(0, pose.Shake) >= 0, $"{mood} à {t:0.00} s : œil gauche coupé");
+                Assert.True(PixelAvatar.RightEyeX + Math.Max(half, halfWidth) + pose.LookX <= PixelAvatar.SignLeft, $"{mood} à {t:0.00} s : œil droit sur le signe");
+                Assert.True(top >= 0 && bottom <= PixelAvatar.Height, $"{mood} à {t:0.00} s : œil coupé en haut ou en bas");
             }
         }
     }
