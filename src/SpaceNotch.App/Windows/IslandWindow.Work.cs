@@ -62,9 +62,10 @@ public sealed partial class IslandWindow
     private const double CardAvatarScale = 1.3;
 
     /// <summary>
-    /// Un agent a Pixel pour avatar : quand l'activité porte un <see cref="AgentPayload"/>
-    /// et que Pixel est allumé, il prend la place du glyphe, de la pochette et de
-    /// la grille qui tourne. Pixel éteint, la grille reste.
+    /// Un agent a Pixel pour avatar : quand l'activité porte un <see cref="AgentPayload"/>,
+    /// il prend la place du glyphe, de la pochette et de la grille qui tourne.
+    /// Toujours, même Pixel éteint au repos : le réglage ne concerne que ses yeux
+    /// dans la notch au repos (choix de l'auteur, 2026-10-10).
     /// </summary>
     private void ApplyAvatar(
         IslandActivity activity,
@@ -75,7 +76,7 @@ public sealed partial class IslandWindow
         FrameworkElement glyph,
         FrameworkElement artwork)
     {
-        if (activity.Payload is not AgentPayload agent || !_settings.ShowPixel)
+        if (activity.Payload is not AgentPayload agent)
         {
             view.Visibility = Visibility.Collapsed;
             return;

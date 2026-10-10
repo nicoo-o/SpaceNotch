@@ -1319,7 +1319,6 @@ public sealed partial class IslandWindow : Window
             if (scene is InfoScene generic)
             {
                 generic.AnimateHypnotic = AnimateHypnotic();
-                generic.ShowAvatar = _settings.ShowPixel;
             }
             else if (scene is VolumeHudScene hud)
             {
@@ -2092,7 +2091,7 @@ public sealed partial class IslandWindow : Window
         // Pixel occupe la place du glyphe, mais il est plus large que lui : sans
         // ce supplément, la forme était mesurée trop étroite, le texte coupé,
         // et la notch s'élargissait une seconde fois après coup.
-        double avatar = activity.Payload is AgentPayload && _settings.ShowPixel
+        double avatar = activity.Payload is AgentPayload
             ? Math.Max(0, (SpaceNotch.Core.Motion.PixelAvatar.Width * (tier == IslandPresentationTier.Signal ? SignalAvatarScale : CardAvatarScale))
                 - (tier == IslandPresentationTier.Signal ? SignalGlyphSize : CardGlyphSize))
             : 0;

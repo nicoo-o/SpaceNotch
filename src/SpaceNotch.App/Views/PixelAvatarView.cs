@@ -99,7 +99,7 @@ public sealed partial class PixelAvatarView : Canvas
         RegisterPropertyChangedCallback(VisibilityProperty, (_, _) => Sync());
     }
 
-    private static double SignLeft => PixelAvatar.EyeWidth + PixelAvatar.EyeGap + PixelAvatar.EyeWidth + PixelAvatar.SignGap;
+    private static double SignLeft => PixelAvatar.SignLeft;
 
     /// <summary>Taille de l'avatar : 1 vaut les yeux de Pixel au repos.</summary>
     public double AvatarScale
@@ -193,8 +193,9 @@ public sealed partial class PixelAvatarView : Canvas
         double seconds = (DateTime.UtcNow - _start).TotalSeconds;
         AvatarPose pose = PixelAvatar.Pose(_mood, seconds, _animate && !_suspended);
 
-        PlaceEye(_leftEye, _leftArc, _leftTilt, PixelAvatar.LeftEyeX, pose, pose.Tilt);
-        PlaceEye(_rightEye, _rightArc, _rightTilt, PixelAvatar.RightEyeX, pose, -pose.Tilt);
+        // Inquiets : les coins intérieurs se relèvent (l'œil gauche tourne à rebours).
+        PlaceEye(_leftEye, _leftArc, _leftTilt, PixelAvatar.LeftEyeX, pose, -pose.Tilt);
+        PlaceEye(_rightEye, _rightArc, _rightTilt, PixelAvatar.RightEyeX, pose, pose.Tilt);
 
         for (int i = 0; i < _dots.Length; i++)
         {

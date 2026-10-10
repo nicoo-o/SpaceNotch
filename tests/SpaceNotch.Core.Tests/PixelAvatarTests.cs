@@ -122,7 +122,24 @@ public sealed class PixelAvatarTests
     [Fact]
     public void La_largeur_garde_la_place_des_yeux_et_du_signe()
     {
-        Assert.Equal(PixelAvatar.EyeWidth + PixelAvatar.EyeGap + PixelAvatar.EyeWidth + PixelAvatar.SignGap + PixelAvatar.SignWidth, PixelAvatar.Width);
+        Assert.Equal(PixelAvatar.SignLeft + PixelAvatar.SignWidth, PixelAvatar.Width);
         Assert.True(PixelAvatar.RightEyeX - PixelAvatar.LeftEyeX == PixelAvatar.EyeWidth + PixelAvatar.EyeGap);
+    }
+
+    [Fact]
+    public void Un_oeil_ne_sort_jamais_de_l_avatar_ni_ne_touche_le_signe()
+    {
+        // La pastille rogne l'avatar : un œil rond, ou qui regarde de côté, a été coupé (capture du 2026-10-10).
+        foreach (AgentMood mood in Moods)
+        {
+            for (double t = 0; t < 12; t += 0.013)
+            {
+                AvatarPose pose = PixelAvatar.Pose(mood, t);
+                double half = pose.Eye.Width / 2;
+
+                Assert.True(PixelAvatar.LeftEyeX - half + pose.LookX + pose.Shake >= 0, $"{mood} à {t:0.00} s : œil gauche coupé");
+                Assert.True(PixelAvatar.RightEyeX + half + pose.LookX <= PixelAvatar.SignLeft, $"{mood} à {t:0.00} s : œil droit sur le signe");
+            }
+        }
     }
 }

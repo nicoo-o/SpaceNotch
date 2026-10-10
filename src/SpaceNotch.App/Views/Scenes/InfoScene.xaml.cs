@@ -67,9 +67,6 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     /// </summary>
     public bool AnimateHypnotic { get; set; } = true;
 
-    /// <summary>Pixel allumé dans les réglages : il est l'avatar des agents. Renseigné par la fenêtre.</summary>
-    public bool ShowAvatar { get; set; } = true;
-
     private HypnoticSurface? _hypnotic;
     private byte[]? _artworkBytes;
 
@@ -90,14 +87,15 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
         _hypnotic ??= HypnoticSurface.TryAttach(SceneHypnoticHost);
 
         // Un agent : Pixel, son avatar, occupe toute la pastille (ADR-029).
-        if (activity.Payload is AgentPayload agent && ShowAvatar)
+        if (activity.Payload is AgentPayload agent)
         {
             _hypnotic?.SetPreset(HypnoticPreset.None, animate: false);
             SceneHypnoticHost.Visibility = Visibility.Collapsed;
             SceneIcon.Visibility = Visibility.Collapsed;
             SceneArtwork.Visibility = Visibility.Collapsed;
 
-            SceneAvatar.AvatarScale = 1.4;
+            // La pastille fait 38 DIP : l'avatar (39 à l'échelle 1) y tient en entier.
+            SceneAvatar.AvatarScale = 0.95;
             SceneAvatar.Animate = AnimateHypnotic;
             SceneAvatar.Mood = agent.Mood;
             SceneAvatar.Visibility = Visibility.Visible;

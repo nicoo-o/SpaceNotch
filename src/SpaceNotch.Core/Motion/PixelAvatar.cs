@@ -37,8 +37,8 @@ public enum AvatarSign
 
 /// <summary>
 /// Une image de Pixel en avatar, en DIP à l'échelle 1. Les deux yeux ont la
-/// même forme ; <see cref="Tilt"/> penche l'œil gauche d'autant et le droit à
-/// l'inverse (coins intérieurs relevés : inquiet). <see cref="Arcs"/> dessine
+/// même forme ; <see cref="Tilt"/> penche le droit d'autant et le gauche à
+/// l'inverse, coins intérieurs relevés : inquiet. <see cref="Arcs"/> dessine
 /// des yeux rieurs (« ^ ») au lieu de pavés.
 /// </summary>
 public readonly record struct AvatarPose(
@@ -69,6 +69,12 @@ public static class PixelAvatar
     /// <summary>Largeur d'un œil au repos, en DIP.</summary>
     public const double EyeWidth = 8;
 
+    /// <summary>
+    /// Marge à gauche, en DIP : un œil qui regarde de côté, ou rond, déborde de
+    /// sa place ; il doit rester dans l'avatar, que la pastille rogne.
+    /// </summary>
+    public const double Inset = PixelGaze.MaxLookX;
+
     /// <summary>Écart entre les deux yeux, en DIP (le même qu'au repos).</summary>
     public const double EyeGap = 7;
 
@@ -79,7 +85,10 @@ public static class PixelAvatar
     public const double SignWidth = 9;
 
     /// <summary>Largeur de l'avatar, signe compris, en DIP.</summary>
-    public const double Width = EyeWidth + EyeGap + EyeWidth + SignGap + SignWidth;
+    public const double Width = Inset + EyeWidth + EyeGap + EyeWidth + SignGap + SignWidth;
+
+    /// <summary>Début du signe, en DIP depuis le bord gauche.</summary>
+    public const double SignLeft = Inset + EyeWidth + EyeGap + EyeWidth + SignGap;
 
     /// <summary>Hauteur de l'avatar : un œil rond, et la place du saut, en DIP.</summary>
     public const double Height = 14;
@@ -88,10 +97,10 @@ public static class PixelAvatar
     public const int FramesPerSecond = 15;
 
     /// <summary>Centre de l'œil gauche, au repos, en DIP depuis le coin haut-gauche.</summary>
-    public const double LeftEyeX = EyeWidth / 2;
+    public const double LeftEyeX = Inset + (EyeWidth / 2);
 
     /// <summary>Centre de l'œil droit, au repos, en DIP depuis le coin haut-gauche.</summary>
-    public const double RightEyeX = EyeWidth + EyeGap + (EyeWidth / 2);
+    public const double RightEyeX = Inset + EyeWidth + EyeGap + (EyeWidth / 2);
 
     /// <summary>Hauteur du centre des yeux, en DIP depuis le haut.</summary>
     public const double EyeY = Height / 2;

@@ -476,7 +476,7 @@
                             <views:GlyphView Key="Eyes" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Pixel', En='Pixel'}" Style="{StaticResource NfSettingsTitleStyle}" />
-                                <TextBlock Text="{l:Loc Fr='Deux yeux dans la notch au repos : ils suivent le curseur, clignent et dorment la nuit. Ils montrent aussi où en sont tes agents.', En='Two eyes in the notch at rest: they follow the pointer, blink and sleep at night. They also show how your agents are doing.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                                <TextBlock Text="{l:Loc Fr='Deux yeux dans la notch au repos : ils suivent le curseur, clignent et dorment la nuit. Éteints, ils restent l’avatar de tes agents.', En='Two eyes in the notch at rest: they follow the pointer, blink and sleep at night. Off, they still show how your agents are doing.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
                             </StackPanel>
                             <ToggleSwitch x:Name="PixelToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnPixelToggled" />
                         </Grid>
