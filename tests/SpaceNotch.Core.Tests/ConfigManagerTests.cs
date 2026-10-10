@@ -296,4 +296,15 @@ public class ConfigManagerTests : IDisposable
 
         Assert.Equal(Enum.Parse<SpaceNotch.Core.Update.UpdateMode>(mode), new SettingsService(manager).Current.UpdateMode);
     }
+
+    [Fact]
+    public void Reset_UnAutomatiqueChoisiApresUneRemiseAZeroEstGarde()
+    {
+        var service = new SettingsService(CreateManager());
+
+        service.ResetToDefaults();
+        service.Update(s => s.UpdateMode = SpaceNotch.Core.Update.UpdateMode.Automatic);
+
+        Assert.Equal(SpaceNotch.Core.Update.UpdateMode.Automatic, new SettingsService(CreateManager()).Current.UpdateMode);
+    }
 }
