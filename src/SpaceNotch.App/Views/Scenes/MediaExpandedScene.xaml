@@ -83,6 +83,7 @@
                 <Slider
                     x:Name="TimelineSlider"
                     Grid.Column="0"
+                    AutomationProperties.Name="{l:Loc Fr='Position de lecture', En='Playback position'}"
                     Minimum="0"
                     Maximum="100"
                     Value="0"
