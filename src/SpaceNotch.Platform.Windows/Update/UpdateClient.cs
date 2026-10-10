@@ -96,6 +96,7 @@ public sealed class UpdateClient : IDisposable
             // Déjà téléchargé et intact : rien à refaire.
             if (File.Exists(target) && string.Equals(await HashAsync(target, cancellationToken).ConfigureAwait(false), expected, StringComparison.Ordinal))
             {
+                await KeepVariantSignatureAsync(release, sums, Path.GetDirectoryName(target)!, log, cancellationToken).ConfigureAwait(false);
                 return new DownloadedUpdate(release, target, expected);
             }
 
@@ -123,6 +124,7 @@ public sealed class UpdateClient : IDisposable
 
             File.Move(partial, target, overwrite: true);
             log?.Invoke($"[MISE À JOUR] {release.Tag} téléchargée et vérifiée ({size / 1024 / 1024} Mo).");
+            await KeepVariantSignatureAsync(release, sums, Path.GetDirectoryName(target)!, log, cancellationToken).ConfigureAwait(false);
             Prune(release.Version);
             return new DownloadedUpdate(release, target, expected);
         }
@@ -130,6 +132,36 @@ public sealed class UpdateClient : IDisposable
         {
             log?.Invoke($"[MISE À JOUR] Téléchargement interrompu : {ex.Message}");
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Pose à côté de l'installeur la signature de la variante installée et les
+    /// empreintes (n° 51) : il refera l'exécutable signé sans réseau. Facultatif :
+    /// sans eux, une version signée s'installe identité éteinte.
+    /// </summary>
+    private async Task KeepVariantSignatureAsync(ReleaseInfo release, string sums, string folder, Action<string>? log, CancellationToken cancellationToken)
+    {
+        if (release.SignatureUrl is null)
+        {
+            return;
+        }
+
+        try
+        {
+            byte[] signature = await _http.GetByteArrayAsync(release.SignatureUrl, cancellationToken).ConfigureAwait(false);
+
+            if (signature.Length > SpaceNotch.Core.Setup.InstalledVariant.MaxCertificate + 64)
+            {
+                return;
+            }
+
+            await File.WriteAllBytesAsync(Path.Combine(folder, SpaceNotch.Core.Setup.InstalledVariant.SignatureAsset), signature, cancellationToken).ConfigureAwait(false);
+            await File.WriteAllTextAsync(Path.Combine(folder, UpdateRules.ChecksumsAsset), sums, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException)
+        {
+            log?.Invoke($"[MISE À JOUR] Signature de la variante installée non téléchargée : {ex.Message}");
         }
     }
 

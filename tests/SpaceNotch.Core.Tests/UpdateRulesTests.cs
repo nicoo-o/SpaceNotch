@@ -69,6 +69,19 @@ public sealed class UpdateRulesTests
         Assert.Equal(Download + "SHA256SUMS.txt", release.ChecksumsUrl);
         Assert.Equal(80_000_000, release.SetupSize);
         Assert.StartsWith("https://github.com/nicoo-o/SpaceNotch/", release.PageUrl);
+        Assert.Null(release.SignatureUrl);
+    }
+
+    [Fact]
+    public void Une_release_signee_donne_aussi_la_signature_de_la_variante_installee()
+    {
+        // n° 51 : quelques Ko, téléchargés avec l'installeur pour refaire l'exécutable signé.
+        string json = Release().Replace(
+            "\"assets\": [",
+            $"\"assets\": [ {{ \"name\": \"SpaceNotch-identity.bin\", \"size\": 9000, \"browser_download_url\": \"{Download}SpaceNotch-identity.bin\" }},",
+            StringComparison.Ordinal);
+
+        Assert.Equal(Download + "SpaceNotch-identity.bin", UpdateRules.ParseRelease(json)?.SignatureUrl);
     }
 
     [Fact]

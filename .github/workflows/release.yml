@@ -180,22 +180,9 @@ jobs:
           # portable, dossier) : Windows refuse de lancer un exécutable qui déclare
           # une identité dont l'enregistrement est cassé — l'installeur ne pouvait
           # alors plus démarrer pour réparer. L'élément <msix> devient un commentaire
-          # de même longueur ; l'installeur le rallume dans la copie installée
-          # (IdentityManifest, côté application).
-          function Set-IdentityManifest([string] $Path, [bool] $On) {
-            $bytes = [IO.File]::ReadAllBytes($Path)
-            $latin = [Text.Encoding]::GetEncoding(28591)
-            $text = $latin.GetString($bytes)
-            $found = [regex]::Matches($text, '<msix [^<>]*urn:schemas-microsoft-com:msix\.v1[^<>]*></msix>|<!--x [^<>]*urn:schemas-microsoft-com:msix\.v1[^<>]*></ms-->')
-            if ($found.Count -ne 1) { throw "$Path : $($found.Count) élément(s) d'identité, 1 attendu." }
-            $m = $found[0]
-            $inner = $m.Value.Substring(6, $m.Length - 14)
-            $value = if ($On) { "<msix $inner></msix>" } else { "<!--x $inner></ms-->" }
-            if ($value.Length -ne $m.Length) { throw "Longueur modifiée : $Path" }
-            $latin.GetBytes($value).CopyTo($bytes, $m.Index)
-            [IO.File]::WriteAllBytes($Path, $bytes)
-            Write-Host ("{0} : identité {1} (octet {2})" -f [IO.Path]::GetFileName($Path), $(if ($On) { "allumée" } else { "éteinte" }), $m.Index)
-          }
+          # de même longueur. L'installeur refait la variante installée, identité
+          # allumée, à partir de sa signature (n° 51, étape suivante).
+          . ./tools/variants/Variant.ps1
           Set-IdentityManifest "$out/SpaceNotch.exe" $false
           Set-IdentityManifest "$out/SpaceNotch-Setup.exe" $false
           $folderExe = Get-ChildItem "${{ runner.temp }}/folder" -Filter "SpaceNotch.exe" | Select-Object -First 1
@@ -208,11 +195,27 @@ jobs:
           # Sans resources.pri, aucune fenêtre XAML ne se charge (WindowsAppSDK#6720).
           if (-not (Test-Path "${{ runner.temp }}/folder/resources.pri")) { throw "resources.pri absent de la publication." }
 
+      # Variante installée (n° 51) : l'installeur, identité allumée. Elle n'est pas
+      # publiée ; sa signature l'est (SpaceNotch-identity.bin), et son empreinte
+      # entre dans SHA256SUMS.txt. L'installeur la refait octet pour octet au lieu
+      # de réécrire un exécutable signé. Quand SignPath signera la release, la
+      # signature de l'installée et celle des fichiers publiés se feront ici,
+      # avant l'extraction.
+      - name: Variante installée
+        shell: pwsh
+        run: |
+          . ./tools/variants/Variant.ps1
+          $installed = "${{ runner.temp }}/installed"
+          New-Item -ItemType Directory -Force -Path $installed | Out-Null
+          Copy-Item "${{ runner.temp }}/dist/SpaceNotch-Setup.exe" "$installed/SpaceNotch-installed.exe"
+          Set-IdentityManifest "$installed/SpaceNotch-installed.exe" $true
+          Export-VariantSignature "$installed/SpaceNotch-installed.exe" "${{ runner.temp }}/dist/SpaceNotch-identity.bin"
+
       - name: Générer les empreintes SHA-256
         shell: pwsh
         run: |
           $dist = "${{ runner.temp }}/dist"
-          Get-ChildItem $dist -File | Get-FileHash -Algorithm SHA256 |
+          Get-ChildItem $dist, "${{ runner.temp }}/installed" -File | Get-FileHash -Algorithm SHA256 |
             ForEach-Object { "{0}  {1}" -f $_.Hash.ToLowerInvariant(), [IO.Path]::GetFileName($_.Path) } |
             Set-Content "$dist/SHA256SUMS.txt" -Encoding ascii
 
@@ -543,5 +546,6 @@ jobs:
           files: |
             ${{ runner.temp }}/dist/SpaceNotch-Setup.exe
             ${{ runner.temp }}/dist/SHA256SUMS.txt
+            ${{ runner.temp }}/dist/SpaceNotch-identity.bin
             ${{ runner.temp }}/dist/SpaceNotch.exe
             ${{ runner.temp }}/dist/SpaceNotch-win-x64.zip

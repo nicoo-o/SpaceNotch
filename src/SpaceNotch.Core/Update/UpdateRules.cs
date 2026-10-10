@@ -24,7 +24,7 @@ public enum UpdateMode
 /// <param name="SetupUrl">Lien de téléchargement de l'installeur.</param>
 /// <param name="SetupSize">Taille annoncée de l'installeur, en octets.</param>
 /// <param name="ChecksumsUrl">Lien du fichier d'empreintes, ou <c>null</c> s'il manque.</param>
-public sealed record ReleaseInfo(Version Version, string Tag, string PageUrl, string SetupUrl, long SetupSize, string? ChecksumsUrl);
+public sealed record ReleaseInfo(Version Version, string Tag, string PageUrl, string SetupUrl, long SetupSize, string? ChecksumsUrl, string? SignatureUrl = null);
 
 /// <summary>Ce que la notch doit faire maintenant.</summary>
 public enum UpdateAction
@@ -147,6 +147,7 @@ public static class UpdateRules
             string? setupUrl = null;
             long setupSize = 0;
             string? checksumsUrl = null;
+            string? signatureUrl = null;
 
             foreach (JsonElement asset in assets.EnumerateArray())
             {
@@ -167,6 +168,10 @@ public static class UpdateRules
                 {
                     checksumsUrl = url;
                 }
+                else if (string.Equals(name, SpaceNotch.Core.Setup.InstalledVariant.SignatureAsset, StringComparison.OrdinalIgnoreCase))
+                {
+                    signatureUrl = url;
+                }
             }
 
             if (setupUrl is null || setupSize <= 0 || setupSize > MaximumSetupSize)
@@ -178,7 +183,7 @@ public static class UpdateRules
                 ? html
                 : "https://github.com/" + Repository + "/releases/tag/" + tag;
 
-            return new ReleaseInfo(version, tag!, page, setupUrl, setupSize, checksumsUrl);
+            return new ReleaseInfo(version, tag!, page, setupUrl, setupSize, checksumsUrl, signatureUrl);
         }
         catch (JsonException)
         {

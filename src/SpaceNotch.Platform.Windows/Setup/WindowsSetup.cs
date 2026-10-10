@@ -283,7 +283,7 @@ public static class WindowsSetup
         // démarrer même si l'enregistrement est cassé) ; la copie installée la
         // reçoit, pour les notifications Windows. Échec : pas de notifications,
         // la notch tourne quand même.
-        IdentityManifestFile.Set(layout.Executable, on: true, log);
+        MakeInstalledVariant(source, layout.Executable, version, log);
 
         // Le paquet d'identité voyage avec l'exécutable : on le garde dans le
         // dossier d'installation, où l'enregistrement — et un réenregistrement
@@ -530,6 +530,79 @@ public static class WindowsSetup
         catch (Win32Exception ex) when (ex.NativeErrorCode == ErrorCancelled)
         {
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Fait de la copie la variante installée (n° 51). Non signée, l'identité est
+    /// rallumée sur place, comme avant. Signée, elle n'est jamais modifiée sur
+    /// place : l'installée est refaite à côté, à l'identique de celle que la CI a
+    /// signée, et ne remplace la copie que si son empreinte est la bonne. Sinon
+    /// la copie reste identité éteinte : pas de notifications Windows, mais une
+    /// signature intacte. Jamais un exécutable à la signature cassée, et jamais
+    /// une installation qui échoue pour cela.
+    /// </summary>
+    private static void MakeInstalledVariant(string source, string installed, string version, Action<string>? log)
+    {
+        if (IdentityManifestFile.IsOn(installed))
+        {
+            return;
+        }
+
+        if (InstalledVariant.Plan(InstalledVariantFile.IsSigned(installed), haveSignature: false) == VariantPlan.FlipInPlace)
+        {
+            IdentityManifestFile.Set(installed, on: true, log);
+            return;
+        }
+
+        // À côté de l'installeur d'abord (une mise à jour les y a posés), sauf en
+        // processus élevé : ce dossier, l'utilisateur peut l'écrire. Puis la release.
+        if ((!IsElevated && TryRebuild(installed, InstalledVariantFile.FindBeside(source, log), log))
+            || TryRebuild(installed, InstalledVariantFile.FindOnline(version, log), log))
+        {
+            return;
+        }
+
+        log?.Invoke("[IDENTITÉ] Exécutable signé, sans la signature de la variante installée : identité éteinte, signature intacte.");
+    }
+
+    /// <summary>Refait l'installée sur une copie, et ne la met en place que vérifiée.</summary>
+    private static bool TryRebuild(string installed, (VariantSignature Signature, string Sha256)? variant, Action<string>? log)
+    {
+        if (variant is not { } found)
+        {
+            return false;
+        }
+
+        string staging = installed + ".variant";
+
+        try
+        {
+            File.Copy(installed, staging, overwrite: true);
+
+            if (!InstalledVariantFile.Rebuild(staging, found.Signature, found.Sha256, log))
+            {
+                return false;
+            }
+
+            File.Move(staging, installed, overwrite: true);
+            return true;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            log?.Invoke($"[IDENTITÉ] Variante installée non mise en place : {ex.Message}");
+            return false;
+        }
+        finally
+        {
+            try
+            {
+                File.Delete(staging);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Un reste à côté ne gêne rien : il sera écrasé à la prochaine installation.
+            }
         }
     }
 
