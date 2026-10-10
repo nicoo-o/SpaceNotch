@@ -1,0 +1,47 @@
+name: Bogue · Bug
+description: Quelque chose ne marche pas comme prévu · Something doesn't work as expected
+labels: [bogue]
+body:
+  - type: textarea
+    id: ce-qui-se-passe
+    attributes:
+      label: Ce qui se passe · What happens
+      description: Et ce que tu attendais à la place · And what you expected instead
+    validations:
+      required: true
+  - type: textarea
+    id: reproduire
+    attributes:
+      label: Pour le reproduire · How to reproduce
+      placeholder: |
+        1. …
+        2. …
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version de SpaceNotch · SpaceNotch version
+      description: Réglages › À propos · Settings › About
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows
+      description: Ex. Windows 11 24H2 (winver)
+    validations:
+      required: true
+  - type: input
+    id: ecrans
+    attributes:
+      label: Écrans et échelle · Displays and scale
+      description: Ex. 1 écran, 2560 × 1600, 150 %, 240 Hz
+  - type: textarea
+    id: journal
+    attributes:
+      label: Journal · Log
+      description: |
+        Le passage utile de %LocalAppData%\SpaceNotch\logs\spacenotch.log. Relis-le avant : il peut contenir des chemins de fichiers.
+        The relevant part of the log. Read it first: it can contain file paths.
+      render: text
