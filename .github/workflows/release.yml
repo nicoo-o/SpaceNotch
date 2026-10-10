@@ -182,7 +182,7 @@ jobs:
           # alors plus démarrer pour réparer. L'élément <msix> devient un commentaire
           # de même longueur. L'installeur refait la variante installée, identité
           # allumée, à partir de sa signature (n° 51, étape suivante).
-          . ./tools/release/Variant.ps1
+          . ./tools/variants/Variant.ps1
           Set-IdentityManifest "$out/SpaceNotch.exe" $false
           Set-IdentityManifest "$out/SpaceNotch-Setup.exe" $false
           $folderExe = Get-ChildItem "${{ runner.temp }}/folder" -Filter "SpaceNotch.exe" | Select-Object -First 1
@@ -204,7 +204,7 @@ jobs:
       - name: Variante installée
         shell: pwsh
         run: |
-          . ./tools/release/Variant.ps1
+          . ./tools/variants/Variant.ps1
           $installed = "${{ runner.temp }}/installed"
           New-Item -ItemType Directory -Force -Path $installed | Out-Null
           Copy-Item "${{ runner.temp }}/dist/SpaceNotch-Setup.exe" "$installed/SpaceNotch-installed.exe"

@@ -131,7 +131,7 @@ public sealed class InstalledVariantTests : IDisposable
     /// <summary>
     /// Dans la CI seulement (travail « Variantes de l'exécutable ») : les deux
     /// variantes de l'exécutable publié, vraiment signées, et la signature de
-    /// l'installée extraite par tools/release/Variant.ps1. Ailleurs, rien à faire.
+    /// l'installée extraite par tools/variants/Variant.ps1. Ailleurs, rien à faire.
     /// </summary>
     [Fact]
     public void Dans_la_CI_la_vraie_variante_signee_est_refaite()

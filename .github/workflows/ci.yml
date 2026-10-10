@@ -123,7 +123,7 @@ jobs:
       - name: Construire et signer les deux variantes
         shell: pwsh
         run: |
-          . ./tools/release/Variant.ps1
+          . ./tools/variants/Variant.ps1
           $dir = "${{ runner.temp }}/variants"
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
           $exe = Get-ChildItem "${{ runner.temp }}/single" -Filter "*.exe" | Select-Object -First 1
