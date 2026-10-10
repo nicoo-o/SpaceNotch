@@ -134,11 +134,12 @@ public static class InstalledVariantFile
     }
 
     /// <summary>
-    /// La signature de l'installée et son empreinte : à côté de l'installeur
-    /// (une mise à jour les a téléchargées avec lui), sinon depuis la release de
-    /// cette version sur GitHub. <c>null</c> hors ligne ou si l'un manque.
+    /// La signature de l'installée et son empreinte, posées à côté de
+    /// l'installeur par une mise à jour. Seulement pour un installeur non élevé :
+    /// ce dossier, l'utilisateur peut l'écrire ; un processus élevé ne lui fait
+    /// pas confiance (voir <see cref="FindOnline"/>). <c>null</c> si l'un manque.
     /// </summary>
-    public static (VariantSignature Signature, string Sha256)? Find(string setupPath, string version, Action<string>? log = null)
+    public static (VariantSignature Signature, string Sha256)? FindBeside(string setupPath, Action<string>? log = null)
     {
         string folder = Path.GetDirectoryName(Path.GetFullPath(setupPath)) ?? string.Empty;
         string signaturePath = Path.Combine(folder, InstalledVariant.SignatureAsset);
@@ -146,30 +147,51 @@ public static class InstalledVariantFile
 
         try
         {
-            byte[]? signatureBytes = File.Exists(signaturePath) ? File.ReadAllBytes(signaturePath) : null;
-            string? sums = File.Exists(sumsPath) ? File.ReadAllText(sumsPath) : null;
-
-            if (signatureBytes is null || sums is null)
+            if (!File.Exists(signaturePath) || !File.Exists(sumsPath) || new FileInfo(signaturePath).Length > InstalledVariant.MaxCertificate + 64)
             {
-                string release = $"https://github.com/{UpdateRules.Repository}/releases/download/v{version}/";
-                signatureBytes = Http.GetByteArrayAsync(release + InstalledVariant.SignatureAsset).GetAwaiter().GetResult();
-                sums = Http.GetStringAsync(release + UpdateRules.ChecksumsAsset).GetAwaiter().GetResult();
-            }
-
-            if (InstalledVariant.Parse(signatureBytes) is not { } signature
-                || UpdateRules.FindChecksum(sums, InstalledVariant.InstalledName) is not { } expected)
-            {
-                log?.Invoke("[IDENTITÉ] Signature de la variante installée illisible ou sans empreinte.");
                 return null;
             }
 
-            return (signature, expected);
+            return Read(File.ReadAllBytes(signaturePath), File.ReadAllText(sumsPath), log);
         }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or HttpRequestException or TaskCanceledException)
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            log?.Invoke($"[IDENTITÉ] Signature de la variante installée introuvable : {ex.Message}");
+            log?.Invoke($"[IDENTITÉ] Signature de la variante installée illisible à côté de l'installeur : {ex.Message}");
             return null;
         }
+    }
+
+    /// <summary>
+    /// La signature de l'installée et son empreinte, depuis la release de cette
+    /// version sur GitHub, en HTTPS : la même confiance que pour l'installeur
+    /// lui-même. <c>null</c> hors ligne.
+    /// </summary>
+    public static (VariantSignature Signature, string Sha256)? FindOnline(string version, Action<string>? log = null)
+    {
+        try
+        {
+            string release = $"https://github.com/{UpdateRules.Repository}/releases/download/v{version}/";
+            byte[] signature = Http.GetByteArrayAsync(release + InstalledVariant.SignatureAsset).GetAwaiter().GetResult();
+            string sums = Http.GetStringAsync(release + UpdateRules.ChecksumsAsset).GetAwaiter().GetResult();
+            return Read(signature, sums, log);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException)
+        {
+            log?.Invoke($"[IDENTITÉ] Signature de la variante installée introuvable en ligne : {ex.Message}");
+            return null;
+        }
+    }
+
+    private static (VariantSignature Signature, string Sha256)? Read(byte[] signatureBytes, string sums, Action<string>? log)
+    {
+        if (InstalledVariant.Parse(signatureBytes) is not { } signature
+            || UpdateRules.FindChecksum(sums, InstalledVariant.InstalledName) is not { } expected)
+        {
+            log?.Invoke("[IDENTITÉ] Signature de la variante installée illisible ou sans empreinte.");
+            return null;
+        }
+
+        return (signature, expected);
     }
 
     private static string Sha256(string path)
