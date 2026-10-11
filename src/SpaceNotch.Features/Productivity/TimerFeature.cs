@@ -165,7 +165,8 @@ public sealed class TimerFeature : IslandFeatureBase
 
     protected override void OnDisposed() => _tick.Dispose();
 
-    private void OnTick(object? state)
+    /// <summary>Un battement : redessine, ou clôt la mesure arrivée au bout. Interne : les tests le jouent (n° 86).</summary>
+    internal void OnTick(object? state)
     {
         if (!_clock.IsRunning)
         {
