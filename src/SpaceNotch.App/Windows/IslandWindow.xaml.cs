@@ -4311,7 +4311,8 @@ public sealed partial class IslandWindow : Window
                     {
                         ReplayWelcome = ShowWelcome,
                         RequestNotificationAccess = _notificationFeature.RequestAccessAsync,
-                        SearchHotkey = _launcherFeature.Hotkey
+                        SearchHotkey = _launcherFeature.Hotkey,
+                        FocusHotkey = _focusHotkey
                     };
                     _settingsWindow.Closed += (_, _) => _settingsWindow = null;
                 }

@@ -83,6 +83,22 @@ public sealed partial class SettingsWindow : Window
 
     private string? _searchHotkey;
 
+    /// <summary>
+    /// Raccourci « aller à la notch » (Win+Alt+N, sinon Ctrl+Alt+N), pour l'afficher :
+    /// il existait sans être montré nulle part (n° 81).
+    /// </summary>
+    public string? FocusHotkey
+    {
+        get => _focusHotkey;
+        set
+        {
+            _focusHotkey = value;
+            ShowKeys(FocusHotkeyCaps, value, Lang.T("Aucun : Win+Alt+N et Ctrl+Alt+N sont pris par d'autres applications", "None: Win+Alt+N and Ctrl+Alt+N are taken by other apps"));
+        }
+    }
+
+    private string? _focusHotkey;
+
     public SettingsWindow(SettingsService settings, IslandFeatureRegistry features)
     {
         ArgumentNullException.ThrowIfNull(settings);
@@ -1473,36 +1489,37 @@ public sealed partial class SettingsWindow : Window
 
     /// <summary>Le raccourci réellement actif, sous le choix : un choix pris par une autre application cède la place au suivant.</summary>
     private void ShowHotkey()
-    {
-        HotkeyCaps.Children.Clear();
+        => ShowKeys(HotkeyCaps, _searchHotkey, Lang.T("Aucun : tous les raccourcis proposés sont pris par d'autres applications", "None: every offered shortcut is taken by other apps"));
 
-        if (string.IsNullOrWhiteSpace(_searchHotkey))
+    /// <summary>
+    /// Un raccourci en touches dessinées, ou la raison de son absence. Le Narrateur
+    /// lit le raccourci d'une traite (« Actif : Win+Alt+N »), pas touche par touche.
+    /// </summary>
+    private static void ShowKeys(StackPanel caps, string? hotkey, string none)
+    {
+        caps.Children.Clear();
+
+        if (string.IsNullOrWhiteSpace(hotkey))
         {
-            HotkeyCaps.Children.Add(new TextBlock
-            {
-                Text = Lang.T("Aucun : tous les raccourcis proposés sont pris par d'autres applications", "None: every offered shortcut is taken by other apps"),
-                FontSize = 12,
-                Foreground = new SolidColorBrush(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF)),
-                VerticalAlignment = VerticalAlignment.Center
-            });
+            caps.Children.Add(new TextBlock { Text = none, FontSize = 11.5, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center });
             return;
         }
 
-        HotkeyCaps.Children.Add(new TextBlock
-        {
-            Text = Lang.T("Actif :", "Active:"),
-            FontSize = 12,
-            Foreground = new SolidColorBrush(Color.FromArgb(0x99, 0xFF, 0xFF, 0xFF)),
-            VerticalAlignment = VerticalAlignment.Center
-        });
+        // Sans couleur imposée : le texte hérite de celle de la carte, qui suit le
+        // thème (un blanc fixe disparaissait en contraste élevé clair).
+        var active = new TextBlock { Text = Lang.T("Actif :", "Active:"), FontSize = 11.5, VerticalAlignment = VerticalAlignment.Center };
+        AutomationProperties.SetName(active, Lang.T("Actif : ", "Active: ") + hotkey);
+        caps.Children.Add(active);
 
-        foreach (string key in _searchHotkey.Split('+'))
+        foreach (string key in hotkey.Split('+'))
         {
-            HotkeyCaps.Children.Add(new Border
+            var label = new TextBlock { Text = key, Style = (Style)Application.Current.Resources["NfKeyCapTextStyle"] };
+            AutomationProperties.SetAccessibilityView(label, Microsoft.UI.Xaml.Automation.Peers.AccessibilityView.Raw);
+            caps.Children.Add(new Border
             {
                 Style = (Style)Application.Current.Resources["NfKeyCapStyle"],
                 VerticalAlignment = VerticalAlignment.Center,
-                Child = new TextBlock { Text = key, Style = (Style)Application.Current.Resources["NfKeyCapTextStyle"] }
+                Child = label
             });
         }
     }
