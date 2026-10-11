@@ -7,7 +7,7 @@ Voici chaque connexion que l'application peut faire, et quand.
 
 | Service | Quand | Ce qui part |
 |---|---|---|
-| GitHub (`api.github.com`, `github.com`) | **par défaut**, toutes les 6 h, sauf si les mises à jour sont « Désactivées » | une demande de la dernière version, avec le numéro de ta version ; puis le téléchargement de l'installeur |
+| GitHub (`api.github.com`, `github.com`) | **par défaut**, toutes les 6 h, sauf si les mises à jour sont « Désactivées » ; l'installation, elle, attend ton accord (« Me prévenir », par défaut) | une demande de la dernière version, avec le numéro de ta version ; puis le téléchargement de l'installeur et de ses empreintes. Un installeur signé lit aussi, sur la release de sa version, la signature de l'exécutable installé (quelques Ko) |
 | Open-Meteo (`geocoding-api.open-meteo.com`, `api.open-meteo.com`) | seulement si tu as indiqué une ville pour la météo | le nom de la ville, puis ses coordonnées |
 | LRCLIB (`lrclib.net`) | seulement si les paroles sont activées | l'artiste, le titre, l'album et la durée du morceau qui joue |
 | Spotify (`accounts.spotify.com`, `api.spotify.com`) | seulement si tu connectes ton compte Spotify | ce que l'autorisation Spotify demande, avec ta propre application développeur |
@@ -34,7 +34,7 @@ every connection the app can make, and when.
 
 | Service | When | What is sent |
 |---|---|---|
-| GitHub (`api.github.com`, `github.com`) | **by default**, every 6 h, unless updates are “Off” | a request for the latest release, with your version number; then the installer download |
+| GitHub (`api.github.com`, `github.com`) | **by default**, every 6 h, unless updates are “Off”; installing waits for your OK (“Ask me”, the default) | a request for the latest release, with your version number; then the installer and its checksums. A signed installer also reads, from its own release, the signature of the installed executable (a few KB) |
 | Open-Meteo | only if you set a city for the weather | the city name, then its coordinates |
 | LRCLIB (`lrclib.net`) | only if lyrics are turned on | the artist, title, album and length of the playing track |
 | Spotify | only if you connect your Spotify account | what Spotify's authorisation asks for, with your own developer app |
