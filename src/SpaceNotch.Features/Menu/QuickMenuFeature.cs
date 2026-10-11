@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Core.Menu;
 using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Scenes;
@@ -38,6 +39,15 @@ public sealed class QuickMenuFeature : IslandFeatureBase
 
     public const string ActivityId = "feature.quickmenu.current";
 
+    /// <summary>La carte qui propose d'activer l'historique du presse-papier (n° 63).</summary>
+    public const string ClipboardOfferId = "feature.quickmenu.clipboard-offer";
+
+    /// <summary>« Activer » sur cette carte.</summary>
+    public const string ClipboardEnableAction = "menu.clipboard.enable";
+
+    /// <summary>« Plus tard » sur cette carte.</summary>
+    public const string ClipboardLaterAction = "menu.clipboard.later";
+
     private QuickMenuPayload? _state;
 
     public QuickMenuFeature(IActivityManager activities, IEventBus events)
@@ -67,6 +77,41 @@ public sealed class QuickMenuFeature : IslandFeatureBase
         _state = null;
         RemoveActivity(ActivityId);
     }
+
+    /// <summary>
+    /// Historique éteint (le défaut, par discrétion) : la tuile Presse-papier
+    /// n'est plus grisée sans explication. Elle propose de l'activer, en disant
+    /// ce qu'il garde (n° 63).
+    /// </summary>
+    public void OfferClipboardHistory()
+    {
+        string subtitle = Lang.T(
+            "Garde tes dernières copies pour les retrouver. En mémoire seulement, sans les mots de passe.",
+            "Keeps your latest copies so you can find them again. In memory only, never passwords.");
+
+        PublishActivity(new IslandActivity
+        {
+            Id = ClipboardOfferId,
+            FeatureId = FeatureKey,
+            SceneKey = IslandSceneCatalog.Card,
+            Title = Lang.T("Activer l'historique du presse-papier ?", "Turn on clipboard history?"),
+            Subtitle = subtitle,
+            Source = "SpaceNotch",
+            IconKey = "Clipboard",
+            Layout = ActivityLayout.Stack,
+            State = IslandActivityState.Notification,
+            Priority = ActivityPriority.High,
+            ExpandedFootprint = CardFit.For(eyebrow: false, subtitle, progress: false, actions: true, ActivityLayout.Stack),
+            Actions =
+            [
+                new ActivityAction(ClipboardEnableAction, Lang.T("Activer", "Turn on"), "Check", ActivityActionKind.Invoke, IsPrimary: true, Tone: ActivityActionTone.Positive),
+                new ActivityAction(ClipboardLaterAction, Lang.T("Plus tard", "Not now"), "Close")
+            ]
+        });
+    }
+
+    /// <summary>Retire la proposition, acceptée ou non.</summary>
+    public void WithdrawClipboardOffer() => RemoveActivity(ClipboardOfferId);
 
     protected override Task OnStartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 

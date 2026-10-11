@@ -134,8 +134,9 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
             clipboard.IconKey,
             clipboard.Label,
             QuickMenuFeature.ClipboardAction,
-            enabled: payload.HasClipboard,
-            trailing: payload.HasClipboard ? null : (French ? "vide" : "empty")));
+            // Éteint, l'historique n'est pas « vide » : la ligne propose de l'activer (n° 63).
+            enabled: payload.HasClipboard || payload.ClipboardOff,
+            trailing: payload.HasClipboard ? null : payload.ClipboardOff ? (French ? "désactivé" : "off") : (French ? "vide" : "empty")));
 
         RowsPanel.Children.Add(Row(
             "Folder",

@@ -1335,6 +1335,7 @@ public sealed partial class IslandWindow : Window
             else if (scene is LauncherScene launcherTiles)
             {
                 launcherTiles.ClipboardEmpty = !HasActivity(ClipboardFeature.ActivityId);
+                launcherTiles.ClipboardOff = !_settings.ShowClipboard;
             }
 
             scene.Apply(activity);
