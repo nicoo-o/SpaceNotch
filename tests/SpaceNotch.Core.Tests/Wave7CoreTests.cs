@@ -48,7 +48,7 @@ public class Wave7CoreTests
     [Fact]
     public void Payloads_ChooseFirst()
     {
-        Assert.Equal("clawd", PixelHandoff.For(Activity("card", "Agent", new ClawdPayload(ClawdMood.Thinking))).Key);
+        Assert.Equal("agent", PixelHandoff.For(Activity("card", "Agent", new AgentPayload(AgentMood.Thinking))).Key);
         Assert.Equal("progress", PixelHandoff.For(Activity("card", "Progress", new ProgressStepsPayload([1, 0.5]))).Key);
         Assert.Equal("voice", PixelHandoff.For(Activity("card", "Headphones", new VoicePayload("General", [], false))).Key);
         Assert.Equal("work", PixelHandoff.For(Activity("card", "Info", motion: ActivityMotionState.Working)).Key);
@@ -64,10 +64,18 @@ public class Wave7CoreTests
             Assert.True(PixelHandoff.LeadMilliseconds(r.Lead) <= 520);
         }
 
-        // Clawd : ses yeux deviennent des trous sombres.
-        HandoffRecipe clawd = PixelHandoff.For(Activity("card", "Agent", new ClawdPayload(ClawdMood.Thinking)));
-        Assert.Equal(HandoffAfter.Holes, clawd.After);
-        Assert.True(clawd.Right.X > clawd.Left.X);
+        // Un agent (ADR-029) : les yeux de Pixel deviennent ceux de l'avatar, tels quels.
+        HandoffRecipe agent = PixelHandoff.For(Activity("card", "Agent", new AgentPayload(AgentMood.Thinking)));
+        Assert.Equal(HandoffAnchor.Avatar, agent.Anchor);
+        Assert.Equal(HandoffAfter.Merge, agent.After);
+        Assert.Equal(PixelAvatar.LeftEyeX, agent.Left.X);
+        Assert.Equal(PixelAvatar.RightEyeX, agent.Right.X);
+        Assert.Equal(PixelGaze.Shape(PixelMood.Awake).Height, agent.Left.Height);
+
+        // Les yeux arrivent dans la forme de l'humeur : ronds quand l'agent demande.
+        HandoffRecipe asking = PixelHandoff.For(Activity("card", "Agent", new AgentPayload(AgentMood.Asking)));
+        Assert.Equal(PixelAvatar.Pose(AgentMood.Asking, 0).Eye.Width, asking.Left.Width);
+        Assert.Equal(1, asking.Left.Roundness);
 
         // Les deux-points : l'un au-dessus de l'autre, au même endroit en largeur.
         HandoffRecipe timer = PixelHandoff.For(Activity("timer"));

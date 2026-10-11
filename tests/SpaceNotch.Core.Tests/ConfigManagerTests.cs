@@ -251,6 +251,18 @@ public class ConfigManagerTests : IDisposable
         Assert.Equal(0.50, loaded.SpringBounce, 3);
     }
 
+    [Fact]
+    public void Load_UneConfigurationQuiNommeEncoreClawdSeCharge()
+    {
+        // ADR-029 : le réglage « Style de Clawd » a disparu ; une configuration qui le porte garde le reste.
+        var manager = CreateManager();
+
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(manager.ConfigFilePath, """{ "ClawdStyle": "Notch", "SpringResponseSeconds": 0.30 }""");
+
+        Assert.Equal(0.30, new SettingsService(manager).Current.SpringResponseSeconds, 3);
+    }
+
     // « Me prévenir » par défaut (n° 77, 2026-10-06). Toutes les configurations
     // existantes portent « Automatic », choisi ou resté par défaut : rien ne les
     // distingue. Elles passent une fois à « Me prévenir » ; un « Automatique »

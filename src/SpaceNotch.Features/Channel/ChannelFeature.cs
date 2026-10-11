@@ -177,7 +177,7 @@ public sealed class ChannelFeature : IslandFeatureBase
 
         switch (request.ActionId)
         {
-            case ClawdPayload.ToggleAction:
+            case AgentPayload.ToggleAction:
                 return Task.FromResult(ToggleDetails(id));
 
             case OpenAction:
@@ -238,7 +238,7 @@ public sealed class ChannelFeature : IslandFeatureBase
             _ => [detail],
             (_, lines) => lines.Length > 0 && lines[^1] == detail
                 ? lines
-                : [.. lines.Skip(Math.Max(0, lines.Length + 1 - ClawdPayload.MaxRecent)), detail]);
+                : [.. lines.Skip(Math.Max(0, lines.Length + 1 - AgentPayload.MaxRecent)), detail]);
     }
 
     private void Forget(string id)
@@ -292,10 +292,8 @@ public sealed class ChannelFeature : IslandFeatureBase
         bool asks = m is { State: ChannelState.Waiting, Question: not null };
         string? eyebrow = asks || m.State == ChannelState.Waiting ? null : m.Detail;
 
-        // Claude Code garde sa mascotte ; ses dernières actions attendent un appui.
-        ClawdPayload? clawd = IsClaudeCode(m.Name)
-            ? new ClawdPayload(MoodOf(m.State, asks), _recent.TryGetValue(m.Id, out string[]? recent) ? recent : null, _expanded.ContainsKey(m.Id))
-            : null;
+        // Pixel est l'avatar de chaque agent (ADR-029) ; ses dernières actions attendent un appui.
+        var agent = new AgentPayload(PixelAvatar.MoodOf(m.State, asks), _recent.TryGetValue(m.Id, out string[]? recent) ? recent : null, _expanded.ContainsKey(m.Id));
 
         string subtitle = m.State switch
         {
@@ -337,11 +335,11 @@ public sealed class ChannelFeature : IslandFeatureBase
             },
             MotionPreset = m.State == ChannelState.Working ? HypnoticPreset.Think : HypnoticPreset.None,
 
-            // Claude Code a sa mascotte : Clawd remplace la grille, dans l'humeur de l'agent.
-            Payload = clawd,
+            // Pixel remplace la grille, dans l'humeur de l'agent (ADR-029).
+            Payload = agent,
 
             // La carte épouse son contenu (A) : plus de grand noir sous le texte.
-            ExpandedFootprint = CardFit.For(eyebrow is not null, subtitle, progress: false, actions: asks, ActivityLayout.Stack, clawd?.ShownLines ?? 0),
+            ExpandedFootprint = CardFit.For(eyebrow is not null, subtitle, progress: false, actions: asks, ActivityLayout.Stack, agent.ShownLines),
             Priority = asks ? ActivityPriority.High : ActivityPriority.Normal,
             Policy = asks ? null : ActivityPresentationPolicy.Passive,
             Duration = m.State switch
@@ -366,18 +364,7 @@ public sealed class ChannelFeature : IslandFeatureBase
     private static bool IsClaudeCode(string name)
         => string.Equals(name, ClaudeHook.AgentName, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>
-    /// L'humeur de Clawd. Une attente sans question — Claude Code attend une
-    /// saisie dans le terminal — se montre comme une erreur : il faut y aller.
-    /// </summary>
-    public static ClawdMood MoodOf(ChannelState state, bool asks) => state switch
-    {
-        ChannelState.Waiting when asks => ClawdMood.Asking,
-        ChannelState.Waiting => ClawdMood.Error,
-        ChannelState.Done => ClawdMood.Done,
-        ChannelState.Error => ClawdMood.Error,
-        _ => ClawdMood.Thinking
-    };
+
 
     /// <summary>
     /// Notification d'un script (B) : ce qu'il annonce et, s'il donne de quoi

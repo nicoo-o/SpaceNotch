@@ -18,7 +18,7 @@ namespace SpaceNotch_App.Windows;
 /// Passage des yeux aux fonctions (vague 7) : quand une activité arrive au
 /// repos, les yeux de Pixel ne disparaissent pas, ils deviennent un morceau de
 /// ce qui arrive — deux barres d'égaliseur, les écouteurs du casque, les yeux
-/// de Clawd, les boutons d'un appel… Quand elle s'en va, ce morceau redevient
+/// de Pixel en avatar, les boutons d'un appel… Quand elle s'en va, ce morceau redevient
 /// les yeux. Les recettes sont dans <see cref="PixelHandoff"/> ; la fenêtre
 /// les joue avec deux pixels libres de <c>FaceMorphLayer</c>.
 /// </summary>
@@ -97,7 +97,7 @@ public sealed partial class IslandWindow
 
         if (view is null || SpotFor(recipe, recipe.Left, activity) is null)
         {
-            // Clawd, une scène qui s'ouvre : pas encore mis en page. On réessaie un peu plus tard.
+            // L'avatar, une scène qui s'ouvre : pas encore mis en page. On réessaie un peu plus tard.
             if (attempt < 4)
             {
                 RunAfter(TimeSpan.FromMilliseconds(50), () => HandoffIn(activity, eyes, shape, attempt + 1));
@@ -422,7 +422,7 @@ public sealed partial class IslandWindow
 
     // ---- Où sont les choses --------------------------------------------------
 
-    private sealed record HandoffElements(FrameworkElement? Glyph, ClawdView? Clawd, FrameworkElement? Trailing, TextBlock? Title, IReadOnlyList<FrameworkElement> Actions, FrameworkElement? Field);
+    private sealed record HandoffElements(FrameworkElement? Glyph, PixelAvatarView? Avatar, FrameworkElement? Trailing, TextBlock? Title, IReadOnlyList<FrameworkElement> Actions, FrameworkElement? Field);
 
     /// <summary>Les éléments visibles de l'activité présentée : la pastille, ou la scène ouverte.</summary>
     private HandoffElements HandoffElementsOf(IslandActivity activity)
@@ -433,7 +433,7 @@ public sealed partial class IslandWindow
         {
             return scene switch
             {
-                InfoScene info => new(info.ClawdElement is null ? info.IconElement : null, info.ClawdElement, null, info.TitleElement, info.ActionElements, null),
+                InfoScene info => new(info.AvatarElement is null ? info.IconElement : null, info.AvatarElement, null, info.TitleElement, info.ActionElements, null),
                 LauncherScene launcher => new(launcher.SearchIcon, null, null, null, [], launcher.SearchField),
                 NoteScene note => new(null, null, null, null, [], note.Field),
                 _ => new(scene.AnchorFor(MorphAnchorKind.Icon), null, null, null, [], null)
@@ -443,13 +443,13 @@ public sealed partial class IslandWindow
         if (SignalRestView.Visibility == Visibility.Visible)
         {
             FrameworkElement glyph = SignalHypnoticHost.Visibility == Visibility.Visible ? SignalHypnoticHost : SignalGlyph;
-            return new(SignalClawd.Visibility == Visibility.Visible ? null : glyph, SignalClawd.Visibility == Visibility.Visible ? SignalClawd : null, SignalTrailing.Visibility == Visibility.Visible ? SignalTrailing : null, SignalLabel, [], null);
+            return new(SignalAvatar.Visibility == Visibility.Visible ? null : glyph, SignalAvatar.Visibility == Visibility.Visible ? SignalAvatar : null, SignalTrailing.Visibility == Visibility.Visible ? SignalTrailing : null, SignalLabel, [], null);
         }
 
         if (CardRestView.Visibility == Visibility.Visible)
         {
             FrameworkElement glyph = CardHypnoticHost.Visibility == Visibility.Visible ? CardHypnoticHost : CardGlyph;
-            return new(CardClawd.Visibility == Visibility.Visible ? null : glyph, CardClawd.Visibility == Visibility.Visible ? CardClawd : null, CardTrailing.Visibility == Visibility.Visible ? CardTrailing : null, CardHeadline, [], null);
+            return new(CardAvatar.Visibility == Visibility.Visible ? null : glyph, CardAvatar.Visibility == Visibility.Visible ? CardAvatar : null, CardTrailing.Visibility == Visibility.Visible ? CardTrailing : null, CardHeadline, [], null);
         }
 
         return new(null, null, null, null, [], null);
@@ -475,10 +475,10 @@ public sealed partial class IslandWindow
 
         switch (recipe.Anchor)
         {
-            case HandoffAnchor.Clawd when e.Clawd is { ActualWidth: > 0 } clawd:
+            case HandoffAnchor.Avatar when e.Avatar is { ActualWidth: > 0 } avatar:
             {
-                global::Windows.Foundation.Rect r = LayerBounds(clawd);
-                double k = clawd.Pitch;
+                global::Windows.Foundation.Rect r = LayerBounds(avatar);
+                double k = avatar.AvatarScale;
                 return new Spot(r.X + (spot.X * k), r.Y + (spot.Y * k), spot.Width * k, spot.Height * k, spot.Roundness);
             }
 
@@ -523,7 +523,7 @@ public sealed partial class IslandWindow
             default:
             {
                 // Le glyphe 7 × 7, ou l'ancre de repli quand celle de la recette manque.
-                FrameworkElement? glyph = e.Glyph ?? e.Clawd ?? e.Field ?? (FrameworkElement?)e.Title;
+                FrameworkElement? glyph = e.Glyph ?? e.Avatar ?? e.Field ?? (FrameworkElement?)e.Title;
 
                 if (glyph is not { ActualWidth: > 0 })
                 {
