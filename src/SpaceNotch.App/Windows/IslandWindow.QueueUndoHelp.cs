@@ -298,7 +298,7 @@ public sealed partial class IslandWindow
             {
                 _clipStackHintGiven = true;
                 AnnounceText(Lang.T(
-                    "Historique du presse-papier désactivé : activez-le dans les réglages pour parcourir la pile.",
+                    "Historique du presse-papier désactivé : active-le dans les réglages pour parcourir la pile.",
                     "Clipboard history is off: turn it on in settings to browse the stack."));
             }
 
