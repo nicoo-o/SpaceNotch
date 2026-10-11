@@ -120,6 +120,9 @@ public sealed partial class SettingsWindow : Window
         UpdateNotificationCard();
         AnnotateCards();
 
+        // Réglages avancés masqués tant qu'on ne les demande pas (n° 23).
+        SetCardsVisible(all: true, string.Empty);
+
         string version = typeof(SettingsWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : string.Empty;
         VersionText.Text = $"Version {version}";
         NavVersionText.Text = $"SpaceNotch {version}";
@@ -376,6 +379,7 @@ public sealed partial class SettingsWindow : Window
             StackToggle.IsOn = settings.ShowActivityStack;
             ClockToggle.IsOn = settings.ShowClockAtRest;
             PixelToggle.IsOn = settings.ShowPixel;
+            AdvancedToggle.IsOn = settings.ShowAdvancedSettings;
             UpdateAgentHooksButton();
             AssistantSourceBox.SelectedIndex = (int)settings.AssistantSource;
             ClaudeModelBox.Text = settings.ClaudeModel;
@@ -811,6 +815,17 @@ public sealed partial class SettingsWindow : Window
 
     private void OnPixelToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.ShowPixel = PixelToggle.IsOn);
+
+    private void OnAdvancedToggled(object sender, RoutedEventArgs e)
+    {
+        Apply(s => s.ShowAdvancedSettings = AdvancedToggle.IsOn);
+
+        // Hors recherche, les cartes avancées paraissent ou disparaissent aussitôt.
+        if (SearchSettingsBox.Text.Trim().Length == 0)
+        {
+            SetCardsVisible(all: true, string.Empty);
+        }
+    }
 
 
     // ---- Agents IA (I4) : les hooks de Claude Code ---------------------------
@@ -1284,21 +1299,36 @@ public sealed partial class SettingsWindow : Window
     private int SetCardsVisible(bool all, string query)
     {
         int found = 0;
+        bool advanced = _settings.Current.ShowAdvancedSettings;
 
         foreach (StackPanel page in Pages)
         {
             int inPage = 0;
+
+            // Un titre de groupe dont toutes les cartes sont avancées (« Réglage fin »)
+            // disparaît avec elles plutôt que de rester seul (n° 23).
+            TextBlock? group = null;
+            bool groupShown = false;
 
             foreach (UIElement child in AllChildren(page))
             {
                 switch (child)
                 {
                     case Border { Tag: string text } card:
-                        bool match = all || SpaceNotch.Core.Accessibility.SettingsSearch.Matches(
-                            _cardIndex.TryGetValue(card, out string? index) ? index : SpaceNotch.Core.Accessibility.SettingsSearch.Index([text]),
-                            query);
+                        bool match = all
+                            ? advanced || !SpaceNotch_App.UI.SettingsCard.GetAdvanced(card)
+                            : SpaceNotch.Core.Accessibility.SettingsSearch.Matches(
+                                _cardIndex.TryGetValue(card, out string? index) ? index : SpaceNotch.Core.Accessibility.SettingsSearch.Index([text]),
+                                query);
                         card.Visibility = match ? Visibility.Visible : Visibility.Collapsed;
                         inPage += match ? 1 : 0;
+                        groupShown |= match;
+                        break;
+
+                    case TextBlock label when all && IsGroupTitle(label):
+                        CloseGroup(group, groupShown);
+                        group = label;
+                        groupShown = false;
                         break;
 
                     case TextBlock label:
@@ -1317,6 +1347,7 @@ public sealed partial class SettingsWindow : Window
             }
 
             found += inPage;
+            CloseGroup(group, groupShown);
 
             if (!all)
             {
@@ -1325,6 +1356,17 @@ public sealed partial class SettingsWindow : Window
         }
 
         return found;
+    }
+
+    private static bool IsGroupTitle(TextBlock label)
+        => label.Style == (Style)Application.Current.Resources["NfSettingsGroupStyle"];
+
+    private static void CloseGroup(TextBlock? group, bool shown)
+    {
+        if (group is not null)
+        {
+            group.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 
     // ---- Accessibilité des cartes (phase C) ------------------------------
