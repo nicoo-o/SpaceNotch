@@ -1330,14 +1330,22 @@ public sealed partial class SettingsWindow : Window
 
                 foreach (FrameworkElement control in controls)
                 {
-                    // Un bouton à texte dit déjà ce qu'il fait : la carte dit sur quoi.
-                    string? help = control is Microsoft.UI.Xaml.Controls.Primitives.ButtonBase button && ContentText(button) is not null
-                        ? title
-                        : description;
+                    // Un bouton à texte dit déjà ce qu'il fait : la carte dit sur quoi, et
+                    // sa description ce qu'il en coûte (« Rétablir » efface des réglages).
+                    var button = control as Microsoft.UI.Xaml.Controls.Primitives.ButtonBase;
+                    string? own = button is null ? null : ContentText(button);
+                    string? help = own is null
+                        ? description
+                        : string.Join(". ", new[] { title, description }.Where(t => !string.IsNullOrEmpty(t)));
 
-                    if (!string.IsNullOrEmpty(title) && string.IsNullOrEmpty(AutomationProperties.GetName(control)) && help != title)
+                    // WinUI ne tire pas toujours le nom d'un contenu composé (glyphe + texte) :
+                    // ce texte-là est posé explicitement ; un texte simple reste implicite,
+                    // pour suivre « Installer » ⇄ « Retirer ».
+                    string? name = own is null ? title : button!.Content is Panel ? own : null;
+
+                    if (!string.IsNullOrEmpty(name) && string.IsNullOrEmpty(AutomationProperties.GetName(control)))
                     {
-                        AutomationProperties.SetName(control, title);
+                        AutomationProperties.SetName(control, name);
                     }
 
                     if (!string.IsNullOrEmpty(help) && string.IsNullOrEmpty(AutomationProperties.GetHelpText(control)))
