@@ -58,6 +58,9 @@ public sealed class QuickMenuFeature : IslandFeatureBase
     /// <summary>Vrai tant que le menu est présenté.</summary>
     public bool IsShown => _state is not null;
 
+    /// <summary>Vrai tant que la proposition d'activer l'historique attend une réponse.</summary>
+    public bool IsClipboardOfferShown { get; private set; }
+
     /// <summary>Présente le menu, décrit par la fenêtre qui seule connaît son bord et son état.</summary>
     public void Show(QuickMenuPayload state)
     {
@@ -89,6 +92,7 @@ public sealed class QuickMenuFeature : IslandFeatureBase
             "Garde tes dernières copies pour les retrouver. En mémoire seulement, sans les mots de passe.",
             "Keeps your latest copies so you can find them again. In memory only, never passwords.");
 
+        IsClipboardOfferShown = true;
         PublishActivity(new IslandActivity
         {
             Id = ClipboardOfferId,
@@ -111,7 +115,11 @@ public sealed class QuickMenuFeature : IslandFeatureBase
     }
 
     /// <summary>Retire la proposition, acceptée ou non.</summary>
-    public void WithdrawClipboardOffer() => RemoveActivity(ClipboardOfferId);
+    public void WithdrawClipboardOffer()
+    {
+        IsClipboardOfferShown = false;
+        RemoveActivity(ClipboardOfferId);
+    }
 
     protected override Task OnStartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 

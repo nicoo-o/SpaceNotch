@@ -19,6 +19,7 @@ public sealed class ClipboardOfferTests
         await using var menu = new QuickMenuFeature(activities, new EventBus());
 
         menu.OfferClipboardHistory();
+        Assert.True(menu.IsClipboardOfferShown);  // la fenêtre la retire au repli
 
         IslandActivity offer = Assert.Single(activities.GetActiveActivities());
         Assert.Equal(QuickMenuFeature.ClipboardOfferId, offer.Id);
@@ -28,6 +29,7 @@ public sealed class ClipboardOfferTests
 
         menu.WithdrawClipboardOffer();
         Assert.Empty(activities.GetActiveActivities());
+        Assert.False(menu.IsClipboardOfferShown);
     }
 
     [Fact]
