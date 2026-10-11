@@ -229,6 +229,24 @@
                             <StackPanel x:Name="HotkeyCaps" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,8,0,0" Orientation="Horizontal" Spacing="4" />
                         </Grid>
                     </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Aller à la notch raccourci clavier focus Narrateur Donne le clavier à la notch depuis n&#x27;importe quelle application.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <views:GlyphView Key="Keyboard" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Aller à la notch', En='Go to the notch'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="{l:Loc Fr='Donne le clavier à la notch depuis n’importe quelle application : flèches pour parcourir, Échap pour revenir.', En='Moves the keyboard to the notch from any app: arrows to browse, Esc to go back.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <StackPanel x:Name="FocusHotkeyCaps" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" Orientation="Horizontal" Spacing="4" />
+                        </Grid>
+                    </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Moteur de recherche web Utilisé quand aucune application ne correspond.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
