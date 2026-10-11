@@ -250,4 +250,61 @@ public class ConfigManagerTests : IDisposable
         Assert.Equal(0.30, loaded.SpringResponseSeconds, 3);
         Assert.Equal(0.50, loaded.SpringBounce, 3);
     }
+
+    // « Me prévenir » par défaut (n° 77, 2026-10-06). Toutes les configurations
+    // existantes portent « Automatic », choisi ou resté par défaut : rien ne les
+    // distingue. Elles passent une fois à « Me prévenir » ; un « Automatique »
+    // remis ensuite dans les Réglages est respecté.
+
+    [Fact]
+    public void Load_UneInstallationNeuvePrevientAvantDInstaller()
+    {
+        var service = new SettingsService(CreateManager());
+
+        Assert.Equal(SpaceNotch.Core.Update.UpdateMode.Notify, service.Current.UpdateMode);
+        Assert.True(service.Current.UpdateDefaultApplied);
+    }
+
+    [Fact]
+    public void Load_UneConfigurationAutomatiquePasseUneFoisAMePrevenir()
+    {
+        var manager = CreateManager();
+
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(manager.ConfigFilePath, """{ "UpdateMode": "Automatic", "ShowPixel": false, "PixelDefaultApplied": true }""");
+
+        var service = new SettingsService(manager);
+
+        Assert.Equal(SpaceNotch.Core.Update.UpdateMode.Notify, service.Current.UpdateMode);
+        Assert.False(service.Current.ShowPixel);
+
+        // L'utilisateur remet « Automatique » : la migration ne repasse pas.
+        service.Update(s => s.UpdateMode = SpaceNotch.Core.Update.UpdateMode.Automatic);
+
+        Assert.Equal(SpaceNotch.Core.Update.UpdateMode.Automatic, new SettingsService(CreateManager()).Current.UpdateMode);
+    }
+
+    [Theory]
+    [InlineData("Off")]
+    [InlineData("Notify")]
+    public void Load_UnChoixDejaFaitEstGarde(string mode)
+    {
+        var manager = CreateManager();
+
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(manager.ConfigFilePath, $$"""{ "UpdateMode": "{{mode}}" }""");
+
+        Assert.Equal(Enum.Parse<SpaceNotch.Core.Update.UpdateMode>(mode), new SettingsService(manager).Current.UpdateMode);
+    }
+
+    [Fact]
+    public void Reset_UnAutomatiqueChoisiApresUneRemiseAZeroEstGarde()
+    {
+        var service = new SettingsService(CreateManager());
+
+        service.ResetToDefaults();
+        service.Update(s => s.UpdateMode = SpaceNotch.Core.Update.UpdateMode.Automatic);
+
+        Assert.Equal(SpaceNotch.Core.Update.UpdateMode.Automatic, new SettingsService(CreateManager()).Current.UpdateMode);
+    }
 }

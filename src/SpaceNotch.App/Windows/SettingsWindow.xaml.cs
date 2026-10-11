@@ -319,6 +319,7 @@ public sealed partial class SettingsWindow : Window
             DisplayBox.SelectedIndex = (int)settings.DisplayMode;
             CutoutBox.SelectedIndex = CutoutIndex(settings.CutoutMode);
             UpdateModeBox.SelectedIndex = (int)settings.UpdateMode;
+            UpdateDescription.Text = UpdateModeDescription(settings.UpdateMode);
             CutoutWidthSlider.Value = SpaceNotch.Core.Presentation.CameraCutout.WidthFor(true, settings.CutoutWidth);
 
             DensityBox.SelectedIndex = (int)settings.Density;
@@ -697,7 +698,19 @@ public sealed partial class SettingsWindow : Window
         });
 
     private void OnUpdateModeChanged(object sender, SelectionChangedEventArgs e)
-        => Apply(s => s.UpdateMode = (SpaceNotch.Core.Update.UpdateMode)Math.Clamp(UpdateModeBox.SelectedIndex, 0, 2));
+    {
+        var mode = (SpaceNotch.Core.Update.UpdateMode)Math.Clamp(UpdateModeBox.SelectedIndex, 0, 2);
+        UpdateDescription.Text = UpdateModeDescription(mode);
+        Apply(s => s.UpdateMode = mode);
+    }
+
+    /// <summary>Ce que fait le mode choisi, en une phrase (« Me prévenir » par défaut, n° 77).</summary>
+    private static string UpdateModeDescription(SpaceNotch.Core.Update.UpdateMode mode) => mode switch
+    {
+        SpaceNotch.Core.Update.UpdateMode.Off => Lang.T("Aucune vérification : tu installes les nouvelles versions toi-même.", "No checks: you install new versions yourself."),
+        SpaceNotch.Core.Update.UpdateMode.Automatic => Lang.T("Les nouvelles versions s’installent seules, au premier moment calme.", "New versions install themselves at the first quiet moment."),
+        _ => Lang.T("La notch te propose chaque nouvelle version ; rien ne s’installe sans ton accord.", "The notch offers each new version; nothing installs without your OK."),
+    };
 
     private void OnCutoutWidthChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
         => ApplyContinuous(s => s.CutoutWidth = e.NewValue);
