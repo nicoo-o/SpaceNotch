@@ -1331,8 +1331,10 @@ public sealed partial class SettingsWindow : Window
     /// <summary>
     /// Donne un nom à chaque contrôle d'une carte : le titre de la carte, et sa
     /// description en aide. Sans cela, le Narrateur disait « Interrupteur,
-    /// désactivé » sans dire lequel. Indexe aussi la carte pour la recherche,
-    /// dans les deux langues.
+    /// désactivé » sans dire lequel. Un bouton qui porte son propre texte le
+    /// garde (n° 58 : « Retirer » était lu « Clé Claude ») ; le titre de la carte
+    /// devient son aide. Indexe aussi la carte pour la recherche, dans les deux
+    /// langues.
     /// </summary>
     private void AnnotateCards()
     {
@@ -1354,14 +1356,27 @@ public sealed partial class SettingsWindow : Window
 
                 foreach (FrameworkElement control in controls)
                 {
-                    if (!string.IsNullOrEmpty(title) && string.IsNullOrEmpty(AutomationProperties.GetName(control)))
+                    // Un bouton à texte dit déjà ce qu'il fait : la carte dit sur quoi, et
+                    // sa description ce qu'il en coûte (« Rétablir » efface des réglages).
+                    var button = control as Microsoft.UI.Xaml.Controls.Primitives.ButtonBase;
+                    string? own = button is null ? null : ContentText(button);
+                    string? help = own is null
+                        ? description
+                        : string.Join(". ", new[] { title, description }.Where(t => !string.IsNullOrEmpty(t)));
+
+                    // WinUI ne tire pas toujours le nom d'un contenu composé (glyphe + texte) :
+                    // ce texte-là est posé explicitement ; un texte simple reste implicite,
+                    // pour suivre « Installer » ⇄ « Retirer ».
+                    string? name = own is null ? title : button!.Content is Panel ? own : null;
+
+                    if (!string.IsNullOrEmpty(name) && string.IsNullOrEmpty(AutomationProperties.GetName(control)))
                     {
-                        AutomationProperties.SetName(control, title);
+                        AutomationProperties.SetName(control, name);
                     }
 
-                    if (!string.IsNullOrEmpty(description) && string.IsNullOrEmpty(AutomationProperties.GetHelpText(control)))
+                    if (!string.IsNullOrEmpty(help) && string.IsNullOrEmpty(AutomationProperties.GetHelpText(control)))
                     {
-                        AutomationProperties.SetHelpText(control, description);
+                        AutomationProperties.SetHelpText(control, help);
                     }
                 }
 
@@ -1369,6 +1384,15 @@ public sealed partial class SettingsWindow : Window
             }
         }
     }
+
+    /// <summary>Le texte qu'un bouton affiche, s'il en a un : c'est son nom pour le Narrateur.</summary>
+    private static string? ContentText(Microsoft.UI.Xaml.Controls.Primitives.ButtonBase button) => button.Content switch
+    {
+        string text when !string.IsNullOrWhiteSpace(text) => text,
+        TextBlock { Text: { Length: > 0 } text } => text,
+        Panel panel => panel.Children.OfType<TextBlock>().Select(t => t.Text).FirstOrDefault(t => !string.IsNullOrWhiteSpace(t)),
+        _ => null
+    };
 
     /// <summary>Textes et contrôles d'une carte, dans l'ordre de lecture.</summary>
     private static void Collect(UIElement? element, List<TextBlock> texts, List<FrameworkElement> controls)
