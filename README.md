@@ -24,8 +24,8 @@
 <br>
 
 <p align="center">
-<em>A small piece of darkness at the top of your screen.<br>
-It stays out of the way — and comes alive when something deserves your attention.</em>
+<em>A small piece of darkness at the top of your screen, and two eyes keeping you company.<br>
+Pixel keeps watch — and wakes up when something deserves your attention.</em>
 </p>
 
 <br>
@@ -49,6 +49,21 @@ It stays out of the way — and comes alive when something deserves your attenti
 
 <br>
 
+## Pixel, the notch's eyes
+
+Two eyes of light live in your notch. They follow your cursor, blink, squint when you hover, go
+round when a notification arrives and fall asleep at night. When an activity arrives they don't
+vanish: they become part of what arrives.
+
+<p align="center">
+<img src="docs/assets/readme/pixel-moods.svg" alt="Pixel as an agent's avatar, in four moods: thinking (eyes searching, three dots), asking (round eyes, blue question mark), done (smiling eyes, green sparkles), worried by an error (red exclamation mark)" width="100%">
+</p>
+
+Pixel is also the avatar of your agents — Claude Code and others. At a glance you can tell whether
+it's thinking, waiting for your answer, done, or stuck on an error.
+
+<br>
+
 ## Alive, never busy
 
 <p align="center">
@@ -57,7 +72,7 @@ It stays out of the way — and comes alive when something deserves your attenti
 
 When something is working — a download, a search, a sync — a tiny grid of light breathes inside
 the notch. Each kind of work has its own rhythm and colour. When it's done, the light settles into
-a single calm pixel. When nothing is happening, nothing moves.
+a single calm pixel. When nothing is happening, only Pixel is alive.
 
 <br>
 
@@ -73,7 +88,7 @@ flows back home.
 
 <br>
 
-## Made to disappear
+## Out of the way when it matters
 
 <table>
   <tr>

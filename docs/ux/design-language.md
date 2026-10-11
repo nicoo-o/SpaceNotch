@@ -23,6 +23,29 @@ L'Island ne doit pas ressembler à une fenêtre posée sur le bureau. Elle doit 
 l'écran** — une surface de travail qui émerge au sommet, plutôt qu'un panneau flottant. C'est la
 contrainte esthétique centrale du projet, et elle n'est pas négociable.
 
+Elle est aussi **habitée** : Pixel, ses deux yeux, est l'identité de SpaceNotch — un compagnon, pas
+un widget ([ADR-029](../decisions/ADR-029-compagnon-vivant-pixel-identite.md)).
+
+## Pixel
+
+Deux yeux de lumière cyan (`#7FE6FF`, ambre le soir), de 8 × 10 DIP, écartés de 7, dans la notch au
+repos. Ils suivent le curseur sans quitter leur orbite, clignent à intervalles irréguliers, se
+plissent au survol, s'arrondissent à une notification et se ferment la nuit (`PixelGaze`).
+
+Pixel est aussi **l'avatar des agents**, de chaque agent, même éteint au repos : ses yeux restent
+cyan et changent de forme, et un petit signe dit l'état sans passer par la couleur
+(`PixelAvatar`) :
+
+| État | Yeux | Signe |
+|---|---|---|
+| réfléchit | le regard cherche en haut | trois points qui avancent |
+| demande | ronds, vers toi, un petit bond | « ? » bleu qui clignote |
+| terminé | rieurs « ^ ^ », un double saut | deux étincelles vertes |
+| erreur | aplatis, coins intérieurs relevés ; il secoue la tête | « ! » rouge |
+
+Quand une activité arrive, les yeux ne disparaissent pas : ils deviennent un morceau de ce qui
+arrive (`PixelHandoff`) — les yeux de l'avatar pour un agent.
+
 ## La contrainte sans bord
 
 > Lorsque l'Island est ouverte, il ne doit exister **aucune délimitation marquée** sur la partie
@@ -110,8 +133,9 @@ sens — jamais comme jeu d'icônes d'interface.
 
 ## Mouvement
 
-Aucune animation permanente. Aucun visualiseur continu. Le mouvement est une réponse à une
-transition, et il cesse.
+Pixel vit au repos ; rien d'autre n'anime le repos. Aucun visualiseur continu. Ailleurs, le
+mouvement est une réponse à une transition, et il cesse. Notch retirée (plein écran,
+verrouillage), Pixel et toutes les boucles s'arrêtent.
 
 Une seule exception, et elle a un sens : le **mouvement hypnotique**, qui signale qu'un travail est
 en cours — lecture, recherche, traitement, synchronisation, dépôt. Il est rejoué par le compositeur
@@ -128,6 +152,8 @@ Voir [animation-system.md](../animation-system.md).
 
 - Le clavier fonctionne : Échap réduit, flèches parcourent la pile. Le focus est possible **pendant**
   l'interaction et retiré ensuite (voir [windows-integration.md](../windows-integration.md)).
-- Si Windows demande la réduction des animations, les ressorts deviennent des fondus.
+- Si Windows demande la réduction des animations, les ressorts deviennent des fondus, et Pixel se
+  pose : l'avatar garde une pose fixe et lisible, signe compris.
+- L'état d'un agent ne passe jamais par la couleur seule : forme des yeux et signe le disent.
 - Le contraste élevé et les effets de transparence sont lus dans `SystemVisualState` ; en mode
   `Auto`, l'absence de transparence retombe sur une surface opaque, jamais sur une surface invisible.

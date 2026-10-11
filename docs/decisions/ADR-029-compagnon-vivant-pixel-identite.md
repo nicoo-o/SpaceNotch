@@ -1,6 +1,8 @@
 # ADR-029 — Le compagnon vivant : Pixel devient l'identité de SpaceNotch et l'avatar des agents
 
-**Statut** : Proposé (direction choisie par l'utilisateur le 2026-10-06 ; à livrer)
+**Statut** : Accepté (version à préciser). Direction choisie par l'utilisateur le 2026-10-06 ;
+livrée le 2026-10-11 : Pixel avatar des agents et Clawd retiré (#56), §15 et langage visuel mis à
+jour, README autour de Pixel.
 
 ## Contexte
 
