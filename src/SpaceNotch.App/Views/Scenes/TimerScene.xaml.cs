@@ -53,10 +53,14 @@ public sealed partial class TimerScene : UserControl, IIslandSceneView
         // faire clignoter la carte à chaque battement.
         ToggleIcon.Key = timer.IsRunning ? "Pause" : "Play";
 
-        // Un bouton fait d'une icône : Narrateur lit ce nom, qui suit l'état (n° 48).
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(
-            ToggleButton,
-            timer.IsRunning ? SpaceNotch.Core.Localization.Lang.T("Suspendre", "Pause") : SpaceNotch.Core.Localization.Lang.T("Démarrer", "Start"));
+        // Un bouton fait d'une icône : Narrateur lit ce nom, qui suit l'état (n° 48),
+        // et un minuteur suspendu se reprend (n° 78).
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(ToggleButton, timer.Toggle switch
+        {
+            TimerToggle.Pause => SpaceNotch.Core.Localization.Lang.T("Suspendre", "Pause"),
+            TimerToggle.Resume => SpaceNotch.Core.Localization.Lang.T("Reprendre", "Resume"),
+            _ => SpaceNotch.Core.Localization.Lang.T("Démarrer", "Start")
+        });
 
         ToggleButton.BorderBrush = Ink(
             timer.IsRunning ? "NfStrokeSubtleBrush" : "NfStrokeStrongBrush",

@@ -245,8 +245,8 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
             // La scène ouverte lit le temps ici : sans lui, elle montrait 25:00 à l'arrêt.
             Payload = fitted
-                ? new TimerPayload(_clock.Value, _clock.IsRunning, string.Create(CultureInfo.InvariantCulture, $"Focus · {_fittedMinutes} min"), _fittedNote)
-                : new TimerPayload(_clock.Value, _clock.IsRunning, "Focus"),
+                ? new TimerPayload(_clock.Value, _clock.IsRunning, string.Create(CultureInfo.InvariantCulture, $"Focus · {_fittedMinutes} min"), _fittedNote, _clock.IsPaused)
+                : new TimerPayload(_clock.Value, _clock.IsRunning, "Focus", IsPaused: _clock.IsPaused),
             ExpandedFootprint = fitted ? SceneInsets.Wrap(250, 114) : null
         });
     }

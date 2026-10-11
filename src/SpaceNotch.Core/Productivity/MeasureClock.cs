@@ -27,6 +27,12 @@ public sealed class MeasureClock
     public bool IsRunning { get; private set; }
 
     /// <summary>
+    /// Vrai après <see cref="Pause"/>, jusqu'à la reprise ou une nouvelle mesure :
+    /// un minuteur suspendu se « reprend », il ne se « démarre » pas (n° 78).
+    /// </summary>
+    public bool IsPaused { get; private set; }
+
+    /// <summary>
     /// Valeur courante : le temps restant (jamais négatif) pour un compte à
     /// rebours, le temps écoulé pour un chronomètre. Arrondie à la seconde
     /// supérieure pour un rebours : « 00:01 » s'affiche jusqu'au bout, et
@@ -59,6 +65,7 @@ public sealed class MeasureClock
     {
         CountsDown = countsDown;
         IsRunning = false;
+        IsPaused = false;
         _frozen = value < TimeSpan.Zero ? TimeSpan.Zero : value;
     }
 
@@ -73,6 +80,7 @@ public sealed class MeasureClock
         DateTimeOffset now = _now();
         _anchor = CountsDown ? now + _frozen : now - _frozen;
         IsRunning = true;
+        IsPaused = false;
     }
 
     /// <summary>Suspend la mesure : la valeur est figée là où elle en est.</summary>
@@ -85,6 +93,7 @@ public sealed class MeasureClock
 
         _frozen = Value;
         IsRunning = false;
+        IsPaused = true;
     }
 
     private static TimeSpan Ceiling(TimeSpan value)

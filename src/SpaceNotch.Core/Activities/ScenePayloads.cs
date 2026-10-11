@@ -49,8 +49,15 @@ public sealed record TimerPayload(
     TimeSpan Remaining,
     bool IsRunning,
     string Mode,
-    string? Note = null)
+    string? Note = null,
+    bool IsPaused = false)
 {
+    /// <summary>
+    /// Ce que fait le bouton principal, donc ce que le Narrateur annonce : un
+    /// minuteur suspendu se reprend (n° 78 : il était annoncé « Démarrer »).
+    /// </summary>
+    public TimerToggle Toggle => IsRunning ? TimerToggle.Pause : IsPaused ? TimerToggle.Resume : TimerToggle.Start;
+
     /// <summary>Mise en forme <c>mm:ss</c>, ou <c>h:mm:ss</c> au-delà d'une heure.</summary>
     public string Formatted => Remaining.TotalHours >= 1
         ? Remaining.ToString(@"h\:mm\:ss", System.Globalization.CultureInfo.InvariantCulture)
@@ -195,6 +202,19 @@ public sealed record BytesPayload(long Bytes)
 {
     /// <summary>Remplissage du sablier : un pixel par mégaoctet, au plus cent.</summary>
     public double HeapPercent => Math.Clamp(Bytes / (1024.0 * 1024.0), 0, 100);
+}
+
+/// <summary>Action du bouton principal d'un minuteur.</summary>
+public enum TimerToggle
+{
+    /// <summary>Lancer une mesure neuve.</summary>
+    Start,
+
+    /// <summary>Suspendre une mesure en marche.</summary>
+    Pause,
+
+    /// <summary>Reprendre une mesure suspendue.</summary>
+    Resume
 }
 
 /// <summary>

@@ -229,7 +229,7 @@ public sealed class TimerFeature : IslandFeatureBase
             IconKey = "Timer",
             State = IslandActivityState.TimerActive,
             Priority = ActivityPriority.Normal,
-            Payload = new TimerPayload(_clock.Value, _clock.IsRunning, mode)
+            Payload = new TimerPayload(_clock.Value, _clock.IsRunning, mode, IsPaused: _clock.IsPaused)
         });
     }
 

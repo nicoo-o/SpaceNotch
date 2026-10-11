@@ -60,13 +60,14 @@
             Margin="0,6,0,0">
 
             <!-- Contrôles au trait, jamais remplis : sur une carte noire, une
-                 pastille blanche attire plus que le chiffre qu'elle commande. -->
+                 pastille blanche attire plus que le chiffre qu'elle commande.
+                 32 DIP au moins : une cible plus petite se manque (n° 78). -->
             <Button
                 Style="{StaticResource NfGhostButtonStyle}"
                 x:Name="ToggleButton"
-                Width="30"
-                Height="30"
-                CornerRadius="15"
+                Width="32"
+                Height="32"
+                CornerRadius="16"
                 Padding="0"
                 Background="Transparent"
                 BorderThickness="1"
@@ -84,9 +85,9 @@
             <Button
                 Style="{StaticResource NfGhostButtonStyle}"
                 x:Name="ResetButton"
-                Width="30"
-                Height="30"
-                CornerRadius="15"
+                Width="32"
+                Height="32"
+                CornerRadius="16"
                 Padding="0"
                 Background="Transparent"
                 BorderThickness="1"
