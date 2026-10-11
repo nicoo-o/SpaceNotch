@@ -55,7 +55,6 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
     /// </summary>
     public static readonly TimeSpan ConfirmWindow = TimeSpan.FromSeconds(3);
 
-    private readonly CpuSampler _sampler = new();
     private readonly CpuWatch _watch = new();
     private readonly Timer _timer;
     private readonly object _gate = new();
@@ -77,7 +76,8 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
 
     protected override Task OnStartAsync(CancellationToken cancellationToken)
     {
-        _sampler.Sample();
+        // Une mesure neuve amorce l'écart de temps processeur ; Pixel lit ensuite les nôtres.
+        CpuLoad.Shared.Get(TimeSpan.Zero);
         _sampling = true;
         _timer.Change(CalmPeriod, Timeout.InfiniteTimeSpan);
         return Task.CompletedTask;
@@ -102,7 +102,7 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
 
         try
         {
-            Add(_sampler.Sample(), DateTimeOffset.UtcNow);
+            Add(CpuLoad.Shared.Get(TimeSpan.Zero), DateTimeOffset.UtcNow);
         }
         catch (Exception ex)
         {
