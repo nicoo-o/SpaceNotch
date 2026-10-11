@@ -93,7 +93,9 @@ public sealed partial class SettingsWindow : Window
         set
         {
             _focusHotkey = value;
-            ShowKeys(FocusHotkeyCaps, value, Lang.T("Aucun : Win+Alt+N et Ctrl+Alt+N sont pris par d'autres applications", "None: Win+Alt+N and Ctrl+Alt+N are taken by other apps"));
+            string none = Lang.T("Aucun : Win+Alt+N et Ctrl+Alt+N sont pris par d'autres applications", "None: Win+Alt+N and Ctrl+Alt+N are taken by other apps");
+            ShowKeys(FocusHotkeyCaps, value, none);
+            AutomationProperties.SetName(FocusHotkeyHost, Lang.T("Aller à la notch : ", "Go to the notch: ") + (string.IsNullOrWhiteSpace(value) ? none : value));
         }
     }
 
@@ -116,9 +118,12 @@ public sealed partial class SettingsWindow : Window
         LoadFromSettings();
         SelectPage(PageGeneral, NavGeneral);
         ShowPendingPlugins();
-        ShowHotkey();
         UpdateNotificationCard();
         AnnotateCards();
+
+        // Après l'indexation : le texte d'attente (« Aucun : … sont pris ») n'est
+        // pas le sujet de la carte, et faisait sortir la recherche sur « aucun » (n° 85).
+        ShowHotkey();
 
         string version = typeof(SettingsWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : string.Empty;
         VersionText.Text = $"Version {version}";
