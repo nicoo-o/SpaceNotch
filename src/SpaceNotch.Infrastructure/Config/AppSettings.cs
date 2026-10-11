@@ -523,8 +523,13 @@ public sealed class AppSettings
     /// <summary>Appels et livraisons par Lien avec Windows (T1, T2) : lecture locale des notifications.</summary>
     public bool ShowPhone { get; set; } = true;
 
-    /// <summary>Salle vocale Discord (T3), une fois l'application Discord renseignée et autorisée.</summary>
-    public bool ShowDiscord { get; set; } = true;
+    /// <summary>
+    /// Salle vocale Discord (T3), une fois l'application Discord renseignée et
+    /// autorisée. Éteinte par défaut (n° 75) : sans application développeur, elle
+    /// ne faisait que tenter une reconnexion toutes les 20 s. Une configuration
+    /// qui l'a déjà gardée allumée la garde.
+    /// </summary>
+    public bool ShowDiscord { get; set; }
 
     /// <summary>Identifiant de l'application Discord de l'utilisateur (le secret est dans le coffre).</summary>
     public string DiscordClientId { get; set; } = string.Empty;

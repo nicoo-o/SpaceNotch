@@ -27,7 +27,13 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
 {
     private static readonly bool French = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
 
-    private static readonly int[] TimerChoices = [5, 15, 25];
+    /// <summary>Durées simples ; la troisième puce est « Focus 25 min » (n° 75 : Pomodoro fondu dans le Minuteur).</summary>
+    private static readonly int[] TimerChoices = [5, 15];
+
+    /// <summary>Valeur de la puce Focus, et de l'arrêt d'un focus en cours.</summary>
+    public const string FocusValue = "focus";
+
+    public const string FocusStopValue = "focus.stop";
 
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(15) };
 
@@ -122,7 +128,7 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
             QuickMenuFeature.SearchAction,
             keys: payload.Hotkey?.Replace("Win+", "⊞+", StringComparison.Ordinal).Split('+')));
 
-        RowsPanel.Children.Add(TimerRow(payload.TimerRunning));
+        RowsPanel.Children.Add(TimerRow(payload.TimerRunning, payload.FocusRunning));
 
         // Note éclair (F7) : aussi par un double-clic sur la notch. Nom et icône
         // des lignes communes viennent des tuiles : une seule source (n° 50).
@@ -245,13 +251,19 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
     /// 5 / 15 / 25 min apparaissent dans la ligne (140 ms, glissement de 8 DIPs,
     /// 20 ms d'écart). Un minuteur en cours se propose à l'arrêt.
     /// </summary>
-    private Grid TimerRow(bool running)
+    private Grid TimerRow(bool running, bool focusRunning)
     {
         var host = new Grid();
 
         if (running)
         {
             host.Children.Add(Row("Stop", French ? "Arrêter le minuteur" : "Stop timer", QuickMenuFeature.TimerAction, value: "0"));
+            return host;
+        }
+
+        if (focusRunning)
+        {
+            host.Children.Add(Row("Stop", French ? "Arrêter le focus" : "Stop focus", QuickMenuFeature.TimerAction, value: FocusStopValue));
             return host;
         }
 
@@ -281,6 +293,12 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
             chip.Click += (_, _) => Raise(QuickMenuFeature.TimerAction, captured);
             chips.Children.Add(chip);
         }
+
+        // Le Focus est un minuteur de 25 min qui finit avant la prochaine réunion :
+        // une puce du Minuteur, plus une fonction à part (n° 75).
+        var focus = new Button { Style = (Style)Application.Current.Resources["NfChipButtonStyle"], Content = French ? "Focus 25 min" : "Focus 25 min" };
+        focus.Click += (_, _) => Raise(QuickMenuFeature.TimerAction, FocusValue);
+        chips.Children.Add(focus);
 
         host.Children.Add(chips);
 

@@ -127,7 +127,8 @@ public sealed record QuickMenuPayload(
     bool SideEdgesAllowed,
     bool HasClipboard,
     bool HasShelf,
-    bool TimerRunning);
+    bool TimerRunning,
+    bool FocusRunning = false);
 
 /// <summary>Charge utile d'un appareil Bluetooth qui se connecte ou se déconnecte.</summary>
 /// <param name="Name">Nom de l'appareil.</param>

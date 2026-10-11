@@ -231,7 +231,15 @@ public sealed partial class SettingsWindow : Window
             toggle.Toggled += async (_, _) => await OnFeatureToggledAsync(captured, toggle);
 
             _featureToggles[feature.Id] = toggle;
-            FeaturesHost.Children.Add(SettingsCard(glyph, title, description, toggle));
+            Border card = SettingsCard(glyph, title, description, toggle);
+
+            // Services pour développeurs : avec les réglages avancés (n° 75, n° 23).
+            if (feature.Id is FeatureKeys.Discord or FeatureKeys.Channel)
+            {
+                SpaceNotch_App.UI.SettingsCard.SetAdvanced(card, true);
+            }
+
+            FeaturesHost.Children.Add(card);
         }
     }
 
@@ -242,7 +250,9 @@ public sealed partial class SettingsWindow : Window
         FeatureKeys.Clipboard => ("Clipboard", Lang.T("Presse-papier", "Clipboard"), Lang.T("Les derniers éléments copiés, épinglables.", "Your latest copied items, pinnable.")),
         FeatureKeys.Bluetooth => ("Bluetooth", "Bluetooth", Lang.T("Connexion, déconnexion et batterie de tes appareils.", "Connections, disconnections and battery of your devices.")),
         FeatureKeys.VolumeHud => ("VolumeHigh", "Volume", Lang.T("Remplace l’indicateur de volume de Windows.", "Replaces the Windows volume indicator.")),
-        FeatureKeys.Pomodoro => ("Timer", "Focus", Lang.T("Des sessions de 25 minutes, puis une pause.", "25-minute sessions, then a break.")),
+        FeatureKeys.Pomodoro => ("Timer", "Focus", Lang.T("Le minuteur « Focus 25 min » : la session finit avant ta prochaine réunion, puis une pause.", "The “Focus 25 min” timer: the session ends before your next meeting, then a break.")),
+        FeatureKeys.Discord => ("Headphones", "Discord", Lang.T("Ta salle vocale Discord dans la notch. Demande une application développeur Discord.", "Your Discord voice channel in the notch. Needs a Discord developer app.")),
+        FeatureKeys.Channel => ("Agent", Lang.T("Canal local", "Local channel"), Lang.T("Laisse tes agents IA (Claude Code) et tes scripts montrer où ils en sont. Rien ne sort de ton PC.", "Lets your AI agents (Claude Code) and scripts show their progress. Nothing leaves your PC.")),
         FeatureKeys.FileShelf => ("Folder", Lang.T("Étagère", "Shelf"), Lang.T("Dépose des fichiers sur la notch, reprends-les plus tard.", "Drop files on the notch, pick them up later.")),
         FeatureKeys.Downloads => ("Download", Lang.T("Téléchargements", "Downloads"), Lang.T("La progression de ce que tu télécharges.", "The progress of what you download.")),
         FeatureKeys.Charge => ("Bolt", Lang.T("Charge", "Charging"), Lang.T("La batterie qui se remplit quand tu branches le chargeur.", "The battery filling up when you plug in the charger.")),

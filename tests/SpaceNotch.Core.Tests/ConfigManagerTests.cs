@@ -319,4 +319,22 @@ public class ConfigManagerTests : IDisposable
 
         Assert.Equal(SpaceNotch.Core.Update.UpdateMode.Automatic, new SettingsService(CreateManager()).Current.UpdateMode);
     }
+
+    // n° 75 : Discord, inerte sans application développeur, est éteint sur une
+    // installation neuve ; une configuration qui l'avait allumé le garde.
+
+    [Fact]
+    public void Load_DiscordEstEteintSurUneInstallationNeuve()
+        => Assert.False(new SettingsService(CreateManager()).Current.ShowDiscord);
+
+    [Fact]
+    public void Load_UnDiscordDejaAllumeLeReste()
+    {
+        var manager = CreateManager();
+
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(manager.ConfigFilePath, """{ "ShowDiscord": true }""");
+
+        Assert.True(new SettingsService(manager).Current.ShowDiscord);
+    }
 }
