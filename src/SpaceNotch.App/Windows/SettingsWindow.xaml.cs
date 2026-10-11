@@ -1063,6 +1063,13 @@ public sealed partial class SettingsWindow : Window
             return;
         }
 
+        // Relier Discord, c'est vouloir sa salle vocale dans la notch : éteinte par
+        // défaut (n° 75), elle s'allume par l'interrupteur, qui l'enregistre.
+        if (_featureToggles.TryGetValue(FeatureKeys.Discord, out ToggleSwitch? discordToggle) && !discordToggle.IsOn)
+        {
+            discordToggle.IsOn = true;
+        }
+
         Apply(s => s.DiscordClientId = id);
         SpaceNotch_App.Phone.DiscordLink.Client?.Authorize();
         DiscordText.Text = Lang.T("Accepte dans la fenêtre de Discord…", "Accept in the Discord window…");

@@ -48,7 +48,7 @@ public sealed partial class IslandWindow
             HasClipboard: HasActivity(ClipboardFeature.ActivityId),
             HasShelf: HasActivity(FileShelfManager.ShelfActivityId),
             TimerRunning: _timerFeature.IsMeasuring,
-            FocusRunning: _pomodoroFeature.IsSessionRunning));
+            FocusActive: _pomodoroFeature.HasSession));
 
         // Le menu passe devant ce qui était présenté — la musique, un minuteur —
         // le temps d'être utilisé ; il rend la main en se refermant.

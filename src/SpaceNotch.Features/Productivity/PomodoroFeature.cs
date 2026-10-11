@@ -57,6 +57,9 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
     public bool IsSessionRunning => _clock.IsRunning;
 
+    /// <summary>Une session en cours ou en pause : il y a un focus à arrêter.</summary>
+    public bool HasSession => _clock.IsRunning || _clock.IsPaused;
+
     public TimeSpan Remaining => _clock.Value;
 
     /// <summary>Durée de la session en cours : l'anneau autour de la notch (F11) se lit contre elle.</summary>
