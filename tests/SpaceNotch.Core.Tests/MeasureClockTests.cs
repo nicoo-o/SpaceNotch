@@ -1,5 +1,6 @@
 using System;
 using System.Threading.Tasks;
+using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Productivity;
 using Xunit;
 
@@ -53,6 +54,41 @@ public sealed class MeasureClockTests
         _now += TimeSpan.FromSeconds(5);
         Assert.Equal(TimeSpan.FromSeconds(35), clock.Value);
     }
+
+    [Fact]
+    public void A_paused_measure_is_resumed_not_started()
+    {
+        // n° 78 : le bouton d'un minuteur suspendu était annoncé « Démarrer ».
+        var clock = new MeasureClock(() => _now);
+        clock.Set(TimeSpan.FromMinutes(5), countsDown: true);
+        Assert.Equal(TimerToggle.Start, Payload(clock).Toggle);
+
+        clock.Start();
+        Assert.Equal(TimerToggle.Pause, Payload(clock).Toggle);
+
+        _now += TimeSpan.FromMinutes(1);
+        clock.Pause();
+        Assert.True(clock.IsPaused);
+        Assert.Equal(TimerToggle.Resume, Payload(clock).Toggle);
+
+        clock.Start();
+        Assert.False(clock.IsPaused);
+
+        clock.Pause();
+        clock.Set(TimeSpan.FromMinutes(5), countsDown: true);
+        Assert.Equal(TimerToggle.Start, Payload(clock).Toggle);
+
+        // Un rebours suspendu à zéro est fini : rien à reprendre.
+        clock.Set(TimeSpan.FromSeconds(1), countsDown: true);
+        clock.Start();
+        _now += TimeSpan.FromSeconds(2);
+        clock.Pause();
+        Assert.False(clock.IsPaused);
+        Assert.Equal(TimerToggle.Start, Payload(clock).Toggle);
+    }
+
+    private static SpaceNotch.Core.Activities.TimerPayload Payload(MeasureClock clock)
+        => new(clock.Value, clock.IsRunning, "Minuteur", IsPaused: clock.IsPaused);
 }
 
 public sealed class BluetoothPayloadTests

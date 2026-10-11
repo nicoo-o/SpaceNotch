@@ -187,7 +187,10 @@ public sealed class TimerFeature : IslandFeatureBase
         }
 
         StopTick();
-        _clock.Set(TimeSpan.Zero, countsDown: true);
+
+        // Prêt pour un nouveau compte : « Démarrer » relançait un rebours de 0 s,
+        // fini au battement suivant (relecture n° 78).
+        _clock.Set(DefaultCountdown, countsDown: true);
 
         PublishActivity(new IslandActivity
         {
@@ -229,7 +232,7 @@ public sealed class TimerFeature : IslandFeatureBase
             IconKey = "Timer",
             State = IslandActivityState.TimerActive,
             Priority = ActivityPriority.Normal,
-            Payload = new TimerPayload(_clock.Value, _clock.IsRunning, mode)
+            Payload = new TimerPayload(_clock.Value, _clock.IsRunning, mode, IsPaused: _clock.IsPaused)
         });
     }
 

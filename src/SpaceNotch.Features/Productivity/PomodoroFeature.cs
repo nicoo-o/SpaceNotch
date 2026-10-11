@@ -220,7 +220,11 @@ public sealed class PomodoroFeature : IslandFeatureBase
             State = IslandActivityState.TimerActive,
             Priority = ActivityPriority.High,
             MotionState = ActivityMotionState.Completing,
-            Duration = TimeSpan.FromSeconds(5)
+            Duration = TimeSpan.FromSeconds(5),
+
+            // Sans contenu, la scène gardait « 00:01 » et « Suspendre » alors que
+            // la session était finie et qu'un appui en relançait une (relecture n° 78).
+            Payload = new TimerPayload(TimeSpan.Zero, false, "Focus")
         });
 
         PublishEvent(new NotificationPostedEvent("Pomodoro", Lang.T("Session terminée", "Session complete"), Lang.T("Prends une pause", "Take a break")));
@@ -245,8 +249,8 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
             // La scène ouverte lit le temps ici : sans lui, elle montrait 25:00 à l'arrêt.
             Payload = fitted
-                ? new TimerPayload(_clock.Value, _clock.IsRunning, string.Create(CultureInfo.InvariantCulture, $"Focus · {_fittedMinutes} min"), _fittedNote)
-                : new TimerPayload(_clock.Value, _clock.IsRunning, "Focus"),
+                ? new TimerPayload(_clock.Value, _clock.IsRunning, string.Create(CultureInfo.InvariantCulture, $"Focus · {_fittedMinutes} min"), _fittedNote, _clock.IsPaused)
+                : new TimerPayload(_clock.Value, _clock.IsRunning, "Focus", IsPaused: _clock.IsPaused),
             ExpandedFootprint = fitted ? SceneInsets.Wrap(250, 114) : null
         });
     }
