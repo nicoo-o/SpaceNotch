@@ -85,7 +85,7 @@ internal static class ShimmerText
         Microsoft.UI.Dispatching.DispatcherQueueTimer timer = target.DispatcherQueue.CreateTimer();
         timer.Interval = Frame;
         timer.IsRepeating = true;
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             // Un texte sorti de l'arbre sans Set(false) : le minuteur, retenu par
             // la file, tournerait sans fin. Éteint comme par Set(false), il
@@ -98,7 +98,7 @@ internal static class ShimmerText
 
             double phase = System.Diagnostics.Stopwatch.GetElapsedTime(start).TotalSeconds % Sweep.TotalSeconds / Sweep.TotalSeconds;
             move.X = -1 + (2 * phase);
-        };
+        });
         timer.Start();
 
         shine.Timer = timer;
