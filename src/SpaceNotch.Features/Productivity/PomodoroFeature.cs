@@ -145,7 +145,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
         }
 
         _clock.Start();
-        _tickTimer.Change(TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
+        _tickTimer.Change(TickPeriod, TickPeriod);
         PublishSessionActivity(Lang.T("Focus en cours", "Focusing"));
     }
 
@@ -182,6 +182,12 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
         return Task.CompletedTask;
     }
+
+    /// <summary>
+    /// Période du battement. Interne : les tests la rendent infinie et jouent
+    /// <see cref="OnTick"/> à la main, sans course avec le vrai (n° 86).
+    /// </summary>
+    internal TimeSpan TickPeriod { get; set; } = TimeSpan.FromMilliseconds(250);
 
     protected override void OnDisposed() => _tickTimer.Dispose();
 

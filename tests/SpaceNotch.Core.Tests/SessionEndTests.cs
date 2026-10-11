@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Features.Productivity;
@@ -19,7 +20,7 @@ public sealed class SessionEndTests
     public async System.Threading.Tasks.Task A_finished_countdown_says_so_then_offers_a_fresh_start()
     {
         var activities = new ActivityManager();
-        await using var timer = new TimerFeature(activities, new EventBus(), now: () => _now);
+        await using var timer = new TimerFeature(activities, new EventBus(), now: () => _now) { TickPeriod = Timeout.InfiniteTimeSpan };
 
         timer.StartCountdown(TimeSpan.FromSeconds(10));
         _now += TimeSpan.FromSeconds(11);
@@ -47,7 +48,7 @@ public sealed class SessionEndTests
     public async System.Threading.Tasks.Task A_running_countdown_only_redraws_before_its_end()
     {
         var activities = new ActivityManager();
-        await using var timer = new TimerFeature(activities, new EventBus(), now: () => _now);
+        await using var timer = new TimerFeature(activities, new EventBus(), now: () => _now) { TickPeriod = Timeout.InfiniteTimeSpan };
 
         timer.StartCountdown(TimeSpan.FromSeconds(10));
         _now += TimeSpan.FromSeconds(3);
@@ -62,10 +63,11 @@ public sealed class SessionEndTests
     public async System.Threading.Tasks.Task A_finished_focus_session_ends_stopped_and_ready_to_start()
     {
         var activities = new ActivityManager();
-        await using var pomodoro = new PomodoroFeature(activities, new EventBus(), now: () => _now);
+        await using var pomodoro = new PomodoroFeature(activities, new EventBus(), now: () => _now) { TickPeriod = Timeout.InfiniteTimeSpan };
 
-        pomodoro.Start(TimeSpan.FromMinutes(25));
-        _now += TimeSpan.FromMinutes(26);
+        pomodoro.Start(TimeSpan.FromMinutes(10));
+        Assert.Equal(TimeSpan.FromMinutes(10), pomodoro.SessionLength);
+        _now += TimeSpan.FromMinutes(11);
         pomodoro.OnTick(null);
 
         IslandActivity done = Assert.Single(activities.GetActiveActivities());
@@ -75,14 +77,14 @@ public sealed class SessionEndTests
         var payload = Assert.IsType<TimerPayload>(done.Payload);
         Assert.Equal(TimerToggle.Start, payload.Toggle);
         Assert.False(pomodoro.IsSessionRunning);
-        Assert.Equal(TimeSpan.FromMinutes(25), pomodoro.SessionLength);
+        Assert.Equal(TimeSpan.FromMinutes(25), pomodoro.SessionLength);   // revenue au défaut
     }
 
     [Fact]
     public async System.Threading.Tasks.Task A_paused_focus_session_does_not_end_on_its_own()
     {
         var activities = new ActivityManager();
-        await using var pomodoro = new PomodoroFeature(activities, new EventBus(), now: () => _now);
+        await using var pomodoro = new PomodoroFeature(activities, new EventBus(), now: () => _now) { TickPeriod = Timeout.InfiniteTimeSpan };
 
         pomodoro.Start(TimeSpan.FromMinutes(25));
         _now += TimeSpan.FromMinutes(5);
