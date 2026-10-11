@@ -96,6 +96,9 @@ public sealed partial class SettingsWindow : Window
             string none = Lang.T("Aucun : Win+Alt+N et Ctrl+Alt+N sont pris par d'autres applications", "None: Win+Alt+N and Ctrl+Alt+N are taken by other apps");
             ShowKeys(FocusHotkeyCaps, value, none);
             AutomationProperties.SetName(FocusHotkeyHost, Lang.T("Aller à la notch : ", "Go to the notch: ") + (string.IsNullOrWhiteSpace(value) ? none : value));
+            AutomationProperties.SetHelpText(FocusHotkeyHost, Lang.T(
+                "Donne le clavier à la notch depuis n’importe quelle application : flèches pour parcourir, Échap pour revenir.",
+                "Moves the keyboard to the notch from any app: arrows to browse, Esc to go back."));
         }
     }
 
