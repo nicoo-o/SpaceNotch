@@ -92,7 +92,7 @@ double-clic, et elle rentre chez elle.
 
 <table>
   <tr>
-    <td width="33%" valign="top"><h3>Silencieuse</h3>Presque rien ne tourne quand rien ne se passe : environ 0,4&nbsp;% d'un cœur au repos (mesuré le 6&nbsp;octobre 2026, Pixel éteint). Seul Pixel, les yeux de la notch, cligne et suit ton curseur.</td>
+    <td width="33%" valign="top"><h3>Silencieuse</h3>Presque rien ne tourne quand rien ne se passe : environ 0,15&nbsp;% d'un cœur au repos, <b>Pixel compris</b> (mesuré le 11&nbsp;octobre 2026, deux fois 60&nbsp;s). Seul Pixel, les yeux de la notch, cligne et suit ton curseur.</td>
     <td width="33%" valign="top"><h3>Discrète</h3>Elle s'efface quand un jeu ou une vidéo passe en plein écran, et ne s'ouvre jamais pour un simple changement de volume.</td>
     <td width="33%" valign="top"><h3>Privée</h3>Aucun compte, aucune télémétrie. Par défaut, la seule connexion est la mise à jour depuis GitHub : toutes les 6&nbsp;h, elle vérifie, télécharge et installe la nouvelle version au calme (« Me prévenir » ou « Désactivées » dans les Réglages). La météo, les paroles, Spotify et l'assistant ne se connectent qu'une fois activés. Tout le détail : <a href="PRIVACY.md">PRIVACY.md</a>.</td>
   </tr>

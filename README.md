@@ -92,7 +92,7 @@ flows back home.
 
 <table>
   <tr>
-    <td width="33%" valign="top"><h3>Quiet</h3>Almost nothing runs when nothing happens: about 0.4&nbsp;% of one CPU core at rest (measured on 6&nbsp;October 2026, with Pixel off). Only Pixel, the notch's eyes, blinks and follows your cursor.</td>
+    <td width="33%" valign="top"><h3>Quiet</h3>Almost nothing runs when nothing happens: about 0.15&nbsp;% of one CPU core at rest, <b>Pixel included</b> (measured on 11&nbsp;October 2026, twice over 60&nbsp;s). Only Pixel, the notch's eyes, blinks and follows your cursor.</td>
     <td width="33%" valign="top"><h3>Respectful</h3>It steps aside when a game or a video goes fullscreen, and never pops open for a volume change.</td>
     <td width="33%" valign="top"><h3>Private</h3>No account, no telemetry. By default, the only connection is updating from GitHub: every 6&nbsp;h it checks, downloads and installs the new version at a quiet moment (choose “Notify me” or “Off” in Settings). Weather, lyrics, Spotify and the assistant connect only once you turn them on. Full details: <a href="PRIVACY.md">PRIVACY.md</a>.</td>
   </tr>

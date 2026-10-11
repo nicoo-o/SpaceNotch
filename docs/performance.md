@@ -54,7 +54,7 @@ mesure, qui créerait précisément la charge qu'elle prétend mesurer.
 
 | Mesure | Cible | Résultat mesuré |
 |---|---|---|
-| CPU au repos | ~0 % | **0,00 % d'un cœur** (0,000 s sur 10 s, sous la résolution du chronomètre) ; 0,24 à 0,31 % sur des relevés plus longs |
+| CPU au repos | ~0 % | **0,00 % d'un cœur** (0,000 s sur 10 s, sous la résolution du chronomètre) ; 0,24 à 0,31 % sur des relevés plus longs. **Pixel compris** (ADR-029) : 0,18 % puis 0,13 % sur deux fois 60 s, après 18 s de stabilisation, curseur immobile (2026-10-11, `main` 7d698d7, instance de développement, Release) |
 | Encombrement au repos | veille 34 × 28 | **34 × 28 DIP**, centré sur l'écran, à 150 % d'échelle |
 | Mémoire, Island fermée | 30–60 MB | **96–99 MB** — au-dessus de la cible, voir ci-dessous |
 | Mémoire, croissance | nulle | stable sur 20 s, threads décroissants |
