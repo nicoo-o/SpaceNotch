@@ -23,14 +23,41 @@ namespace SpaceNotch_App.Views.Scenes;
 /// rangée de boutons à partir des actions annoncées. Un greffon peut ainsi
 /// proposer un contrôle sans qu'aucune ligne du rendu ne mentionne son domaine.
 /// </summary>
-public sealed partial class InfoScene : UserControl, IIslandSceneView
+public sealed partial class InfoScene : UserControl, IIslandSceneView, ILoopingView
 {
+    /// <summary>Faux tant que la notch est retirée : l'icône d'un appel ne vibre plus pour personne (n° 49).</summary>
+    private bool _loopsShown = true;
+
+    /// <inheritdoc />
+    public void SetLoopsShown(bool shown)
+    {
+        _loopsShown = shown;
+
+        // Le retour reprend par le rendu, qui réapplique la scène.
+        if (!shown)
+        {
+            Wiggle(false);
+            SceneAvatar.Animate = false;
+        }
+    }
+
     /// <summary>Identifiant de l'activité présentée, transmis avec chaque action.</summary>
     private string? _activityId;
 
     public InfoScene()
     {
         InitializeComponent();
+
+        // Repliée par n'importe quel chemin (repos vide, autre scène, sortie) :
+        // plus rien ne bat dedans. Seul le repos avec activité appelait Rest, et
+        // l'avatar ou la grille d'une carte quittée tournaient sans fin (relecture n° 79).
+        RegisterPropertyChangedCallback(VisibilityProperty, (_, _) =>
+        {
+            if (Visibility == Visibility.Collapsed)
+            {
+                Rest();
+            }
+        });
     }
 
     public event EventHandler<IslandActionRequest>? ActionRequested;
@@ -51,8 +78,8 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     /// <summary>Le glyphe de la pastille.</summary>
     public GlyphView IconElement => SceneIcon;
 
-    /// <summary>Clawd, quand c'est lui qui occupe la pastille.</summary>
-    public ClawdView? ClawdElement => SceneClawd.Visibility == Visibility.Visible ? SceneClawd : null;
+    /// <summary>Pixel, quand c'est lui qui occupe la pastille.</summary>
+    public PixelAvatarView? AvatarElement => SceneAvatar.Visibility == Visibility.Visible ? SceneAvatar : null;
 
     /// <summary>Le titre.</summary>
     public TextBlock TitleElement => TitleText;
@@ -67,8 +94,11 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     /// </summary>
     public bool AnimateHypnotic { get; set; } = true;
 
-    /// <summary>Rendu de Clawd choisi dans les réglages ; renseigné par la fenêtre.</summary>
-    public ClawdStyle ClawdStyle { get; set; } = ClawdStyle.Faithful;
+    /// <summary>
+    /// Pixel en avatar bouge-t-il ? Pas le réglage de la grille : seulement la
+    /// réduction des animations et une notch visible, comme dans la pastille.
+    /// </summary>
+    public bool AnimateAvatar { get; set; } = true;
 
     private HypnoticSurface? _hypnotic;
     private byte[]? _artworkBytes;
@@ -89,23 +119,23 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     {
         _hypnotic ??= HypnoticSurface.TryAttach(SceneHypnoticHost);
 
-        // Claude Code : Clawd, sa mascotte, occupe toute la pastille.
-        if (activity.Payload is ClawdPayload clawd)
+        // Un agent : Pixel, son avatar, occupe toute la pastille (ADR-029).
+        if (activity.Payload is AgentPayload agent)
         {
             _hypnotic?.SetPreset(HypnoticPreset.None, animate: false);
             SceneHypnoticHost.Visibility = Visibility.Collapsed;
             SceneIcon.Visibility = Visibility.Collapsed;
             SceneArtwork.Visibility = Visibility.Collapsed;
 
-            SceneClawd.Pitch = 1.4;
-            SceneClawd.PixelStyle = ClawdStyle;
-            SceneClawd.Animate = AnimateHypnotic;
-            SceneClawd.Mood = clawd.Mood;
-            SceneClawd.Visibility = Visibility.Visible;
+            // La pastille fait 38 DIP : l'avatar (39 à l'échelle 1) y tient en entier.
+            SceneAvatar.AvatarScale = 0.95;
+            SceneAvatar.Animate = AnimateAvatar && _loopsShown;
+            SceneAvatar.Show(activity.Id, agent.Mood);
+            SceneAvatar.Visibility = Visibility.Visible;
             return;
         }
 
-        SceneClawd.Visibility = Visibility.Collapsed;
+        SceneAvatar.Visibility = Visibility.Collapsed;
 
         HypnoticPreset preset = HypnoticField.Resolve(activity.MotionState, activity.MotionPreset);
         bool hypnotic = _hypnotic is not null && preset != HypnoticPreset.None;
@@ -142,7 +172,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     public void Rest()
     {
         _hypnotic?.SetPreset(HypnoticPreset.None, animate: false);
-        SceneClawd.Visibility = Visibility.Collapsed;
+        SceneAvatar.Visibility = Visibility.Collapsed;
         MirrorPanel.Visibility = Visibility.Collapsed;
     }
 
@@ -192,13 +222,13 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     /// <summary>Les dernières actions de l'agent, sous le texte, quand la carte est développée.</summary>
     private void ApplyRecent(IslandActivity activity)
     {
-        var clawd = activity.Payload as ClawdPayload;
-        _togglesDetails = clawd?.Recent is { Count: > 0 };
+        var agent = activity.Payload as AgentPayload;
+        _togglesDetails = agent?.Recent is { Count: > 0 };
         DetailsHint.Visibility = _togglesDetails ? Visibility.Visible : Visibility.Collapsed;
-        DetailsHint.Text = clawd?.Expanded == true ? "\u25B4" : "\u25BE";
+        DetailsHint.Text = agent?.Expanded == true ? "\u25B4" : "\u25BE";
 
         RecentList.Children.Clear();
-        int shown = clawd?.ShownLines ?? 0;
+        int shown = agent?.ShownLines ?? 0;
         RecentList.Visibility = shown > 0 ? Visibility.Visible : Visibility.Collapsed;
 
         if (shown == 0)
@@ -207,7 +237,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
         }
 
         Color tint = activity.Tint is { } t ? Color.FromArgb(0xFF, t.R, t.G, t.B) : Color.FromArgb(0xFF, 0xB3, 0x9D, 0xFF);
-        IReadOnlyList<string> lines = clawd!.Recent!;
+        IReadOnlyList<string> lines = agent!.Recent!;
 
         for (int i = lines.Count - shown; i < lines.Count; i++)
         {
@@ -247,7 +277,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
         }
 
         e.Handled = true;
-        ActionRequested?.Invoke(this, new IslandActionRequest(_activityId, ClawdPayload.ToggleAction));
+        ActionRequested?.Invoke(this, new IslandActionRequest(_activityId, AgentPayload.ToggleAction));
     }
 
     // ---- Vague 6 : disposition en ligne, couleurs d'action, étiquettes ----------
@@ -294,7 +324,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
         VoiceRow.Spacing = _row ? 4 : 8;
 
         // L'icône d'un appel qui sonne vibre, comme le téléphone.
-        Wiggle(_row && activity.MotionState == ActivityMotionState.Attention && activity.IconKey == "Call");
+        Wiggle(_loopsShown && _row && activity.MotionState == ActivityMotionState.Attention && activity.IconKey == "Call");
     }
 
     private static void Reparent(FrameworkElement element, Panel target, int index)

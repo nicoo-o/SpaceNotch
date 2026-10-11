@@ -49,21 +49,21 @@ public class EmptyStateTests
         feature.Receive(Working("Edit app.tsx · +2"));
 
         IslandActivity compact = Assert.Single(activities.GetActiveActivities());
-        var clawd = Assert.IsType<ClawdPayload>(compact.Payload);
-        Assert.False(clawd.Expanded);
-        Assert.Equal(0, clawd.ShownLines);
+        var agent = Assert.IsType<AgentPayload>(compact.Payload);
+        Assert.False(agent.Expanded);
+        Assert.Equal(0, agent.ShownLines);
 
         // Trois dernières, sans doublon d'affilée, la plus récente en bas.
-        Assert.Equal(["Edit app.tsx", "Bash · npm test", "Edit app.tsx · +2"], clawd.Recent);
+        Assert.Equal(["Edit app.tsx", "Bash · npm test", "Edit app.tsx · +2"], agent.Recent);
         Assert.True(compact.Footprint.Height < IslandSceneCatalog.FootprintFor(IslandSceneCatalog.Card).Height);
 
-        Assert.True(await feature.HandleActionAsync(new IslandActionRequest(ChannelFeature.Prefix + Agent, ClawdPayload.ToggleAction)));
+        Assert.True(await feature.HandleActionAsync(new IslandActionRequest(ChannelFeature.Prefix + Agent, AgentPayload.ToggleAction)));
         IslandActivity expanded = Assert.Single(activities.GetActiveActivities());
-        Assert.Equal(3, Assert.IsType<ClawdPayload>(expanded.Payload).ShownLines);
+        Assert.Equal(3, Assert.IsType<AgentPayload>(expanded.Payload).ShownLines);
         Assert.True(expanded.Footprint.Height > compact.Footprint.Height);
         Assert.Equal(compact.TrailingMetric, expanded.TrailingMetric);
 
-        Assert.True(await feature.HandleActionAsync(new IslandActionRequest(ChannelFeature.Prefix + Agent, ClawdPayload.ToggleAction)));
+        Assert.True(await feature.HandleActionAsync(new IslandActionRequest(ChannelFeature.Prefix + Agent, AgentPayload.ToggleAction)));
         Assert.Equal(compact.Footprint, Assert.Single(activities.GetActiveActivities()).Footprint);
     }
 
@@ -123,4 +123,17 @@ public class EmptyStateTests
     [Fact]
     public void TheHeadsetCard_HasNoBlankBelow()
         => Assert.Equal(40 + SceneInsets.Top + SceneInsets.Bottom, IslandSceneCatalog.FootprintFor(IslandSceneCatalog.Bluetooth).Height);
+
+    [Fact]
+    public void EveryAgent_HasPixelForAvatar_NotOnlyClaudeCode()
+    {
+        // ADR-029 : Pixel est l'avatar de chaque agent ; Clawd ne l'était que de Claude Code.
+        var activities = new ActivityManager();
+        var feature = new ChannelFeature(activities, new EventBus());
+
+        feature.Receive(new AgentMessage("codex.1", "Codex", "Lit le dépôt", null, ChannelState.Working));
+
+        var agent = Assert.IsType<AgentPayload>(Assert.Single(activities.GetActiveActivities()).Payload);
+        Assert.Equal(SpaceNotch.Core.Motion.AgentMood.Thinking, agent.Mood);
+    }
 }

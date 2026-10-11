@@ -167,7 +167,7 @@ public sealed partial class IslandWindow
     /// Silhouette déformée, ou <c>null</c> quand aucune déformation n'est en
     /// cours : l'appelant trace alors la silhouette ordinaire.
     /// </summary>
-    private Microsoft.UI.Xaml.Media.Geometry? DeformedSilhouette(IslandFootprint footprint)
+    private Microsoft.UI.Xaml.Media.PathGeometry? DeformedSilhouette(IslandFootprint footprint)
     {
         if (UsesFloatingGeometry || UsesSideTab)
         {
@@ -194,7 +194,7 @@ public sealed partial class IslandWindow
 
         // La prochaine silhouette ordinaire devra se reconstruire.
         _shape.Forget();
-        return IslandGeometryFactory.FromPolygons([outline], 0, 0);
+        return _deformedPath.Set(outline);
     }
 
     /// <summary>
@@ -202,7 +202,7 @@ public sealed partial class IslandWindow
     /// se bombe quand elle descend et se creuse un peu quand elle remonte,
     /// selon sa vitesse. <c>null</c> au repos ou sous un mouvement réduit.
     /// </summary>
-    private Microsoft.UI.Xaml.Media.Geometry? BulgedSilhouette(IslandFootprint footprint)
+    private Microsoft.UI.Xaml.Media.PathGeometry? BulgedSilhouette(IslandFootprint footprint)
     {
         // La forme est déjà posée pendant la construction de la fenêtre, avant
         // que le contrôleur existe.
@@ -232,8 +232,14 @@ public sealed partial class IslandWindow
 
         _bulged = true;
         _shape.Forget();
-        return IslandGeometryFactory.FromPolygons([outline], 0, 0);
+        return _deformedPath.Set(outline);
     }
 
     private bool _bulged;
+
+    /// <summary>
+    /// La forme déformée, tracée à chaque image du ressort : réutilisée, elle ne
+    /// crée plus d'objet XAML par image (n° 46, voir ReusablePath).
+    /// </summary>
+    private readonly ReusablePath _deformedPath = new();
 }

@@ -28,11 +28,11 @@ public sealed partial class IslandWindow
         }
 
         var timer = new DispatcherTimer { Interval = WelcomeDelay };
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.XamlTick((_, _) =>
         {
             timer.Stop();
             ShowWelcome();
-        };
+        });
         timer.Start();
     }
 

@@ -52,7 +52,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
         _clock.Set(DefaultSessionLength, countsDown: true);
 
         // Créé suspendu : une fonctionnalité au repos ne consomme rien.
-        _tickTimer = new Timer(OnTick, null, Timeout.Infinite, Timeout.Infinite);
+        _tickTimer = new Timer(Guarded(() => OnTick(null)), null, Timeout.Infinite, Timeout.Infinite);
     }
 
     public bool IsSessionRunning => _clock.IsRunning;
@@ -214,7 +214,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
             FeatureId = FeatureKey,
             SceneKey = IslandSceneCatalog.Pomodoro,
             Title = Lang.T("Session terminée", "Session complete"),
-            Subtitle = Lang.T("Prenez une pause", "Take a break"),
+            Subtitle = Lang.T("Prends une pause", "Take a break"),
             Source = "Pomodoro",
             IconKey = "Timer",
             State = IslandActivityState.TimerActive,
@@ -223,7 +223,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
             Duration = TimeSpan.FromSeconds(5)
         });
 
-        PublishEvent(new NotificationPostedEvent("Pomodoro", Lang.T("Session terminée", "Session complete"), Lang.T("Prenez une pause", "Take a break")));
+        PublishEvent(new NotificationPostedEvent("Pomodoro", Lang.T("Session terminée", "Session complete"), Lang.T("Prends une pause", "Take a break")));
     }
 
     private void PublishSessionActivity(string subtitle)

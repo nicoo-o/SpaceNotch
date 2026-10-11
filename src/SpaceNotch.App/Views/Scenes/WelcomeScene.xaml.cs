@@ -23,8 +23,34 @@ namespace SpaceNotch_App.Views.Scenes;
 /// une petite illustration animée au-dessus du texte. La dernière carte
 /// demande l'accès aux notifications — ou dit pourquoi elle ne le peut pas.
 /// </summary>
-public sealed partial class WelcomeScene : UserControl, IIslandSceneView
+public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopingView
 {
+    /// <inheritdoc />
+    /// <remarks>
+    /// Les illustrations bouclent sur le compositeur : retirées, elles sont
+    /// vidées ; au retour, l'étape en cours est redessinée (n° 49).
+    /// </remarks>
+    public void SetLoopsShown(bool shown)
+    {
+        _loopsShown = shown;
+
+        if (!shown)
+        {
+            _illustrationCleared |= Illustration.Children.Count > 0;
+            Illustration.Children.Clear();
+        }
+        else if (_illustrationCleared && Visibility == Visibility.Visible && _shown is { } payload)
+        {
+            _illustrationCleared = false;
+            BuildIllustration(payload.Step);
+        }
+    }
+
+    // Retrait : l'illustration est vidée, et ne se reconstruit au retour que si la
+    // présentation est encore à l'écran (relecture, n° 49).
+    private bool _loopsShown = true;
+    private bool _illustrationCleared;
+
     private static readonly bool French = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
 
     private const double CanvasWidth = 402;
@@ -66,10 +92,22 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView
         BuildDots(payload);
         BuildButtons(payload);
 
-        if (stepChanged)
+        if (stepChanged && !_loopsShown)
+        {
+            // Changement d'étape pendant le retrait : redessinée au retour.
+            _illustrationCleared = true;
+        }
+        else if (stepChanged)
         {
             BuildIllustration(payload.Step);
             PlayStepEntrance();
+        }
+        else if (_illustrationCleared && _loopsShown)
+        {
+            // Vidée par un retrait pendant que la présentation était repliée :
+            // rouverte à la même étape, elle retrouve son illustration.
+            _illustrationCleared = false;
+            BuildIllustration(payload.Step);
         }
     }
 

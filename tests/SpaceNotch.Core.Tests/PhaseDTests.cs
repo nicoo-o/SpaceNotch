@@ -27,7 +27,7 @@ public sealed class PhaseDTests
         fan.Raise(null, new object());
         Assert.Empty(timed);
 
-        fan.Timed = (handler, elapsed) => timed.Add((handler, elapsed.TotalMilliseconds));
+        fan.Timed = (handler, elapsed, _) => timed.Add((handler, elapsed.TotalMilliseconds));
         fan.Raise(null, new object());
 
         Assert.Equal(2, timed.Count);
@@ -36,6 +36,24 @@ public sealed class PhaseDTests
         Assert.Same(quick, timed[1].Handler);
     }
 
+    [Fact]
+    public void L_horloge_dit_ce_que_chaque_abonne_alloue()
+    {
+        // n° 46 : les GC des animations viennent d'allocations par image ; la
+        // mesure doit dire quel abonné alloue.
+        var fan = new FrameFanOut(() => { }, () => { });
+        var allocated = new Dictionary<EventHandler<object>, long>();
+        EventHandler<object> greedy = (_, _) => GC.KeepAlive(new byte[64 * 1024]);
+        EventHandler<object> frugal = (_, _) => { };
+        fan.Add(greedy);
+        fan.Add(frugal);
+
+        fan.Timed = (handler, _, bytes) => allocated[handler] = bytes;
+        fan.Raise(null, new object());
+
+        Assert.True(allocated[greedy] >= 64 * 1024);
+        Assert.True(allocated[frugal] < 1024);
+    }
 
     [Fact]
     public void Un_seul_abonnement_reel_pose_au_premier_et_retire_au_dernier()

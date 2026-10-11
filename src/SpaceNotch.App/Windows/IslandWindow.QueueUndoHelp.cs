@@ -63,7 +63,7 @@ public sealed partial class IslandWindow
             if (i >= _queueShown && UseSpringAnimations())
             {
                 dot.Opacity = 0;
-                _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => dot.Opacity = 1);
+                _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, () => dot.Opacity = 1);
             }
 
             QueueDotsRow.Children.Add(dot);
@@ -298,7 +298,7 @@ public sealed partial class IslandWindow
             {
                 _clipStackHintGiven = true;
                 AnnounceText(Lang.T(
-                    "Historique du presse-papier désactivé : activez-le dans les réglages pour parcourir la pile.",
+                    "Historique du presse-papier désactivé : active-le dans les réglages pour parcourir la pile.",
                     "Clipboard history is off: turn it on in settings to browse the stack."));
             }
 
@@ -353,7 +353,7 @@ public sealed partial class IslandWindow
         // Hors du rendu en cours : la rangée change la forme et redemande un rendu.
         // Comptée « montrée » seulement quand elle s'affiche vraiment : remplacée
         // avant, elle restait due.
-        _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
+        _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, () =>
         {
             if (_lessonKey == lesson.Key && !_isClosed && _controller.State == IslandState.Closed)
             {

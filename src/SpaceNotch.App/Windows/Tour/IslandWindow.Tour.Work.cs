@@ -67,32 +67,15 @@ public sealed partial class IslandWindow
             TourLater(600, () => TourOpen(ChannelFeature.Prefix + "build-ps1"));
         });
 
-        yield return ("clawd · réponse attendue dans le terminal", () =>
+        yield return ("agent · réponse attendue dans le terminal", () =>
         {
             TourClear(ChannelFeature.Prefix + "build-ps1");
             Channel(new AgentMessage(Agent, ClaudeHook.AgentName, Lang.T("Réponds dans le terminal", "Answer in the terminal"), null, ChannelState.Waiting));
             TourOpen(AgentActivity);
         });
 
-        yield return ("clawd · style C, entre les deux", () =>
-        {
-            _settings.ClawdStyle = SpaceNotch.Core.Motion.ClawdStyle.Soft;
-            Channel(Thinking());
-            _activityManager.PinPresentation(AgentActivity);
-            TourLater(2000, () => TourOpen(AgentActivity));
-        });
-
-        yield return ("clawd · style B, matière SpaceNotch", () =>
-        {
-            _settings.ClawdStyle = SpaceNotch.Core.Motion.ClawdStyle.Notch;
-            _controller.RequestCollapse();
-            Channel(Thinking());
-            TourLater(2000, () => TourOpen(AgentActivity));
-        });
-
         yield return ("progression · étapes 2/4 → 3/4", () =>
         {
-            _settings.ClawdStyle = SpaceNotch.Core.Motion.ClawdStyle.Faithful;
             TourClear(AgentActivity);
             Channel(Step(2, 0.35, Lang.T("Tests", "Tests")));
             TourOpen(ChannelFeature.Prefix + Build);

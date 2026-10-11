@@ -79,7 +79,7 @@ public sealed partial class IslandWindow
         yield return Pass("téléchargement", () => Card("tour7.dl", "Download", "Downloading", "ubuntu-24.04-desktop.iso", null, lilac, metric: "62 %", motion: ActivityMotionState.Working, preset: HypnoticPreset.Process));
         yield return Pass("casque", () => Card("tour7.bt", "Headphones", "AirPods Pro", Lang.T("Connecté", "Connected"), null, mint, metric: "84 %", scene: IslandSceneCatalog.Bluetooth));
         yield return Pass("minuteur", () => Card("tour7.timer", "Timer", "07:42", Lang.T("Minuteur", "Timer"), null, new ActivityTint(0xFF, 0xB2, 0x6B)));
-        yield return Pass("claude code", () => Card("tour7.clawd", "Agent", "Claude Code", "SpaceNotch", Lang.T("Réfléchit…", "Thinking…"), new ActivityTint(0xB3, 0x9D, 0xFF), new ClawdPayload(ClawdMood.Thinking), "0 s", ActivityMotionState.Working));
+        yield return Pass("agent", () => Card("tour7.agent", "Agent", "Claude Code", "SpaceNotch", Lang.T("Réfléchit…", "Thinking…"), new ActivityTint(0xB3, 0x9D, 0xFF), new AgentPayload(AgentMood.Thinking), "0 s", ActivityMotionState.Working));
         yield return Pass("travail en cours", () => Card("tour7.work", "Info", "Creating prototype", "Read sidebar.tsx · 741 lines", null, lilac, motion: ActivityMotionState.Working, preset: HypnoticPreset.Process));
         yield return Pass("progression", () => Card("tour7.build", "Progress", "Build", Lang.T("Étape 3/4", "Step 3/4"), "Tests", new ActivityTint(0xFF, 0x8F, 0xA3), new ProgressStepsPayload([1, 1, 0.5, 0]), "3/4", ActivityMotionState.Working, HypnoticPreset.Process));
         yield return Pass("appel", () => Card("tour7.call", "Call", Lang.T("Maman", "Mom"), null, Lang.T("Appel entrant · Phone Link", "Incoming call · Phone Link"), mint,
