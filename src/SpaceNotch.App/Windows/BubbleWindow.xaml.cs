@@ -180,14 +180,14 @@ public sealed partial class BubbleWindow : Window
         visual.StartAnimation("Scale.X", shrink);
         visual.StartAnimation("Scale.Y", shrink);
         batch.End();
-        batch.Completed += (_, _) =>
+        batch.Completed += SpaceNotch_App.Diagnostics.Guard.Batch((_, _) =>
         {
             // Une réapparition pendant la sortie l'emporte : la fenêtre reste.
             if (!_shown)
             {
                 HideWindow();
             }
-        };
+        });
     }
 
     /// <summary>
@@ -349,7 +349,7 @@ public sealed partial class BubbleWindow : Window
         visual.StartAnimation("Scale.X", dip);
         visual.StartAnimation("Scale.Y", dip);
         batch.End();
-        batch.Completed += (_, _) => DispatcherQueue.TryEnqueue(() =>
+        batch.Completed += (_, _) => DispatcherQueue.TryEnqueueSafely(() =>
         {
             switchContent();
             PlayScale(from: SwapScale, to: 1f, bouncy: true);

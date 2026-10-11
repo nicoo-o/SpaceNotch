@@ -52,7 +52,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
         _clock.Set(DefaultSessionLength, countsDown: true);
 
         // Créé suspendu : une fonctionnalité au repos ne consomme rien.
-        _tickTimer = new Timer(OnTick, null, Timeout.Infinite, Timeout.Infinite);
+        _tickTimer = new Timer(Guarded(() => OnTick(null)), null, Timeout.Infinite, Timeout.Infinite);
     }
 
     public bool IsSessionRunning => _clock.IsRunning;

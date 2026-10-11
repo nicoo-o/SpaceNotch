@@ -93,7 +93,7 @@ public sealed partial class ColorScene : UserControl, IIslandSceneView
             Microsoft.UI.Dispatching.DispatcherQueueTimer hide = DispatcherQueue.CreateTimer();
             hide.Interval = TimeSpan.FromSeconds(1.2);
             hide.IsRepeating = false;
-            hide.Tick += (_, _) => copied.Opacity = 0;
+            hide.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) => copied.Opacity = 0);
             hide.Start();
         };
 

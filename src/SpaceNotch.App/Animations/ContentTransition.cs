@@ -136,7 +136,7 @@ internal static class ContentTransition
             CompositionScopedBatch batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
             visual.StartAnimation("Opacity", fade);
             batch.End();
-            batch.Completed += (_, _) => completed();
+            batch.Completed += SpaceNotch_App.Diagnostics.Guard.Batch((_, _) => completed());
             return true;
         }
         catch (Exception)

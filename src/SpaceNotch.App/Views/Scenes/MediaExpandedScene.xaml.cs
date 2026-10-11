@@ -158,12 +158,12 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
     private DispatcherTimer CreateQueuedReset()
     {
         var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.XamlTick((_, _) =>
         {
             timer.Stop();
             QueueText.Text = Lang.T("file", "queue");
             QueueText.Foreground = QueueBrush;
-        };
+        });
         return timer;
     }
 
@@ -283,7 +283,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
     private DispatcherTimer CreateLyricsClock()
     {
         var clock = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-        clock.Tick += (_, _) =>
+        clock.Tick += SpaceNotch_App.Diagnostics.Guard.XamlTick((_, _) =>
         {
             if (Visibility != Visibility.Visible)
             {
@@ -292,7 +292,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView
             }
 
             UpdateLyric();
-        };
+        });
         return clock;
     }
 
