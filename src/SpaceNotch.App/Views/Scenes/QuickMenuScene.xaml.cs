@@ -23,7 +23,7 @@ namespace SpaceNotch_App.Views.Scenes;
 /// Presse-papier, Étagère · Détacher, Accrocher à… (trois bords dépliés sur
 /// place) · Réglages, Quitter. La vue décrit ; la fenêtre exécute.
 /// </summary>
-public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
+public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoopingView
 {
     private static readonly bool French = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
 
@@ -59,6 +59,21 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
     }
 
     public event EventHandler<IslandActionRequest>? ActionRequested;
+
+    /// <inheritdoc />
+    /// <remarks>L'heure du menu se relit toutes les 15 s : pas pendant le retrait (n° 49).</remarks>
+    public void SetLoopsShown(bool shown)
+    {
+        if (!shown)
+        {
+            _clock.Stop();
+        }
+        else if (Visibility == Visibility.Visible)
+        {
+            UpdateClock();
+            _clock.Start();
+        }
+    }
 
     public FrameworkElement Root => this;
 
@@ -109,12 +124,15 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
 
         RowsPanel.Children.Add(TimerRow(payload.TimerRunning));
 
-        // Note éclair (F7) : aussi par un double-clic sur la notch.
-        RowsPanel.Children.Add(Row("Menu", French ? "Note" : "Note", QuickMenuFeature.NoteAction));
+        // Note éclair (F7) : aussi par un double-clic sur la notch. Nom et icône
+        // des lignes communes viennent des tuiles : une seule source (n° 50).
+        QuickMenuTile note = QuickMenuTiles.For(QuickMenuFeature.NoteAction)!;
+        RowsPanel.Children.Add(Row(note.IconKey, note.Label, QuickMenuFeature.NoteAction));
 
+        QuickMenuTile clipboard = QuickMenuTiles.For(QuickMenuFeature.ClipboardAction)!;
         RowsPanel.Children.Add(Row(
-            "Clipboard",
-            French ? "Presse-papier" : "Clipboard",
+            clipboard.IconKey,
+            clipboard.Label,
             QuickMenuFeature.ClipboardAction,
             enabled: payload.HasClipboard,
             trailing: payload.HasClipboard ? null : (French ? "vide" : "empty")));
@@ -237,7 +255,8 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView
             return host;
         }
 
-        Button row = Row("Timer", French ? "Minuteur" : "Timer", QuickMenuFeature.TimerAction, value: "15", chevron: "ChevronRight");
+        QuickMenuTile timer = QuickMenuTiles.For(QuickMenuFeature.TimerAction)!;
+        Button row = Row(timer.IconKey, timer.Label, QuickMenuFeature.TimerAction, value: timer.Value, chevron: "ChevronRight");
         host.Children.Add(row);
 
         var chips = new StackPanel

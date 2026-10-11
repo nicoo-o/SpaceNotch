@@ -36,8 +36,11 @@ namespace SpaceNotch_App.Windows;
 /// sur le fil d'interface, rien ne tourne quand la bulle est posée.
 /// </para>
 /// </summary>
-public sealed partial class BubbleWindow : Window
+public sealed partial class BubbleWindow : Window, SpaceNotch_App.Views.ILoopingView
 {
+    /// <inheritdoc />
+    public void SetLoopsShown(bool shown) => BubbleLive.Suspended = !shown;
+
     /// <summary>Échelle d'où la bulle naît : elle sort du bord, elle n'apparaît pas en fondu.</summary>
     private const float BirthScale = 0.2f;
 
