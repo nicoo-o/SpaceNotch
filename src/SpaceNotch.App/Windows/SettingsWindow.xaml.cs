@@ -1492,22 +1492,22 @@ public sealed partial class SettingsWindow : Window
         => ShowKeys(HotkeyCaps, _searchHotkey, Lang.T("Aucun : tous les raccourcis proposés sont pris par d'autres applications", "None: every offered shortcut is taken by other apps"));
 
     /// <summary>
-    /// Un raccourci en touches dessinées, ou la raison de son absence. Le texte
-    /// suit le thème (lisible en contraste élevé clair) ; le Narrateur lit le
-    /// raccourci d'une traite (« Actif : Win+Alt+N »), pas touche par touche.
+    /// Un raccourci en touches dessinées, ou la raison de son absence. Le Narrateur
+    /// lit le raccourci d'une traite (« Actif : Win+Alt+N »), pas touche par touche.
     /// </summary>
     private static void ShowKeys(StackPanel caps, string? hotkey, string none)
     {
         caps.Children.Clear();
-        var hint = (Style)Application.Current.Resources["NfSettingsDescriptionStyle"];
 
         if (string.IsNullOrWhiteSpace(hotkey))
         {
-            caps.Children.Add(new TextBlock { Text = none, Style = hint, VerticalAlignment = VerticalAlignment.Center });
+            caps.Children.Add(new TextBlock { Text = none, FontSize = 11.5, TextWrapping = TextWrapping.Wrap, VerticalAlignment = VerticalAlignment.Center });
             return;
         }
 
-        var active = new TextBlock { Text = Lang.T("Actif :", "Active:"), Style = hint, VerticalAlignment = VerticalAlignment.Center };
+        // Sans couleur imposée : le texte hérite de celle de la carte, qui suit le
+        // thème (un blanc fixe disparaissait en contraste élevé clair).
+        var active = new TextBlock { Text = Lang.T("Actif :", "Active:"), FontSize = 11.5, VerticalAlignment = VerticalAlignment.Center };
         AutomationProperties.SetName(active, Lang.T("Actif : ", "Active: ") + hotkey);
         caps.Children.Add(active);
 
