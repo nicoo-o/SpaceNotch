@@ -93,7 +93,9 @@ public sealed class MeasureClock
 
         _frozen = Value;
         IsRunning = false;
-        IsPaused = true;
+
+        // Un rebours déjà à zéro n'a rien à reprendre : il est fini, pas suspendu.
+        IsPaused = !CountsDown || _frozen > TimeSpan.Zero;
     }
 
     private static TimeSpan Ceiling(TimeSpan value)

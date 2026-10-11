@@ -33,14 +33,16 @@ public sealed partial class TimerScene : UserControl, IIslandSceneView
 
     public FrameworkElement Root => this;
 
+    /// <summary>L'action annoncée par le bouton principal, pour ne la poser qu'au changement.</summary>
+    private string? _action;
+
     public void Apply(IslandActivity activity)
     {
         _activityId = activity.Id;
 
-        if (activity.Payload is not TimerPayload timer)
-        {
-            return;
-        }
+        // Sans contenu, un état neutre plutôt que celui de l'activité précédente :
+        // la fin d'une session gardait « Suspendre » sur une mesure arrêtée (n° 78).
+        TimerPayload timer = activity.Payload as TimerPayload ?? new TimerPayload(TimeSpan.Zero, false, string.Empty);
 
         TimeText.Text = timer.Formatted;
         ModeText.Text = timer.Mode.ToUpperInvariant();
@@ -61,8 +63,14 @@ public sealed partial class TimerScene : UserControl, IIslandSceneView
             TimerToggle.Resume => SpaceNotch.Core.Localization.Lang.T("Reprendre", "Resume"),
             _ => SpaceNotch.Core.Localization.Lang.T("Démarrer", "Start")
         };
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(ToggleButton, action);
-        ToolTipService.SetToolTip(ToggleButton, action);
+        // Seulement quand l'action change : le rendu revient à chaque seconde, et
+        // une infobulle réaffectée se refermait sous le pointeur.
+        if (action != _action)
+        {
+            _action = action;
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(ToggleButton, action);
+            ToolTipService.SetToolTip(ToggleButton, action);
+        }
 
         ToggleButton.BorderBrush = Ink(
             timer.IsRunning ? "NfStrokeSubtleBrush" : "NfStrokeStrongBrush",

@@ -77,6 +77,14 @@ public sealed class MeasureClockTests
         clock.Pause();
         clock.Set(TimeSpan.FromMinutes(5), countsDown: true);
         Assert.Equal(TimerToggle.Start, Payload(clock).Toggle);
+
+        // Un rebours suspendu à zéro est fini : rien à reprendre.
+        clock.Set(TimeSpan.FromSeconds(1), countsDown: true);
+        clock.Start();
+        _now += TimeSpan.FromSeconds(2);
+        clock.Pause();
+        Assert.False(clock.IsPaused);
+        Assert.Equal(TimerToggle.Start, Payload(clock).Toggle);
     }
 
     private static SpaceNotch.Core.Activities.TimerPayload Payload(MeasureClock clock)
