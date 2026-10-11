@@ -105,6 +105,13 @@ public static class PixelAvatar
     /// <summary>Hauteur du centre des yeux, en DIP depuis le haut.</summary>
     public const double EyeY = Height / 2;
 
+    /// <summary>
+    /// Le temps que les yeux de Pixel arrivent du repos (regard, puis voyage :
+    /// <see cref="PixelHandoff"/>). Avant, l'avatar garde la pose de départ, là
+    /// où les yeux se posent ; sinon ils arrivaient à côté de ceux dessinés.
+    /// </summary>
+    public const double ArrivalSeconds = 0.7;
+
     /// <summary>Durée d'un aller-retour du regard qui cherche.</summary>
     private const double ScanSeconds = 3.2;
 
@@ -157,7 +164,7 @@ public static class PixelAvatar
     /// </summary>
     public static AvatarPose Pose(AgentMood mood, double seconds, bool animate = true)
     {
-        double t = animate && double.IsFinite(seconds) ? Math.Max(0, seconds) : 0;
+        double t = animate && double.IsFinite(seconds) ? Math.Max(0, seconds - ArrivalSeconds) : 0;
 
         return mood switch
         {

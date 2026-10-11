@@ -89,8 +89,8 @@ public sealed class PixelAvatarTests
     [Fact]
     public void Le_regard_qui_cherche_va_et_vient_et_les_points_avancent()
     {
-        double[] looks = [.. Enumerable.Range(0, 32).Select(i => PixelAvatar.Pose(AgentMood.Thinking, i * 0.1).LookX)];
-        int[] dots = [.. Enumerable.Range(0, 12).Select(i => PixelAvatar.Pose(AgentMood.Thinking, i * 0.4).SignStep)];
+        double[] looks = [.. Enumerable.Range(0, 32).Select(i => PixelAvatar.Pose(AgentMood.Thinking, PixelAvatar.ArrivalSeconds + (i * 0.1)).LookX)];
+        int[] dots = [.. Enumerable.Range(0, 12).Select(i => PixelAvatar.Pose(AgentMood.Thinking, PixelAvatar.ArrivalSeconds + (i * 0.4)).SignStep)];
 
         Assert.True(looks.Max() > 2 && looks.Min() < -2);
         Assert.Equal([1, 2, 3], dots.Distinct().Order());
@@ -99,24 +99,24 @@ public sealed class PixelAvatarTests
     [Fact]
     public void La_fete_est_courte_puis_il_reste_content()
     {
-        Assert.True(PixelAvatar.Pose(AgentMood.Done, 0.2).Hop < 0);
-        Assert.Equal(0, PixelAvatar.Pose(AgentMood.Done, 1.5).Hop);
+        Assert.True(PixelAvatar.Pose(AgentMood.Done, PixelAvatar.ArrivalSeconds + 0.2).Hop < 0);
+        Assert.Equal(0, PixelAvatar.Pose(AgentMood.Done, PixelAvatar.ArrivalSeconds + 1.5).Hop);
         Assert.True(PixelAvatar.Pose(AgentMood.Done, 30).Arcs);
     }
 
     [Fact]
     public void Il_secoue_la_tete_puis_s_arrete_et_recommence()
     {
-        Assert.NotEqual(0, PixelAvatar.Pose(AgentMood.Error, 0.05).Shake);
-        Assert.Equal(0, PixelAvatar.Pose(AgentMood.Error, 1.5).Shake);
-        Assert.NotEqual(0, PixelAvatar.Pose(AgentMood.Error, 2.65).Shake);
+        Assert.NotEqual(0, PixelAvatar.Pose(AgentMood.Error, PixelAvatar.ArrivalSeconds + 0.05).Shake);
+        Assert.Equal(0, PixelAvatar.Pose(AgentMood.Error, PixelAvatar.ArrivalSeconds + 1.5).Shake);
+        Assert.NotEqual(0, PixelAvatar.Pose(AgentMood.Error, PixelAvatar.ArrivalSeconds + 2.65).Shake);
     }
 
     [Fact]
     public void Le_point_d_interrogation_clignote()
     {
-        Assert.Equal(1, PixelAvatar.Pose(AgentMood.Asking, 0.1).SignOpacity);
-        Assert.True(PixelAvatar.Pose(AgentMood.Asking, 1.0).SignOpacity < 1);
+        Assert.Equal(1, PixelAvatar.Pose(AgentMood.Asking, PixelAvatar.ArrivalSeconds + 0.1).SignOpacity);
+        Assert.True(PixelAvatar.Pose(AgentMood.Asking, PixelAvatar.ArrivalSeconds + 1.0).SignOpacity < 1);
     }
 
     [Fact]
@@ -147,6 +147,19 @@ public sealed class PixelAvatarTests
                 Assert.True(PixelAvatar.LeftEyeX - Math.Max(half, halfWidth) + pose.LookX + Math.Min(0, pose.Shake) >= 0, $"{mood} à {t:0.00} s : œil gauche coupé");
                 Assert.True(PixelAvatar.RightEyeX + Math.Max(half, halfWidth) + pose.LookX <= PixelAvatar.SignLeft, $"{mood} à {t:0.00} s : œil droit sur le signe");
                 Assert.True(top >= 0 && bottom <= PixelAvatar.Height, $"{mood} à {t:0.00} s : œil coupé en haut ou en bas");
+            }
+        }
+    }
+
+    [Fact]
+    public void Le_geste_attend_l_arrivee_des_yeux()
+    {
+        // Les yeux du repos se posent sur la pose de départ (PixelHandoff) : rien ne bouge avant.
+        foreach (AgentMood mood in Moods)
+        {
+            for (double t = 0; t < PixelAvatar.ArrivalSeconds; t += 0.05)
+            {
+                Assert.Equal(PixelAvatar.Pose(mood, 0), PixelAvatar.Pose(mood, t));
             }
         }
     }

@@ -89,7 +89,7 @@ public sealed partial class IslandWindow
 
         view.AvatarScale = scale;
         view.Animate = UseSpringAnimations() && LoopsShown();
-        view.Mood = agent.Mood;
+        view.Show(activity.Id, agent.Mood);
         view.Visibility = Visibility.Visible;
     }
 

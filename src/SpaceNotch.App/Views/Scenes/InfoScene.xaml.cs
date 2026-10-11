@@ -31,6 +31,17 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
     public InfoScene()
     {
         InitializeComponent();
+
+        // Repliée par n'importe quel chemin (repos vide, autre scène, sortie) :
+        // plus rien ne bat dedans. Seul le repos avec activité appelait Rest, et
+        // l'avatar ou la grille d'une carte quittée tournaient sans fin (relecture n° 79).
+        RegisterPropertyChangedCallback(VisibilityProperty, (_, _) =>
+        {
+            if (Visibility == Visibility.Collapsed)
+            {
+                Rest();
+            }
+        });
     }
 
     public event EventHandler<IslandActionRequest>? ActionRequested;
@@ -103,7 +114,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
             // La pastille fait 38 DIP : l'avatar (39 à l'échelle 1) y tient en entier.
             SceneAvatar.AvatarScale = 0.95;
             SceneAvatar.Animate = AnimateAvatar;
-            SceneAvatar.Mood = agent.Mood;
+            SceneAvatar.Show(activity.Id, agent.Mood);
             SceneAvatar.Visibility = Visibility.Visible;
             return;
         }

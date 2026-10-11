@@ -53,6 +53,7 @@ public sealed partial class PixelAvatarView : Canvas
     private DateTime _start = DateTime.UtcNow;
     private double _scale = 1;
     private AgentMood _mood = AgentMood.Thinking;
+    private string? _activityId;
     private bool _animate = true;
 
     public PixelAvatarView()
@@ -121,19 +122,23 @@ public sealed partial class PixelAvatarView : Canvas
         }
     }
 
-    public AgentMood Mood
+    public AgentMood Mood => _mood;
+
+    /// <summary>
+    /// Montre l'humeur d'une activité. Une nouvelle humeur, ou une autre activité
+    /// (deux « Terminé » de suite), commence au début de son geste.
+    /// </summary>
+    public void Show(string activityId, AgentMood mood)
     {
-        get => _mood;
-        set
+        if (_mood == mood && string.Equals(_activityId, activityId, StringComparison.Ordinal))
         {
-            if (_mood != value)
-            {
-                // Une nouvelle humeur commence au début de son geste.
-                _mood = value;
-                _start = DateTime.UtcNow;
-                Draw();
-            }
+            return;
         }
+
+        _mood = mood;
+        _activityId = activityId;
+        _start = DateTime.UtcNow;
+        Draw();
     }
 
     /// <summary>Faux quand Windows réduit les animations : Pixel reste posé.</summary>
