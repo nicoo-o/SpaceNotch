@@ -54,13 +54,15 @@ public sealed partial class TimerScene : UserControl, IIslandSceneView
         ToggleIcon.Key = timer.IsRunning ? "Pause" : "Play";
 
         // Un bouton fait d'une icône : Narrateur lit ce nom, qui suit l'état (n° 48),
-        // et un minuteur suspendu se reprend (n° 78).
-        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(ToggleButton, timer.Toggle switch
+        // et un minuteur suspendu se reprend (n° 78). L'infobulle dit la même chose.
+        string action = timer.Toggle switch
         {
             TimerToggle.Pause => SpaceNotch.Core.Localization.Lang.T("Suspendre", "Pause"),
             TimerToggle.Resume => SpaceNotch.Core.Localization.Lang.T("Reprendre", "Resume"),
             _ => SpaceNotch.Core.Localization.Lang.T("Démarrer", "Start")
-        });
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(ToggleButton, action);
+        ToolTipService.SetToolTip(ToggleButton, action);
 
         ToggleButton.BorderBrush = Ink(
             timer.IsRunning ? "NfStrokeSubtleBrush" : "NfStrokeStrongBrush",
