@@ -24,7 +24,7 @@ public enum UpdateMode
 /// <param name="SetupUrl">Lien de téléchargement de l'installeur.</param>
 /// <param name="SetupSize">Taille annoncée de l'installeur, en octets.</param>
 /// <param name="ChecksumsUrl">Lien du fichier d'empreintes, ou <c>null</c> s'il manque.</param>
-public sealed record ReleaseInfo(Version Version, string Tag, string PageUrl, string SetupUrl, long SetupSize, string? ChecksumsUrl);
+public sealed record ReleaseInfo(Version Version, string Tag, string PageUrl, string SetupUrl, long SetupSize, string? ChecksumsUrl, string? SignatureUrl = null);
 
 /// <summary>Ce que la notch doit faire maintenant.</summary>
 public enum UpdateAction
@@ -50,6 +50,19 @@ public enum UpdateAction
 /// quand installer. Pures et testées ; le réseau, le disque et l'installeur
 /// vivent dans l'application.
 /// </summary>
+/// <summary>Ce que fait l'installeur d'une mise à jour, une fois son travail fini.</summary>
+public enum InstallFollowUp
+{
+    /// <summary>Rien à relancer.</summary>
+    None = 0,
+
+    /// <summary>La notch repart, dans sa nouvelle version.</summary>
+    Relaunch = 1,
+
+    /// <summary>L'installation a échoué : la notch repart dans la version restée en place, et le dit.</summary>
+    RelaunchReportingFailure = 2
+}
+
 public static class UpdateRules
 {
     /// <summary>Le dépôt dont les releases sont suivies.</summary>
@@ -147,6 +160,7 @@ public static class UpdateRules
             string? setupUrl = null;
             long setupSize = 0;
             string? checksumsUrl = null;
+            string? signatureUrl = null;
 
             foreach (JsonElement asset in assets.EnumerateArray())
             {
@@ -167,6 +181,10 @@ public static class UpdateRules
                 {
                     checksumsUrl = url;
                 }
+                else if (string.Equals(name, SpaceNotch.Core.Setup.InstalledVariant.SignatureAsset, StringComparison.OrdinalIgnoreCase))
+                {
+                    signatureUrl = url;
+                }
             }
 
             if (setupUrl is null || setupSize <= 0 || setupSize > MaximumSetupSize)
@@ -178,7 +196,7 @@ public static class UpdateRules
                 ? html
                 : "https://github.com/" + Repository + "/releases/tag/" + tag;
 
-            return new ReleaseInfo(version, tag!, page, setupUrl, setupSize, checksumsUrl);
+            return new ReleaseInfo(version, tag!, page, setupUrl, setupSize, checksumsUrl, signatureUrl);
         }
         catch (JsonException)
         {
@@ -253,8 +271,62 @@ public static class UpdateRules
         }
 
         // Automatique : seulement au calme, et jamais sous la main de l'utilisateur.
-        return !busy && idle >= QuietIdle ? UpdateAction.Install : UpdateAction.Wait;
+        // Après un échec, l'échéance est respectée : une élévation refusée
+        // redemandait sinon l'autorisation au moment calme suivant (n° 7).
+        return !busy && idle >= QuietIdle && !(postponedUntil > now) ? UpdateAction.Install : UpdateAction.Wait;
     }
+
+    /// <summary>Code de sortie de l'installeur quand l'élévation est refusée (convention Windows Installer).</summary>
+    public const int DeclinedExitCode = 1602;
+
+    private const string FailurePrefix = "--update-failed=";
+
+    /// <summary>
+    /// Après une installation lancée par la mise à jour (n° 7). L'installeur a
+    /// fermé la notch avant de copier : quoi qu'il arrive, elle repart. La copie
+    /// de l'exécutable est atomique (fichier <c>.new</c> puis déplacement) : un
+    /// échec avant le déplacement laisse l'ancienne version en place, c'est elle
+    /// qui repart et dit pourquoi. Un échec après (raccourci, registre) relance
+    /// déjà la nouvelle : voir <see cref="ReportsFailure"/>.
+    /// </summary>
+    /// <param name="exitCode">Code de l'installeur (0 réussi, 1602 refusé, 1603 échec).</param>
+    /// <param name="executableExists">L'exécutable installé est là.</param>
+    public static InstallFollowUp AfterInstall(int exitCode, bool executableExists)
+        => !executableExists ? InstallFollowUp.None
+            : exitCode == 0 ? InstallFollowUp.Relaunch
+            : InstallFollowUp.RelaunchReportingFailure;
+
+    /// <summary>Argument de relance qui porte l'échec à la notch restée en place.</summary>
+    public static string FailureArgument(int exitCode)
+        => FailurePrefix + exitCode.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>Le code d'échec passé à ce lancement, ou <c>null</c>.</summary>
+    public static int? ParseFailure(System.Collections.Generic.IReadOnlyList<string> arguments)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+
+        foreach (string argument in arguments)
+        {
+            if (argument.StartsWith(FailurePrefix, StringComparison.OrdinalIgnoreCase)
+                && int.TryParse(argument.AsSpan(FailurePrefix.Length), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int code))
+            {
+                return code;
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Vrai si la notch relancée doit annoncer l'échec : un code d'échec, et une
+    /// version qui n'a pas monté. Montée, l'exécutable a été remplacé et seule une
+    /// étape suivante a échoué ; « Mise à jour faite » est alors la vérité.
+    /// </summary>
+    public static bool ReportsFailure(int? failure, string? lastRunVersion, Version current)
+        => failure is not null && !JustUpdated(lastRunVersion, current);
+
+    /// <summary>Vrai si l'utilisateur a refusé l'autorisation d'administrateur.</summary>
+    public static bool IsDeclined(int exitCode) => exitCode == DeclinedExitCode;
 
     /// <summary>Vrai si l'application vient d'être mise à jour depuis le dernier lancement.</summary>
     public static bool JustUpdated(string? lastRunVersion, Version current)

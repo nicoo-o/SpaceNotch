@@ -77,9 +77,9 @@ flows back home.
 
 <table>
   <tr>
-    <td width="33%" valign="top"><h3>Quiet</h3>Almost nothing runs when nothing happens: under 0.1&nbsp;% CPU at rest, measured. No background animation — just a still shape at the top of your screen.</td>
+    <td width="33%" valign="top"><h3>Quiet</h3>Almost nothing runs when nothing happens: about 0.4&nbsp;% of one CPU core at rest (measured on 6&nbsp;October 2026, with Pixel off). Only Pixel, the notch's eyes, blinks and follows your cursor.</td>
     <td width="33%" valign="top"><h3>Respectful</h3>It steps aside when a game or a video goes fullscreen, and never pops open for a volume change.</td>
-    <td width="33%" valign="top"><h3>Private</h3>No account, no telemetry. The only connection made by default is the update check against GitHub (every 6&nbsp;h, can be turned off in Settings). Weather, lyrics, Spotify and the assistant connect only once you turn them on.</td>
+    <td width="33%" valign="top"><h3>Private</h3>No account, no telemetry. By default, the only connection is updating from GitHub: every 6&nbsp;h it checks, downloads and installs the new version at a quiet moment (choose “Notify me” or “Off” in Settings). Weather, lyrics, Spotify and the assistant connect only once you turn them on. Full details: <a href="PRIVACY.md">PRIVACY.md</a>.</td>
   </tr>
   <tr>
     <td width="33%" valign="top"><h3>Deep black</h3>Pure OLED black with soft, concave shoulders, as if the screen itself had grown a little.</td>
@@ -97,21 +97,22 @@ flows back home.
 **Notifications** from your other apps, grouped by app · **Bluetooth** with battery · **Timer & focus** ·
 **Search** for apps, Windows settings, files and quick maths (<kbd>Alt</kbd>+<kbd>Space</kbd>) ·
 **A shelf** for dragging files in and out · **Clipboard history** that skips passwords (off by default) ·
-**Plugins** for anything else — loaded only once you approve them.
+**Pixel**, the notch's eyes, keeping you company · **Plugins** for anything else — loaded only once you approve them.
 
 <br>
 
 ## Get started
 
 1. **[Download SpaceNotch-Setup.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe)**.
-2. Run it. Windows may say it *protected your PC*: choose **More info › Run anyway** (the app isn't code-signed yet).
+2. Run it. Windows may say it *protected your PC*: choose **More info › Run anyway** (the app isn't code-signed yet). If Windows *Smart App Control* is on, it blocks unsigned apps without offering a way through.
 3. The installer is the notch itself: it drops from the top of your screen and opens on a few
    choices — just you or everyone, start with Windows, a desktop shortcut. Press **Install**, and it
-   folds back into your notch. Windows asks once for administrator approval: it lets SpaceNotch read
-   your notifications (decline, and everything else still works).
-4. Look up. The notch introduces itself in five short cards. Hover to peek, click to open,
-   right-click for the quick menu, <kbd>Alt</kbd>+<kbd>Space</kbd> to search.
-   Settings live in the quick menu and the tray icon.
+   folds back into your notch. Windows asks for administrator approval so SpaceNotch can read your
+   notifications, and may ask again on updates. Decline, and everything else still works.
+4. Look up. The notch introduces itself in a few short cards. Hover to peek; click for search and four
+   shortcuts (timer, clipboard, note, more); right-click for the quick menu; <kbd>Alt</kbd>+<kbd>Space</kbd>
+   to search (or the shortcut shown in the menu, if that one was taken); <kbd>Win</kbd>+<kbd>Alt</kbd>+<kbd>N</kbd>
+   to reach it from the keyboard. Settings live in the quick menu and the tray icon.
 
 Want the full tour? Run `SpaceNotch.exe --demo`.
 
@@ -149,6 +150,7 @@ The desktop wallpaper in the screenshots was generated for this page.</sub>
 
 <br><br>
 
-<sub>If SpaceNotch made your screen a little nicer, a ⭐ helps others find it.</sub>
+<sub>If SpaceNotch made your screen a little nicer, a ⭐ helps others find it.<br>
+A question, an idea, a problem? <a href="https://github.com/nicoo-o/SpaceNotch/discussions">Discussions</a> and <a href="https://github.com/nicoo-o/SpaceNotch/issues/new/choose">issues</a> are open.</sub>
 
 </div>

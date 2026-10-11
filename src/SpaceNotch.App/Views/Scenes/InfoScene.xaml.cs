@@ -23,8 +23,24 @@ namespace SpaceNotch_App.Views.Scenes;
 /// rangée de boutons à partir des actions annoncées. Un greffon peut ainsi
 /// proposer un contrôle sans qu'aucune ligne du rendu ne mentionne son domaine.
 /// </summary>
-public sealed partial class InfoScene : UserControl, IIslandSceneView
+public sealed partial class InfoScene : UserControl, IIslandSceneView, ILoopingView
 {
+    /// <summary>Faux tant que la notch est retirée : l'icône d'un appel ne vibre plus pour personne (n° 49).</summary>
+    private bool _loopsShown = true;
+
+    /// <inheritdoc />
+    public void SetLoopsShown(bool shown)
+    {
+        _loopsShown = shown;
+
+        // Le retour reprend par le rendu, qui réapplique la scène.
+        if (!shown)
+        {
+            Wiggle(false);
+            SceneAvatar.Animate = false;
+        }
+    }
+
     /// <summary>Identifiant de l'activité présentée, transmis avec chaque action.</summary>
     private string? _activityId;
 
@@ -113,7 +129,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
 
             // La pastille fait 38 DIP : l'avatar (39 à l'échelle 1) y tient en entier.
             SceneAvatar.AvatarScale = 0.95;
-            SceneAvatar.Animate = AnimateAvatar;
+            SceneAvatar.Animate = AnimateAvatar && _loopsShown;
             SceneAvatar.Show(activity.Id, agent.Mood);
             SceneAvatar.Visibility = Visibility.Visible;
             return;
@@ -308,7 +324,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView
         VoiceRow.Spacing = _row ? 4 : 8;
 
         // L'icône d'un appel qui sonne vibre, comme le téléphone.
-        Wiggle(_row && activity.MotionState == ActivityMotionState.Attention && activity.IconKey == "Call");
+        Wiggle(_loopsShown && _row && activity.MotionState == ActivityMotionState.Attention && activity.IconKey == "Call");
     }
 
     private static void Reparent(FrameworkElement element, Panel target, int index)

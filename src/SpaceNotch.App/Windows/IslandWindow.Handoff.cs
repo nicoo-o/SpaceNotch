@@ -61,7 +61,7 @@ public sealed partial class IslandWindow
             && _lastEyeOffsets is { } eyes)
         {
             EyeShape shape = _lastEyeShape;
-            _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => HandoffIn(activity, eyes, shape));
+            _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, () => HandoffIn(activity, eyes, shape));
             return;
         }
 
@@ -75,7 +75,7 @@ public sealed partial class IslandWindow
             {
                 double cx = FaceMorphLayer.ActualWidth / 2, cy = FaceMorphLayer.ActualHeight / 2;
                 var leaving = new HandoffOut(recipe, left.Move(-cx, -cy), right.Move(-cx, -cy), TintOf(recipe, previous));
-                _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () => HandoffBack(leaving));
+                _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, () => HandoffBack(leaving));
             }
         }
     }

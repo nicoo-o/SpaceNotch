@@ -239,6 +239,9 @@ public sealed partial class IslandWindow : Window
     /// <summary>Faux tant que l'Island est retirée devant le plein écran : la bulle se retire avec elle.</summary>
     private bool _islandShown = true;
 
+    /// <summary>Vrai une fois la visibilité posée une première fois (démarrage).</summary>
+    private bool _visibilityApplied;
+
     // Dernier rectangle physique réellement soumis au gestionnaire de fenêtres.
     // Sert uniquement à ne pas le resoumettre à l'identique (voir ApplyGeometry).
     private int _lastWindowX = int.MinValue;
@@ -557,11 +560,11 @@ public sealed partial class IslandWindow : Window
     private bool LoopsShown() => _islandShown && !_sessionLocked;
 
     /// <summary>
-    /// Le reflet d'un texte au travail est une animation dépendante : elle
-    /// recalcule chaque image sur le fil d'interface, ~8 % d'un cœur tant que
-    /// Claude travaillait, notch retirée comprise (mesure du 2026-10-05). Il ne
-    /// tourne que devant quelqu'un, et se fige avec la grille au bout de
-    /// l'apaisement : passé 20 s, il n'apprend plus rien.
+    /// Le reflet d'un texte au travail avance sur le fil d'interface (30 images
+    /// par seconde, voir ShimmerText) ; notch retirée, il coûtait encore ~8 %
+    /// d'un cœur (mesure du 2026-10-05). Il ne tourne que devant quelqu'un, et se
+    /// fige avec la grille au bout de l'apaisement : passé 20 s, il n'apprend
+    /// plus rien.
     /// </summary>
     private bool AnimateShimmer() => UseSpringAnimations() && LoopsShown() && !HypnoticResting();
 
@@ -808,7 +811,7 @@ public sealed partial class IslandWindow : Window
         _controller.AnimationCompleted += (_, _) =>
         {
             RequestRender();
-            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            DispatcherQueue.TryEnqueueSafely(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
             {
                 CatchUpTrimmed(SignalLabel);
                 CatchUpTrimmed(CardHeadline);
@@ -990,7 +993,7 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        _dispatcherQueue.TryEnqueue(() => action());
+        _dispatcherQueue.TryEnqueueSafely(() => action());
     }
 
     /// <summary>
@@ -1013,7 +1016,7 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        bool queued = _dispatcherQueue.TryEnqueue(() =>
+        bool queued = _dispatcherQueue.TryEnqueueSafely(() =>
         {
             Interlocked.Exchange(ref _renderPending, 0);
             Render();
@@ -1074,7 +1077,7 @@ public sealed partial class IslandWindow : Window
         if (_renderAgain)
         {
             _renderAgain = false;
-            _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, RequestRender);
+            _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, RequestRender);
         }
     }
 
@@ -1125,7 +1128,7 @@ public sealed partial class IslandWindow : Window
             }
         }
 
-        if (!ContentTransition.Leave(root, UseSpringAnimations(), () => _dispatcherQueue.TryEnqueue(Finish)))
+        if (!ContentTransition.Leave(root, UseSpringAnimations(), () => _dispatcherQueue.TryEnqueueSafely(Finish)))
         {
             EndSceneLeave(collapse: true);
             return;
@@ -1350,25 +1353,25 @@ public sealed partial class IslandWindow : Window
                 if (scene is LauncherScene launcher)
                 {
                     CaptureKeyboardForTyping();
-                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, launcher.FocusSearch);
+                    DispatcherQueue.TryEnqueueSafely(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, launcher.FocusSearch);
                 }
                 else if (scene is NoteScene note)
                 {
                     // La note s'ouvre pour qu'on écrive : clavier et curseur tout de suite.
                     CaptureKeyboardForTyping();
-                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, note.FocusNote);
+                    DispatcherQueue.TryEnqueueSafely(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, note.FocusNote);
                 }
                 else if (scene is WelcomeScene welcome)
                 {
                     // Entrée avance, Échap passe : la présentation se suit au clavier.
                     CaptureKeyboardForTyping();
-                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, welcome.FocusPrimary);
+                    DispatcherQueue.TryEnqueueSafely(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, welcome.FocusPrimary);
                 }
                 else if (scene is QuickMenuScene menu)
                 {
                     // Le menu se parcourt aussi au clavier : ↑↓, Entrée, Échap.
                     CaptureKeyboardForTyping();
-                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, menu.FocusFirst);
+                    DispatcherQueue.TryEnqueueSafely(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, menu.FocusFirst);
                 }
 
                 // Une seule ligne de temps : la forme grandit, puis le contenu
@@ -1902,10 +1905,9 @@ public sealed partial class IslandWindow : Window
         NotchGeometry geometry = _settings.Geometry;
         long shapeStarted = SpaceNotch_App.Animations.FrameClock.Measuring ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
 
-        // Les images lentes de la forme tombent sur un GC de génération 0 (pause
-        // de 11 à 14 ms, 2026-10-04) : la ligne le dit, pour suivre le correctif.
-        TimeSpan gcBefore = shapeStarted != 0 ? GC.GetTotalPauseDuration() : TimeSpan.Zero;
-        int gen0Before = shapeStarted != 0 ? GC.CollectionCount(0) : 0;
+        // Les images lentes de la forme tombent sur un GC (2026-10-04) : la ligne
+        // dit lequel, pour suivre le correctif (n° 46).
+        int collectionsBefore = shapeStarted != 0 ? GC.CollectionCount(0) : 0;
 
         double radius = geometry.RadiusFor(footprint);
         double shoulder = geometry.ShoulderFor(footprint);
@@ -1920,7 +1922,17 @@ public sealed partial class IslandWindow : Window
         // quand le ressort ne bouge plus.
         if (silhouette is not null)
         {
-            SurfaceFill.Data = silhouette;
+            // Le même tracé, mis à jour sur place (ReusablePath) : réassigné, il ne
+            // déclenche rien ; ses limites ont pu changer sans que la notch change de
+            // taille (goutte, onde au repos), d'où la nouvelle mesure demandée.
+            if (ReferenceEquals(SurfaceFill.Data, silhouette))
+            {
+                SurfaceFill.InvalidateMeasure();
+            }
+            else
+            {
+                SurfaceFill.Data = silhouette;
+            }
         }
 
         long afterFill = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
@@ -1947,8 +1959,9 @@ public sealed partial class IslandWindow : Window
         if (shapeStarted != 0)
         {
             SpaceNotch_App.Animations.FrameClock.ReportBreakdown(
-                $"forme (GC {GC.CollectionCount(0) - gen0Before} · pause {(GC.GetTotalPauseDuration() - gcBefore).TotalMilliseconds:0.0} ms)",
+                "forme",
                 shapeStarted,
+                collectionsBefore,
                 ("silhouette", afterSilhouette),
                 ("voile", afterVeil),
                 ("tracé", afterFill),
@@ -2212,6 +2225,7 @@ public sealed partial class IslandWindow : Window
 
         // Mesure de fluidité (--frames) : le détail des images de géométrie lentes.
         long measured = SpaceNotch_App.Animations.FrameClock.Measuring ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+        int collectionsBefore = measured != 0 ? GC.CollectionCount(0) : 0;
         DisplayInfo display = ResolveDisplay();
         long afterDisplay = measured != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         double scale = display.DpiScale;
@@ -2287,6 +2301,7 @@ public sealed partial class IslandWindow : Window
             SpaceNotch_App.Animations.FrameClock.ReportBreakdown(
                 "géométrie",
                 measured,
+                collectionsBefore,
                 ("écran", afterDisplay),
                 ("toile", afterCanvas),
                 ("forme", afterShape),
@@ -2459,6 +2474,12 @@ public sealed partial class IslandWindow : Window
 
         if (visible)
         {
+            // Les boucles ne reprennent qu'à un vrai retour (ou au premier
+            // affichage) : réappliquer les réglages repasse par ici, et
+            // relançait les animations en cours (relecture, n° 49).
+            bool comingBack = !_islandShown || !_visibilityApplied;
+            _visibilityApplied = true;
+
             // La géométrie et l'ordre de superposition sont repris avant
             // l'affichage : sinon la fenêtre apparaîtrait une image à sa position
             // d'avant, ce qui se voit immédiatement après un changement d'écran.
@@ -2468,7 +2489,12 @@ public sealed partial class IslandWindow : Window
             _atmosphere.PlaceBehind(_hWnd);
             _appWindow.Show(activateWindow: false);
             UpdateBubble();
-            SuspendLife(false);
+
+            if (comingBack)
+            {
+                SuspendLife(false);
+            }
+
             Shadow(new SpaceNotch.Core.Machine.NotchInput(SpaceNotch.Core.Machine.NotchTrigger.PresenceChanged, Presence: SpaceNotch.Core.Machine.Presence.Visible), "retour");
             return;
         }
@@ -2499,6 +2525,22 @@ public sealed partial class IslandWindow : Window
 
         SignalTrailing.Suspended = suspend;
         CardTrailing.Suspended = suspend;
+
+        // Les boucles des scènes et de la bulle (n° 49) : vibration d'un appel,
+        // illustrations de la présentation, égaliseur et paroles, toupie.
+        int looping = 0;
+
+        foreach (IIslandSceneView scene in _scenes.Values)
+        {
+            if (scene is SpaceNotch_App.Views.ILoopingView view)
+            {
+                view.SetLoopsShown(!suspend);
+                looping++;
+            }
+        }
+
+        _bubble?.SetLoopsShown(!suspend);
+        MiniLogger.Log($"[RETRAIT] {(suspend ? "boucles arrêtées" : "boucles reprises")} : {looping} scènes, bulle, toupie et égaliseur");
 
         if (suspend)
         {
@@ -2801,14 +2843,14 @@ public sealed partial class IslandWindow : Window
         DispatcherQueueTimer timer = TrackTimer(_dispatcherQueue.CreateTimer());
         timer.IsRepeating = false;
         timer.Interval = interval;
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             timer.Stop();
             if (!_isClosed)
             {
                 onTick();
             }
-        };
+        });
 
         return timer;
     }
@@ -2942,7 +2984,7 @@ public sealed partial class IslandWindow : Window
     }
 
     private void OnSystemThemeChanged()
-        => DispatcherQueue.TryEnqueue(() =>
+        => DispatcherQueue.TryEnqueueSafely(() =>
         {
             if (!_isClosed && _settings.Appearance == IslandAppearance.Auto)
             {
@@ -4259,7 +4301,7 @@ public sealed partial class IslandWindow : Window
 
     private void OpenSettingsWindow()
     {
-        _dispatcherQueue.TryEnqueue(() =>
+        _dispatcherQueue.TryEnqueueSafely(() =>
         {
             try
             {
@@ -4295,8 +4337,16 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private async void OnWindowClosed(object sender, WindowEventArgs args)
     {
-        await ShutdownAsync();
-        ExitProcess();
+        // La sortie quoi qu'il arrive : une exception de l'arrêt, désormais
+        // « gérée » (n° 33), empêchait sinon la sortie et rappelait SN-01.
+        try
+        {
+            await ShutdownAsync();
+        }
+        finally
+        {
+            ExitProcess();
+        }
     }
 
     /// <summary>
@@ -4329,8 +4379,14 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private async void QuitApplication()
     {
-        await ShutdownAsync();
-        ExitProcess();
+        try
+        {
+            await ShutdownAsync();
+        }
+        finally
+        {
+            ExitProcess();
+        }
     }
 
     /// <summary>Une étape de l'arrêt, isolée : son échec est journalisé, la suite continue.</summary>
@@ -4376,6 +4432,7 @@ public sealed partial class IslandWindow : Window
         Safely("thème de Windows", () => SpaceNotch_App.UI.SystemTheme.Changed -= OnSystemThemeChanged);
         Safely("ombre", () => MiniLogger.Log(_shadow.Summary));
         Safely("mises à jour", StopUpdates);
+        Safely("reflet", StopRestingShimmer);
 
         // L'arrêt des fonctionnalités libère réellement leurs écouteurs système et
         // retire leurs activités : c'est la garantie symétrique du démarrage.

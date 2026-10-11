@@ -55,7 +55,7 @@ public sealed partial class IslandWindow
         RevealPresented();
 
         // Après la prise en compte de l'ouverture : la goutte part de la forme qui s'ouvre.
-        _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, Drip);
+        _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, Drip);
     }
 
     private DispatcherQueueTimer? _dripTimer;
@@ -237,11 +237,11 @@ public sealed partial class IslandWindow
     {
         _menuDetachTimer?.Stop();
         _menuDetachTimer = new DispatcherTimer { Interval = DetachAfterCollapse };
-        _menuDetachTimer.Tick += (_, _) =>
+        _menuDetachTimer.Tick += SpaceNotch_App.Diagnostics.Guard.XamlTick((_, _) =>
         {
             _menuDetachTimer?.Stop();
             DetachFromMenu();
-        };
+        });
         _menuDetachTimer.Start();
     }
 

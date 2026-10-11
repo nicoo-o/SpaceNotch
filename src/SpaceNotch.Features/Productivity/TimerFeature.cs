@@ -59,7 +59,7 @@ public sealed class TimerFeature : IslandFeatureBase
     {
         _clock = new MeasureClock(now);
         _clock.Set(DefaultCountdown, countsDown: true);
-        _tick = new Timer(OnTick, null, Timeout.Infinite, Timeout.Infinite);
+        _tick = new Timer(Guarded(() => OnTick(null)), null, Timeout.Infinite, Timeout.Infinite);
     }
 
     public TimerMode Mode { get; private set; } = TimerMode.Countdown;

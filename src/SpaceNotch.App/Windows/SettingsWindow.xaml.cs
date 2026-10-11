@@ -113,11 +113,11 @@ public sealed partial class SettingsWindow : Window
         _persistTimer = DispatcherQueue.CreateTimer();
         _persistTimer.IsRepeating = false;
         _persistTimer.Interval = PersistDelay;
-        _persistTimer.Tick += (_, _) =>
+        _persistTimer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             _persistTimer.Stop();
             _settings.Persist();
-        };
+        });
 
         PathText.Text = _settings.ConfigFilePath;
 
@@ -316,6 +316,7 @@ public sealed partial class SettingsWindow : Window
             DisplayBox.SelectedIndex = (int)settings.DisplayMode;
             CutoutBox.SelectedIndex = CutoutIndex(settings.CutoutMode);
             UpdateModeBox.SelectedIndex = (int)settings.UpdateMode;
+            UpdateDescription.Text = UpdateModeDescription(settings.UpdateMode);
             CutoutWidthSlider.Value = SpaceNotch.Core.Presentation.CameraCutout.WidthFor(true, settings.CutoutWidth);
 
             DensityBox.SelectedIndex = (int)settings.Density;
@@ -692,7 +693,19 @@ public sealed partial class SettingsWindow : Window
         });
 
     private void OnUpdateModeChanged(object sender, SelectionChangedEventArgs e)
-        => Apply(s => s.UpdateMode = (SpaceNotch.Core.Update.UpdateMode)Math.Clamp(UpdateModeBox.SelectedIndex, 0, 2));
+    {
+        var mode = (SpaceNotch.Core.Update.UpdateMode)Math.Clamp(UpdateModeBox.SelectedIndex, 0, 2);
+        UpdateDescription.Text = UpdateModeDescription(mode);
+        Apply(s => s.UpdateMode = mode);
+    }
+
+    /// <summary>Ce que fait le mode choisi, en une phrase (« Me prévenir » par défaut, n° 77).</summary>
+    private static string UpdateModeDescription(SpaceNotch.Core.Update.UpdateMode mode) => mode switch
+    {
+        SpaceNotch.Core.Update.UpdateMode.Off => Lang.T("Aucune vérification : tu installes les nouvelles versions toi-même.", "No checks: you install new versions yourself."),
+        SpaceNotch.Core.Update.UpdateMode.Automatic => Lang.T("Les nouvelles versions s’installent seules, au premier moment calme.", "New versions install themselves at the first quiet moment."),
+        _ => Lang.T("La notch te propose chaque nouvelle version ; rien ne s’installe sans ton accord.", "The notch offers each new version; nothing installs without your OK."),
+    };
 
     private void OnCutoutWidthChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
         => ApplyContinuous(s => s.CutoutWidth = e.NewValue);
@@ -952,7 +965,20 @@ public sealed partial class SettingsWindow : Window
         Apply(s => s.SpotifyClientId = id);
         SpotifyButton.IsEnabled = false;
         SpotifyText.Text = Lang.T("Accepte dans le navigateur…", "Accept in the browser…");
-        bool ok = await new SpaceNotch_App.Media.SpotifyClient(() => id).ConnectAsync();
+        bool ok;
+
+        // async void : une exception ici fermait la notch (n° 33). Le bouton
+        // revient, et l'échec se lit dans la carte.
+        try
+        {
+            ok = await new SpaceNotch_App.Media.SpotifyClient(() => id).ConnectAsync();
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log("[RÉGLAGES] Connexion à Spotify impossible", ex);
+            ok = false;
+        }
+
         SpotifyButton.IsEnabled = true;
         UpdateConnections();
 
@@ -1293,8 +1319,10 @@ public sealed partial class SettingsWindow : Window
     /// <summary>
     /// Donne un nom à chaque contrôle d'une carte : le titre de la carte, et sa
     /// description en aide. Sans cela, le Narrateur disait « Interrupteur,
-    /// désactivé » sans dire lequel. Indexe aussi la carte pour la recherche,
-    /// dans les deux langues.
+    /// désactivé » sans dire lequel. Un bouton qui porte son propre texte le
+    /// garde (n° 58 : « Retirer » était lu « Clé Claude ») ; le titre de la carte
+    /// devient son aide. Indexe aussi la carte pour la recherche, dans les deux
+    /// langues.
     /// </summary>
     private void AnnotateCards()
     {
@@ -1316,14 +1344,27 @@ public sealed partial class SettingsWindow : Window
 
                 foreach (FrameworkElement control in controls)
                 {
-                    if (!string.IsNullOrEmpty(title) && string.IsNullOrEmpty(AutomationProperties.GetName(control)))
+                    // Un bouton à texte dit déjà ce qu'il fait : la carte dit sur quoi, et
+                    // sa description ce qu'il en coûte (« Rétablir » efface des réglages).
+                    var button = control as Microsoft.UI.Xaml.Controls.Primitives.ButtonBase;
+                    string? own = button is null ? null : ContentText(button);
+                    string? help = own is null
+                        ? description
+                        : string.Join(". ", new[] { title, description }.Where(t => !string.IsNullOrEmpty(t)));
+
+                    // WinUI ne tire pas toujours le nom d'un contenu composé (glyphe + texte) :
+                    // ce texte-là est posé explicitement ; un texte simple reste implicite,
+                    // pour suivre « Installer » ⇄ « Retirer ».
+                    string? name = own is null ? title : button!.Content is Panel ? own : null;
+
+                    if (!string.IsNullOrEmpty(name) && string.IsNullOrEmpty(AutomationProperties.GetName(control)))
                     {
-                        AutomationProperties.SetName(control, title);
+                        AutomationProperties.SetName(control, name);
                     }
 
-                    if (!string.IsNullOrEmpty(description) && string.IsNullOrEmpty(AutomationProperties.GetHelpText(control)))
+                    if (!string.IsNullOrEmpty(help) && string.IsNullOrEmpty(AutomationProperties.GetHelpText(control)))
                     {
-                        AutomationProperties.SetHelpText(control, description);
+                        AutomationProperties.SetHelpText(control, help);
                     }
                 }
 
@@ -1331,6 +1372,15 @@ public sealed partial class SettingsWindow : Window
             }
         }
     }
+
+    /// <summary>Le texte qu'un bouton affiche, s'il en a un : c'est son nom pour le Narrateur.</summary>
+    private static string? ContentText(Microsoft.UI.Xaml.Controls.Primitives.ButtonBase button) => button.Content switch
+    {
+        string text when !string.IsNullOrWhiteSpace(text) => text,
+        TextBlock { Text: { Length: > 0 } text } => text,
+        Panel panel => panel.Children.OfType<TextBlock>().Select(t => t.Text).FirstOrDefault(t => !string.IsNullOrWhiteSpace(t)),
+        _ => null
+    };
 
     /// <summary>Textes et contrôles d'une carte, dans l'ordre de lecture.</summary>
     private static void Collect(UIElement? element, List<TextBlock> texts, List<FrameworkElement> controls)
@@ -1488,18 +1538,26 @@ public sealed partial class SettingsWindow : Window
 
     private async void OnNotificationButtonClicked(object sender, RoutedEventArgs e)
     {
-        var access = SpaceNotch.Platform.Windows.Notifications.WindowsNotificationListener.GetAccess();
-
-        if (access == SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Denied)
+        // async void : une exception ici fermait la notch (n° 33).
+        try
         {
-            // Le refus se lève dans Paramètres › Confidentialité › Notifications.
-            _ = await global::Windows.System.Launcher.LaunchUriAsync(new Uri("ms-settings:privacy-notifications"));
-            return;
+            var access = SpaceNotch.Platform.Windows.Notifications.WindowsNotificationListener.GetAccess();
+
+            if (access == SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Denied)
+            {
+                // Le refus se lève dans Paramètres › Confidentialité › Notifications.
+                _ = await global::Windows.System.Launcher.LaunchUriAsync(new Uri("ms-settings:privacy-notifications"));
+                return;
+            }
+
+            if (RequestNotificationAccess is not null)
+            {
+                await RequestNotificationAccess();
+            }
         }
-
-        if (RequestNotificationAccess is not null)
+        catch (Exception ex)
         {
-            await RequestNotificationAccess();
+            MiniLogger.Log("[RÉGLAGES] Accès aux notifications impossible à demander", ex);
         }
 
         UpdateNotificationCard();
