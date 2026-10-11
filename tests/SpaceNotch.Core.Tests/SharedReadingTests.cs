@@ -45,6 +45,19 @@ public sealed class SharedReadingTests
     }
 
     [Fact]
+    public void The_monitor_does_not_measure_a_window_of_a_few_milliseconds()
+    {
+        // Pixel vient de mesurer ; le moniteur passe 50 ms après : il reprend
+        // cette mesure au lieu d'en faire une sur 50 ms (0 % ou du bruit).
+        SharedReading reading = Reading();
+
+        reading.Get(TimeSpan.FromSeconds(5.5));
+        _now += 50;
+        Assert.Equal(10, reading.Get(TimeSpan.FromSeconds(1)));
+        Assert.Equal(1, _measures);
+    }
+
+    [Fact]
     public void Monitor_and_Pixel_together_make_a_single_sampler()
     {
         // Moniteur toutes les 5 s, Pixel toutes les 2 s, pendant une minute.
@@ -56,7 +69,7 @@ public sealed class SharedReadingTests
 
             if (t % 5_000 == 0)
             {
-                reading.Get(TimeSpan.Zero);
+                reading.Get(TimeSpan.FromSeconds(1));
             }
 
             if (t % 2_000 == 0)
