@@ -1,4 +1,4 @@
-# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-11)
+# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-11, soir)
 
 Première version : 2026-10-04, écrite « pour vendre ». L'auteur l'a précisé le 2026-10-05 :
 SpaceNotch reste **gratuite et open source**, sans vente. Cette version re-trie tout pour ce cadre.
@@ -23,18 +23,22 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 8 | Gestes indécouvrables | #43, #44 | fusionnées ; ADR-028 acceptée ; la leçon de geste désaccordée a été corrigée |
 | 13 | CPU de la notch retirée | #42 | fusionnée |
 | 45 | Un build de développement mettait à jour l'installation | #40 | fusionnée |
-| 33 | Exception non gérée = notch fermée | #45 | **ouverte** : minuteurs, travail posté, `async void`, minuteurs des fonctionnalités ; preuve `--fault-test` |
-| 7 | Mise à jour ratée = notch disparue | #46 | **ouverte** : relance dans tous les cas, carte, report ; preuve `--fault-install` |
-| 47 | CPU quand un agent travaille | #47 | **ouverte** : reflet à 30 images/s (15–22 % → ≤ 3 %) ; Clawd inchangé, par décision |
-| 46 | GC pendant le ressort | #48 | **ouverte** : cause mesurée = GC de génération 2 *demandés* après la création d'objets XAML à chaque image ; tracés réutilisés ; visite : 23,9 % → 14,1 % d'images en retard, 125 → 14 images > 16,7 ms, 0 > 50 ms (une fois sur trois : 74,7 ms à la première ouverture du menu rapide) |
-| 48–50 | Minuteur sans nom, boucles notch retirée, menu rapide | #49 | **ouverte** : 2 → 0 bouton sans nom (UIA) ; boucles arrêtées au retrait (journal) ; une seule source pour le menu |
-| 53, 10, 69 | README, confidentialité, communauté | #50 | **ouverte** ; page GitHub déjà réglée (description, topics, Discussions, signalement privé) |
+| 33 | Exception non gérée = notch fermée | #45 | fusionnée : minuteurs, travail posté, `async void`, minuteurs des fonctionnalités ; preuve `--fault-test` |
+| 7 | Mise à jour ratée = notch disparue | #46 | fusionnée : relance dans tous les cas, carte, report ; preuve `--fault-install` |
+| 47 | CPU quand un agent travaille | #47 | fusionnée : reflet à 30 images/s (15–22 % → ≤ 3 %) ; Clawd inchangé, par décision |
+| 46 | GC pendant le ressort | #48 | fusionnée : cause mesurée = GC de génération 2 *demandés* après la création d'objets XAML à chaque image ; tracés réutilisés ; visite : 23,9 % → 14,1 % d'images en retard, 125 → 14 images > 16,7 ms, 0 > 50 ms (une fois sur trois : 74,7 ms à la première ouverture du menu rapide) |
+| 48–50 | Minuteur sans nom, boucles notch retirée, menu rapide | #49 | fusionnée : 2 → 0 bouton sans nom (UIA) ; boucles arrêtées au retrait (journal) ; une seule source pour le menu |
+| 53, 10, 69 | README, confidentialité, communauté | #50 | fusionnée ; page GitHub déjà réglée (description, topics, Discussions, signalement privé) |
 | 55 | Hooks Claude Code | — | **vérifié, rien à corriger** (2026-10-10) : un vrai tour de `claude -p` s'affiche dans la notch installée (arbre UIA : « Claude Code · 0 s », puis « ✓ ») ; l'échec du 2026-10-06 ne touchait qu'une instance de développement (n° 80) |
-| 51 | L'installeur réécrivait l'exécutable installé | #52 | **ouverte** : la variante installée est refaite octet pour octet ; travail CI « Variantes de l'exécutable » : Authenticode « Valid » sur la téléchargée, l'installée et la refaite |
-| 77 | « Me prévenir » par défaut | #53 | **ouverte** : migration unique des configurations « Automatique » ; README et PRIVACY à ajuster après #50 |
-| 76 | Tutoiement | #54 | **ouverte** : installeur et derniers textes au vous |
-| 58 | Narrateur des Réglages | #55 | **ouverte** : les boutons gardent leur nom, l'aide dit la carte et sa description (UIA avant/après) ; barre de lecture nommée ; reste n° 81 |
-| 79 | ADR-029 : Pixel avatar des agents, Clawd retiré | #56 | **ouverte** : quatre humeurs capturées ; ADR-029 à passer « Accepté » après #51 ; README autour de Pixel : n° 83 |
+| 51 | L'installeur réécrivait l'exécutable installé | #52 | fusionnée : la variante installée est refaite octet pour octet ; travail CI « Variantes de l'exécutable » : Authenticode « Valid » sur la téléchargée, l'installée et la refaite |
+| 77 | « Me prévenir » par défaut | #53 | fusionnée : migration unique des configurations « Automatique » ; README et PRIVACY à ajuster après #50 |
+| 76 | Tutoiement | #54 | fusionnée : installeur et derniers textes au vous |
+| 58 | Narrateur des Réglages | #55 | fusionnée : les boutons gardent leur nom, l'aide dit la carte et sa description (UIA avant/après) ; barre de lecture nommée ; reste n° 81 |
+| 79 | ADR-029 : Pixel avatar des agents, Clawd retiré | #56 | fusionnée : quatre humeurs capturées ; ADR-029 à passer « Accepté » après #51 ; README autour de Pixel : n° 83 |
+| 78 | Minuteur en pause | #60 | **ouverte** : annoncé « Reprendre », boutons de 32 DIP (UIA : 48 px à 150 %) ; la fin d'une session Pomodoro ne garde plus « Suspendre » |
+| 81 | Raccourci « aller à la notch » | #61 | **ouverte** : carte des Réglages, lue « Actif : Win+Alt+N » (UIA) |
+| 77 | README et PRIVACY de « Me prévenir » | #58 | **ouverte** |
+| 83, 79 | ADR-029 acceptée ; README, langage visuel et §15 autour de Pixel | #59 | **ouverte** : au repos, Pixel compris, 0,13 à 0,18 % d'un cœur (mesuré le 2026-10-11) |
 
 ## Sans objet pour un projet gratuit
 
@@ -84,10 +88,7 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 64 | Molette au repos : avec « Survoler pour aperçu » éteint, la pile du presse-papier est injoignable | `IslandWindow.xaml.cs:3251` | faible | S | faible |
 | 65 | Réglages « Démarrer avec Windows » affiché activé alors que Windows l'a désactivé (Gestionnaire des tâches) | constaté sur l'installation de l'auteur le 2026-10-05 | moyen | S | faible |
 | 66 | Une copie de développement peut encore réécrire la clé de démarrage partagée (Réglages ouverts depuis le build) | `SettingsWindow.xaml.cs:387` | faible (dev) | S | faible |
-| 78 | Minuteur en pause annoncé « Démarrer » (pas « Reprendre ») ; boutons de 30 DIP — **attend la fusion de #49** (sa scène du minuteur) | relecture de #49 | faible (a11y) | S | faible |
-| 81 | Raccourci « aller à la notch » jamais montré (reste de n° 58) | `GlobalHotkey.cs:80` | faible (a11y) | S | faible |
 | 82 | Signature par SignPath : étapes à poser dans `release.yml` **avant** l'extraction de la signature de l'installée (#52) ; PRIVACY.md : un installeur signé lit la signature de l'installée sur la release de sa version | #52 | fort (n° 4) | S | faible |
-| 83 | Suite d'ADR-029 : README, README.fr et `design-language.md` autour de Pixel ; mesures « au repos, Pixel compris » ; brancher l'avatar sur `Guard.Tick` (#45) et `ILoopingView` (#49) | ADR-029, #56 | moyen (identité) | M | faible |
 | 36 | Coût par image du ressort (géométries neuves, mises en page) | voir n° 46 | (cause de 46) | M | moyen |
 | 37 | Caméra du miroir, crête-mètre, cache d'icônes sans borne | `IslandWindow.Phone.cs:225` | faible | S | faible |
 | 40 | Remontée des plantages sur accord explicite | `MiniLogger` | moyen | M | vie privée |
@@ -100,6 +101,9 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 
 | # | Sujet | Preuve | Effort |
 |---|---|---|---|
+| 84 | Instabilité de test : `PrivacyTests.AppNamesAreReadable` attend « Application », mais `Lang.T` dépend d'une langue globale qu'un autre test bascule en parallèle (« App ») ; vu une fois sur quatre le 2026-10-11 | `PrivacyFeature.cs:44` | S |
+| 85 | Au Tab, la carte « Aller à la notch » n'est pas annoncée (aucun élément focalisable) ; la carte de recherche est indexée sur son texte « Aucun » (héritée) | relecture de #61 | S |
+| 86 | Pas de test pour les fins de session (Pomodoro, minuteur) : elles se jouent dans des rappels privés | relecture de #60 | S |
 | 80 | Une instance de développement (`winapp run`) ne reçoit pas `SpaceNotch.exe --hook` lancé par Git Bash, alors que la notch installée le reçoit ; cause non établie (identité de paquet, propriétaire du tube) | essais du 2026-10-06 et du 2026-10-10 | S |
 | 39 | **Store en MSIX complet** : à étudier, pas à construire (voir direction) ; le Store n'accepte un installeur exe que signé | ADR-023 ; [exigences exe/MSI du Store](https://learn.microsoft.com/windows/apps/publish/publish-your-app/msi/app-package-requirements) | L |
 | 67 | winget : possible dès maintenant (avec `--notifications=off`), plus simple une fois signé | `SetupCommand.cs:54` | S |
@@ -126,9 +130,9 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 
 ## Ordre proposé
 
-1. Fusionner #45 à #51, puis #52 à #56 (à relire par l'auteur) ; après #45, envelopper les `Tick` et `TryEnqueue` ajoutés par #47, #48 et #56 (`Guard.Tick`, `TryEnqueueSafely`).
-2. Après #49 et #50 : n° 78 (minuteur en pause), README de n° 77, statut d'ADR-029 (n° 79), n° 83.
+1. Fusionner #58 à #61 (à relire par l'auteur).
+2. Après la réponse de SignPath : n° 82.
 3. Signature : n° 4 et n° 5 (SignPath Foundation en premier, n° 82), puis n° 67 (winget).
-4. Direction appliquée : n° 83 (suite d'ADR-029), noyau visible par défaut (n° 23, 63, 74, 75).
-5. Accessibilité : n° 57, 59, 22, 78, 81.
+4. Direction appliquée : noyau visible par défaut (n° 23, 63, 74, 75) ; intensité de Pixel (direction §7).
+5. Accessibilité : n° 57, 59, 22, 85.
 6. Le reste des P1 courts.
