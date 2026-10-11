@@ -808,7 +808,7 @@ public sealed partial class IslandWindow : Window
         _controller.AnimationCompleted += (_, _) =>
         {
             RequestRender();
-            DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
+            DispatcherQueue.TryEnqueueSafely(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, () =>
             {
                 CatchUpTrimmed(SignalLabel);
                 CatchUpTrimmed(CardHeadline);
@@ -990,7 +990,7 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        _dispatcherQueue.TryEnqueue(() => action());
+        _dispatcherQueue.TryEnqueueSafely(() => action());
     }
 
     /// <summary>
@@ -1013,7 +1013,7 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        bool queued = _dispatcherQueue.TryEnqueue(() =>
+        bool queued = _dispatcherQueue.TryEnqueueSafely(() =>
         {
             Interlocked.Exchange(ref _renderPending, 0);
             Render();
@@ -1074,7 +1074,7 @@ public sealed partial class IslandWindow : Window
         if (_renderAgain)
         {
             _renderAgain = false;
-            _ = _dispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, RequestRender);
+            _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, RequestRender);
         }
     }
 
@@ -1125,7 +1125,7 @@ public sealed partial class IslandWindow : Window
             }
         }
 
-        if (!ContentTransition.Leave(root, UseSpringAnimations(), () => _dispatcherQueue.TryEnqueue(Finish)))
+        if (!ContentTransition.Leave(root, UseSpringAnimations(), () => _dispatcherQueue.TryEnqueueSafely(Finish)))
         {
             EndSceneLeave(collapse: true);
             return;
@@ -1350,25 +1350,25 @@ public sealed partial class IslandWindow : Window
                 if (scene is LauncherScene launcher)
                 {
                     CaptureKeyboardForTyping();
-                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, launcher.FocusSearch);
+                    DispatcherQueue.TryEnqueueSafely(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, launcher.FocusSearch);
                 }
                 else if (scene is NoteScene note)
                 {
                     // La note s'ouvre pour qu'on écrive : clavier et curseur tout de suite.
                     CaptureKeyboardForTyping();
-                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, note.FocusNote);
+                    DispatcherQueue.TryEnqueueSafely(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, note.FocusNote);
                 }
                 else if (scene is WelcomeScene welcome)
                 {
                     // Entrée avance, Échap passe : la présentation se suit au clavier.
                     CaptureKeyboardForTyping();
-                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, welcome.FocusPrimary);
+                    DispatcherQueue.TryEnqueueSafely(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, welcome.FocusPrimary);
                 }
                 else if (scene is QuickMenuScene menu)
                 {
                     // Le menu se parcourt aussi au clavier : ↑↓, Entrée, Échap.
                     CaptureKeyboardForTyping();
-                    DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, menu.FocusFirst);
+                    DispatcherQueue.TryEnqueueSafely(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, menu.FocusFirst);
                 }
 
                 // Une seule ligne de temps : la forme grandit, puis le contenu
@@ -2801,14 +2801,14 @@ public sealed partial class IslandWindow : Window
         DispatcherQueueTimer timer = TrackTimer(_dispatcherQueue.CreateTimer());
         timer.IsRepeating = false;
         timer.Interval = interval;
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             timer.Stop();
             if (!_isClosed)
             {
                 onTick();
             }
-        };
+        });
 
         return timer;
     }
@@ -2942,7 +2942,7 @@ public sealed partial class IslandWindow : Window
     }
 
     private void OnSystemThemeChanged()
-        => DispatcherQueue.TryEnqueue(() =>
+        => DispatcherQueue.TryEnqueueSafely(() =>
         {
             if (!_isClosed && _settings.Appearance == IslandAppearance.Auto)
             {
@@ -4259,7 +4259,7 @@ public sealed partial class IslandWindow : Window
 
     private void OpenSettingsWindow()
     {
-        _dispatcherQueue.TryEnqueue(() =>
+        _dispatcherQueue.TryEnqueueSafely(() =>
         {
             try
             {
@@ -4295,8 +4295,16 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private async void OnWindowClosed(object sender, WindowEventArgs args)
     {
-        await ShutdownAsync();
-        ExitProcess();
+        // La sortie quoi qu'il arrive : une exception de l'arrêt, désormais
+        // « gérée » (n° 33), empêchait sinon la sortie et rappelait SN-01.
+        try
+        {
+            await ShutdownAsync();
+        }
+        finally
+        {
+            ExitProcess();
+        }
     }
 
     /// <summary>
@@ -4329,8 +4337,14 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private async void QuitApplication()
     {
-        await ShutdownAsync();
-        ExitProcess();
+        try
+        {
+            await ShutdownAsync();
+        }
+        finally
+        {
+            ExitProcess();
+        }
     }
 
     /// <summary>Une étape de l'arrêt, isolée : son échec est journalisé, la suite continue.</summary>

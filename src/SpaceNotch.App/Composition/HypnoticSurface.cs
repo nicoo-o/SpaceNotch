@@ -313,14 +313,14 @@ public sealed class HypnoticSurface : IDisposable
         HypnoticPreset finished = _preset;
 
         batch.End();
-        batch.Completed += (_, _) =>
+        batch.Completed += SpaceNotch_App.Diagnostics.Guard.Batch((_, _) =>
         {
             if (!_disposed && _batch == batch)
             {
                 _batch = null;
                 OneShotCompleted?.Invoke(this, finished);
             }
-        };
+        });
 
         _batch = batch;
     }
