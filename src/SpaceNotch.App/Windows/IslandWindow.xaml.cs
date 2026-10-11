@@ -1902,10 +1902,9 @@ public sealed partial class IslandWindow : Window
         NotchGeometry geometry = _settings.Geometry;
         long shapeStarted = SpaceNotch_App.Animations.FrameClock.Measuring ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
 
-        // Les images lentes de la forme tombent sur un GC de génération 0 (pause
-        // de 11 à 14 ms, 2026-10-04) : la ligne le dit, pour suivre le correctif.
-        TimeSpan gcBefore = shapeStarted != 0 ? GC.GetTotalPauseDuration() : TimeSpan.Zero;
-        int gen0Before = shapeStarted != 0 ? GC.CollectionCount(0) : 0;
+        // Les images lentes de la forme tombent sur un GC (2026-10-04) : la ligne
+        // dit lequel, pour suivre le correctif (n° 46).
+        int collectionsBefore = shapeStarted != 0 ? GC.CollectionCount(0) : 0;
 
         double radius = geometry.RadiusFor(footprint);
         double shoulder = geometry.ShoulderFor(footprint);
@@ -1920,7 +1919,17 @@ public sealed partial class IslandWindow : Window
         // quand le ressort ne bouge plus.
         if (silhouette is not null)
         {
-            SurfaceFill.Data = silhouette;
+            // Le même tracé, mis à jour sur place (ReusablePath) : réassigné, il ne
+            // déclenche rien ; ses limites ont pu changer sans que la notch change de
+            // taille (goutte, onde au repos), d'où la nouvelle mesure demandée.
+            if (ReferenceEquals(SurfaceFill.Data, silhouette))
+            {
+                SurfaceFill.InvalidateMeasure();
+            }
+            else
+            {
+                SurfaceFill.Data = silhouette;
+            }
         }
 
         long afterFill = shapeStarted != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
@@ -1947,8 +1956,9 @@ public sealed partial class IslandWindow : Window
         if (shapeStarted != 0)
         {
             SpaceNotch_App.Animations.FrameClock.ReportBreakdown(
-                $"forme (GC {GC.CollectionCount(0) - gen0Before} · pause {(GC.GetTotalPauseDuration() - gcBefore).TotalMilliseconds:0.0} ms)",
+                "forme",
                 shapeStarted,
+                collectionsBefore,
                 ("silhouette", afterSilhouette),
                 ("voile", afterVeil),
                 ("tracé", afterFill),
@@ -2212,6 +2222,7 @@ public sealed partial class IslandWindow : Window
 
         // Mesure de fluidité (--frames) : le détail des images de géométrie lentes.
         long measured = SpaceNotch_App.Animations.FrameClock.Measuring ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+        int collectionsBefore = measured != 0 ? GC.CollectionCount(0) : 0;
         DisplayInfo display = ResolveDisplay();
         long afterDisplay = measured != 0 ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
         double scale = display.DpiScale;
@@ -2287,6 +2298,7 @@ public sealed partial class IslandWindow : Window
             SpaceNotch_App.Animations.FrameClock.ReportBreakdown(
                 "géométrie",
                 measured,
+                collectionsBefore,
                 ("écran", afterDisplay),
                 ("toile", afterCanvas),
                 ("forme", afterShape),

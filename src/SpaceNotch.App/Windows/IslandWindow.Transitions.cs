@@ -73,6 +73,9 @@ public sealed partial class IslandWindow
         }
     }
 
+    /// <summary>Le voile suit la forme image par image : son tracé est réutilisé (n° 46).</summary>
+    private readonly ReusablePath _veilPath = new();
+
     /// <summary>
     /// Mémorise le contour de la forme qui vient d'être tracée ; si le voile est
     /// visible, il suit la forme image par image.
@@ -83,7 +86,10 @@ public sealed partial class IslandWindow
 
         if (VeilFill.Visibility == Visibility.Visible)
         {
-            VeilFill.Data = IslandGeometryFactory.FromPolygons([outline()], 0, 0);
+            if (_veilPath.Set(outline()) is { } veil)
+            {
+                VeilFill.Data = veil;
+            }
         }
     }
 
@@ -101,7 +107,10 @@ public sealed partial class IslandWindow
 
         int generation = ++_veilGeneration;
 
-        VeilFill.Data = IslandGeometryFactory.FromPolygons([_veilOutline()], 0, 0);
+        if (_veilPath.Set(_veilOutline()) is { } veil)
+        {
+            VeilFill.Data = veil;
+        }
         VeilFill.Visibility = Visibility.Visible;
 
         try
