@@ -71,7 +71,7 @@ public static class FrameClock
     {
         if (_queue is { HasThreadAccess: false } queue)
         {
-            queue.TryEnqueue(() => action());
+            queue.TryEnqueueSafely(() => action());
             return;
         }
 

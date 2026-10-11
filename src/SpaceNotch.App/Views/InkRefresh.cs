@@ -38,7 +38,7 @@ public static class InkRefresh
         Microsoft.UI.Dispatching.DispatcherQueueTimer timer = target.DispatcherQueue.CreateTimer();
         timer.Interval = TimeSpan.FromMilliseconds(Afterglow.InkMilliseconds);
         timer.IsRepeating = false;
-        timer.Tick += (_, _) => target.TextHighlighters.Remove(highlighter);
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) => target.TextHighlighters.Remove(highlighter));
         timer.Start();
     }
 }

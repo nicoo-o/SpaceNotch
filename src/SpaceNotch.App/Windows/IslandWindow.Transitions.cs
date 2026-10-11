@@ -119,7 +119,7 @@ public sealed partial class IslandWindow
             CompositionScopedBatch batch = compositor.CreateScopedBatch(CompositionBatchTypes.Animation);
             visual.StartAnimation("Opacity", clear);
             batch.End();
-            batch.Completed += (_, _) => _dispatcherQueue.TryEnqueue(() =>
+            batch.Completed += (_, _) => _dispatcherQueue.TryEnqueueSafely(() =>
             {
                 // Une dissipation plus récente garde le voile : c'est elle qui le retirera.
                 if (generation == _veilGeneration)

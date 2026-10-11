@@ -222,11 +222,11 @@ public sealed partial class PixelEyesView : Grid
         Microsoft.UI.Dispatching.DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
         timer.Interval = TimeSpan.FromMilliseconds(PixelGaze.BlinkMilliseconds);
         timer.IsRepeating = false;
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             _blinking = false;
             ApplyShape(BaseShape);
-        };
+        });
         return timer;
     }
 
@@ -260,7 +260,7 @@ public sealed partial class PixelEyesView : Grid
         Microsoft.UI.Dispatching.DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
         timer.Interval = TimeSpan.FromMilliseconds(40);
         timer.IsRepeating = true;
-        timer.Tick += (_, _) =>
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             double t = (DateTime.UtcNow - _sweatStart).TotalMilliseconds % 2400 / 1000;
             double x = _rightCell.ActualOffset.X + _rightCell.ActualWidth + 3 + _look.X;
@@ -276,7 +276,7 @@ public sealed partial class PixelEyesView : Grid
             {
                 _drop.Opacity = 0;
             }
-        };
+        });
         return timer;
     }
 

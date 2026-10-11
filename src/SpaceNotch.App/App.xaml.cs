@@ -36,8 +36,7 @@ public partial class App : Application
         // laisser une trace exploitable.
         MiniLogger.Start();
 
-        UnhandledException += (sender, args) =>
-            MiniLogger.Log($"[FATAL] App.UnhandledException : {args.Message} — {args.Exception}");
+        UnhandledException += OnUnhandledException;
 
         AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
             MiniLogger.Log($"[FATAL] AppDomain.UnhandledException : {args.ExceptionObject}");
@@ -52,6 +51,62 @@ public partial class App : Application
 
         AppDomain.CurrentDomain.ProcessExit += (sender, args) =>
             MiniLogger.Log("Arrêt du processus.");
+    }
+
+#if DEBUG
+    private static readonly List<DispatcherQueueTimer> FaultTimers = [];
+
+    /// <summary>
+    /// Preuve du n° 33 sur la vraie notch, en build Debug seulement
+    /// (<c>--fault-test</c>) : une exception levée par un minuteur à 3 s, une autre
+    /// après un <c>await</c> dans un gestionnaire <c>async void</c> à 5 s, puis
+    /// une ligne de journal à 8 s si la notch tourne encore.
+    /// </summary>
+    private static async void ThrowAfterAwait()
+    {
+        await System.Threading.Tasks.Task.Yield();
+        throw new InvalidOperationException("Essai n° 33 : exception d'un async void après un await");
+    }
+
+    private static void StartFaultTest(DispatcherQueue queue)
+    {
+        void After(double seconds, global::Windows.Foundation.TypedEventHandler<DispatcherQueueTimer, object> tick)
+        {
+            DispatcherQueueTimer timer = queue.CreateTimer();
+            timer.Interval = TimeSpan.FromSeconds(seconds);
+            timer.IsRepeating = false;
+            timer.Tick += tick;
+            FaultTimers.Add(timer);
+            timer.Start();
+        }
+
+        After(3, SpaceNotch_App.Diagnostics.Guard.Tick((_, _) => throw new InvalidOperationException("Essai n° 33 : exception d'un minuteur")));
+        After(5, (_, _) => queue.TryEnqueue(ThrowAfterAwait));
+        After(6, (_, _) => queue.TryEnqueueSafely(() => throw new InvalidOperationException("Essai n° 33 : exception d'un travail posté")));
+        After(8, (_, _) => MiniLogger.Log("[ESSAI] n° 33 : la notch tourne toujours après les trois exceptions"));
+    }
+#endif
+
+    /// <summary>Vrai une fois la notch lancée : l'installeur a son propre gestionnaire, qui s'arrête.</summary>
+    private bool _islandRunning;
+
+    /// <summary>
+    /// Une exception d'un gestionnaire XAML ou <c>async void</c> (les Réglages)
+    /// fermait la notch (n° 33). Notch lancée, elle est journalisée et
+    /// l'application continue ; avant, et dans l'installeur, rien ne change. Les
+    /// minuteurs et le travail posté ne passent pas par ici : voir
+    /// <see cref="SpaceNotch_App.Diagnostics.Guard"/>.
+    /// </summary>
+    private void OnUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs args)
+    {
+        if (!_islandRunning)
+        {
+            MiniLogger.Log($"[FATAL] App.UnhandledException : {args.Message} — {args.Exception}");
+            return;
+        }
+
+        args.Handled = true;
+        SpaceNotch_App.Diagnostics.Guard.Report("XAML", args.Exception);
     }
 
     /// <summary>
@@ -89,12 +144,19 @@ public partial class App : Application
             var island = new IslandWindow();
 
             _window = island;
-            _window.Closed += (_, _) => MiniLogger.Log("Fenêtre de l'Island fermée.");
+            _window.Closed += (_, _) =>
+            {
+                // L'arrêt n'est plus survécu : une exception pendant la fermeture
+                // suit le chemin ordinaire au lieu d'être tue.
+                _islandRunning = false;
+                MiniLogger.Log("Fenêtre de l'Island fermée.");
+            };
 
             _window.Activate();
+            _islandRunning = true;
 
             DispatcherQueue queue = island.DispatcherQueue;
-            _instance.ListenForReveal(() => queue.TryEnqueue(island.RevealFromSecondLaunch));
+            _instance.ListenForReveal(() => queue.TryEnqueueSafely(island.RevealFromSecondLaunch));
 
             MiniLogger.Log("App.OnLaunched completed and window activated");
 
@@ -118,6 +180,13 @@ public partial class App : Application
             {
                 SpaceNotch_App.Animations.FrameClock.MeasureRuns(island.MotionContext);
             }
+
+#if DEBUG
+            if (Environment.GetCommandLineArgs().Contains("--fault-test", StringComparer.Ordinal))
+            {
+                StartFaultTest(queue);
+            }
+#endif
 
             if (options.OpenSettings)
             {
@@ -165,6 +234,7 @@ public partial class App : Application
             args.Handled = true;
             FailSetup(args.Exception);
         };
+        SpaceNotch_App.Diagnostics.Guard.Fatal = FailSetup;
 
         try
         {

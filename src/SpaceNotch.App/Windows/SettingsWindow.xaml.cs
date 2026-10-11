@@ -113,11 +113,11 @@ public sealed partial class SettingsWindow : Window
         _persistTimer = DispatcherQueue.CreateTimer();
         _persistTimer.IsRepeating = false;
         _persistTimer.Interval = PersistDelay;
-        _persistTimer.Tick += (_, _) =>
+        _persistTimer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
         {
             _persistTimer.Stop();
             _settings.Persist();
-        };
+        });
 
         PathText.Text = _settings.ConfigFilePath;
 
@@ -964,7 +964,20 @@ public sealed partial class SettingsWindow : Window
         Apply(s => s.SpotifyClientId = id);
         SpotifyButton.IsEnabled = false;
         SpotifyText.Text = Lang.T("Accepte dans le navigateur…", "Accept in the browser…");
-        bool ok = await new SpaceNotch_App.Media.SpotifyClient(() => id).ConnectAsync();
+        bool ok;
+
+        // async void : une exception ici fermait la notch (n° 33). Le bouton
+        // revient, et l'échec se lit dans la carte.
+        try
+        {
+            ok = await new SpaceNotch_App.Media.SpotifyClient(() => id).ConnectAsync();
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log("[RÉGLAGES] Connexion à Spotify impossible", ex);
+            ok = false;
+        }
+
         SpotifyButton.IsEnabled = true;
         UpdateConnections();
 
@@ -1500,18 +1513,26 @@ public sealed partial class SettingsWindow : Window
 
     private async void OnNotificationButtonClicked(object sender, RoutedEventArgs e)
     {
-        var access = SpaceNotch.Platform.Windows.Notifications.WindowsNotificationListener.GetAccess();
-
-        if (access == SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Denied)
+        // async void : une exception ici fermait la notch (n° 33).
+        try
         {
-            // Le refus se lève dans Paramètres › Confidentialité › Notifications.
-            _ = await global::Windows.System.Launcher.LaunchUriAsync(new Uri("ms-settings:privacy-notifications"));
-            return;
+            var access = SpaceNotch.Platform.Windows.Notifications.WindowsNotificationListener.GetAccess();
+
+            if (access == SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Denied)
+            {
+                // Le refus se lève dans Paramètres › Confidentialité › Notifications.
+                _ = await global::Windows.System.Launcher.LaunchUriAsync(new Uri("ms-settings:privacy-notifications"));
+                return;
+            }
+
+            if (RequestNotificationAccess is not null)
+            {
+                await RequestNotificationAccess();
+            }
         }
-
-        if (RequestNotificationAccess is not null)
+        catch (Exception ex)
         {
-            await RequestNotificationAccess();
+            MiniLogger.Log("[RÉGLAGES] Accès aux notifications impossible à demander", ex);
         }
 
         UpdateNotificationCard();

@@ -141,6 +141,42 @@ public sealed class UpdateFeature : IslandFeatureBase
         });
     }
 
+    /// <summary>
+    /// La mise à jour n'a pas pu s'installer (n° 7) : l'installeur a relancé la
+    /// version restée en place, qui le dit. « Télécharger » ouvre la page de la
+    /// version, pour installer à la main.
+    /// </summary>
+    /// <param name="current">Version qui tourne, restée en place.</param>
+    /// <param name="declined">L'autorisation d'administrateur a été refusée.</param>
+    public void ShowFailed(Version current, bool declined)
+    {
+        ArgumentNullException.ThrowIfNull(current);
+
+        string version = UpdateRules.Display(current);
+
+        PublishActivity(new IslandActivity
+        {
+            Id = ActivityId,
+            FeatureId = FeatureKey,
+            SceneKey = IslandSceneCatalog.Card,
+            Title = Lang.T("Mise à jour non installée", "Update not installed"),
+            Subtitle = declined
+                ? Lang.T($"Autorisation refusée · SpaceNotch reste en {version}", $"Permission declined · SpaceNotch stays on {version}")
+                : Lang.T($"L'installation a échoué · SpaceNotch reste en {version}", $"Installation failed · SpaceNotch stays on {version}"),
+            Source = Lang.T("Mise à jour", "Update"),
+            IconKey = "Info",
+            Tint = Blue,
+            State = IslandActivityState.Idle,
+            Priority = ActivityPriority.Normal,
+            Duration = TimeSpan.FromSeconds(12),
+            Actions =
+            [
+                new ActivityAction(NotesAction, Lang.T("Télécharger", "Download"), "Download", ActivityActionKind.Invoke, IsPrimary: true),
+                new ActivityAction(LaterAction, Lang.T("Plus tard", "Later"), "Close")
+            ]
+        });
+    }
+
     /// <summary>Retire la carte.</summary>
     public void Clear() => RemoveActivity(ActivityId);
 
