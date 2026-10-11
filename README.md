@@ -24,8 +24,8 @@
 <br>
 
 <p align="center">
-<em>A small piece of darkness at the top of your screen.<br>
-It stays out of the way — and comes alive when something deserves your attention.</em>
+<em>A small piece of darkness at the top of your screen, and two eyes keeping you company.<br>
+Pixel keeps watch — and wakes up when something deserves your attention.</em>
 </p>
 
 <br>
@@ -49,6 +49,21 @@ It stays out of the way — and comes alive when something deserves your attenti
 
 <br>
 
+## Pixel, the notch's eyes
+
+Two eyes of light live in your notch. They follow your cursor, blink, squint when you hover, go
+round when a notification arrives and fall asleep at night. When an activity arrives they don't
+vanish: they become part of what arrives.
+
+<p align="center">
+<img src="docs/assets/readme/pixel-moods.svg" alt="Pixel as an agent's avatar, in four moods: thinking (eyes searching, three dots), asking (round eyes, blue question mark), done (smiling eyes, green sparkles), worried by an error (red exclamation mark)" width="100%">
+</p>
+
+Pixel is also the avatar of your agents — Claude Code and others. At a glance you can tell whether
+it's thinking, waiting for your answer, done, or stuck on an error.
+
+<br>
+
 ## Alive, never busy
 
 <p align="center">
@@ -57,7 +72,7 @@ It stays out of the way — and comes alive when something deserves your attenti
 
 When something is working — a download, a search, a sync — a tiny grid of light breathes inside
 the notch. Each kind of work has its own rhythm and colour. When it's done, the light settles into
-a single calm pixel. When nothing is happening, nothing moves.
+a single calm pixel. When nothing is happening, only Pixel is alive.
 
 <br>
 
@@ -73,11 +88,11 @@ flows back home.
 
 <br>
 
-## Made to disappear
+## Out of the way when it matters
 
 <table>
   <tr>
-    <td width="33%" valign="top"><h3>Quiet</h3>Almost nothing runs when nothing happens: about 0.4&nbsp;% of one CPU core at rest (measured on 6&nbsp;October 2026, with Pixel off). Only Pixel, the notch's eyes, blinks and follows your cursor.</td>
+    <td width="33%" valign="top"><h3>Quiet</h3>Almost nothing runs when nothing happens: about 0.15&nbsp;% of one CPU core at rest, <b>Pixel included</b> (measured on 11&nbsp;October 2026, twice over 60&nbsp;s). Only Pixel, the notch's eyes, blinks and follows your cursor.</td>
     <td width="33%" valign="top"><h3>Respectful</h3>It steps aside when a game or a video goes fullscreen, and never pops open for a volume change.</td>
     <td width="33%" valign="top"><h3>Private</h3>No account, no telemetry. By default, the only connection is updating from GitHub: every 6&nbsp;h it checks and downloads the new version, then the notch offers it — nothing installs without your OK (“Ask me”; choose “Automatic” or “Off” in Settings). Weather, lyrics, Spotify and the assistant connect only once you turn them on. Full details: <a href="PRIVACY.md">PRIVACY.md</a>.</td>
   </tr>

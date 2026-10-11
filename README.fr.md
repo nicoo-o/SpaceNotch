@@ -24,8 +24,8 @@
 <br>
 
 <p align="center">
-<em>Un petit morceau de nuit en haut de ton écran.<br>
-Il se fait oublier — et s'éveille quand quelque chose mérite ton attention.</em>
+<em>Un petit morceau de nuit en haut de ton écran, et deux yeux qui te tiennent compagnie.<br>
+Pixel veille — et s'éveille quand quelque chose mérite ton attention.</em>
 </p>
 
 <br>
@@ -49,6 +49,21 @@ Il se fait oublier — et s'éveille quand quelque chose mérite ton attention.<
 
 <br>
 
+## Pixel, les yeux de la notch
+
+Deux yeux de lumière vivent dans ta notch. Ils suivent ton curseur, clignent, se plissent quand tu
+passes dessus, s'arrondissent quand une notification arrive et s'endorment la nuit. Quand une
+activité arrive, ils ne disparaissent pas : ils deviennent un morceau de ce qui arrive.
+
+<p align="center">
+<img src="docs/assets/readme/pixel-moods-fr.svg" alt="Pixel en avatar d'un agent, en quatre humeurs : il réfléchit (le regard cherche, trois points), il demande (yeux ronds, point d'interrogation bleu), il a terminé (yeux rieurs, étincelles vertes), il s'inquiète d'une erreur (point d'exclamation rouge)" width="100%">
+</p>
+
+Pixel est aussi l'avatar de tes agents — Claude Code et les autres. D'un coup d'œil, tu sais s'il
+réfléchit, s'il attend ta réponse, s'il a fini ou s'il bute sur une erreur.
+
+<br>
+
 ## Vivante, jamais agitée
 
 <p align="center">
@@ -57,7 +72,7 @@ Il se fait oublier — et s'éveille quand quelque chose mérite ton attention.<
 
 Quand quelque chose travaille — un téléchargement, une recherche, une synchronisation — une petite
 grille de lumière respire dans la notch. Chaque travail a son rythme et sa couleur. Quand il est
-fini, la lumière se pose en un seul pixel apaisé. Quand rien ne se passe, rien ne bouge.
+fini, la lumière se pose en un seul pixel apaisé. Quand rien ne se passe, seul Pixel vit.
 
 <br>
 
@@ -73,11 +88,11 @@ double-clic, et elle rentre chez elle.
 
 <br>
 
-## Faite pour disparaître
+## Discrète quand il le faut
 
 <table>
   <tr>
-    <td width="33%" valign="top"><h3>Silencieuse</h3>Presque rien ne tourne quand rien ne se passe : environ 0,4&nbsp;% d'un cœur au repos (mesuré le 6&nbsp;octobre 2026, Pixel éteint). Seul Pixel, les yeux de la notch, cligne et suit ton curseur.</td>
+    <td width="33%" valign="top"><h3>Silencieuse</h3>Presque rien ne tourne quand rien ne se passe : environ 0,15&nbsp;% d'un cœur au repos, <b>Pixel compris</b> (mesuré le 11&nbsp;octobre 2026, deux fois 60&nbsp;s). Seul Pixel, les yeux de la notch, cligne et suit ton curseur.</td>
     <td width="33%" valign="top"><h3>Discrète</h3>Elle s'efface quand un jeu ou une vidéo passe en plein écran, et ne s'ouvre jamais pour un simple changement de volume.</td>
     <td width="33%" valign="top"><h3>Privée</h3>Aucun compte, aucune télémétrie. Par défaut, la seule connexion est la mise à jour depuis GitHub : toutes les 6&nbsp;h, elle vérifie et télécharge la nouvelle version, puis la notch te la propose ; rien ne s'installe sans ton accord (« Me prévenir » ; « Automatiques » ou « Désactivées » dans les Réglages). La météo, les paroles, Spotify et l'assistant ne se connectent qu'une fois activés. Tout le détail : <a href="PRIVACY.md">PRIVACY.md</a>.</td>
   </tr>

@@ -466,14 +466,14 @@ Preview et Expanded — et travaille-t-elle (quel préréglage hypnotique) ? »
 | Veille | lèvre visible ; masquée quand une application est en plein écran |
 | Survol | aperçu léger après une pose de 220 ms |
 | Clic | expansion ; clic extérieur ou Échap referment |
-| Animation | ressort + morph ; aucune animation permanente |
+| Animation | ressort + morph ; Pixel vit au repos ; rien d'autre n'anime le repos ([ADR-029](../decisions/ADR-029-compagnon-vivant-pixel-identite.md)) |
 | Mouvement hypnotique | grille 3 × 3, couleurs de la référence, uniquement pour un travail en cours |
 | Pluie binaire | option, désactivée par défaut |
 | Téléchargements | dossier Téléchargements, tous navigateurs, sans extension |
 | Retours système | recouvrement compact, jamais une ouverture forcée |
 | Notifications | groupées par application |
 | Architecture | pas de réécriture ; les scènes évoluent vers la présentation |
-| Performance | silence au repos |
+| Performance | silence au repos, hors Pixel ([ADR-029](../decisions/ADR-029-compagnon-vivant-pixel-identite.md)) |
 
 ## 16. Questions tranchées et questions ouvertes
 
