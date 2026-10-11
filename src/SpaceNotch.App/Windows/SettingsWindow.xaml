@@ -229,7 +229,7 @@
                             <StackPanel x:Name="HotkeyCaps" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,8,0,0" Orientation="Horizontal" Spacing="4" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Aller à la notch raccourci clavier focus Narrateur Donne le clavier à la notch depuis n&#x27;importe quelle application.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Aller à la notch raccourci clavier focus Narrateur Win+Alt+N Ctrl+Alt+N shortcut keyboard Donne le clavier à la notch depuis n&#x27;importe quelle application.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
