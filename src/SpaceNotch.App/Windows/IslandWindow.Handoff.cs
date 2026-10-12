@@ -38,7 +38,7 @@ public sealed partial class IslandWindow
 
     private IslandActivity? _handoffLast;
     private UIElement? _handoffView;
-    private readonly TextBlock _measureAny = new();
+    private readonly TextBlock _measureAny = new() { IsTextScaleFactorEnabled = false };
 
     /// <summary>
     /// Appelée au début du rendu, avant que les vues ne changent : décide s'il

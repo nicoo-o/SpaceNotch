@@ -138,6 +138,23 @@ public class Wave6bFeatureTests
         Assert.False(pomodoro.IsSessionRunning);
     }
 
+    [Fact]
+    public async Task APausedFocus_IsStillASessionToStop()
+    {
+        // n° 75 : le menu rapide propose d'arrêter un focus en pause, au lieu
+        // d'offrir une puce « Focus 25 min » qui l'écraserait.
+        await using var pomodoro = new PomodoroFeature(new ActivityManager(), new EventBus());
+        Assert.False(pomodoro.HasSession);
+
+        pomodoro.Start();
+        pomodoro.Pause();
+        Assert.False(pomodoro.IsSessionRunning);
+        Assert.True(pomodoro.HasSession);
+
+        pomodoro.Reset();
+        Assert.False(pomodoro.HasSession);
+    }
+
     [Theory]
     [InlineData("ocr")]
     [InlineData("texte")]

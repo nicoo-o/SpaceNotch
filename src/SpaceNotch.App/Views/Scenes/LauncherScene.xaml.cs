@@ -867,7 +867,7 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
             return;
         }
 
-        var probe = new TextBlock { Text = text, FontSize = SearchBox.FontSize, FontFamily = SearchBox.FontFamily };
+        var probe = new TextBlock { Text = text, FontSize = SearchBox.FontSize, FontFamily = SearchBox.FontFamily, IsTextScaleFactorEnabled = false };
         probe.Measure(new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
 
         _shatterLetters = Math.Min(text.Length, 60);
@@ -1263,6 +1263,12 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
     /// </summary>
     public bool ClipboardEmpty { get; set; }
 
+    /// <summary>
+    /// Vrai quand l'historique est éteint : la tuile reste alors active et propose
+    /// de l'allumer (n° 63) ; grisée, elle ne disait pas pourquoi.
+    /// </summary>
+    public bool ClipboardOff { get; set; }
+
     private readonly List<Button> _tiles = [];
     private Button? _clipboardTile;
 
@@ -1329,7 +1335,10 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
         if (_clipboardTile is not null)
         {
-            _clipboardTile.IsEnabled = !ClipboardEmpty;
+            _clipboardTile.IsEnabled = ClipboardOff || !ClipboardEmpty;
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(_clipboardTile, ClipboardOff
+                ? SpaceNotch.Core.Localization.Lang.T("Propose d'activer l'historique", "Offers to turn on history")
+                : string.Empty);
         }
 
         TilesRow.Visibility = show ? Visibility.Visible : Visibility.Collapsed;

@@ -6,6 +6,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Les tests jouent les battements des minuteurs sans attendre le vrai (n° 86). -->
+    <InternalsVisibleTo Include="SpaceNotch.Core.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Partage par QR (F8) : un encodeur éprouvé plutôt qu'un encodeur maison. -->
     <PackageReference Include="QRCoder" />
   </ItemGroup>

@@ -47,7 +47,9 @@ public sealed partial class IslandWindow
             SideEdgesAllowed: _settings.AllowSideEdges,
             HasClipboard: HasActivity(ClipboardFeature.ActivityId),
             HasShelf: HasActivity(FileShelfManager.ShelfActivityId),
-            TimerRunning: _timerFeature.IsMeasuring));
+            TimerRunning: _timerFeature.IsMeasuring,
+            ClipboardOff: !_settings.ShowClipboard,
+            FocusActive: _pomodoroFeature.HasSession));
 
         // Le menu passe devant ce qui était présenté — la musique, un minuteur —
         // le temps d'être utilisé ; il rend la main en se refermant.
@@ -123,6 +125,20 @@ public sealed partial class IslandWindow
                 OpenLauncher();
                 return true;
 
+            case QuickMenuFeature.TimerAction when request.Value == SpaceNotch_App.Views.Scenes.QuickMenuScene.FocusValue:
+                CloseQuickMenu();
+
+                // Focus calé sur l'agenda (W3) : il finit avant la prochaine réunion.
+                _pomodoroFeature.StartFitted();
+                RevealPresented();
+                return true;
+
+            case QuickMenuFeature.TimerAction when request.Value == SpaceNotch_App.Views.Scenes.QuickMenuScene.FocusStopValue:
+                CloseQuickMenu();
+                _pomodoroFeature.Reset();
+                CollapseByUser("menu rapide");
+                return true;
+
             case QuickMenuFeature.TimerAction:
                 CloseQuickMenu();
 
@@ -138,8 +154,31 @@ public sealed partial class IslandWindow
                 RevealPresented();
                 return true;
 
+            case QuickMenuFeature.ClipboardAction when !_settings.ShowClipboard:
+                // Historique éteint : la tuile propose de l'activer au lieu de ne rien faire (n° 63).
+                _quickMenuFeature.Dismiss();
+                _quickMenuFeature.OfferClipboardHistory();
+                _activityManager.PinPresentation(QuickMenuFeature.ClipboardOfferId);
+                RevealPresented();
+                return true;
+
             case QuickMenuFeature.ClipboardAction:
                 PresentFromMenu(ClipboardFeature.ActivityId);
+                return true;
+
+            case QuickMenuFeature.ClipboardEnableAction:
+                // Par les réglages, comme l'interrupteur : enregistré, puis appliqué
+                // à la fonctionnalité par le changement de réglages.
+                _quickMenuFeature.WithdrawClipboardOffer();
+                _activityManager.PinPresentation(null);
+                _settingsService.Update(s => s.BindFeature(SpaceNotch.Core.Features.FeatureKeys.Clipboard, true));
+                CollapseByUser("historique du presse-papier activé");
+                return true;
+
+            case QuickMenuFeature.ClipboardLaterAction:
+                _quickMenuFeature.WithdrawClipboardOffer();
+                _activityManager.PinPresentation(null);
+                CollapseByUser("historique du presse-papier : plus tard");
                 return true;
 
             case QuickMenuFeature.ShelfAction:

@@ -21,7 +21,12 @@ public sealed partial class IslandWindow
     private static readonly TimeSpan HelloDuration = TimeSpan.FromMilliseconds(2700);
     private static readonly TimeSpan ByeDuration = TimeSpan.FromMilliseconds(1400);
 
-    private readonly CpuSampler _cpuSampler = new();
+    /// <summary>
+    /// Pixel reprend la mesure du moniteur (toutes les 5 s au calme) plutôt que
+    /// d'interroger le système à son tour : un seul échantillonneur (n° 74).
+    /// Moniteur éteint, il mesure lui-même, au plus toutes les 5,5 s.
+    /// </summary>
+    private static readonly TimeSpan CpuReadingAge = TimeSpan.FromSeconds(5.5);
     private DispatcherQueueTimer? _vitalsTimer;
     private PixelCondition _condition;
     private ForegroundWatcher? _foreground;
@@ -106,7 +111,7 @@ public sealed partial class IslandWindow
             // Pas d'information sur l'alimentation : on ne suppose rien.
         }
 
-        double cpu = _cpuSampler.Sample() / 100;
+        double cpu = SpaceNotch.Platform.Windows.Power.CpuLoad.Shared.Get(CpuReadingAge) / 100;
         bool online = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
         _condition = PixelVitals.Condition(battery, charging, cpu, online);
     }
@@ -186,6 +191,11 @@ public sealed partial class IslandWindow
         DateTime now = DateTime.UtcNow;
         RestEyes.SetTint(EyeColor);
 
+        if (PixelCalm)
+        {
+            return ApplyCalmPixel(mood, time);
+        }
+
         // Bonjour : les yeux s'ouvrent lentement, regardent à gauche, à droite, clignent.
         double hello = (now - _helloStart).TotalMilliseconds;
 
@@ -257,6 +267,34 @@ public sealed partial class IslandWindow
         }
 
         return PixelVitals.Look(condition) ?? (evening ? (0, PixelGaze.MaxLookY * 0.5) : null);
+    }
+
+    /// <summary>
+    /// Pixel calmé (n° 22) : l'état du PC et le soir se lisent encore sur la
+    /// forme des yeux, mais rien ne bouge seul — ni bonjour, ni bâillement, ni
+    /// battement, ni coup d'œil. Le regard reste au centre.
+    /// </summary>
+    private (double X, double Y)? ApplyCalmPixel(PixelMood mood, TimeOnly time)
+    {
+        RestEyes.SetBeat(0, 0);
+        _yawnUntil = DateTime.MinValue;
+
+        if (mood != PixelMood.Awake)
+        {
+            RestEyes.SetOverride(null);
+            RestEyes.SetCrossed(false);
+            RestEyes.SetSweating(false);
+            return (0, 0);
+        }
+
+        // La forme d'abord : la goutte se pose contre l'œil tel qu'il sera dessiné.
+        PixelCondition condition = _tourCondition ?? _condition;
+        RestEyes.SetOverride(PixelVitals.Shape(condition) is { } shape ? shape
+            : PixelVitals.IsEvening(time) ? PixelVitals.Drowsy
+            : null);
+        RestEyes.SetCrossed(condition == PixelCondition.Offline);
+        RestEyes.SetSweating(condition == PixelCondition.Hot);
+        return (0, 0);
     }
 
     private static double ReadLevel()
