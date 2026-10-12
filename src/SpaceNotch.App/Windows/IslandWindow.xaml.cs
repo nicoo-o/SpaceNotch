@@ -509,6 +509,10 @@ public sealed partial class IslandWindow : Window
         ApplyPresence();
 
         RootLayout.Loaded += OnRootLoaded;
+
+        // Texte agrandi par Windows : la notch garde le sien, ses formes ont des
+        // hauteurs de ligne fixes (n° 59) ; les Réglages suivent.
+        SpaceNotch_App.UI.FixedTextSize.Keep(RootLayout, _dispatcherQueue);
     }
 
     /// <summary>Le ressort n'est utilisé que si Windows l'autorise.</summary>

@@ -313,6 +313,10 @@
 
     <!-- Entrée du menu latéral : la page active reçoit le fond de sélection et la barre cyan. -->
     <Style x:Key="NfNavButtonStyle" TargetType="Button" BasedOn="{StaticResource NfMenuRowButtonStyle}">
+        <!-- Les Réglages suivent la taille du texte de Windows (n° 59) : 36 DIP au
+             moins, plus si le texte agrandi le demande. -->
+        <Setter Property="Height" Value="Auto" />
+        <Setter Property="MinHeight" Value="36" />
         <Setter Property="FontSize" Value="13.5" />
         <Setter Property="Padding" Value="0,0,10,0" />
         <Setter Property="Tag" Value="{ThemeResource NfGhostHoverBrush}" />
