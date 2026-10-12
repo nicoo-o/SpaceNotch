@@ -75,6 +75,10 @@ public sealed partial class PixelEyesView : Grid
 
         _drop = new Border { Width = 2, Height = 3, CornerRadius = new CornerRadius(1), Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x8F, 0xD0, 0xFF)), Opacity = 0 };
         _overlay.Children.Add(_drop);
+
+        // La goutte immobile suit l'œil droit une fois mis en page : avant, sa
+        // position (0) la posait sur l'œil gauche (relecture du n° 22).
+        _rightCell.SizeChanged += (_, _) => PlaceStillDrop();
         Children.Add(_overlay);
 
         ApplyShape(PixelGaze.Shape(_mood));
@@ -261,6 +265,7 @@ public sealed partial class PixelEyesView : Grid
         if (!sweating)
         {
             _sweatTimer?.Stop();
+            _stillDrop = false;
             _drop.Opacity = 0;
             return;
         }
@@ -269,11 +274,13 @@ public sealed partial class PixelEyesView : Grid
         if (!Animate)
         {
             _sweatTimer?.Stop();
-            Canvas.SetLeft(_drop, _rightCell.ActualOffset.X + _rightCell.ActualWidth + 3);
-            Canvas.SetTop(_drop, 2);
+            _stillDrop = true;
+            PlaceStillDrop();
             _drop.Opacity = 1;
             return;
         }
+
+        _stillDrop = false;
 
         if (_sweatTimer is { IsRunning: true })
         {
@@ -283,6 +290,19 @@ public sealed partial class PixelEyesView : Grid
         _sweatStart = DateTime.UtcNow;
         _sweatTimer ??= CreateSweatTimer();
         _sweatTimer.Start();
+    }
+
+    private bool _stillDrop;
+
+    private void PlaceStillDrop()
+    {
+        if (!_stillDrop)
+        {
+            return;
+        }
+
+        Canvas.SetLeft(_drop, _rightCell.ActualOffset.X + _rightCell.ActualWidth + 3);
+        Canvas.SetTop(_drop, 2);
     }
 
     private Microsoft.UI.Dispatching.DispatcherQueueTimer CreateSweatTimer()

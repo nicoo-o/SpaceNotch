@@ -2625,6 +2625,9 @@ public sealed partial class IslandWindow : Window
             // des animations : la teinte suit alors instantanément.
             _atmosphere.UseSpringAnimations = UseSpringAnimations();
 
+            // Pixel se calme ou revit sur-le-champ, sans attendre le prochain rendu (n° 22).
+            OnPixelCalmChanged();
+
             _eventBus.Publish(new SystemVisualStateChangedEvent(
                 updated.AnimationsEnabled,
                 updated.TransparencyEffectsEnabled,

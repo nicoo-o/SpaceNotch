@@ -282,12 +282,13 @@ public sealed partial class IslandWindow
             return (0, 0);
         }
 
+        // La forme d'abord : la goutte se pose contre l'œil tel qu'il sera dessiné.
         PixelCondition condition = _tourCondition ?? _condition;
-        RestEyes.SetCrossed(condition == PixelCondition.Offline);
-        RestEyes.SetSweating(condition == PixelCondition.Hot);
         RestEyes.SetOverride(PixelVitals.Shape(condition) is { } shape ? shape
             : PixelVitals.IsEvening(time) ? PixelVitals.Drowsy
             : null);
+        RestEyes.SetCrossed(condition == PixelCondition.Offline);
+        RestEyes.SetSweating(condition == PixelCondition.Hot);
         return (0, 0);
     }
 

@@ -33,6 +33,27 @@ public sealed partial class IslandWindow
     /// </summary>
     private bool PixelCalm => !_visualState.UseSpringAnimations;
 
+    /// <summary>
+    /// Windows vient de réduire ou de rétablir les animations : Pixel déjà vivant
+    /// suit aussitôt — le clignement reprend, ou s'arrête avec la goutte qui glisse.
+    /// </summary>
+    private void OnPixelCalmChanged()
+    {
+        RestEyes.Animate = !PixelCalm;
+
+        if (!_pixelLive)
+        {
+            return;
+        }
+
+        if (!PixelCalm && RestEyes.Mood != PixelMood.Asleep)
+        {
+            ArmBlink();
+        }
+
+        PixelTick();
+    }
+
     /// <summary>Montre ou cache les yeux, et arme ou arrête ce qui les fait vivre.</summary>
     /// <remarks>
     /// Chaque rendu cache puis remontre les yeux : arrêter et relancer à chaque
@@ -138,8 +159,12 @@ public sealed partial class IslandWindow
 
         if (_gazeTimer is not null)
         {
-            // Calme, Pixel ne suit plus le pointeur : son humeur se relit au rythme du sommeil.
-            _gazeTimer.Interval = mood == PixelMood.Asleep || PixelCalm ? SleepCheckInterval : GazeInterval;
+            // Calme, Pixel ne suit plus le pointeur : son humeur se relit au rythme du
+            // sommeil, sauf une surprise, relue à sa fin (1,4 s) plutôt que 5 s après.
+            TimeSpan surpriseLeft = _pixelSurpriseUntil - DateTime.UtcNow;
+            _gazeTimer.Interval = PixelCalm && surpriseLeft > TimeSpan.Zero ? surpriseLeft + TimeSpan.FromMilliseconds(50)
+                : mood == PixelMood.Asleep || PixelCalm ? SleepCheckInterval
+                : GazeInterval;
         }
 
         if (mood == PixelMood.Asleep)
