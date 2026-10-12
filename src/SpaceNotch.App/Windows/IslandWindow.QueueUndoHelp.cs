@@ -178,7 +178,7 @@ public sealed partial class IslandWindow
     private bool _helpShown;
     private IReadOnlyList<GestureTip> _helpTips = [];
     private long _altSince;
-    private readonly TextBlock _measureHelp = new() { FontSize = 11 };
+    private readonly TextBlock _measureHelp = new() { FontSize = 11, IsTextScaleFactorEnabled = false };
 
     private void ArmGestureHelp(bool hovering)
     {
