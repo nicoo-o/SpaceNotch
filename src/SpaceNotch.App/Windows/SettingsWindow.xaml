@@ -3,6 +3,7 @@
     x:Class="SpaceNotch_App.Windows.SettingsWindow"
     xmlns:l="using:SpaceNotch_App.Views"
     xmlns:views="using:SpaceNotch_App.Views"
+    xmlns:ui="using:SpaceNotch_App.UI"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -187,6 +188,21 @@
                                 <TextBlock x:Name="UpdateDescription" Text="{l:Loc Fr='La notch te propose chaque nouvelle version ; rien ne s’installe sans ton accord.', En='The notch offers each new version; nothing installs without your OK.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
                             </StackPanel>
                             <ComboBox x:Name="UpdateModeBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="170" SelectionChanged="OnUpdateModeChanged" />
+                        </Grid>
+                    </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Réglages avancés expert formes mouvement développeurs Spotify Discord diagnostics Affiche les réglages fins.">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Settings" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Afficher les réglages avancés', En='Show advanced settings'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="{l:Loc Fr='Formes fines, mouvement détaillé, services pour développeurs. La recherche les trouve toujours.', En='Fine shapes, detailed motion, developer services. Search always finds them.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ToggleSwitch x:Name="AdvancedToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnAdvancedToggled" />
                         </Grid>
                     </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Revoir la présentation Les cinq gestes de la notch, en trente secondes.">
@@ -549,7 +565,7 @@
                             <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><PasswordBox x:Name="ClaudeKeyBox" Width="170" PlaceholderText="sk-ant-…" AutomationProperties.Name="{l:Loc Fr='Clé Claude', En='Claude key'}" /><Button x:Name="ClaudeKeyButton" Click="OnClaudeKeyClicked" /></StackPanel>
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Modèle Claude version">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Modèle Claude version">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -595,7 +611,7 @@
                             <ToggleSwitch x:Name="LyricsToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnLyricsToggled" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Spotify j'aime file d'attente client">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Spotify j'aime file d'attente client">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -610,7 +626,7 @@
                             <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><TextBox x:Name="SpotifyIdBox" Width="150" PlaceholderText="Client ID" LostFocus="OnSpotifyIdCommitted" AutomationProperties.Name="{l:Loc Fr='Identifiant Spotify', En='Spotify client ID'}" /><Button x:Name="SpotifyButton" Click="OnSpotifyClicked" /></StackPanel>
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Discord vocal salon micro RPC">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Discord vocal salon micro RPC">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -810,7 +826,7 @@
                             <TextBlock x:Name="OpacityValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="OpacitySlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="100" Minimum="55" StepFrequency="1" ValueChanged="OnOpacityChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Ombre ">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Ombre ">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -877,7 +893,7 @@
                             <ToggleSwitch x:Name="SoundsToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnSoundsToggled" AutomationProperties.Name="{l:Loc Fr='Sons discrets', En='Subtle sounds'}" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Intensité du contour ">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Intensité du contour ">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -915,7 +931,7 @@
                             <ComboBox x:Name="DensityBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnDensityChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Arrondi au repos ">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Arrondi au repos ">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -933,7 +949,7 @@
                             <TextBlock x:Name="RadiusValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="RadiusSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="40" Minimum="8" StepFrequency="1" ValueChanged="OnRadiusChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Arrondi ouverte ">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Arrondi ouverte ">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -951,7 +967,7 @@
                             <TextBlock x:Name="ExpandedRadiusValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="ExpandedRadiusSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="48" Minimum="12" StepFrequency="1" ValueChanged="OnExpandedRadiusChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Raccord au bord de l&#x27;écran À zéro, un angle droit ; plus haut, le bord « coule » dans la notch.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Raccord au bord de l&#x27;écran À zéro, un angle droit ; plus haut, le bord « coule » dans la notch.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -970,7 +986,7 @@
                             <TextBlock x:Name="ShoulderValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="ShoulderSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="20" Minimum="0" StepFrequency="1" ValueChanged="OnShoulderChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Coins arrondis doux Une courbe continue, comme les icônes de Windows 11.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Coins arrondis doux Une courbe continue, comme les icônes de Windows 11.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -989,7 +1005,7 @@
                             <ToggleSwitch x:Name="SmoothingToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnSmoothingToggled" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Raccord de la languette et de la bulle ">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Raccord de la languette et de la bulle ">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1007,7 +1023,7 @@
                             <TextBlock x:Name="SideShoulderValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="SideShoulderSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="16" Minimum="0" StepFrequency="1" ValueChanged="OnSideShoulderChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Arrondi de la pastille ouverte ">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Arrondi de la pastille ouverte ">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1025,7 +1041,7 @@
                             <TextBlock x:Name="FloatingRadiusValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="FloatingRadiusSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="48" Minimum="12" StepFrequency="1" ValueChanged="OnFloatingRadiusChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Taille de la bulle ">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Taille de la bulle ">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1043,7 +1059,7 @@
                             <ComboBox x:Name="BubbleSizeBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnBubbleSizeChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Taille de la languette ">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Taille de la languette ">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1186,7 +1202,7 @@
                         </Grid>
                     </Border>
                     <TextBlock Text="{l:Loc Fr='RÉGLAGE FIN', En='FINE TUNING'}" Style="{StaticResource NfSettingsGroupStyle}" />
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Vitesse Plus bas, plus vif.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Vitesse Plus bas, plus vif.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1205,7 +1221,7 @@
                             <TextBlock x:Name="ResponseValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="ResponseSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="0.8" Minimum="0.25" StepFrequency="0.01" ValueChanged="OnResponseChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Amortissement Plus bas, plus de rebond.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Amortissement Plus bas, plus de rebond.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1225,7 +1241,7 @@
                         </Grid>
                     </Border>
                     <TextBlock Text="{l:Loc Fr='PASTILLE DÉTACHÉE', En='DETACHED PILL'}" Style="{StaticResource NfSettingsGroupStyle}" />
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Sensation en main Souple, naturelle ou ferme.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Sensation en main Souple, naturelle ou ferme.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1244,7 +1260,7 @@
                             <ComboBox x:Name="DetachFeelBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnDetachFeelChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Étirement en mouvement ">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Étirement en mouvement ">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1262,7 +1278,7 @@
                             <TextBlock x:Name="StretchValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="StretchSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="10" Minimum="0" StepFrequency="1" ValueChanged="OnStretchChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Distance d&#x27;arrachement Combien tirer avant que la notch se détache.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Distance d&#x27;arrachement Combien tirer avant que la notch se détache.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1281,7 +1297,7 @@
                             <TextBlock x:Name="TearValue" Grid.Column="2" FontSize="12.5" Foreground="{ThemeResource NfActiveBrush}" VerticalAlignment="Center" Typography.NumeralAlignment="Tabular" /><Slider x:Name="TearSlider" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,4,0,0" Maximum="80" Minimum="32" StepFrequency="1" ValueChanged="OnTearChanged" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Aimants aux coins La pastille se colle aux coins de l&#x27;écran.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Aimants aux coins La pastille se colle aux coins de l&#x27;écran.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1300,7 +1316,7 @@
                             <ToggleSwitch x:Name="MagnetsToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnMagnetsToggled" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Effet de goutte La notch s&#x27;étire comme une goutte en se détachant.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Effet de goutte La notch s&#x27;étire comme une goutte en se détachant.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1319,7 +1335,7 @@
                             <ToggleSwitch x:Name="GooToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnGooToggled" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Résister au passage d&#x27;un écran à l&#x27;autre ">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Résister au passage d&#x27;un écran à l&#x27;autre ">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1401,7 +1417,7 @@
                         </StackPanel>
                     </Border>
                     <TextBlock Text="{l:Loc Fr='AVANCÉ', En='ADVANCED'}" Style="{StaticResource NfSettingsGroupStyle}" />
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Fondu des bords Précis par défaut ; « compatible » si les bords scintillent.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Fondu des bords Précis par défaut ; « compatible » si les bords scintillent.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />
@@ -1420,7 +1436,7 @@
                             <ToggleSwitch x:Name="CompositionToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnCompositionToggled" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Diagnostics Mesures de performance dans le journal.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Diagnostics Mesures de performance dans le journal.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />

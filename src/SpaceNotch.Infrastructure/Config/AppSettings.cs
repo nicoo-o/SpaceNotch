@@ -602,6 +602,12 @@ public sealed class AppSettings
     /// <summary>Mesures internes (cadence, rendus) : désactivées par défaut (phase C).</summary>
     public bool EnableDiagnostics { get; set; }
 
+    /// <summary>
+    /// Réglages avancés visibles (n° 23) : éteint par défaut, les ~80 réglages
+    /// ne montrent que l'essentiel ; la recherche trouve tout.
+    /// </summary>
+    public bool ShowAdvancedSettings { get; set; }
+
     /// <summary>Recherche : cibles épinglées en favoris, dans l'ordre d'épinglage.</summary>
     public List<string> LauncherFavorites { get; set; } = [];
 
