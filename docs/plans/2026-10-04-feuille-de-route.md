@@ -1,4 +1,4 @@
-# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-12, soir)
+# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-12, nuit)
 
 Première version : 2026-10-04, écrite « pour vendre ». L'auteur l'a précisé le 2026-10-05 :
 SpaceNotch reste **gratuite et open source**, sans vente. Cette version re-trie tout pour ce cadre.
@@ -39,17 +39,18 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 81 | Raccourci « aller à la notch » | #61 | fusionnée : carte des Réglages, lue « Actif : Win+Alt+N » (UIA) |
 | 77 | README et PRIVACY de « Me prévenir » | #58 | fusionnée |
 | 83, 79 | ADR-029 acceptée ; README, langage visuel et §15 autour de Pixel | #59 | fusionnée : au repos, Pixel compris, 0,13 à 0,18 % d'un cœur (mesuré le 2026-10-11) |
-| 84, 73 | Tests dépendant de la langue globale | #63 | **ouverte** : les tests qui basculent la langue forment une collection sans parallélisme ; un test de garde refuse qu'un autre fichier la bascule (n° 87 : expression régulière, |=, &=, ^= compris) ; avant : 1 échec sur 10 passages, après : 10 sur 10 verts |
-| 86 | Fins de session sans test | #64 | **ouverte** : 4 tests, horloge injectée, battement joué à la main (le vrai neutralisé) ; défaire un correctif de #60 fait échouer 2 tests |
-| 85 | Raccourci « aller à la notch » au Tab ; index « Aucun » | #65 | **ouverte** : UIA, élément focalisable « Aller à la notch : Win+Alt+N », avec l'aide de la carte ; chercher « aucun » ne montre plus la carte |
-| 74 | Deux échantillonneurs du processeur | #66 | **ouverte** : une mesure partagée ; 13 mesures par minute au lieu de 44 (test) ; CPU au repos non concluant (bruit) |
-| 23 | Réglages d'expert exposés à tous | #67 | **ouverte** : interrupteur « Afficher les réglages avancés », éteint ; 23 cartes masquées, la recherche les trouve (UIA) |
-| 63 | Tuile Presse-papier grisée | #68 | **ouverte** : historique éteint, la tuile propose de l'activer ; refermer vaut « Plus tard » ; preuve à l'écran à faire |
-| 75 | Pomodoro en doublon, Discord et Canal local | #69 | **ouverte**, après #67 : « Focus 25 min » dans le Minuteur ; Discord éteint par défaut, allumé en le reliant ; preuve à l'écran à faire |
-| 22 | Mouvement réduit | #71 | **ouverte** : la forme apparaît en fondu (140 ms) au lieu de sauter ; Pixel calmé, immobile, humeurs gardées (choix de l'auteur) ; tests de Core ; pas vu à l'écran |
-| 57 | Réglages en contraste élevé | #72 | **ouverte** : 10 jetons de thème, couleurs du système en contraste élevé ; UIA : sept pages ; pas vu en contraste élevé |
-| 59 | Taille du texte de Windows | #73 | **ouverte** : la notch garde la taille de son texte, les Réglages suivent (choix de l'auteur) ; pas vu avec un texte agrandi |
-| 88 | Minuteur et focus ensemble | #74 | **ouverte** : ils alternaient chaque seconde en tête de pile ; test qui échoue sans le correctif |
+| 84, 73 | Tests dépendant de la langue globale | #63 | fusionnée : les tests qui basculent la langue forment une collection sans parallélisme ; un test de garde refuse qu'un autre fichier la bascule (n° 87 : expression régulière, |=, &=, ^= compris) ; avant : 1 échec sur 10 passages, après : 10 sur 10 verts |
+| 86 | Fins de session sans test | #64 | fusionnée : 4 tests, horloge injectée, battement joué à la main (le vrai neutralisé) ; défaire un correctif de #60 fait échouer 2 tests |
+| 85 | Raccourci « aller à la notch » au Tab ; index « Aucun » | #65 | fusionnée : UIA, élément focalisable « Aller à la notch : Win+Alt+N », avec l'aide de la carte ; chercher « aucun » ne montre plus la carte |
+| 74 | Deux échantillonneurs du processeur | #66 | fusionnée : une mesure partagée ; 13 mesures par minute au lieu de 44 (test) ; CPU au repos non concluant (bruit) |
+| 23 | Réglages d'expert exposés à tous | #67 | fusionnée : interrupteur « Afficher les réglages avancés », éteint ; 23 cartes masquées, la recherche les trouve (UIA) |
+| 63 | Tuile Presse-papier grisée | #68 | fusionnée : historique éteint, la tuile et le menu proposent de l'activer ; refermer vaut « Plus tard » ; **prouvé à l'écran** (et le sous-titre des cartes passe enfin à la ligne) |
+| 75 | Pomodoro en doublon, Discord et Canal local | #69 | fusionnée : « Focus 25 min » dans le Minuteur ; Discord éteint par défaut, allumé en le reliant ; **prouvé à l'écran** (menu agrandi pendant un focus) |
+| 22 | Mouvement réduit | #71 | fusionnée : la forme apparaît en fondu (140 ms) au lieu de sauter ; Pixel calmé, immobile, humeurs gardées (choix de l'auteur) ; tests de Core ; pas vu à l'écran |
+| 57 | Réglages en contraste élevé | #72 | fusionnée : 10 jetons de thème, couleurs du système en contraste élevé ; UIA : sept pages ; pas vu en contraste élevé |
+| 59 | Taille du texte de Windows | #73 | fusionnée : la notch garde la taille de son texte, les Réglages suivent (choix de l'auteur) ; **prouvé à l'écran à 150 %** |
+| 88 | Minuteur et focus ensemble | #74 | fusionnée : ils alternaient chaque seconde en tête de pile ; test qui échoue sans le correctif |
+| 54, direction §7.9 | Intensité de Pixel ; « Pixel actif par défaut » | #75 | **ouverte** : Calme / Normal / Expressif (choix de l'auteur), Normal par défaut ; le n° 54 est tranché par ADR-029 (Pixel vit au repos) |
 
 ## Sans objet pour un projet gratuit
 
@@ -67,7 +68,6 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 4 | **Non signé** : SmartScreen « Windows a protégé votre PC » à chaque version ; le Contrôle intelligent des applications bloque | `release.yml:115` ✔ ; [SmartScreen](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation) | fort | M | faible (SignPath) |
 | 5 | Une demande d'administrateur à chaque mise à jour (certificat éphémère par version) | `release.yml:115-135` ✔ | fort | M | lié à n° 4 |
 | 52 | **Mise à jour automatique par défaut, sans signature indépendante de GitHub** ; 27 versions en 10 jours installées seules | `UpdateClient.cs:90` ✔ (empreinte prise dans la même release) ; `AppSettings.cs:591` | fort (confiance) | S–M | moyen |
-| 54 | **Pixel actif par défaut**, réactivé une fois par migration : contredit « Alive, never busy » (§15 : aucune animation permanente) | `AppSettings.cs:569, 833-836` ✔ | fort (identité) | S | décision (direction) |
 
 ## P1 — gêne un usage normal
 
@@ -107,6 +107,7 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 89 | Notch agrandie avec la taille du texte de Windows, plafonnée à 150 % (forme et contenu) ; ADR à écrire | n° 59, choix « notch fixe » pour l'instant | L |
 | 90 | Réglages : fond et barre de titre choisis à l'ouverture seulement ; un passage en contraste élevé pendant qu'ils sont ouverts demande de les rouvrir | relecture de #72 | S |
 | 91 | Mouvement réduit : le halo et l'ombre (`AtmosphereWindow`) sautent encore ; « Rebond » éteint passe aussi en fondu au lieu d'un ressort sans dépassement | #71 | S |
+| 92 | Réglages : changer le raccourci de recherche ou l'écran n'est appliqué qu'au redémarrage (`OnSettingsChanged` compare l'objet à lui-même : le service le modifie sur place) | relecture de #75 | S |
 | 80 | Une instance de développement (`winapp run`) ne reçoit pas `SpaceNotch.exe --hook` lancé par Git Bash, alors que la notch installée le reçoit ; cause non établie (identité de paquet, propriétaire du tube) | essais du 2026-10-06 et du 2026-10-10 | S |
 | 39 | **Store en MSIX complet** : à étudier, pas à construire (voir direction) ; le Store n'accepte un installeur exe que signé | ADR-023 ; [exigences exe/MSI du Store](https://learn.microsoft.com/windows/apps/publish/publish-your-app/msi/app-package-requirements) | L |
 | 67 | winget : possible dès maintenant (avec `--notifications=off`), plus simple une fois signé | `SetupCommand.cs:54` | S |
@@ -126,8 +127,8 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 
 ## Ordre proposé
 
-1. Preuves à l'écran avec l'auteur : #68, #69 ; #71 (effets d'animation coupés), #72 (contraste élevé), #73 (texte à 150 %).
-2. Fusions, dans l'ordre du relais du 2026-10-12 (soir).
-3. Après la réponse de SignPath : n° 82 ; puis n° 4, 5 et 67 (winget).
-4. Direction : intensité de Pixel (direction §7) ; n° 54.
-5. Le reste des P1 courts ; n° 89 si l'auteur le veut.
+1. #75 (intensité de Pixel) : preuve à l'écran en Calme et en Expressif, puis fusion si l'auteur le demande.
+2. n° 92 (détection des changements de réglages) : court, déjà proposé en tâche à part.
+3. Preuves restées à faire : #71 (effets d'animation coupés), #72 (contraste élevé).
+4. Après la réponse de SignPath : n° 82 ; puis n° 4, 5 et 67 (winget).
+5. Le reste des P1 courts ; décisions de la direction §7 (points 2 à 8) ; n° 89 si l'auteur le veut.
