@@ -1,4 +1,4 @@
-# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-12)
+# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-12, soir)
 
 Première version : 2026-10-04, écrite « pour vendre ». L'auteur l'a précisé le 2026-10-05 :
 SpaceNotch reste **gratuite et open source**, sans vente. Cette version re-trie tout pour ce cadre.
@@ -39,7 +39,17 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 81 | Raccourci « aller à la notch » | #61 | fusionnée : carte des Réglages, lue « Actif : Win+Alt+N » (UIA) |
 | 77 | README et PRIVACY de « Me prévenir » | #58 | fusionnée |
 | 83, 79 | ADR-029 acceptée ; README, langage visuel et §15 autour de Pixel | #59 | fusionnée : au repos, Pixel compris, 0,13 à 0,18 % d'un cœur (mesuré le 2026-10-11) |
-| 84, 73 | Tests dépendant de la langue globale | #63 | **ouverte** : les tests qui basculent la langue forment une collection sans parallélisme ; un test de garde refuse qu'un autre fichier la bascule ; avant : 1 échec sur 10 passages, après : 10 sur 10 verts |
+| 84, 73 | Tests dépendant de la langue globale | #63 | **ouverte** : les tests qui basculent la langue forment une collection sans parallélisme ; un test de garde refuse qu'un autre fichier la bascule (n° 87 : expression régulière, |=, &=, ^= compris) ; avant : 1 échec sur 10 passages, après : 10 sur 10 verts |
+| 86 | Fins de session sans test | #64 | **ouverte** : 4 tests, horloge injectée, battement joué à la main (le vrai neutralisé) ; défaire un correctif de #60 fait échouer 2 tests |
+| 85 | Raccourci « aller à la notch » au Tab ; index « Aucun » | #65 | **ouverte** : UIA, élément focalisable « Aller à la notch : Win+Alt+N », avec l'aide de la carte ; chercher « aucun » ne montre plus la carte |
+| 74 | Deux échantillonneurs du processeur | #66 | **ouverte** : une mesure partagée ; 13 mesures par minute au lieu de 44 (test) ; CPU au repos non concluant (bruit) |
+| 23 | Réglages d'expert exposés à tous | #67 | **ouverte** : interrupteur « Afficher les réglages avancés », éteint ; 23 cartes masquées, la recherche les trouve (UIA) |
+| 63 | Tuile Presse-papier grisée | #68 | **ouverte** : historique éteint, la tuile propose de l'activer ; refermer vaut « Plus tard » ; preuve à l'écran à faire |
+| 75 | Pomodoro en doublon, Discord et Canal local | #69 | **ouverte**, après #67 : « Focus 25 min » dans le Minuteur ; Discord éteint par défaut, allumé en le reliant ; preuve à l'écran à faire |
+| 22 | Mouvement réduit | #71 | **ouverte** : la forme apparaît en fondu (140 ms) au lieu de sauter ; Pixel calmé, immobile, humeurs gardées (choix de l'auteur) ; tests de Core ; pas vu à l'écran |
+| 57 | Réglages en contraste élevé | #72 | **ouverte** : 10 jetons de thème, couleurs du système en contraste élevé ; UIA : sept pages ; pas vu en contraste élevé |
+| 59 | Taille du texte de Windows | #73 | **ouverte** : la notch garde la taille de son texte, les Réglages suivent (choix de l'auteur) ; pas vu avec un texte agrandi |
+| 88 | Minuteur et focus ensemble | #74 | **ouverte** : ils alternaient chaque seconde en tête de pile ; test qui échoue sans le correctif |
 
 ## Sans objet pour un projet gratuit
 
@@ -73,16 +83,12 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 19 | Alt+Espace pris globalement | `GlobalHotkey.cs:45` | moyen | S | faible |
 | 20 | Installeur : échec sans raison ; deux UAC de suite en « pour tous » | `SetupWindow.xaml.cs:540-599` | moyen | S–M | faible |
 | 21 | Notch minimisée par un tiers : ne revient pas | `IslandWindow.xaml.cs:280` ✔ | moyen ? | S | faible |
-| 22 | Mouvement réduit : coupure sèche au lieu du fondu promis | `IslandController.cs:851` ✔ | moyen (a11y) | S | faible |
 | 34 | Écran mémorisé par `HMONITOR`, invalide après redémarrage | `AppSettings.cs:212` | moyen | S | faible |
 | 35 | Veille et reprise non traitées | `IslandWindow.PixelLife.cs:133-172` | moyen | S–M | faible |
 | 56 | **Aucun chemin pour signaler un problème** : le bouton « Fichiers » ouvre `%AppData%`, le journal est dans `%LocalAppData%` ; pas de modèle d'issue | `SettingsWindow.xaml.cs:1159` ; `MiniLogger.cs:43-48` | moyen | S | faible |
-| 57 | **Réglages en contraste élevé** : cartes et descriptions en couleurs codées en dur | `Controls.xaml:284-309` | moyen (a11y) | M | faible |
-| 59 | Taille du texte de Windows (jusqu'à 225 %) ignorée | aucun `TextScaleFactor` dans `src` | moyen (a11y) | M | moyen |
 | 60 | Barre des tâches en haut (StartAllBack, ExplorerPatcher) : la notch la recouvre — touche la règle n° 1 du §15, ADR nécessaire | `IslandWindow.xaml.cs:2227-2230` | moyen | M | décision |
 | 61 | Présentation du premier lancement : enseigne encore le clic droit, pas les tuiles d'ADR-028 ; README français faux sur le clic droit | `WelcomeScene.xaml.cs:85-87` ; `README.fr.md:111` | moyen | S | faible |
 | 62 | Tuile Minuteur : lance 15 min sans le dire ; écrase un minuteur en pause | `QuickMenuTiles.cs:32` ; `IslandWindow.QuickMenu.cs:110` | moyen | S | faible |
-| 63 | Tuile Presse-papier grisée sur une installation neuve (historique éteint par défaut) | `AppSettings.cs:469` ; `LauncherScene.xaml.cs:1332` | moyen | S | décision |
 | 64 | Molette au repos : avec « Survoler pour aperçu » éteint, la pile du presse-papier est injoignable | `IslandWindow.xaml.cs:3251` | faible | S | faible |
 | 65 | Réglages « Démarrer avec Windows » affiché activé alors que Windows l'a désactivé (Gestionnaire des tâches) | constaté sur l'installation de l'auteur le 2026-10-05 | moyen | S | faible |
 | 66 | Une copie de développement peut encore réécrire la clé de démarrage partagée (Réglages ouverts depuis le build) | `SettingsWindow.xaml.cs:387` | faible (dev) | S | faible |
@@ -93,16 +99,14 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 42 | Faux positifs antivirus | `IdentityManifestFile.cs:23-56` | moyen | M | réputation |
 | 43 | Consommation sur batterie non mesurée ; économiseur d'énergie ignoré | aucun `EnergySaverStatus` | moyen (portables) | S | faible |
 | 44 | Carte « actions sur copie » qui revient | `CopyAssistFeature.cs:134` | faible | S | faible |
-| 23 | Réglages d'expert exposés à tous ; ~79 interrupteurs sur 7 pages | `SettingsWindow.xaml:494…` | moyen | M | faible |
 
 ## P2 — qualité, dette, confort
 
 | # | Sujet | Preuve | Effort |
 |---|---|---|---|
-| 85 | Au Tab, la carte « Aller à la notch » n'est pas annoncée (aucun élément focalisable) ; la carte de recherche est indexée sur son texte « Aucun » (héritée) | relecture de #61 | S |
-| 86 | Pas de test pour les fins de session (Pomodoro, minuteur) : elles se jouent dans des rappels privés | relecture de #60 | S |
-| 87 | Le test de garde de la langue (#63) lit le texte des fichiers de test : un `Lang.French =` écrit autrement lui échappe | relecture de #63 | S |
-| 88 | Un focus et un minuteur peuvent tourner ensemble : les deux s'affichent-ils lisiblement dans la notch repliée ? Non vérifié | relecture de #69 | S |
+| 89 | Notch agrandie avec la taille du texte de Windows, plafonnée à 150 % (forme et contenu) ; ADR à écrire | n° 59, choix « notch fixe » pour l'instant | L |
+| 90 | Réglages : fond et barre de titre choisis à l'ouverture seulement ; un passage en contraste élevé pendant qu'ils sont ouverts demande de les rouvrir | relecture de #72 | S |
+| 91 | Mouvement réduit : le halo et l'ombre (`AtmosphereWindow`) sautent encore ; « Rebond » éteint passe aussi en fondu au lieu d'un ressort sans dépassement | #71 | S |
 | 80 | Une instance de développement (`winapp run`) ne reçoit pas `SpaceNotch.exe --hook` lancé par Git Bash, alors que la notch installée le reçoit ; cause non établie (identité de paquet, propriétaire du tube) | essais du 2026-10-06 et du 2026-10-10 | S |
 | 39 | **Store en MSIX complet** : à étudier, pas à construire (voir direction) ; le Store n'accepte un installeur exe que signé | ADR-023 ; [exigences exe/MSI du Store](https://learn.microsoft.com/windows/apps/publish/publish-your-app/msi/app-package-requirements) | L |
 | 67 | winget : possible dès maintenant (avec `--notifications=off`), plus simple une fois signé | `SetupCommand.cs:54` | S |
@@ -110,8 +114,6 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 70 | Rapide : arrêter un nouveau `TryEnqueue`/`Tick` nu (analyseur de symboles interdits — dépendance NuGet à approuver) | #45 | S |
 | 71 | Après des fautes répétées dans le rendu, proposer de relancer plutôt que de continuer en silence | #45 | S |
 | 72 | Reflet par le compositeur (~0 % du fil d'interface) | #47 | M |
-| 74 | Moniteur CPU interrogé en continu, activé par défaut, doublon de l'échantillonneur de Pixel | `SystemMonitorFeature.cs:72` ; `PixelLife.cs:19` | S |
-| 75 | Pomodoro en doublon du Minuteur ; Discord et Canal local sans description, activés par défaut | `AppSettings.cs:670-688` | S–M |
 | 24 | Mémoire 214–311 Mo mesurés ; Native AOT non évalué | `performance.md:59` | L |
 | 25 | Restes de la phase D | `performance.md:142-148` | M–L |
 | 26 | Machine à états en ombre ; `IslandWindow` = 31 fichiers | audit §4 | L |
@@ -124,9 +126,8 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 
 ## Ordre proposé
 
-1. Preuves à l'écran de #68 et #69, puis fusion de #63 à #69 (#67 avant #69 ; #68 et #69 se touchent : la seconde fusionnée est remise à jour).
-2. Après la réponse de SignPath : n° 82.
-3. Signature : n° 4 et n° 5 (SignPath Foundation en premier, n° 82), puis n° 67 (winget).
+1. Preuves à l'écran avec l'auteur : #68, #69 ; #71 (effets d'animation coupés), #72 (contraste élevé), #73 (texte à 150 %).
+2. Fusions, dans l'ordre du relais du 2026-10-12 (soir).
+3. Après la réponse de SignPath : n° 82 ; puis n° 4, 5 et 67 (winget).
 4. Direction : intensité de Pixel (direction §7) ; n° 54.
-5. Accessibilité : n° 57, 59, 22.
-6. Le reste des P1 courts.
+5. Le reste des P1 courts ; n° 89 si l'auteur le veut.
