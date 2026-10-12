@@ -267,6 +267,7 @@ public sealed partial class IslandWindow : Window
         _settingsService.WriteFailed = (path, ex) => MiniLogger.Log($"[CONFIG] écriture impossible : {path}", ex);
 
         _settings = _settingsService.Current;
+        _appliedPixelIntensity = _settings.PixelIntensity;
 
         // Le bord et la position enregistrés : la notch redémarre là où elle a
         // été accrochée la dernière fois (ADR-020).
@@ -4141,13 +4142,23 @@ public sealed partial class IslandWindow : Window
             || settings.CustomDisplayHandle != _settings.CustomDisplayHandle;
 
         bool hotkeyChanged = settings.LauncherHotkey != _settings.LauncherHotkey;
-        bool pixelIntensityChanged = settings.PixelIntensity != _settings.PixelIntensity;
+        // Le service modifie ses réglages sur place et notifie avec le même objet :
+        // l'intensité appliquée est donc gardée à part, sinon aucun changement ne
+        // se verrait (relecture de #75).
+        bool pixelIntensityChanged = settings.PixelIntensity != _appliedPixelIntensity;
+        _appliedPixelIntensity = settings.PixelIntensity;
 
         _settings = settings;
 
-        // Calme, normal ou expressif : Pixel déjà vivant suit sur-le-champ.
+        // Calme, normal ou expressif : Pixel déjà vivant suit sur-le-champ, et le
+        // prochain bâillement prend le nouveau rythme.
         if (pixelIntensityChanged)
         {
+            if (_nextYawn != DateTime.MaxValue)
+            {
+                _nextYawn = DateTime.UtcNow + PixelVitals.NextYawn(_yawnSeed++, settings.PixelIntensity);
+            }
+
             OnPixelCalmChanged();
         }
         _clipboardFeature.IgnoreSecrets = settings.ClipboardIgnoreSecrets;

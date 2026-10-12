@@ -36,13 +36,21 @@ public sealed partial class IslandWindow
 
     private bool PixelExpressive => !PixelCalm && _settings.PixelIntensity == PixelIntensity.Expressive;
 
-    /// <summary>Dernière position du pointeur, et depuis quand il n'a pas bougé (Pixel expressif).</summary>
-    private NativeMethods.POINT _lastCursor;
+    /// <summary>L'intensité déjà appliquée : les réglages arrivent modifiés sur place.</summary>
+    private PixelIntensity _appliedPixelIntensity;
+
+    /// <summary>
+    /// Dernière position du pointeur, et depuis quand il n'a pas bougé (Pixel
+    /// expressif). Vide avant la première lecture : un pointeur en (0,0) n'est
+    /// pas pris pour un pointeur immobile depuis le démarrage.
+    /// </summary>
+    private NativeMethods.POINT? _lastCursor;
     private DateTime _cursorStillSince = DateTime.UtcNow;
 
     /// <summary>
-    /// Windows vient de réduire ou de rétablir les animations : Pixel déjà vivant
-    /// suit aussitôt — le clignement reprend, ou s'arrête avec la goutte qui glisse.
+    /// Windows vient de réduire ou de rétablir les animations, ou l'intensité de
+    /// Pixel a changé : Pixel déjà vivant suit aussitôt — le clignement reprend,
+    /// ou s'arrête avec la goutte qui glisse.
     /// </summary>
     private void OnPixelCalmChanged()
     {
@@ -91,8 +99,8 @@ public sealed partial class IslandWindow
             return;
         }
 
-        // Seul le mouvement réduit de Windows calme Pixel (ADR-029) ; « Rebond »
-        // ne concerne que le dépassement de la forme.
+        // Calmé par le mouvement réduit de Windows ou l'intensité « Calme » ;
+        // « Rebond » ne concerne que le dépassement de la forme.
         RestEyes.Animate = !PixelCalm;
 
         // Session verrouillée ou notch retirée : les yeux restent fermés, rien ne
@@ -211,14 +219,15 @@ public sealed partial class IslandWindow
             return;
         }
 
-        if (cursor.X != _lastCursor.X || cursor.Y != _lastCursor.Y)
+        if (_lastCursor is not { } last || cursor.X != last.X || cursor.Y != last.Y)
         {
             _lastCursor = cursor;
             _cursorStillSince = DateTime.UtcNow;
         }
 
-        // Expressif : un pointeur oublié ne fige pas le regard, Pixel regarde autour de lui.
-        if (PixelExpressive && PixelGaze.Wander(DateTime.UtcNow - _cursorStillSince) is { } wander)
+        // Expressif : un pointeur oublié ne fige pas le regard, Pixel regarde autour
+        // de lui — éveillé seulement : survolé ou surpris, il regarde le pointeur.
+        if (PixelExpressive && mood == PixelMood.Awake && PixelGaze.Wander(DateTime.UtcNow - _cursorStillSince) is { } wander)
         {
             RestEyes.Look(wander.X, wander.Y);
             return;

@@ -843,6 +843,9 @@ public sealed partial class SettingsWindow : Window
     {
         var intensity = (PixelIntensity)Math.Clamp(PixelIntensityBox.SelectedIndex, 0, 2);
         PixelIntensityDescription.Text = PixelIntensityText(intensity);
+
+        // Le Narrateur lit la description du choix en cours, pas celle de l'ouverture.
+        AutomationProperties.SetHelpText(PixelIntensityBox, PixelIntensityDescription.Text);
         Apply(s => s.PixelIntensity = intensity);
     }
 
