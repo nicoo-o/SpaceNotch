@@ -808,6 +808,8 @@ public sealed partial class IslandWindow : Window
             RequestRender();
         };
         _activityManager.ActivityRemoved += (_, activity) => OnUiThread(() => ShadowForget(activity));
+        // Animations réduites : la forme ne saute plus, elle apparaît en fondu (n° 22).
+        _controller.ShapeSnapped += (_, _) => OnUiThread(() => SpaceNotch_App.Animations.ContentTransition.Dissolve(RootLayout));
         _controller.AnimationCompleted += (_, _) =>
         {
             RequestRender();

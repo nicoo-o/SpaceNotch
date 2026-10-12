@@ -82,7 +82,27 @@ public sealed partial class PixelEyesView : Grid
     }
 
     /// <summary>Faux quand Windows réduit les animations : le regard se pose sans ressort.</summary>
-    public bool Animate { get; set; } = true;
+    /// <remarks>Appliqué aussi après le chargement : la préférence de Windows peut changer en cours de route.</remarks>
+    public bool Animate
+    {
+        get => _animate;
+        set
+        {
+            if (_animate == value)
+            {
+                return;
+            }
+
+            _animate = value;
+
+            if (IsLoaded)
+            {
+                EnableSprings();
+            }
+        }
+    }
+
+    private bool _animate = true;
 
     public PixelMood Mood => _mood;
 
@@ -245,6 +265,16 @@ public sealed partial class PixelEyesView : Grid
             return;
         }
 
+        // Mouvement réduit : la goutte reste posée près de l'œil, sans glisser (n° 22).
+        if (!Animate)
+        {
+            _sweatTimer?.Stop();
+            Canvas.SetLeft(_drop, _rightCell.ActualOffset.X + _rightCell.ActualWidth + 3);
+            Canvas.SetTop(_drop, 2);
+            _drop.Opacity = 1;
+            return;
+        }
+
         if (_sweatTimer is { IsRunning: true })
         {
             return;
@@ -293,17 +323,12 @@ public sealed partial class PixelEyesView : Grid
         }
     }
 
-    /// <summary>Le regard glisse vers sa nouvelle direction au lieu d'y sauter.</summary>
+    /// <summary>Le regard glisse vers sa nouvelle direction au lieu d'y sauter ; sans animation, il s'y pose.</summary>
     private void EnableSprings()
     {
-        if (!Animate)
-        {
-            return;
-        }
-
         foreach (Grid cell in new[] { _leftCell, _rightCell })
         {
-            cell.TranslationTransition = new Vector3Transition { Duration = TimeSpan.FromMilliseconds(180) };
+            cell.TranslationTransition = Animate ? new Vector3Transition { Duration = TimeSpan.FromMilliseconds(180) } : null;
         }
     }
 

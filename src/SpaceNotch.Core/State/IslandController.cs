@@ -219,6 +219,13 @@ public sealed class IslandController : IDisposable
     public event EventHandler? AnimationCompleted;
 
     /// <summary>
+    /// La forme vient de changer sans ressort (animations réduites) : l'hôte
+    /// remplace le saut par un fondu court (n° 22, §7 : « ressorts → fondus de
+    /// 90–160 ms »).
+    /// </summary>
+    public event EventHandler? ShapeSnapped;
+
+    /// <summary>
     /// Encombrement de l'aperçu au survol.
     ///
     /// Fourni par la fenêtre, et non calculé ici : le survol ne fait pas
@@ -835,8 +842,8 @@ public sealed class IslandController : IDisposable
 
     /// <summary>
     /// Résout l'encombrement en cours. Le ressort n'est utilisé que si Windows
-    /// autorise les animations ; sinon la géométrie est appliquée directement,
-    /// ce qui reste perceptible mais évite tout mouvement.
+    /// autorise les animations ; sinon la géométrie est posée directement et
+    /// <see cref="ShapeSnapped"/> laisse l'hôte la faire apparaître en fondu.
     /// </summary>
     private void AnimateTo(IslandFootprint target)
     {
@@ -848,8 +855,14 @@ public sealed class IslandController : IDisposable
             return;
         }
 
+        bool changed = _animator.Current != target;
         _animator.SnapTo(target);
         Settle();
+
+        if (changed)
+        {
+            ShapeSnapped?.Invoke(this, EventArgs.Empty);
+        }
     }
 
     /// <summary>
