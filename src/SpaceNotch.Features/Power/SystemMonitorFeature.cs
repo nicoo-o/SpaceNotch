@@ -49,13 +49,20 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
     private static readonly TimeSpan CalmPeriod = TimeSpan.FromSeconds(5);
 
     /// <summary>
+    /// Une mesure de Pixel prise il y a moins d'une seconde est reprise telle
+    /// quelle : en refaire une aussitôt la ferait porter sur quelques
+    /// millisecondes, donc 0 % ou du bruit (relecture de n° 74). Plus court que
+    /// la période la plus rapide (2 s) : jamais deux fois la même valeur.
+    /// </summary>
+    private static readonly TimeSpan SharedFreshness = TimeSpan.FromSeconds(1);
+
+    /// <summary>
     /// Fenêtre de confirmation : fermer une application peut faire perdre un
     /// travail non enregistré (un rendu, un document). Le premier clic arme
     /// le bouton, seul un second clic dans ce délai ferme.
     /// </summary>
     public static readonly TimeSpan ConfirmWindow = TimeSpan.FromSeconds(3);
 
-    private readonly CpuSampler _sampler = new();
     private readonly CpuWatch _watch = new();
     private readonly Timer _timer;
     private readonly object _gate = new();
@@ -77,7 +84,8 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
 
     protected override Task OnStartAsync(CancellationToken cancellationToken)
     {
-        _sampler.Sample();
+        // Une mesure amorce l'écart de temps processeur ; Pixel lit ensuite les nôtres.
+        CpuLoad.Shared.Get(SharedFreshness);
         _sampling = true;
         _timer.Change(CalmPeriod, Timeout.InfiniteTimeSpan);
         return Task.CompletedTask;
@@ -102,7 +110,7 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
 
         try
         {
-            Add(_sampler.Sample(), DateTimeOffset.UtcNow);
+            Add(CpuLoad.Shared.Get(SharedFreshness), DateTimeOffset.UtcNow);
         }
         catch (Exception ex)
         {

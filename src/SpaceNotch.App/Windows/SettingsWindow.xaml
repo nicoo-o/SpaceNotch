@@ -260,7 +260,11 @@
                                 <TextBlock Text="{l:Loc Fr='Aller à la notch', En='Go to the notch'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Donne le clavier à la notch depuis n’importe quelle application : flèches pour parcourir, Échap pour revenir.', En='Moves the keyboard to the notch from any app: arrows to browse, Esc to go back.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
                             </StackPanel>
-                            <StackPanel x:Name="FocusHotkeyCaps" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" Orientation="Horizontal" Spacing="4" />
+                            <!-- Une carte sans contrôle n'était jamais atteinte au Tab : le raccourci
+                                 se prend le focus et se fait lire en entier (n° 85). -->
+                            <ContentControl x:Name="FocusHotkeyHost" Grid.Row="1" Grid.Column="1" Margin="0,8,0,0" HorizontalAlignment="Left" IsTabStop="True" UseSystemFocusVisuals="True">
+                                <StackPanel x:Name="FocusHotkeyCaps" Orientation="Horizontal" Spacing="4" />
+                            </ContentControl>
                         </Grid>
                     </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Moteur de recherche web Utilisé quand aucune application ne correspond.">
