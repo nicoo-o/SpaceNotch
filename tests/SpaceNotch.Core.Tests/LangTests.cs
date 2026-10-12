@@ -62,8 +62,9 @@ public class LangTests
     }
 
     // n° 87 : la garde lisait « Lang.French = » à la lettre ; un espace, un nom
-    // complet ou une affectation composée lui échappaient.
-    private static readonly Regex Assignment = new(@"\bLang\s*\.\s*French\s*(=(?!=)|\?\?=)", RegexOptions.CultureInvariant);
+    // complet ou une affectation composée (|=, &=, ^=) lui échappaient. « == »
+    // et « => » (bras de switch) sont des lectures.
+    private static readonly Regex Assignment = new(@"\bLang\s*\.\s*French\s*(=(?![=>])|[|&^]=)", RegexOptions.CultureInvariant);
 
     private static bool ChangesTheLanguage(string text) => Assignment.IsMatch(text);
 
@@ -72,7 +73,9 @@ public class LangTests
     [InlineData("Lang.French=false;")]
     [InlineData("Lang . French = true;")]
     [InlineData("SpaceNotch.Core.Localization.Lang.French = before;")]
-    [InlineData("Lang.French ??= true;")]
+    [InlineData("Lang.French |= true;")]
+    [InlineData("Lang.French &= false;")]
+    [InlineData("Lang.French ^= true;")]
     public void TheGuardSeesEveryWayOfChangingTheLanguage(string line)
         => Assert.True(ChangesTheLanguage(line));
 
@@ -81,6 +84,7 @@ public class LangTests
     [InlineData("bool french = Lang.French;")]
     [InlineData("Assert.True(Lang.French);")]
     [InlineData("MyLang.French = true;")]
+    [InlineData("string s = x switch { _ when Lang.French => \"fr\", _ => \"en\" };")]
     public void TheGuardIgnoresReadingTheLanguage(string line)
         => Assert.False(ChangesTheLanguage(line));
 
