@@ -785,7 +785,7 @@
                                 <TextBlock Text="{l:Loc Fr='Couleur personnalisée', En='Custom colour'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Un code hexadécimal, par exemple #14161C.', En='A hex code, for example #14161C.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
                             </StackPanel>
-                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><TextBox x:Name="CustomColorBox" Width="110" PlaceholderText="#14161C" MaxLength="7" TextChanged="OnCustomColorChanged" /><Border x:Name="CustomColorSwatch" Width="30" Height="30" CornerRadius="8" BorderThickness="1" BorderBrush="#30FFFFFF" /></StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><TextBox x:Name="CustomColorBox" Width="110" PlaceholderText="#14161C" MaxLength="7" TextChanged="OnCustomColorChanged" /><Border x:Name="CustomColorSwatch" Width="30" Height="30" CornerRadius="8" BorderThickness="1" BorderBrush="{ThemeResource NfSettingsCardStrokeBrush}" /></StackPanel>
                         </Grid>
                     </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Opacité de la surface ">
