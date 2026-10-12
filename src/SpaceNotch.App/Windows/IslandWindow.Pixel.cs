@@ -27,11 +27,18 @@ public sealed partial class IslandWindow
     private bool PixelAtRest => _settings.ShowPixel && !UsesSideTab;
 
     /// <summary>
-    /// Windows réduit les animations : Pixel se calme (ADR-029, n° 22). Yeux
-    /// ouverts et fixes, sans clignement, coup d'œil, bâillement ni battement ;
-    /// il change encore d'humeur (survol, sommeil, soir), en fondu.
+    /// Windows réduit les animations, ou l'intensité « Calme » est choisie :
+    /// Pixel se calme (ADR-029, n° 22). Yeux ouverts et fixes, sans clignement,
+    /// coup d'œil, bâillement ni battement ; il change encore d'humeur (survol,
+    /// sommeil, soir), en fondu.
     /// </summary>
-    private bool PixelCalm => !_visualState.UseSpringAnimations;
+    private bool PixelCalm => !_visualState.UseSpringAnimations || _settings.PixelIntensity == PixelIntensity.Calm;
+
+    private bool PixelExpressive => !PixelCalm && _settings.PixelIntensity == PixelIntensity.Expressive;
+
+    /// <summary>Dernière position du pointeur, et depuis quand il n'a pas bougé (Pixel expressif).</summary>
+    private NativeMethods.POINT _lastCursor;
+    private DateTime _cursorStillSince = DateTime.UtcNow;
 
     /// <summary>
     /// Windows vient de réduire ou de rétablir les animations : Pixel déjà vivant
@@ -201,6 +208,19 @@ public sealed partial class IslandWindow
 
         if (!NativeMethods.GetCursorPos(out NativeMethods.POINT cursor))
         {
+            return;
+        }
+
+        if (cursor.X != _lastCursor.X || cursor.Y != _lastCursor.Y)
+        {
+            _lastCursor = cursor;
+            _cursorStillSince = DateTime.UtcNow;
+        }
+
+        // Expressif : un pointeur oublié ne fige pas le regard, Pixel regarde autour de lui.
+        if (PixelExpressive && PixelGaze.Wander(DateTime.UtcNow - _cursorStillSince) is { } wander)
+        {
+            RestEyes.Look(wander.X, wander.Y);
             return;
         }
 

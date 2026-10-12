@@ -89,6 +89,10 @@ public static class PixelVitals
         return TimeSpan.FromSeconds(40 + ((h % 5000) / 5000.0 * 50));
     }
 
+    /// <summary>Expressif : les bâillements du soir reviennent deux fois plus vite (20 à 45 s).</summary>
+    public static TimeSpan NextYawn(int seed, PixelIntensity intensity)
+        => intensity == PixelIntensity.Expressive ? NextYawn(seed) / 2 : NextYawn(seed);
+
     // ---- Il danse sur la musique ----------------------------------------------
 
     /// <summary>Battements par seconde : deux par seconde, un tempo de 120.</summary>

@@ -568,6 +568,12 @@ public sealed class AppSettings
     public bool ShowPixel { get; set; } = true;
 
     /// <summary>
+    /// Intensité de Pixel : calme, normal (par défaut) ou expressif (direction §7,
+    /// point 9). Le mouvement réduit de Windows le calme quoi qu'il en soit.
+    /// </summary>
+    public SpaceNotch.Core.Motion.PixelIntensity PixelIntensity { get; set; } = SpaceNotch.Core.Motion.PixelIntensity.Normal;
+
+    /// <summary>
     /// Vrai une fois que Pixel a été proposé par défaut. Les configurations
     /// écrites quand il était désactivé par défaut le reçoivent une fois ;
     /// l'éteindre ensuite dans Réglages est respecté.
@@ -989,6 +995,11 @@ public sealed class AppSettings
         if (!Enum.IsDefined(UpdateMode))
         {
             UpdateMode = SpaceNotch.Core.Update.UpdateMode.Notify;
+        }
+
+        if (!Enum.IsDefined(PixelIntensity))
+        {
+            PixelIntensity = SpaceNotch.Core.Motion.PixelIntensity.Normal;
         }
 
         // Encoche de la caméra : « À gauche » et « À droite » n'ont jamais rien

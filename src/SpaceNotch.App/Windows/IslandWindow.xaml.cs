@@ -4141,8 +4141,15 @@ public sealed partial class IslandWindow : Window
             || settings.CustomDisplayHandle != _settings.CustomDisplayHandle;
 
         bool hotkeyChanged = settings.LauncherHotkey != _settings.LauncherHotkey;
+        bool pixelIntensityChanged = settings.PixelIntensity != _settings.PixelIntensity;
 
         _settings = settings;
+
+        // Calme, normal ou expressif : Pixel déjà vivant suit sur-le-champ.
+        if (pixelIntensityChanged)
+        {
+            OnPixelCalmChanged();
+        }
         _clipboardFeature.IgnoreSecrets = settings.ClipboardIgnoreSecrets;
 
         // Le raccourci choisi dans les réglages remplace l'actuel tout de suite ;
