@@ -161,5 +161,5 @@ fichiers du dépôt passent par une PR.
    (règle n° 1 du §15) ou proposer un bord latéral. Il faut un ADR.
 7. **Plus de deux langues un jour** : si oui, changer `Lang.T` avant qu'il ne grossisse encore.
 8. **Ouvrir aux contributions** : protection de `main`, CI obligatoire, CONTRIBUTING.
-9. **Pixel : un réglage d'intensité** (calme, normal, expressif), qui ne contredit pas
-   « vivant sans limite ».
+9. ~~Pixel : un réglage d'intensité~~ : tranché (2026-10-12), Calme / Normal / Expressif,
+   Normal par défaut ; le mouvement réduit de Windows le calme quoi qu'il en soit (#75).
