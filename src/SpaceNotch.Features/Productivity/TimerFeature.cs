@@ -64,6 +64,12 @@ public sealed class TimerFeature : IslandFeatureBase
 
     private readonly Func<DateTimeOffset> _now;
 
+    /// <summary>
+    /// Le battement (fil du pool) et un geste (fil d'interface) publient tous
+    /// deux : sans ce verrou, un battement en vol pouvait republier l'ancienne
+    /// date après le geste et renvoyer l'activité derrière (relecture du n° 88).
+    /// </summary>
+    private readonly object _publishGate = new();
 
     public TimerFeature(IActivityManager activities, IEventBus events, bool isEnabled = true, Func<DateTimeOffset>? now = null)
         : base(FeatureKey, "Minuteur", activities, events, isEnabled)
@@ -225,33 +231,36 @@ public sealed class TimerFeature : IslandFeatureBase
 
     private void Publish(bool byUser = false)
     {
-        _published = _clock.Value;
-
-        if (byUser || _since is null)
+        lock (_publishGate)
         {
-            _since = _now();
+            _published = _clock.Value;
+
+            if (byUser || _since is null)
+            {
+                _since = _now();
+            }
+
+            string mode = Mode switch
+            {
+                TimerMode.Stopwatch => Lang.T("Chronomètre", "Stopwatch"),
+                _ => Lang.T("Minuteur", "Timer")
+            };
+
+            PublishActivity(new IslandActivity
+            {
+                Id = ActivityId,
+                FeatureId = FeatureKey,
+                SceneKey = IslandSceneCatalog.Timer,
+                Title = Format(_clock.Value),
+                Subtitle = mode,
+                Source = "Timer",
+                IconKey = "Timer",
+                State = IslandActivityState.TimerActive,
+                Priority = ActivityPriority.Normal,
+                CreatedAt = _since.Value,
+                Payload = new TimerPayload(_clock.Value, _clock.IsRunning, mode, IsPaused: _clock.IsPaused)
+            });
         }
-
-        string mode = Mode switch
-        {
-            TimerMode.Stopwatch => Lang.T("Chronomètre", "Stopwatch"),
-            _ => Lang.T("Minuteur", "Timer")
-        };
-
-        PublishActivity(new IslandActivity
-        {
-            Id = ActivityId,
-            FeatureId = FeatureKey,
-            SceneKey = IslandSceneCatalog.Timer,
-            Title = Format(_clock.Value),
-            Subtitle = mode,
-            Source = "Timer",
-            IconKey = "Timer",
-            State = IslandActivityState.TimerActive,
-            Priority = ActivityPriority.Normal,
-            CreatedAt = _since.Value,
-            Payload = new TimerPayload(_clock.Value, _clock.IsRunning, mode, IsPaused: _clock.IsPaused)
-        });
     }
 
     private static string Format(TimeSpan value)

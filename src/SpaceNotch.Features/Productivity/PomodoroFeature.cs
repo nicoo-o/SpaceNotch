@@ -50,6 +50,13 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
     private readonly Func<DateTimeOffset> _now;
 
+    /// <summary>
+    /// Le battement (fil du pool) et un geste (fil d'interface) publient tous
+    /// deux : sans ce verrou, un battement en vol pouvait republier l'ancienne
+    /// date après le geste et renvoyer l'activité derrière (relecture du n° 88).
+    /// </summary>
+    private readonly object _publishGate = new();
+
     public PomodoroFeature(
         IActivityManager activities,
         IEventBus events,
@@ -244,34 +251,37 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
     private void PublishSessionActivity(string subtitle, bool byUser = false)
     {
-        _published = _clock.Value;
-
-        if (byUser || _since is null)
+        lock (_publishGate)
         {
-            _since = _now();
+            _published = _clock.Value;
+
+            if (byUser || _since is null)
+            {
+                _since = _now();
+            }
+
+            bool fitted = _clock.IsRunning && _fittedNote is not null;
+
+            PublishActivity(new IslandActivity
+            {
+                Id = ActivityId,
+                FeatureId = FeatureKey,
+                SceneKey = IslandSceneCatalog.Pomodoro,
+                Title = _clock.Value.ToString(@"mm\:ss", CultureInfo.InvariantCulture),
+                Subtitle = _clock.IsRunning && _fittedNote is not null ? _fittedNote : subtitle,
+                Source = "Pomodoro",
+                IconKey = "Timer",
+                State = IslandActivityState.TimerActive,
+                Priority = ActivityPriority.Normal,
+                CreatedAt = _since.Value,
+
+                // La scène ouverte lit le temps ici : sans lui, elle montrait 25:00 à l'arrêt.
+                Payload = fitted
+                    ? new TimerPayload(_clock.Value, _clock.IsRunning, string.Create(CultureInfo.InvariantCulture, $"Focus · {_fittedMinutes} min"), _fittedNote, _clock.IsPaused)
+                    : new TimerPayload(_clock.Value, _clock.IsRunning, "Focus", IsPaused: _clock.IsPaused),
+                ExpandedFootprint = fitted ? SceneInsets.Wrap(250, 114) : null
+            });
         }
-
-        bool fitted = _clock.IsRunning && _fittedNote is not null;
-
-        PublishActivity(new IslandActivity
-        {
-            Id = ActivityId,
-            FeatureId = FeatureKey,
-            SceneKey = IslandSceneCatalog.Pomodoro,
-            Title = _clock.Value.ToString(@"mm\:ss", CultureInfo.InvariantCulture),
-            Subtitle = _clock.IsRunning && _fittedNote is not null ? _fittedNote : subtitle,
-            Source = "Pomodoro",
-            IconKey = "Timer",
-            State = IslandActivityState.TimerActive,
-            Priority = ActivityPriority.Normal,
-            CreatedAt = _since.Value,
-
-            // La scène ouverte lit le temps ici : sans lui, elle montrait 25:00 à l'arrêt.
-            Payload = fitted
-                ? new TimerPayload(_clock.Value, _clock.IsRunning, string.Create(CultureInfo.InvariantCulture, $"Focus · {_fittedMinutes} min"), _fittedNote, _clock.IsPaused)
-                : new TimerPayload(_clock.Value, _clock.IsRunning, "Focus", IsPaused: _clock.IsPaused),
-            ExpandedFootprint = fitted ? SceneInsets.Wrap(250, 114) : null
-        });
     }
 
     /// <summary>Les boutons de la scène ouverte : lecture / pause et remise à zéro.</summary>
