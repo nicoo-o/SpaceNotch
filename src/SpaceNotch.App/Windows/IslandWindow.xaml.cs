@@ -185,12 +185,13 @@ public sealed partial class IslandWindow : Window
     /// <summary>
     /// Textes de mesure, hors de l'arbre visuel : ils portent les styles des
     /// textes affichés et servent à connaître une largeur sans rien afficher.
+    /// Taille du texte figée, comme celle des textes qu'ils mesurent (n° 59).
     /// </summary>
-    private readonly TextBlock _measureSignal = new();
-    private readonly TextBlock _measureSubhead = new();
-    private readonly TextBlock _measureHeadline = new();
-    private readonly TextBlock _measureMetric = new();
-    private readonly TextBlock _measureStack = new();
+    private readonly TextBlock _measureSignal = new() { IsTextScaleFactorEnabled = false };
+    private readonly TextBlock _measureSubhead = new() { IsTextScaleFactorEnabled = false };
+    private readonly TextBlock _measureHeadline = new() { IsTextScaleFactorEnabled = false };
+    private readonly TextBlock _measureMetric = new() { IsTextScaleFactorEnabled = false };
+    private readonly TextBlock _measureStack = new() { IsTextScaleFactorEnabled = false };
 
     /// <summary>Dernier roulement de mesure, en millisecondes système.</summary>
     private long _lastRoll;
@@ -512,7 +513,7 @@ public sealed partial class IslandWindow : Window
 
         // Texte agrandi par Windows : la notch garde le sien, ses formes ont des
         // hauteurs de ligne fixes (n° 59) ; les Réglages suivent.
-        SpaceNotch_App.UI.FixedTextSize.Keep(RootLayout, _dispatcherQueue);
+        TrackTimer(SpaceNotch_App.UI.FixedTextSize.Keep(RootLayout, _dispatcherQueue));
     }
 
     /// <summary>Le ressort n'est utilisé que si Windows l'autorise.</summary>
@@ -1342,6 +1343,9 @@ public sealed partial class IslandWindow : Window
             }
 
             scene.Apply(activity);
+
+            // Ce que la scène vient de créer est figé avant d'être mesuré (n° 59).
+            SpaceNotch_App.UI.FixedTextSize.Apply(scene.Root);
             scene.Root.Visibility = Visibility.Visible;
             FitOpenedScene(scene, activity);
 
@@ -2149,7 +2153,7 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        var probe = new TextBlock { Style = label.Style, Text = label.Text };
+        var probe = new TextBlock { Style = label.Style, Text = label.Text, IsTextScaleFactorEnabled = false };
         probe.Measure(new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
         double missing = Math.Ceiling(probe.DesiredSize.Width - label.ActualWidth) + 1;
 

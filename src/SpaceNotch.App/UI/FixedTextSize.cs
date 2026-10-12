@@ -15,9 +15,10 @@ namespace SpaceNotch_App.UI;
 /// </summary>
 /// <remarks>
 /// WinUI agrandit le texte élément par élément, sans réglage pour toute une
-/// fenêtre : l'arbre visuel est donc parcouru après chaque mise en page, au plus
-/// une fois par tour du répartiteur, et seulement si le texte est agrandi. À
-/// 100 %, rien n'est fait.
+/// fenêtre. Les scènes figent leur contenu dès qu'il est posé (<see cref="Apply"/>,
+/// avant d'être mesuré) ; un filet parcourt aussi l'arbre après une mise en page,
+/// au plus toutes les 250 ms, pour ce qui naît ailleurs. Seulement si le texte
+/// est agrandi : à 100 %, rien n'est fait.
 /// </remarks>
 public static class FixedTextSize
 {
@@ -47,46 +48,66 @@ public static class FixedTextSize
         }
     }
 
-    /// <summary>Fige la taille du texte sous <paramref name="root"/>, maintenant et à chaque mise en page.</summary>
-    public static void Keep(FrameworkElement root, DispatcherQueue queue)
+    /// <summary>Délai du filet : un ressort de 30 images ne coûte qu'un ou deux parcours.</summary>
+    private static readonly TimeSpan Settle = TimeSpan.FromMilliseconds(250);
+
+    /// <summary>
+    /// Filet : après une mise en page, un parcours au plus toutes les 250 ms. Sans
+    /// délai, chaque image d'un ressort postait un parcours de tout l'arbre.
+    /// </summary>
+    /// <returns>Le minuteur du filet, à suivre et arrêter avec la fenêtre.</returns>
+    public static DispatcherQueueTimer Keep(FrameworkElement root, DispatcherQueue queue)
     {
         ArgumentNullException.ThrowIfNull(root);
         ArgumentNullException.ThrowIfNull(queue);
 
-        bool queued = false;
+        DispatcherQueueTimer timer = queue.CreateTimer();
+        timer.Interval = Settle;
+        timer.IsRepeating = false;
+        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) => Apply(root));
 
         root.LayoutUpdated += (_, _) =>
         {
-            if (queued || Factor <= 1)
+            if (!timer.IsRunning && Factor > 1)
             {
-                return;
+                timer.Start();
             }
-
-            queued = true;
-            _ = queue.TryEnqueueSafely(DispatcherQueuePriority.Low, () =>
-            {
-                queued = false;
-                Apply(root);
-            });
         };
+
+        return timer;
     }
 
-    /// <summary>Un passage sur l'arbre : textes et contrôles cessent de suivre la taille du texte.</summary>
+    /// <summary>
+    /// Un passage sur l'arbre : textes et contrôles cessent de suivre la taille du
+    /// texte. Rien n'est fait à 100 % ; une valeur déjà figée n'est pas réécrite.
+    /// </summary>
     public static void Apply(DependencyObject node)
+    {
+        if (Factor > 1)
+        {
+            Walk(node);
+        }
+    }
+
+    private static void Walk(DependencyObject node)
     {
         try
         {
             switch (node)
             {
-                case TextBlock text:
+                case TextBlock { IsTextScaleFactorEnabled: true } text:
                     text.IsTextScaleFactorEnabled = false;
                     break;
 
-                case RichTextBlock rich:
+                case RichTextBlock { IsTextScaleFactorEnabled: true } rich:
                     rich.IsTextScaleFactorEnabled = false;
                     break;
 
-                case Control control:
+                case ContentPresenter { IsTextScaleFactorEnabled: true } presenter:
+                    presenter.IsTextScaleFactorEnabled = false;
+                    break;
+
+                case Control { IsTextScaleFactorEnabled: true } control:
                     control.IsTextScaleFactorEnabled = false;
                     break;
             }
@@ -95,7 +116,7 @@ public static class FixedTextSize
 
             for (int i = 0; i < count; i++)
             {
-                Apply(VisualTreeHelper.GetChild(node, i));
+                Walk(VisualTreeHelper.GetChild(node, i));
             }
         }
         catch (Exception ex)

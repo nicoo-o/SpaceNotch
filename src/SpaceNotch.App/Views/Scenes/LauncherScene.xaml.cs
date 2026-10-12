@@ -867,7 +867,7 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
             return;
         }
 
-        var probe = new TextBlock { Text = text, FontSize = SearchBox.FontSize, FontFamily = SearchBox.FontFamily };
+        var probe = new TextBlock { Text = text, FontSize = SearchBox.FontSize, FontFamily = SearchBox.FontFamily, IsTextScaleFactorEnabled = false };
         probe.Measure(new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
 
         _shatterLetters = Math.Min(text.Length, 60);
