@@ -872,6 +872,15 @@ public sealed partial class IslandWindow : Window
                 _activityManager.PinPresentation(null);
             }
 
+            // Refermer la notch sur la proposition du presse-papier, c'est
+            // répondre « plus tard » : épinglée, elle passait sinon devant la
+            // musique au repos jusqu'à ce qu'on réponde (n° 63).
+            if (folding && _quickMenuFeature.IsClipboardOfferShown)
+            {
+                _quickMenuFeature.WithdrawClipboardOffer();
+                _activityManager.PinPresentation(null);
+            }
+
             RequestRender();
         };
 
@@ -1335,6 +1344,7 @@ public sealed partial class IslandWindow : Window
             else if (scene is LauncherScene launcherTiles)
             {
                 launcherTiles.ClipboardEmpty = !HasActivity(ClipboardFeature.ActivityId);
+                launcherTiles.ClipboardOff = !_settings.ShowClipboard;
             }
 
             scene.Apply(activity);
