@@ -39,6 +39,17 @@ public sealed class PomodoroFeature : IslandFeatureBase
     private readonly MeasureClock _clock;
     private TimeSpan? _published;
 
+    /// <summary>
+    /// Place de l'activité dans la pile (n° 88). Un battement republie
+    /// l'activité chaque seconde : avec une date neuve à chaque fois, le minuteur
+    /// et le focus, de même priorité, passaient tour à tour devant l'autre et la
+    /// notch repliée alternait chaque seconde. Seul un geste de l'utilisateur
+    /// (lancer, reprendre, suspendre, remettre à zéro) la fait passer devant.
+    /// </summary>
+    private DateTimeOffset? _since;
+
+    private readonly Func<DateTimeOffset> _now;
+
     public PomodoroFeature(
         IActivityManager activities,
         IEventBus events,
@@ -48,6 +59,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
     {
         // La valeur vient d'une échéance : juste après une mise en veille, sans
         // dérive d'un battement en retard.
+        _now = now ?? (() => DateTimeOffset.UtcNow);
         _clock = new MeasureClock(now);
         _clock.Set(DefaultSessionLength, countsDown: true);
 
@@ -146,7 +158,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
         _clock.Start();
         _tickTimer.Change(TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
-        PublishSessionActivity(Lang.T("Focus en cours", "Focusing"));
+        PublishSessionActivity(Lang.T("Focus en cours", "Focusing"), byUser: true);
     }
 
     public void Pause()
@@ -158,7 +170,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
 
         _clock.Pause();
         StopTimer();
-        PublishSessionActivity(Lang.T("En pause", "On a break"));
+        PublishSessionActivity(Lang.T("En pause", "On a break"), byUser: true);
     }
 
     public void Reset(TimeSpan? duration = null)
@@ -230,9 +242,15 @@ public sealed class PomodoroFeature : IslandFeatureBase
         PublishEvent(new NotificationPostedEvent("Pomodoro", Lang.T("Session terminée", "Session complete"), Lang.T("Prends une pause", "Take a break")));
     }
 
-    private void PublishSessionActivity(string subtitle)
+    private void PublishSessionActivity(string subtitle, bool byUser = false)
     {
         _published = _clock.Value;
+
+        if (byUser || _since is null)
+        {
+            _since = _now();
+        }
+
         bool fitted = _clock.IsRunning && _fittedNote is not null;
 
         PublishActivity(new IslandActivity
@@ -246,6 +264,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
             IconKey = "Timer",
             State = IslandActivityState.TimerActive,
             Priority = ActivityPriority.Normal,
+            CreatedAt = _since.Value,
 
             // La scène ouverte lit le temps ici : sans lui, elle montrait 25:00 à l'arrêt.
             Payload = fitted

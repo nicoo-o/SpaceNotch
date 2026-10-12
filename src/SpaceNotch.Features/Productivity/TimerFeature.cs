@@ -53,10 +53,22 @@ public sealed class TimerFeature : IslandFeatureBase
 
     private TimeSpan? _published;
 
+    /// <summary>
+    /// Place de l'activité dans la pile (n° 88). Un battement republie
+    /// l'activité chaque seconde : avec une date neuve à chaque fois, le minuteur
+    /// et le focus, de même priorité, passaient tour à tour devant l'autre et la
+    /// notch repliée alternait chaque seconde. Seul un geste de l'utilisateur
+    /// (lancer, reprendre, suspendre, remettre à zéro) la fait passer devant.
+    /// </summary>
+    private DateTimeOffset? _since;
+
+    private readonly Func<DateTimeOffset> _now;
+
 
     public TimerFeature(IActivityManager activities, IEventBus events, bool isEnabled = true, Func<DateTimeOffset>? now = null)
         : base(FeatureKey, "Minuteur", activities, events, isEnabled)
     {
+        _now = now ?? (() => DateTimeOffset.UtcNow);
         _clock = new MeasureClock(now);
         _clock.Set(DefaultCountdown, countsDown: true);
         _tick = new Timer(Guarded(() => OnTick(null)), null, Timeout.Infinite, Timeout.Infinite);
@@ -93,7 +105,7 @@ public sealed class TimerFeature : IslandFeatureBase
             StartTick();
         }
 
-        Publish();
+        Publish(byUser: true);
     }
 
     /// <summary>Lance un compte à rebours de la durée donnée : les puces 5 / 15 / 25 min du menu rapide.</summary>
@@ -109,7 +121,7 @@ public sealed class TimerFeature : IslandFeatureBase
         _clock.Start();
         StartTick();
 
-        Publish();
+        Publish(byUser: true);
     }
 
     /// <summary>Remet la mesure à zéro et l'arrête.</summary>
@@ -118,7 +130,7 @@ public sealed class TimerFeature : IslandFeatureBase
         StopTick();
         _clock.Set(Mode == TimerMode.Countdown ? DefaultCountdown : TimeSpan.Zero, Mode == TimerMode.Countdown);
 
-        Publish();
+        Publish(byUser: true);
     }
 
     /// <summary>
@@ -211,9 +223,14 @@ public sealed class TimerFeature : IslandFeatureBase
         PublishEvent(new NotificationPostedEvent(Lang.T("Minuteur", "Timer"), Lang.T("Temps écoulé", "Time’s up"), Lang.T("La mesure est terminée.", "The timer has finished.")));
     }
 
-    private void Publish()
+    private void Publish(bool byUser = false)
     {
         _published = _clock.Value;
+
+        if (byUser || _since is null)
+        {
+            _since = _now();
+        }
 
         string mode = Mode switch
         {
@@ -232,6 +249,7 @@ public sealed class TimerFeature : IslandFeatureBase
             IconKey = "Timer",
             State = IslandActivityState.TimerActive,
             Priority = ActivityPriority.Normal,
+            CreatedAt = _since.Value,
             Payload = new TimerPayload(_clock.Value, _clock.IsRunning, mode, IsPaused: _clock.IsPaused)
         });
     }
