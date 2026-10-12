@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using SpaceNotch.Core.Localization;
 using Xunit;
 
@@ -53,12 +54,35 @@ public class LangTests
                 && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", System.StringComparison.Ordinal)
                 && !f.EndsWith("TestLanguage.cs", System.StringComparison.Ordinal))
             .Where(f => File.ReadAllText(f) is var text
-                && text.Contains("Lang.French =", System.StringComparison.Ordinal)
+                && ChangesTheLanguage(text)
                 && !text.Contains("[Collection(GlobalLanguageGroup.Name)]", System.StringComparison.Ordinal))
             .Select(f => Path.GetFileName(f)!)];
 
         Assert.Empty(offenders);
     }
+
+    // n° 87 : la garde lisait « Lang.French = » à la lettre ; un espace, un nom
+    // complet ou une affectation composée lui échappaient.
+    private static readonly Regex Assignment = new(@"\bLang\s*\.\s*French\s*(=(?!=)|\?\?=)", RegexOptions.CultureInvariant);
+
+    private static bool ChangesTheLanguage(string text) => Assignment.IsMatch(text);
+
+    [Theory]
+    [InlineData("Lang.French = true;")]
+    [InlineData("Lang.French=false;")]
+    [InlineData("Lang . French = true;")]
+    [InlineData("SpaceNotch.Core.Localization.Lang.French = before;")]
+    [InlineData("Lang.French ??= true;")]
+    public void TheGuardSeesEveryWayOfChangingTheLanguage(string line)
+        => Assert.True(ChangesTheLanguage(line));
+
+    [Theory]
+    [InlineData("if (Lang.French == true) { }")]
+    [InlineData("bool french = Lang.French;")]
+    [InlineData("Assert.True(Lang.French);")]
+    [InlineData("MyLang.French = true;")]
+    public void TheGuardIgnoresReadingTheLanguage(string line)
+        => Assert.False(ChangesTheLanguage(line));
 
     private static string SourceFile([CallerFilePath] string path = "") => path;
 }
