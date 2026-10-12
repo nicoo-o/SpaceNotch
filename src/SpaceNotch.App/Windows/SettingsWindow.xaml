@@ -28,7 +28,7 @@
         </Grid.ColumnDefinitions>
 
         <!-- Menu latéral. -->
-        <Grid x:Name="NavColumn" Grid.Column="0" Padding="10,14,10,14" BorderBrush="#0FFFFFFF" BorderThickness="0,0,1,0">
+        <Grid x:Name="NavColumn" Grid.Column="0" Padding="10,14,10,14" BorderBrush="{ThemeResource NfSettingsDividerBrush}" BorderThickness="0,0,1,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -59,7 +59,7 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
-                            <views:GlyphView Grid.Column="1" Key="Home" Size="14" Tint="#99FFFFFF" />
+                            <views:GlyphView Grid.Column="1" Key="Home" Size="14" Tint="{ThemeResource NfSettingsNavGlyphBrush}" />
                             <TextBlock Grid.Column="2" Text="{l:Loc Fr='Général', En='General'}" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
@@ -71,7 +71,7 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
-                            <views:GlyphView Grid.Column="1" Key="Notch" Size="14" Tint="#99FFFFFF" />
+                            <views:GlyphView Grid.Column="1" Key="Notch" Size="14" Tint="{ThemeResource NfSettingsNavGlyphBrush}" />
                             <TextBlock Grid.Column="2" Text="Notch" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
@@ -83,7 +83,7 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
-                            <views:GlyphView Grid.Column="1" Key="Palette" Size="14" Tint="#99FFFFFF" />
+                            <views:GlyphView Grid.Column="1" Key="Palette" Size="14" Tint="{ThemeResource NfSettingsNavGlyphBrush}" />
                             <TextBlock Grid.Column="2" Text="{l:Loc Fr='Apparence', En='Appearance'}" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
@@ -95,7 +95,7 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
-                            <views:GlyphView Grid.Column="1" Key="Launcher" Size="14" Tint="#99FFFFFF" />
+                            <views:GlyphView Grid.Column="1" Key="Launcher" Size="14" Tint="{ThemeResource NfSettingsNavGlyphBrush}" />
                             <TextBlock Grid.Column="2" Text="{l:Loc Fr='Activités', En='Activities'}" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
@@ -107,7 +107,7 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
-                            <views:GlyphView Grid.Column="1" Key="Motion" Size="14" Tint="#99FFFFFF" />
+                            <views:GlyphView Grid.Column="1" Key="Motion" Size="14" Tint="{ThemeResource NfSettingsNavGlyphBrush}" />
                             <TextBlock Grid.Column="2" Text="{l:Loc Fr='Mouvement', En='Motion'}" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
@@ -119,7 +119,7 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
-                            <views:GlyphView Grid.Column="1" Key="Display" Size="14" Tint="#99FFFFFF" />
+                            <views:GlyphView Grid.Column="1" Key="Display" Size="14" Tint="{ThemeResource NfSettingsNavGlyphBrush}" />
                             <TextBlock Grid.Column="2" Text="{l:Loc Fr='Écrans', En='Displays'}" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
@@ -131,14 +131,14 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <Border Width="3" Height="16" CornerRadius="1.5" Background="{ThemeResource NfActiveBrush}" Opacity="0" />
-                            <views:GlyphView Grid.Column="1" Key="Info" Size="14" Tint="#99FFFFFF" />
+                            <views:GlyphView Grid.Column="1" Key="Info" Size="14" Tint="{ThemeResource NfSettingsNavGlyphBrush}" />
                             <TextBlock Grid.Column="2" Text="{l:Loc Fr='À propos', En='About'}" VerticalAlignment="Center" />
                         </Grid>
                     </Button>
                 </StackPanel>
 
                 <!-- La version suit les onglets : le bas du menu reste à la trame. -->
-                <TextBlock x:Name="NavVersionText" FontSize="11.5" Foreground="#66FFFFFF" Margin="12,0,0,0" />
+                <TextBlock x:Name="NavVersionText" FontSize="11.5" Foreground="{ThemeResource NfSettingsFaintBrush}" Margin="12,0,0,0" />
             </StackPanel>
         </Grid>
 
@@ -154,7 +154,7 @@
                     <TextBlock x:Name="SearchHeader" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,10" Visibility="Collapsed" />
                 <StackPanel x:Name="PageGeneral">
                     <TextBlock Text="{l:Loc Fr='Général', En='General'}" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
-                    <TextBlock Text="{l:Loc Fr='Ce qui concerne SpaceNotch tout entier.', En='Everything about SpaceNotch as a whole.'}" FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <TextBlock Text="{l:Loc Fr='Ce qui concerne SpaceNotch tout entier.', En='Everything about SpaceNotch as a whole.'}" FontSize="12.5" Foreground="{ThemeResource NfSettingsDescriptionBrush}" TextWrapping="Wrap" Margin="2,0,0,10" />
                     <TextBlock Text="{l:Loc Fr='DÉMARRAGE', En='STARTUP'}" Style="{StaticResource NfSettingsGroupStyle}" />
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Démarrer avec Windows La notch est là dès l&#x27;ouverture de session.">
                         <Grid ColumnSpacing="14">
@@ -167,7 +167,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Power" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Power" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Démarrer avec Windows', En='Start with Windows'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='La notch est là dès l’ouverture de session.', En='The notch is there as soon as you sign in.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -182,7 +182,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Download" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Download" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Mises à jour', En='Updates'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock x:Name="UpdateDescription" Text="{l:Loc Fr='La notch te propose chaque nouvelle version ; rien ne s’installe sans ton accord.', En='The notch offers each new version; nothing installs without your OK.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -216,7 +216,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Star" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Star" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Revoir la présentation', En='Replay the tour'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Les cinq gestes de la notch, en trente secondes.', En='The notch’s five gestures, in thirty seconds.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -236,7 +236,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Search" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Search" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Raccourci de la recherche', En='Search shortcut'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Ouvre et referme la recherche depuis n’importe quelle application.', En='Opens and closes search from any app.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -255,7 +255,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Keyboard" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Keyboard" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Aller à la notch', En='Go to the notch'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Donne le clavier à la notch depuis n’importe quelle application : flèches pour parcourir, Échap pour revenir.', En='Moves the keyboard to the notch from any app: arrows to browse, Esc to go back.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -278,7 +278,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Globe" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Globe" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Moteur de recherche web', En='Web search engine'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Utilisé quand aucune application ne correspond.', En='Used when no app matches.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -298,7 +298,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Notification" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Notification" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Afficher mes notifications dans la notch', En='Show my notifications in the notch'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Messages, Discord, Teams… Windows demande ton accord une seule fois.', En='Messages, Discord, Teams… Windows asks for your permission once.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -317,7 +317,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Block" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Block" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Applications ignorées', En='Ignored apps'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Leurs notifications restent dans le coin de l’écran. Tape un nom puis Entrée.', En='Their notifications stay in the corner of the screen. Type a name, then Enter.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -329,7 +329,7 @@
                 </StackPanel>
                 <StackPanel x:Name="PageNotch" Visibility="Collapsed">
                     <TextBlock Text="Notch" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
-                    <TextBlock Text="{l:Loc Fr='Comment la notch répond, et où elle se tient.', En='How the notch responds, and where it sits.'}" FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <TextBlock Text="{l:Loc Fr='Comment la notch répond, et où elle se tient.', En='How the notch responds, and where it sits.'}" FontSize="12.5" Foreground="{ThemeResource NfSettingsDescriptionBrush}" TextWrapping="Wrap" Margin="2,0,0,10" />
                     <TextBlock Text="{l:Loc Fr='SURVOL ET OUVERTURE', En='HOVER AND OPEN'}" Style="{StaticResource NfSettingsGroupStyle}" />
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Aperçu au survol Survoler la notch montre un aperçu de ce qui se passe.">
                         <Grid ColumnSpacing="14">
@@ -342,7 +342,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Pointer" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Pointer" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Aperçu au survol', En='Preview on hover'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Survoler la notch montre un aperçu de ce qui se passe.', En='Hovering the notch previews what’s going on.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -361,7 +361,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Clock" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Clock" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Ouvrir après une seconde de survol', En='Open after hovering for a second'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Sans cliquer : un survol prolongé ouvre la notch.', En='No click needed: a long hover opens the notch.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -380,7 +380,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Fullscreen" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Fullscreen" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='S’effacer devant le plein écran', En='Hide in full screen'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Jeux, vidéos, présentations : la notch se retire.', En='Games, videos, presentations: the notch steps aside.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -400,7 +400,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Dock" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Dock" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Bord d’accroche', En='Docking edge'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Où la notch s’accroche à l’écran.', En='Where the notch docks on the screen.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -419,7 +419,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Side" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Side" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Accrocher aussi à gauche et à droite', En='Also dock left and right'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='En languette verticale sur les côtés.', En='As a vertical tab on the sides.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -438,7 +438,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Detach" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Detach" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Détacher en tirant', En='Pull to detach'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Tire la notch pour en faire une pastille ; double-clic pour la raccrocher.', En='Pull the notch to turn it into a pill; double-click to dock it again.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -458,7 +458,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Bubble" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Bubble" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Bulle pour les activités importantes', En='Bubble for important activities'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Appel, minuteur terminé : une bulle à côté de la notch.', En='A call, a finished timer: a bubble next to the notch.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -477,7 +477,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Stack" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Stack" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Indicateur de pile', En='Stack counter'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Un compteur « +2 » indique qu’il y a d’autres activités derrière.', En='A “+2” counter shows that other activities are waiting behind.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -496,7 +496,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Clock" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Clock" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Heure au repos', En='Clock at rest'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='L’heure dans la notch quand rien ne se passe.', En='The time in the notch when nothing is happening.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -511,7 +511,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Eyes" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Eyes" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Pixel', En='Pixel'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Deux yeux dans la notch au repos : ils suivent le curseur, clignent et dorment la nuit. Éteints, ils restent l’avatar de tes agents.', En='Two eyes in the notch at rest: they follow the pointer, blink and sleep at night. Off, they still show how your agents are doing.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -526,7 +526,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Agent" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Agent" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Agents IA', En='AI agents'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock x:Name="AgentHooksDescription" Text="{l:Loc Fr='Claude Code dans la notch : il réfléchit, il demande, tu autorises ou refuses d’un clic. Ajoute des hooks à ~/.claude/settings.json (une copie est gardée).', En='Claude Code in the notch: it thinks, it asks, you allow or deny with a click. Adds hooks to ~/.claude/settings.json (a backup is kept).'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -542,7 +542,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Agent" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Agent" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Modèle', En='Model'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock x:Name="AssistantStatusText" Text="{l:Loc Fr='Sans modèle, la notch résume et comprend les rappels avec ses propres règles. Windows : sur l’appareil, rien ne sort. Claude : avec ta clé, seul le texte concerné est envoyé.', En='Without a model, the notch summarizes and understands reminders with its own rules. Windows: on the device, nothing leaves. Claude: with your key, only the text at hand is sent.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -557,7 +557,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Lock" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Lock" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Clé Claude', En='Claude key'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock x:Name="ClaudeKeyText" Text="{l:Loc Fr='Gardée dans le coffre de Windows, jamais dans les réglages.', En='Kept in the Windows vault, never in the settings file.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -572,7 +572,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Settings" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Settings" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Modèle Claude', En='Claude model'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Vide : le modèle par défaut.', En='Empty: the default model.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -588,7 +588,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Camera" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Camera" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Miroir avant une réunion', En='Mirror before a meeting'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Au survol de « Rejoindre », la webcam dans la notch et l’état du micro. Rien n’est enregistré.', En='Hovering “Join” shows your webcam in the notch and the microphone state. Nothing is recorded.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -603,7 +603,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Music" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Music" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Paroles synchronisées', En='Synced lyrics'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='La ligne chantée sous le titre, depuis LRCLIB. Seuls l’artiste, le titre et la durée sont envoyés.', En='The line being sung under the title, from LRCLIB. Only artist, title and length are sent.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -618,7 +618,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Heart" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Heart" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="Spotify" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock x:Name="SpotifyText" Text="{l:Loc Fr='« J’aime » et la file d’attente. Crée une application sur developer.spotify.com avec l’adresse http://127.0.0.1:43117/spotify/callback, puis colle son identifiant.', En='“Like” and the queue. Create an app on developer.spotify.com with the redirect http://127.0.0.1:43117/spotify/callback, then paste its client ID.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -633,7 +633,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Headphones" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Headphones" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="Discord" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock x:Name="DiscordText" Text="{l:Loc Fr='Le salon vocal et ton micro. Crée une application sur discord.com/developers (OAuth2, adresse http://localhost), colle son identifiant et son secret, puis accepte dans Discord.', En='Your voice channel and mic. Create an app on discord.com/developers (OAuth2, redirect http://localhost), paste its ID and secret, then accept in Discord.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -644,7 +644,7 @@
                 </StackPanel>
                 <StackPanel x:Name="PageAppearance" Visibility="Collapsed">
                     <TextBlock Text="{l:Loc Fr='Apparence', En='Appearance'}" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
-                    <TextBlock Text="{l:Loc Fr='À quoi ressemble la notch. L’aperçu suit chaque réglage.', En='What the notch looks like. The preview follows every setting.'}" FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <TextBlock Text="{l:Loc Fr='À quoi ressemble la notch. L’aperçu suit chaque réglage.', En='What the notch looks like. The preview follows every setting.'}" FontSize="12.5" Foreground="{ThemeResource NfSettingsDescriptionBrush}" TextWrapping="Wrap" Margin="2,0,0,10" />
                     <Border CornerRadius="10" Background="#08080A" BorderBrush="#12FFFFFF" BorderThickness="1" Margin="0,0,0,8" Padding="0,0,0,0">
                 <StackPanel Spacing="10" Padding="0,0,0,14">
 
@@ -743,7 +743,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Palette" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Palette" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Thème', En='Theme'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Sombre, clair ou comme Windows.', En='Dark, light, or like Windows.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -762,7 +762,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Palette" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Palette" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Fond de la notch', En='Notch background'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Opaque, transparent ou flouté.', En='Opaque, transparent or blurred.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -781,7 +781,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Drop" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Drop" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Couleur de la surface', En='Surface colour'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Noir OLED, graphite ou ta couleur.', En='OLED black, graphite or your own colour.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -800,12 +800,12 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Drop" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Drop" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Couleur personnalisée', En='Custom colour'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Un code hexadécimal, par exemple #14161C.', En='A hex code, for example #14161C.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
                             </StackPanel>
-                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><TextBox x:Name="CustomColorBox" Width="110" PlaceholderText="#14161C" MaxLength="7" TextChanged="OnCustomColorChanged" /><Border x:Name="CustomColorSwatch" Width="30" Height="30" CornerRadius="8" BorderThickness="1" BorderBrush="#30FFFFFF" /></StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><TextBox x:Name="CustomColorBox" Width="110" PlaceholderText="#14161C" MaxLength="7" TextChanged="OnCustomColorChanged" /><Border x:Name="CustomColorSwatch" Width="30" Height="30" CornerRadius="8" BorderThickness="1" BorderBrush="{ThemeResource NfSettingsCardStrokeBrush}" /></StackPanel>
                         </Grid>
                     </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Opacité de la surface ">
@@ -819,7 +819,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Opacity" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Opacity" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Opacité de la surface', En='Surface opacity'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
@@ -837,7 +837,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Shadow" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Shadow" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Ombre', En='Shadow'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
@@ -855,7 +855,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Outline" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Outline" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Contour fin', En='Thin outline'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Aide à voir la notch sur un fond d’écran sombre.', En='Helps you see the notch on a dark wallpaper.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -870,7 +870,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="WeatherSun" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="WeatherSun" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Météo', En='Weather'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Au survol, la température à côté de l’heure. Vide : désactivée, rien n’est envoyé.', En='On hover, the temperature next to the time. Empty: off, nothing is sent.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -885,7 +885,7 @@
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Volume" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Volume" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Sons discrets', En='Subtle sounds'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Trois sons très courts : ouverture, dépôt d’un fichier, fin du minuteur. Jamais en « Ne pas déranger ».', En='Three very short sounds: opening, dropping a file, timer done. Never in Do not disturb.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -904,7 +904,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Outline" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Outline" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Intensité du contour', En='Outline strength'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
@@ -923,7 +923,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Density" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Density" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Densité des cartes', En='Card density'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Compacte, confortable ou aérée.', En='Compact, comfortable or airy.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -942,7 +942,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Corner" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Corner" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Arrondi au repos', En='Corner radius at rest'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
@@ -960,7 +960,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Corner" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Corner" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Arrondi ouverte', En='Corner radius when open'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
@@ -978,7 +978,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Blend" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Blend" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Raccord au bord de l’écran', En='Blend into the screen edge'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='À zéro, un angle droit ; plus haut, le bord « coule » dans la notch.', En='At zero, a sharp corner; higher, the edge flows into the notch.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -997,7 +997,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Blend" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Blend" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Coins arrondis doux', En='Smooth rounded corners'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Une courbe continue, comme les icônes de Windows 11.', En='A continuous curve, like Windows 11 icons.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1016,7 +1016,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Blend" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Blend" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Raccord de la languette et de la bulle', En='Tab and bubble blend'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
@@ -1034,7 +1034,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Corner" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Corner" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Arrondi de la pastille ouverte', En='Open pill corner radius'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
@@ -1052,7 +1052,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Fullscreen" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Fullscreen" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Taille de la bulle', En='Bubble size'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
@@ -1070,7 +1070,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Fullscreen" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Fullscreen" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Taille de la languette', En='Tab size'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
@@ -1080,7 +1080,7 @@
                 </StackPanel>
                 <StackPanel x:Name="PageActivities" Visibility="Collapsed">
                     <TextBlock Text="{l:Loc Fr='Activités', En='Activities'}" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
-                    <TextBlock Text="{l:Loc Fr='Ce que la notch a le droit d’afficher. Une activité coupée ne consomme plus rien.', En='What the notch may show. A disabled activity uses no resources.'}" FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <TextBlock Text="{l:Loc Fr='Ce que la notch a le droit d’afficher. Une activité coupée ne consomme plus rien.', En='What the notch may show. A disabled activity uses no resources.'}" FontSize="12.5" Foreground="{ThemeResource NfSettingsDescriptionBrush}" TextWrapping="Wrap" Margin="2,0,0,10" />
                     <StackPanel x:Name="FeaturesHost" />
                     <TextBlock Text="{l:Loc Fr='PRESSE-PAPIER', En='CLIPBOARD'}" Style="{StaticResource NfSettingsGroupStyle}" />
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Ignorer les mots de passe Rien de ce que copient Bitwarden, 1Password ou KeePass n&#x27;est gardé.">
@@ -1094,7 +1094,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Lock" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Lock" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Ignorer les mots de passe', En='Ignore passwords'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Rien de ce que copient Bitwarden, 1Password ou KeePass n’est gardé.', En='Nothing copied from Bitwarden, 1Password or KeePass is kept.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1113,7 +1113,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Stack" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Stack" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Taille de l’historique', En='History size'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Les éléments copiés les plus anciens partent en premier.', En='The oldest copied items go first.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1124,7 +1124,7 @@
                 </StackPanel>
                 <StackPanel x:Name="PageMotion" Visibility="Collapsed">
                     <TextBlock Text="{l:Loc Fr='Mouvement', En='Motion'}" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
-                    <TextBlock Text="{l:Loc Fr='Comment la notch bouge.', En='How the notch moves.'}" FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <TextBlock Text="{l:Loc Fr='Comment la notch bouge.', En='How the notch moves.'}" FontSize="12.5" Foreground="{ThemeResource NfSettingsDescriptionBrush}" TextWrapping="Wrap" Margin="2,0,0,10" />
                     <TextBlock Text="{l:Loc Fr='CARACTÈRE', En='CHARACTER'}" Style="{StaticResource NfSettingsGroupStyle}" />
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Caractère du mouvement Calme, naturel ou dynamique.">
                         <Grid ColumnSpacing="14">
@@ -1137,7 +1137,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Motion" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Motion" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Caractère du mouvement', En='Motion style'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Calme, naturel ou dynamique.', En='Calm, natural or lively.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1156,7 +1156,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Bounce" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Bounce" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Rebond', En='Bounce'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Un léger dépassement à l’ouverture.', En='A slight overshoot when opening.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1175,7 +1175,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Launcher" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Launcher" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Grille animée pendant un travail', En='Animated grid while working'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='La grille du logo bouge quand une activité travaille.', En='The logo grid moves while an activity is working.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1194,7 +1194,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Rain" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Rain" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Pluie de chiffres pendant un traitement', En='Digit rain while processing'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
@@ -1213,7 +1213,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Speed" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Speed" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Vitesse', En='Speed'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Plus bas, plus vif.', En='Lower is snappier.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1232,7 +1232,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Bounce" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Bounce" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Amortissement', En='Damping'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Plus bas, plus de rebond.', En='Lower is bouncier.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1252,7 +1252,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Pointer" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Pointer" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Sensation en main', En='Feel'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Souple, naturelle ou ferme.', En='Soft, natural or firm.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1271,7 +1271,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Pointer" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Pointer" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Étirement en mouvement', En='Stretch while moving'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
@@ -1289,7 +1289,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Detach" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Detach" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Distance d’arrachement', En='Detach distance'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Combien tirer avant que la notch se détache.', En='How far to pull before the notch comes off.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1308,7 +1308,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Magnet" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Magnet" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Aimants aux coins', En='Corner magnets'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='La pastille se colle aux coins de l’écran.', En='The pill snaps to the screen corners.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1327,7 +1327,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Drop" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Drop" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Effet de goutte', En='Droplet effect'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='La notch s’étire comme une goutte en se détachant.', En='The notch stretches like a droplet as it detaches.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1346,7 +1346,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Display" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Display" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Résister au passage d’un écran à l’autre', En='Resist moving between displays'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
@@ -1356,7 +1356,7 @@
                 </StackPanel>
                 <StackPanel x:Name="PageDisplays" Visibility="Collapsed">
                     <TextBlock Text="{l:Loc Fr='Écrans', En='Displays'}" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
-                    <TextBlock Text="{l:Loc Fr='Où la notch s’affiche quand il y a plusieurs écrans.', En='Where the notch appears when there are several displays.'}" FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <TextBlock Text="{l:Loc Fr='Où la notch s’affiche quand il y a plusieurs écrans.', En='Where the notch appears when there are several displays.'}" FontSize="12.5" Foreground="{ThemeResource NfSettingsDescriptionBrush}" TextWrapping="Wrap" Margin="2,0,0,10" />
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Écran Sur quel écran la notch s&#x27;affiche.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
@@ -1368,7 +1368,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Display" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Display" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Écran', En='Display'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Sur quel écran la notch s’affiche.', En='Which display shows the notch.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1387,7 +1387,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Camera" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Camera" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Encoche de la caméra', En='Camera notch'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Seulement si l’écran de ton portable a une encoche pour la caméra : la notch au repos la recouvre et s’élargit d’autant.', En='Only if your laptop screen has a camera notch: the resting notch covers it and gets wider.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1406,13 +1406,13 @@
                 </StackPanel>
                 <StackPanel x:Name="PageAbout" Visibility="Collapsed">
                     <TextBlock Text="{l:Loc Fr='À propos', En='About'}" FontSize="24" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" Margin="2,0,0,2" />
-                    <TextBlock Text="{l:Loc Fr='Version, fichiers et réglages avancés.', En='Version, files and advanced settings.'}" FontSize="12.5" Foreground="#80FFFFFF" TextWrapping="Wrap" Margin="2,0,0,10" />
+                    <TextBlock Text="{l:Loc Fr='Version, fichiers et réglages avancés.', En='Version, files and advanced settings.'}" FontSize="12.5" Foreground="{ThemeResource NfSettingsDescriptionBrush}" TextWrapping="Wrap" Margin="2,0,0,10" />
                     <Border Style="{StaticResource NfSettingsCardStyle}" Padding="16,14,16,14">
                         <StackPanel Orientation="Horizontal" Spacing="14">
                             <Grid x:Name="AboutLogo" Width="30" Height="30" VerticalAlignment="Center" />
                             <StackPanel VerticalAlignment="Center">
                                 <TextBlock Text="SpaceNotch" FontSize="16" FontWeight="SemiBold" Foreground="{ThemeResource NfTextPrimaryBrush}" />
-                                <TextBlock x:Name="VersionText" FontSize="12" Foreground="#80FFFFFF" />
+                                <TextBlock x:Name="VersionText" FontSize="12" Foreground="{ThemeResource NfSettingsDescriptionBrush}" />
                             </StackPanel>
                         </StackPanel>
                     </Border>
@@ -1428,7 +1428,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Fade" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Fade" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Fondu des bords', En='Edge fade'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Précis par défaut ; « compatible » si les bords scintillent.', En='Precise by default; “compatible” if the edges flicker.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1447,7 +1447,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Bug" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Bug" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="Diagnostics" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Mesures de performance dans le journal.', En='Performance measurements in the log.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1466,12 +1466,12 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Folder" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Folder" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Fichiers de SpaceNotch', En='SpaceNotch files'}" Style="{StaticResource NfSettingsTitleStyle}" />
                             </StackPanel>
                             <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><Button Style="{StaticResource NfSecondaryButtonStyle}" Content="Configuration" Click="OnOpenConfigClicked" /><Button Style="{StaticResource NfSecondaryButtonStyle}" Content="{l:Loc Fr='Greffons', En='Plugins'}" Click="OnOpenPluginsClicked" /></StackPanel>
-                            <TextBlock x:Name="PathText" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" FontSize="10.5" Foreground="#60FFFFFF" TextTrimming="CharacterEllipsis" Margin="0,4,0,0" />
+                            <TextBlock x:Name="PathText" Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" FontSize="10.5" Foreground="{ThemeResource NfSettingsFaintBrush}" TextTrimming="CharacterEllipsis" Margin="0,4,0,0" />
                         </Grid>
                     </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Greffons en attente Un greffon exécute du code : il n&#x27;est chargé qu&#x27;une fois approuvé ici. Effet au prochain démarrage.">
@@ -1485,7 +1485,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Folder" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Folder" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Greffons en attente', En='Pending plugins'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Un greffon exécute du code : il n’est chargé qu’une fois approuvé ici. Effet au prochain démarrage.', En='A plugin runs code: it only loads once approved here. Takes effect on next start.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1505,7 +1505,7 @@
                                 <RowDefinition Height="Auto" />
                                 <RowDefinition Height="Auto" />
                             </Grid.RowDefinitions>
-                            <views:GlyphView Key="Reset" Size="16" Tint="#B8FFFFFF" VerticalAlignment="Center" />
+                            <views:GlyphView Key="Reset" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
                             <StackPanel Grid.Column="1" VerticalAlignment="Center">
                                 <TextBlock Text="{l:Loc Fr='Rétablir les valeurs par défaut', En='Restore defaults'}" Style="{StaticResource NfSettingsTitleStyle}" />
                                 <TextBlock Text="{l:Loc Fr='Apparence, mouvement et comportement reviennent à leur réglage d’origine.', En='Appearance, motion and behaviour go back to their original settings.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
@@ -1521,7 +1521,7 @@
                 x:Name="StatusText"
                 Grid.Row="1"
                 FontSize="11.5"
-                Foreground="#E0A030"
+                Foreground="{ThemeResource NfSettingsStatusBrush}"
                 TextWrapping="Wrap"
                 Margin="28,0,28,12" />
         </Grid>

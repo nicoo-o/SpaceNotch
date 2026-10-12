@@ -150,6 +150,20 @@
             <SolidColorBrush x:Key="NfPopupBrush" Color="#FF141418" />
             <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="#1FFFFFFF" />
 
+
+            <!-- Réglages (n° 57) : la fenêtre reste sombre hors contraste élevé ; ses
+                 encres discrètes deviennent les couleurs du système en contraste élevé. -->
+            <SolidColorBrush x:Key="NfSettingsCardBrush" Color="#FF0E0F12" />
+            <SolidColorBrush x:Key="NfSettingsCardStrokeBrush" Color="#12FFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsGroupBrush" Color="#73FFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsDescriptionBrush" Color="#80FFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsGlyphBrush" Color="#B8FFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsNavGlyphBrush" Color="#99FFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsFaintBrush" Color="#66FFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsDividerBrush" Color="#0FFFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsStatusBrush" Color="#FFE0A030" />
+            <SolidColorBrush x:Key="NfSettingsPositiveBrush" Color="#FF8FF0A4" />
+
         </ResourceDictionary>
 
         <!-- ============================================================
@@ -232,6 +246,20 @@
             <SolidColorBrush x:Key="NfPopupBrush" Color="#FFF6F6F8" />
             <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="#1F101014" />
 
+
+            <!-- Réglages (n° 57) : la fenêtre reste sombre hors contraste élevé ; ses
+                 encres discrètes deviennent les couleurs du système en contraste élevé. -->
+            <SolidColorBrush x:Key="NfSettingsCardBrush" Color="#FF0E0F12" />
+            <SolidColorBrush x:Key="NfSettingsCardStrokeBrush" Color="#12FFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsGroupBrush" Color="#73FFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsDescriptionBrush" Color="#80FFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsGlyphBrush" Color="#B8FFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsNavGlyphBrush" Color="#99FFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsFaintBrush" Color="#66FFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsDividerBrush" Color="#0FFFFFFF" />
+            <SolidColorBrush x:Key="NfSettingsStatusBrush" Color="#FFE0A030" />
+            <SolidColorBrush x:Key="NfSettingsPositiveBrush" Color="#FF8FF0A4" />
+
         </ResourceDictionary>
 
         <!-- ============================================================
@@ -312,6 +340,20 @@
             <SolidColorBrush x:Key="NfFocusRingBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
             <SolidColorBrush x:Key="NfPopupBrush" Color="{ThemeResource SystemColorWindowColor}" />
             <SolidColorBrush x:Key="NfSetupOutlineBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+
+
+            <!-- Réglages (n° 57) : la fenêtre reste sombre hors contraste élevé ; ses
+                 encres discrètes deviennent les couleurs du système en contraste élevé. -->
+            <SolidColorBrush x:Key="NfSettingsCardBrush" Color="{ThemeResource SystemColorWindowColor}" />
+            <SolidColorBrush x:Key="NfSettingsCardStrokeBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="NfSettingsGroupBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="NfSettingsDescriptionBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="NfSettingsGlyphBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="NfSettingsNavGlyphBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="NfSettingsFaintBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="NfSettingsDividerBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="NfSettingsStatusBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
+            <SolidColorBrush x:Key="NfSettingsPositiveBrush" Color="{ThemeResource SystemColorWindowTextColor}" />
 
         </ResourceDictionary>
 

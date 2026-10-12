@@ -151,6 +151,7 @@ public sealed partial class SettingsWindow : Window
         // L'aperçu suit exactement le même signal que l'Island : une seule source
         // de vérité, donc aucune possibilité d'afficher autre chose que le réel.
         _settings.Changed += OnSettingsChanged;
+        SpaceNotch_App.UI.SystemTheme.Changed += OnSystemThemeChanged;
 
         Closed += OnWindowClosed;
 
@@ -271,20 +272,21 @@ public sealed partial class SettingsWindow : Window
     };
 
     /// <summary>Carte OLED construite en code, identique à celles du XAML.</summary>
-    private static Border SettingsCard(string glyph, string title, string description, FrameworkElement control)
+    private Border SettingsCard(string glyph, string title, string description, FrameworkElement control)
     {
         var grid = new Grid { ColumnSpacing = 14 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        grid.Children.Add(new GlyphView
+        var icon = new GlyphView
         {
             Key = glyph,
             Size = 16,
-            Tint = new SolidColorBrush(Color.FromArgb(0xB8, 0xFF, 0xFF, 0xFF)),
             VerticalAlignment = VerticalAlignment.Center
-        });
+        };
+        Ink(icon, GlyphView.TintProperty, "NfSettingsGlyphBrush");
+        grid.Children.Add(icon);
 
         var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         texts.Children.Add(new TextBlock { Text = title, Style = (Style)Application.Current.Resources["NfSettingsTitleStyle"] });
@@ -1599,11 +1601,41 @@ public sealed partial class SettingsWindow : Window
         }
     }
 
+    /// <summary>
+    /// Une encre des Réglages, lue dans le thème (n° 57) : en contraste élevé,
+    /// la couleur du système au lieu d'un blanc translucide écrit en dur.
+    /// </summary>
+    private static Brush Token(string key) => (Brush)Application.Current.Resources[key];
+
+    /// <summary>
+    /// Les encres posées en code, relues quand le thème de Windows change : le
+    /// XAML suit un passage en contraste élevé, elles non (relecture du n° 57).
+    /// </summary>
+    private readonly List<(DependencyObject Target, DependencyProperty Property, string Key)> _inks = [];
+
+    private void Ink(DependencyObject target, DependencyProperty property, string key)
+    {
+        target.SetValue(property, Token(key));
+        _inks.Add((target, property, key));
+    }
+
+    private void OnSystemThemeChanged()
+        => DispatcherQueue.TryEnqueueSafely(() =>
+        {
+            foreach ((DependencyObject target, DependencyProperty property, string key) in _inks)
+            {
+                target.SetValue(property, Token(key));
+            }
+
+            UpdateNotificationCard();
+            ShowPendingPlugins();
+        });
+
     private void UpdateNotificationCard()
     {
         var access = SpaceNotch.Platform.Windows.Notifications.WindowsNotificationListener.GetAccess();
-        var green = new SolidColorBrush(Color.FromArgb(0xFF, 0x8F, 0xF0, 0xA4));
-        var dim = new SolidColorBrush(Color.FromArgb(0x99, 0xFF, 0xFF, 0xFF));
+        Brush green = Token("NfSettingsPositiveBrush");
+        Brush dim = Token("NfSettingsNavGlyphBrush");
 
         (string Status, Brush Brush, string? Button) card = access switch
         {
@@ -1726,7 +1758,7 @@ public sealed partial class SettingsWindow : Window
             {
                 Text = Lang.T("Aucun greffon en attente.", "No pending plugins."),
                 FontSize = 12,
-                Foreground = new SolidColorBrush(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF))
+                Foreground = Token("NfSettingsDescriptionBrush")
             });
             return;
         }
@@ -1742,7 +1774,7 @@ public sealed partial class SettingsWindow : Window
             {
                 Text = name,
                 FontSize = 12.5,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                Foreground = Token("NfTextPrimaryBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis
             });
@@ -1841,6 +1873,7 @@ public sealed partial class SettingsWindow : Window
     private void OnWindowClosed(object sender, WindowEventArgs args)
     {
         _settings.Changed -= OnSettingsChanged;
+        SpaceNotch_App.UI.SystemTheme.Changed -= OnSystemThemeChanged;
         _previewHypnotic?.Dispose();
 
         // Une écriture en attente ne doit pas être perdue parce que la fenêtre se
