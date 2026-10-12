@@ -107,7 +107,8 @@ public sealed class QuickMenuFeature : IslandFeatureBase
             IconKey = "Menu",
             State = IslandActivityState.Idle,
             Priority = ActivityPriority.Normal,
-            ExpandedFootprint = new IslandFootprint(QuickMenuLayout.Width, QuickMenuLayout.HeightFor(_state.DockExpanded)),
+            // « Arrêter le focus » est une ligne de plus : sans elle, « Quitter » était coupé.
+            ExpandedFootprint = new IslandFootprint(QuickMenuLayout.Width, QuickMenuLayout.HeightFor(_state.DockExpanded, _state.FocusActive ? 1 : 0)),
             MotionState = ActivityMotionState.Idle,
             Payload = _state
         });

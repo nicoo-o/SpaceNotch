@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Numerics;
 using Microsoft.UI;
 using Microsoft.UI.Composition;
@@ -307,6 +308,9 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
 
         host.Children.Add(chips);
 
+        // Le chevron s'efface sous les puces : « Focus 25 min » le touchait.
+        UIElement? chevron = (row.Content as Grid)?.Children.FirstOrDefault(c => c is GlyphView && Grid.GetColumn((FrameworkElement)c) == 2);
+
         void Reveal(bool show)
         {
             if (show == (chips.Visibility == Visibility.Visible))
@@ -315,6 +319,11 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
             }
 
             chips.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+
+            if (chevron is not null)
+            {
+                chevron.Opacity = show ? 0 : 1;
+            }
 
             if (show)
             {

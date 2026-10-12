@@ -267,6 +267,16 @@ public sealed class QuickMenuLayoutTests
             SpaceNotch.Core.Menu.QuickMenuLayout.HeightFor(true) - SpaceNotch.Core.Menu.QuickMenuLayout.HeightFor(false));
         Assert.True(SpaceNotch.Core.Scenes.IslandSceneCatalog.IsKnown(SpaceNotch.Core.Scenes.IslandSceneCatalog.QuickMenu));
     }
+
+    [Fact]
+    public void A_focus_stop_row_adds_one_row_of_height()
+    {
+        // n° 75 : pendant un focus, « Arrêter le focus » s'ajoute ; sans cette
+        // ligne de plus, « Quitter » était coupé en bas du menu.
+        Assert.Equal(
+            SpaceNotch.Core.Menu.QuickMenuLayout.Row,
+            SpaceNotch.Core.Menu.QuickMenuLayout.HeightFor(false, extraRows: 1) - SpaceNotch.Core.Menu.QuickMenuLayout.HeightFor(false));
+    }
 }
 
 public sealed class WaveTwoMotionTests

@@ -21,5 +21,5 @@ public static class QuickMenuLayout
 
     public const double Height = Top + Header + (Rows * Row) + (Separators * Separator) + Bottom;
 
-    public static double HeightFor(bool dockExpanded) => Height + (dockExpanded ? DockChoices : 0);
+    public static double HeightFor(bool dockExpanded, int extraRows = 0) => Height + (dockExpanded ? DockChoices : 0) + (extraRows * Row);
 }
