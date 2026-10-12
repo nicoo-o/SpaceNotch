@@ -185,12 +185,13 @@ public sealed partial class IslandWindow : Window
     /// <summary>
     /// Textes de mesure, hors de l'arbre visuel : ils portent les styles des
     /// textes affichés et servent à connaître une largeur sans rien afficher.
+    /// Taille du texte figée, comme celle des textes qu'ils mesurent (n° 59).
     /// </summary>
-    private readonly TextBlock _measureSignal = new();
-    private readonly TextBlock _measureSubhead = new();
-    private readonly TextBlock _measureHeadline = new();
-    private readonly TextBlock _measureMetric = new();
-    private readonly TextBlock _measureStack = new();
+    private readonly TextBlock _measureSignal = new() { IsTextScaleFactorEnabled = false };
+    private readonly TextBlock _measureSubhead = new() { IsTextScaleFactorEnabled = false };
+    private readonly TextBlock _measureHeadline = new() { IsTextScaleFactorEnabled = false };
+    private readonly TextBlock _measureMetric = new() { IsTextScaleFactorEnabled = false };
+    private readonly TextBlock _measureStack = new() { IsTextScaleFactorEnabled = false };
 
     /// <summary>Dernier roulement de mesure, en millisecondes système.</summary>
     private long _lastRoll;
@@ -509,6 +510,10 @@ public sealed partial class IslandWindow : Window
         ApplyPresence();
 
         RootLayout.Loaded += OnRootLoaded;
+
+        // Texte agrandi par Windows : la notch garde le sien, ses formes ont des
+        // hauteurs de ligne fixes (n° 59) ; les Réglages suivent.
+        TrackTimer(SpaceNotch_App.UI.FixedTextSize.Keep(RootLayout, _dispatcherQueue));
     }
 
     /// <summary>Le ressort n'est utilisé que si Windows l'autorise.</summary>
@@ -808,6 +813,8 @@ public sealed partial class IslandWindow : Window
             RequestRender();
         };
         _activityManager.ActivityRemoved += (_, activity) => OnUiThread(() => ShadowForget(activity));
+        // Animations réduites : la forme ne saute plus, elle apparaît en fondu (n° 22).
+        _controller.ShapeSnapped += (_, _) => OnUiThread(() => SpaceNotch_App.Animations.ContentTransition.Dissolve(RootLayout));
         _controller.AnimationCompleted += (_, _) =>
         {
             RequestRender();
@@ -869,6 +876,15 @@ public sealed partial class IslandWindow : Window
             if (folding && _quickMenuFeature.IsShown)
             {
                 _quickMenuFeature.Dismiss();
+                _activityManager.PinPresentation(null);
+            }
+
+            // Refermer la notch sur la proposition du presse-papier, c'est
+            // répondre « plus tard » : épinglée, elle passait sinon devant la
+            // musique au repos jusqu'à ce qu'on réponde (n° 63).
+            if (folding && _quickMenuFeature.IsClipboardOfferShown)
+            {
+                _quickMenuFeature.WithdrawClipboardOffer();
                 _activityManager.PinPresentation(null);
             }
 
@@ -1335,9 +1351,13 @@ public sealed partial class IslandWindow : Window
             else if (scene is LauncherScene launcherTiles)
             {
                 launcherTiles.ClipboardEmpty = !HasActivity(ClipboardFeature.ActivityId);
+                launcherTiles.ClipboardOff = !_settings.ShowClipboard;
             }
 
             scene.Apply(activity);
+
+            // Ce que la scène vient de créer est figé avant d'être mesuré (n° 59).
+            SpaceNotch_App.UI.FixedTextSize.Apply(scene.Root);
             scene.Root.Visibility = Visibility.Visible;
             FitOpenedScene(scene, activity);
 
@@ -2145,7 +2165,7 @@ public sealed partial class IslandWindow : Window
             return;
         }
 
-        var probe = new TextBlock { Style = label.Style, Text = label.Text };
+        var probe = new TextBlock { Style = label.Style, Text = label.Text, IsTextScaleFactorEnabled = false };
         probe.Measure(new global::Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
         double missing = Math.Ceiling(probe.DesiredSize.Width - label.ActualWidth) + 1;
 
@@ -2622,6 +2642,9 @@ public sealed partial class IslandWindow : Window
             // L'atmosphère doit cesser d'animer si Windows demande la réduction
             // des animations : la teinte suit alors instantanément.
             _atmosphere.UseSpringAnimations = UseSpringAnimations();
+
+            // Pixel se calme ou revit sur-le-champ, sans attendre le prochain rendu (n° 22).
+            OnPixelCalmChanged();
 
             _eventBus.Publish(new SystemVisualStateChangedEvent(
                 updated.AnimationsEnabled,

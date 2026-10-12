@@ -140,6 +140,7 @@
                     Text=""
                     FontSize="11.5"
                     Foreground="{ThemeResource NfTextSecondaryBrush}"
+                    TextWrapping="Wrap"
                     TextTrimming="CharacterEllipsis"
                     MaxLines="2" />
                 </Grid>

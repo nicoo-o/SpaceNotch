@@ -165,6 +165,40 @@ internal static class ContentTransition
         }
     }
 
+    /// <summary>Fondu du mouvement réduit : dans la fourchette de 90 à 160 ms du §7.</summary>
+    public static readonly TimeSpan DissolveDuration = TimeSpan.FromMilliseconds(140);
+
+    /// <summary>
+    /// Sous animations réduites, ce qui changeait en mouvement apparaît en fondu :
+    /// opacité seule, de <paramref name="from"/> à 1, sans déplacement ni
+    /// dépassement (n° 22). Partir d'une opacité non nulle évite qu'une forme
+    /// pleine disparaisse un instant.
+    /// </summary>
+    public static void Dissolve(UIElement element, float from = 0.4f)
+    {
+        ArgumentNullException.ThrowIfNull(element);
+
+        try
+        {
+            Visual visual = ElementCompositionPreview.GetElementVisual(element);
+            Compositor compositor = visual.Compositor;
+
+            CompositionEasingFunction easeOut = compositor.CreateCubicBezierEasingFunction(
+                new Vector2(0f, 0f),
+                new Vector2(0f, 1f));
+
+            ScalarKeyFrameAnimation fade = compositor.CreateScalarKeyFrameAnimation();
+            fade.InsertKeyFrame(0f, from);
+            fade.InsertKeyFrame(1f, 1f, easeOut);
+            fade.Duration = DissolveDuration;
+            visual.StartAnimation("Opacity", fade);
+        }
+        catch (Exception)
+        {
+            // Un fondu refusé laisse le contenu tel quel : le saut d'avant.
+        }
+    }
+
     /// <summary>Durée d'un chiffre qui roule : court, pour suivre une mesure qui change souvent.</summary>
     public static readonly TimeSpan RollDuration = TimeSpan.FromMilliseconds(180);
 

@@ -181,9 +181,16 @@ public sealed class TimerFeature : IslandFeatureBase
         }
     }
 
+    /// <summary>
+    /// Période du battement. Interne : les tests la rendent infinie et jouent
+    /// <see cref="OnTick"/> à la main, sans course avec le vrai (n° 86).
+    /// </summary>
+    internal TimeSpan TickPeriod { get; set; } = TimeSpan.FromMilliseconds(250);
+
     protected override void OnDisposed() => _tick.Dispose();
 
-    private void OnTick(object? state)
+    /// <summary>Un battement : redessine, ou clôt la mesure arrivée au bout. Interne : les tests le jouent (n° 86).</summary>
+    internal void OnTick(object? state)
     {
         if (!_clock.IsRunning)
         {
@@ -271,5 +278,5 @@ public sealed class TimerFeature : IslandFeatureBase
     private void StopTick() => _tick.Change(Timeout.Infinite, Timeout.Infinite);
 
     /// <summary>Un battement toutes les 250 ms : l'affichage change de seconde à l'heure juste, sans saut.</summary>
-    private void StartTick() => _tick.Change(TimeSpan.FromMilliseconds(250), TimeSpan.FromMilliseconds(250));
+    private void StartTick() => _tick.Change(TickPeriod, TickPeriod);
 }

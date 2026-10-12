@@ -75,6 +75,10 @@ public sealed partial class PixelEyesView : Grid
 
         _drop = new Border { Width = 2, Height = 3, CornerRadius = new CornerRadius(1), Background = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(255, 0x8F, 0xD0, 0xFF)), Opacity = 0 };
         _overlay.Children.Add(_drop);
+
+        // La goutte immobile suit l'œil droit une fois mis en page : avant, sa
+        // position (0) la posait sur l'œil gauche (relecture du n° 22).
+        _rightCell.SizeChanged += (_, _) => PlaceStillDrop();
         Children.Add(_overlay);
 
         ApplyShape(PixelGaze.Shape(_mood));
@@ -82,7 +86,27 @@ public sealed partial class PixelEyesView : Grid
     }
 
     /// <summary>Faux quand Windows réduit les animations : le regard se pose sans ressort.</summary>
-    public bool Animate { get; set; } = true;
+    /// <remarks>Appliqué aussi après le chargement : la préférence de Windows peut changer en cours de route.</remarks>
+    public bool Animate
+    {
+        get => _animate;
+        set
+        {
+            if (_animate == value)
+            {
+                return;
+            }
+
+            _animate = value;
+
+            if (IsLoaded)
+            {
+                EnableSprings();
+            }
+        }
+    }
+
+    private bool _animate = true;
 
     public PixelMood Mood => _mood;
 
@@ -241,9 +265,22 @@ public sealed partial class PixelEyesView : Grid
         if (!sweating)
         {
             _sweatTimer?.Stop();
+            _stillDrop = false;
             _drop.Opacity = 0;
             return;
         }
+
+        // Mouvement réduit : la goutte reste posée près de l'œil, sans glisser (n° 22).
+        if (!Animate)
+        {
+            _sweatTimer?.Stop();
+            _stillDrop = true;
+            PlaceStillDrop();
+            _drop.Opacity = 1;
+            return;
+        }
+
+        _stillDrop = false;
 
         if (_sweatTimer is { IsRunning: true })
         {
@@ -253,6 +290,19 @@ public sealed partial class PixelEyesView : Grid
         _sweatStart = DateTime.UtcNow;
         _sweatTimer ??= CreateSweatTimer();
         _sweatTimer.Start();
+    }
+
+    private bool _stillDrop;
+
+    private void PlaceStillDrop()
+    {
+        if (!_stillDrop)
+        {
+            return;
+        }
+
+        Canvas.SetLeft(_drop, _rightCell.ActualOffset.X + _rightCell.ActualWidth + 3);
+        Canvas.SetTop(_drop, 2);
     }
 
     private Microsoft.UI.Dispatching.DispatcherQueueTimer CreateSweatTimer()
@@ -293,17 +343,12 @@ public sealed partial class PixelEyesView : Grid
         }
     }
 
-    /// <summary>Le regard glisse vers sa nouvelle direction au lieu d'y sauter.</summary>
+    /// <summary>Le regard glisse vers sa nouvelle direction au lieu d'y sauter ; sans animation, il s'y pose.</summary>
     private void EnableSprings()
     {
-        if (!Animate)
-        {
-            return;
-        }
-
         foreach (Grid cell in new[] { _leftCell, _rightCell })
         {
-            cell.TranslationTransition = new Vector3Transition { Duration = TimeSpan.FromMilliseconds(180) };
+            cell.TranslationTransition = Animate ? new Vector3Transition { Duration = TimeSpan.FromMilliseconds(180) } : null;
         }
     }
 

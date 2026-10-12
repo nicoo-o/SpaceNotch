@@ -93,7 +93,12 @@ public sealed partial class SettingsWindow : Window
         set
         {
             _focusHotkey = value;
-            ShowKeys(FocusHotkeyCaps, value, Lang.T("Aucun : Win+Alt+N et Ctrl+Alt+N sont pris par d'autres applications", "None: Win+Alt+N and Ctrl+Alt+N are taken by other apps"));
+            string none = Lang.T("Aucun : Win+Alt+N et Ctrl+Alt+N sont pris par d'autres applications", "None: Win+Alt+N and Ctrl+Alt+N are taken by other apps");
+            ShowKeys(FocusHotkeyCaps, value, none);
+            AutomationProperties.SetName(FocusHotkeyHost, Lang.T("Aller à la notch : ", "Go to the notch: ") + (string.IsNullOrWhiteSpace(value) ? none : value));
+            AutomationProperties.SetHelpText(FocusHotkeyHost, Lang.T(
+                "Donne le clavier à la notch depuis n’importe quelle application : flèches pour parcourir, Échap pour revenir.",
+                "Moves the keyboard to the notch from any app: arrows to browse, Esc to go back."));
         }
     }
 
@@ -116,9 +121,15 @@ public sealed partial class SettingsWindow : Window
         LoadFromSettings();
         SelectPage(PageGeneral, NavGeneral);
         ShowPendingPlugins();
-        ShowHotkey();
         UpdateNotificationCard();
         AnnotateCards();
+
+        // Après l'indexation : le texte d'attente (« Aucun : … sont pris ») n'est
+        // pas le sujet de la carte, et faisait sortir la recherche sur « aucun » (n° 85).
+        ShowHotkey();
+
+        // Réglages avancés masqués tant qu'on ne les demande pas (n° 23).
+        SetCardsVisible(all: true, string.Empty);
 
         string version = typeof(SettingsWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : string.Empty;
         VersionText.Text = $"Version {version}";
@@ -140,6 +151,7 @@ public sealed partial class SettingsWindow : Window
         // L'aperçu suit exactement le même signal que l'Island : une seule source
         // de vérité, donc aucune possibilité d'afficher autre chose que le réel.
         _settings.Changed += OnSettingsChanged;
+        SpaceNotch_App.UI.SystemTheme.Changed += OnSystemThemeChanged;
 
         Closed += OnWindowClosed;
 
@@ -228,7 +240,15 @@ public sealed partial class SettingsWindow : Window
             toggle.Toggled += async (_, _) => await OnFeatureToggledAsync(captured, toggle);
 
             _featureToggles[feature.Id] = toggle;
-            FeaturesHost.Children.Add(SettingsCard(glyph, title, description, toggle));
+            Border card = SettingsCard(glyph, title, description, toggle);
+
+            // Services pour développeurs : avec les réglages avancés (n° 75, n° 23).
+            if (feature.Id is FeatureKeys.Discord or FeatureKeys.Channel)
+            {
+                SpaceNotch_App.UI.SettingsCard.SetAdvanced(card, true);
+            }
+
+            FeaturesHost.Children.Add(card);
         }
     }
 
@@ -239,7 +259,9 @@ public sealed partial class SettingsWindow : Window
         FeatureKeys.Clipboard => ("Clipboard", Lang.T("Presse-papier", "Clipboard"), Lang.T("Les derniers éléments copiés, épinglables.", "Your latest copied items, pinnable.")),
         FeatureKeys.Bluetooth => ("Bluetooth", "Bluetooth", Lang.T("Connexion, déconnexion et batterie de tes appareils.", "Connections, disconnections and battery of your devices.")),
         FeatureKeys.VolumeHud => ("VolumeHigh", "Volume", Lang.T("Remplace l’indicateur de volume de Windows.", "Replaces the Windows volume indicator.")),
-        FeatureKeys.Pomodoro => ("Timer", "Focus", Lang.T("Des sessions de 25 minutes, puis une pause.", "25-minute sessions, then a break.")),
+        FeatureKeys.Pomodoro => ("Timer", "Focus", Lang.T("Le minuteur « Focus 25 min » : la session finit avant ta prochaine réunion, puis une pause.", "The “Focus 25 min” timer: the session ends before your next meeting, then a break.")),
+        FeatureKeys.Discord => ("Headphones", "Discord", Lang.T("Ta salle vocale Discord dans la notch. Demande une application développeur Discord.", "Your Discord voice channel in the notch. Needs a Discord developer app.")),
+        FeatureKeys.Channel => ("Agent", Lang.T("Canal local", "Local channel"), Lang.T("Laisse tes agents IA (Claude Code) et tes scripts montrer où ils en sont. Rien ne sort de ton PC.", "Lets your AI agents (Claude Code) and scripts show their progress. Nothing leaves your PC.")),
         FeatureKeys.FileShelf => ("Folder", Lang.T("Étagère", "Shelf"), Lang.T("Dépose des fichiers sur la notch, reprends-les plus tard.", "Drop files on the notch, pick them up later.")),
         FeatureKeys.Downloads => ("Download", Lang.T("Téléchargements", "Downloads"), Lang.T("La progression de ce que tu télécharges.", "The progress of what you download.")),
         FeatureKeys.Charge => ("Bolt", Lang.T("Charge", "Charging"), Lang.T("La batterie qui se remplit quand tu branches le chargeur.", "The battery filling up when you plug in the charger.")),
@@ -250,20 +272,21 @@ public sealed partial class SettingsWindow : Window
     };
 
     /// <summary>Carte OLED construite en code, identique à celles du XAML.</summary>
-    private static Border SettingsCard(string glyph, string title, string description, FrameworkElement control)
+    private Border SettingsCard(string glyph, string title, string description, FrameworkElement control)
     {
         var grid = new Grid { ColumnSpacing = 14 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(20) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        grid.Children.Add(new GlyphView
+        var icon = new GlyphView
         {
             Key = glyph,
             Size = 16,
-            Tint = new SolidColorBrush(Color.FromArgb(0xB8, 0xFF, 0xFF, 0xFF)),
             VerticalAlignment = VerticalAlignment.Center
-        });
+        };
+        Ink(icon, GlyphView.TintProperty, "NfSettingsGlyphBrush");
+        grid.Children.Add(icon);
 
         var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
         texts.Children.Add(new TextBlock { Text = title, Style = (Style)Application.Current.Resources["NfSettingsTitleStyle"] });
@@ -376,6 +399,7 @@ public sealed partial class SettingsWindow : Window
             StackToggle.IsOn = settings.ShowActivityStack;
             ClockToggle.IsOn = settings.ShowClockAtRest;
             PixelToggle.IsOn = settings.ShowPixel;
+            AdvancedToggle.IsOn = settings.ShowAdvancedSettings;
             UpdateAgentHooksButton();
             AssistantSourceBox.SelectedIndex = (int)settings.AssistantSource;
             ClaudeModelBox.Text = settings.ClaudeModel;
@@ -812,6 +836,17 @@ public sealed partial class SettingsWindow : Window
     private void OnPixelToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.ShowPixel = PixelToggle.IsOn);
 
+    private void OnAdvancedToggled(object sender, RoutedEventArgs e)
+    {
+        Apply(s => s.ShowAdvancedSettings = AdvancedToggle.IsOn);
+
+        // Hors recherche, les cartes avancées paraissent ou disparaissent aussitôt.
+        if (SearchSettingsBox.Text.Trim().Length == 0)
+        {
+            SetCardsVisible(all: true, string.Empty);
+        }
+    }
+
 
     // ---- Agents IA (I4) : les hooks de Claude Code ---------------------------
 
@@ -1036,6 +1071,13 @@ public sealed partial class SettingsWindow : Window
         {
             DiscordText.Text = Lang.T("Colle aussi le secret de l’application.", "Also paste the app secret.");
             return;
+        }
+
+        // Relier Discord, c'est vouloir sa salle vocale dans la notch : éteinte par
+        // défaut (n° 75), elle s'allume par l'interrupteur, qui l'enregistre.
+        if (_featureToggles.TryGetValue(FeatureKeys.Discord, out ToggleSwitch? discordToggle) && !discordToggle.IsOn)
+        {
+            discordToggle.IsOn = true;
         }
 
         Apply(s => s.DiscordClientId = id);
@@ -1284,21 +1326,36 @@ public sealed partial class SettingsWindow : Window
     private int SetCardsVisible(bool all, string query)
     {
         int found = 0;
+        bool advanced = _settings.Current.ShowAdvancedSettings;
 
         foreach (StackPanel page in Pages)
         {
             int inPage = 0;
+
+            // Un titre de groupe dont toutes les cartes sont avancées (« Réglage fin »)
+            // disparaît avec elles plutôt que de rester seul (n° 23).
+            TextBlock? group = null;
+            bool groupShown = false;
 
             foreach (UIElement child in AllChildren(page))
             {
                 switch (child)
                 {
                     case Border { Tag: string text } card:
-                        bool match = all || SpaceNotch.Core.Accessibility.SettingsSearch.Matches(
-                            _cardIndex.TryGetValue(card, out string? index) ? index : SpaceNotch.Core.Accessibility.SettingsSearch.Index([text]),
-                            query);
+                        bool match = all
+                            ? advanced || !SpaceNotch_App.UI.SettingsCard.GetAdvanced(card)
+                            : SpaceNotch.Core.Accessibility.SettingsSearch.Matches(
+                                _cardIndex.TryGetValue(card, out string? index) ? index : SpaceNotch.Core.Accessibility.SettingsSearch.Index([text]),
+                                query);
                         card.Visibility = match ? Visibility.Visible : Visibility.Collapsed;
                         inPage += match ? 1 : 0;
+                        groupShown |= match;
+                        break;
+
+                    case TextBlock label when all && IsGroupTitle(label):
+                        CloseGroup(group, groupShown);
+                        group = label;
+                        groupShown = false;
                         break;
 
                     case TextBlock label:
@@ -1317,6 +1374,7 @@ public sealed partial class SettingsWindow : Window
             }
 
             found += inPage;
+            CloseGroup(group, groupShown);
 
             if (!all)
             {
@@ -1325,6 +1383,17 @@ public sealed partial class SettingsWindow : Window
         }
 
         return found;
+    }
+
+    private static bool IsGroupTitle(TextBlock label)
+        => label.Style == (Style)Application.Current.Resources["NfSettingsGroupStyle"];
+
+    private static void CloseGroup(TextBlock? group, bool shown)
+    {
+        if (group is not null)
+        {
+            group.Visibility = shown ? Visibility.Visible : Visibility.Collapsed;
+        }
     }
 
     // ---- Accessibilité des cartes (phase C) ------------------------------
@@ -1532,11 +1601,41 @@ public sealed partial class SettingsWindow : Window
         }
     }
 
+    /// <summary>
+    /// Une encre des Réglages, lue dans le thème (n° 57) : en contraste élevé,
+    /// la couleur du système au lieu d'un blanc translucide écrit en dur.
+    /// </summary>
+    private static Brush Token(string key) => (Brush)Application.Current.Resources[key];
+
+    /// <summary>
+    /// Les encres posées en code, relues quand le thème de Windows change : le
+    /// XAML suit un passage en contraste élevé, elles non (relecture du n° 57).
+    /// </summary>
+    private readonly List<(DependencyObject Target, DependencyProperty Property, string Key)> _inks = [];
+
+    private void Ink(DependencyObject target, DependencyProperty property, string key)
+    {
+        target.SetValue(property, Token(key));
+        _inks.Add((target, property, key));
+    }
+
+    private void OnSystemThemeChanged()
+        => DispatcherQueue.TryEnqueueSafely(() =>
+        {
+            foreach ((DependencyObject target, DependencyProperty property, string key) in _inks)
+            {
+                target.SetValue(property, Token(key));
+            }
+
+            UpdateNotificationCard();
+            ShowPendingPlugins();
+        });
+
     private void UpdateNotificationCard()
     {
         var access = SpaceNotch.Platform.Windows.Notifications.WindowsNotificationListener.GetAccess();
-        var green = new SolidColorBrush(Color.FromArgb(0xFF, 0x8F, 0xF0, 0xA4));
-        var dim = new SolidColorBrush(Color.FromArgb(0x99, 0xFF, 0xFF, 0xFF));
+        Brush green = Token("NfSettingsPositiveBrush");
+        Brush dim = Token("NfSettingsNavGlyphBrush");
 
         (string Status, Brush Brush, string? Button) card = access switch
         {
@@ -1659,7 +1758,7 @@ public sealed partial class SettingsWindow : Window
             {
                 Text = Lang.T("Aucun greffon en attente.", "No pending plugins."),
                 FontSize = 12,
-                Foreground = new SolidColorBrush(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF))
+                Foreground = Token("NfSettingsDescriptionBrush")
             });
             return;
         }
@@ -1675,7 +1774,7 @@ public sealed partial class SettingsWindow : Window
             {
                 Text = name,
                 FontSize = 12.5,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                Foreground = Token("NfTextPrimaryBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis
             });
@@ -1774,6 +1873,7 @@ public sealed partial class SettingsWindow : Window
     private void OnWindowClosed(object sender, WindowEventArgs args)
     {
         _settings.Changed -= OnSettingsChanged;
+        SpaceNotch_App.UI.SystemTheme.Changed -= OnSystemThemeChanged;
         _previewHypnotic?.Dispose();
 
         // Une écriture en attente ne doit pas être perdue parce que la fenêtre se
