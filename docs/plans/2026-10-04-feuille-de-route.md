@@ -1,4 +1,4 @@
-# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-11, soir)
+# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-12)
 
 Première version : 2026-10-04, écrite « pour vendre ». L'auteur l'a précisé le 2026-10-05 :
 SpaceNotch reste **gratuite et open source**, sans vente. Cette version re-trie tout pour ce cadre.
@@ -35,10 +35,11 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 76 | Tutoiement | #54 | fusionnée : installeur et derniers textes au vous |
 | 58 | Narrateur des Réglages | #55 | fusionnée : les boutons gardent leur nom, l'aide dit la carte et sa description (UIA avant/après) ; barre de lecture nommée ; reste n° 81 |
 | 79 | ADR-029 : Pixel avatar des agents, Clawd retiré | #56 | fusionnée : quatre humeurs capturées ; ADR-029 à passer « Accepté » après #51 ; README autour de Pixel : n° 83 |
-| 78 | Minuteur en pause | #60 | **ouverte** : annoncé « Reprendre », boutons de 32 DIP (UIA : 48 px à 150 %) ; la fin d'une session Pomodoro ne garde plus « Suspendre » |
-| 81 | Raccourci « aller à la notch » | #61 | **ouverte** : carte des Réglages, lue « Actif : Win+Alt+N » (UIA) |
-| 77 | README et PRIVACY de « Me prévenir » | #58 | **ouverte** |
-| 83, 79 | ADR-029 acceptée ; README, langage visuel et §15 autour de Pixel | #59 | **ouverte** : au repos, Pixel compris, 0,13 à 0,18 % d'un cœur (mesuré le 2026-10-11) |
+| 78 | Minuteur en pause | #60 | fusionnée : annoncé « Reprendre », boutons de 32 DIP (UIA : 48 px à 150 %) ; la fin d'une session Pomodoro ne garde plus « Suspendre » |
+| 81 | Raccourci « aller à la notch » | #61 | fusionnée : carte des Réglages, lue « Actif : Win+Alt+N » (UIA) |
+| 77 | README et PRIVACY de « Me prévenir » | #58 | fusionnée |
+| 83, 79 | ADR-029 acceptée ; README, langage visuel et §15 autour de Pixel | #59 | fusionnée : au repos, Pixel compris, 0,13 à 0,18 % d'un cœur (mesuré le 2026-10-11) |
+| 84, 73 | Tests dépendant de la langue globale | #63 | **ouverte** : les tests qui basculent la langue forment une collection sans parallélisme ; un test de garde refuse qu'un autre fichier la bascule ; avant : 1 échec sur 10 passages, après : 10 sur 10 verts |
 
 ## Sans objet pour un projet gratuit
 
@@ -56,10 +57,7 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 4 | **Non signé** : SmartScreen « Windows a protégé votre PC » à chaque version ; le Contrôle intelligent des applications bloque | `release.yml:115` ✔ ; [SmartScreen](https://learn.microsoft.com/windows/apps/package-and-deploy/smartscreen-reputation) | fort | M | faible (SignPath) |
 | 5 | Une demande d'administrateur à chaque mise à jour (certificat éphémère par version) | `release.yml:115-135` ✔ | fort | M | lié à n° 4 |
 | 52 | **Mise à jour automatique par défaut, sans signature indépendante de GitHub** ; 27 versions en 10 jours installées seules | `UpdateClient.cs:90` ✔ (empreinte prise dans la même release) ; `AppSettings.cs:591` | fort (confiance) | S–M | moyen |
-| 53 | **Le README promet une « recherche de mises à jour »** alors que le réglage par défaut installe seul ; et « < 0,1 % CPU », démenti par les mesures | `README.md:80,82` ✔ ; `performance.md:57` | fort (confiance) | S | faible |
 | 54 | **Pixel actif par défaut**, réactivé une fois par migration : contredit « Alive, never busy » (§15 : aucune animation permanente) | `AppSettings.cs:569, 833-836` ✔ | fort (identité) | S | décision (direction) |
-| 9 | **Clawd**, élément de marque d'Anthropic : fidèle par défaut, impossible à désactiver ; les règles de marque d'Anthropic n'ont pas d'exception « gratuit » | `Clawd.cs:20-30` ✔ ; ADR-024:75 ; [Anthropic trademark guidelines](https://www.anthropic.com/legal/trademark-guidelines) | moyen (juridique) | S–M | décision (direction) |
-| 10 | Page de confidentialité (`PRIVACY.md`) : ce qui sort de la machine, et quand | aucun fichier | moyen | S | faible |
 
 ## P1 — gêne un usage normal
 
@@ -101,18 +99,17 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 
 | # | Sujet | Preuve | Effort |
 |---|---|---|---|
-| 84 | Instabilité de test : `PrivacyTests.AppNamesAreReadable` attend « Application », mais `Lang.T` dépend d'une langue globale qu'un autre test bascule en parallèle (« App ») ; vu une fois sur quatre le 2026-10-11 | `PrivacyFeature.cs:44` | S |
 | 85 | Au Tab, la carte « Aller à la notch » n'est pas annoncée (aucun élément focalisable) ; la carte de recherche est indexée sur son texte « Aucun » (héritée) | relecture de #61 | S |
 | 86 | Pas de test pour les fins de session (Pomodoro, minuteur) : elles se jouent dans des rappels privés | relecture de #60 | S |
+| 87 | Le test de garde de la langue (#63) lit le texte des fichiers de test : un `Lang.French =` écrit autrement lui échappe | relecture de #63 | S |
+| 88 | Un focus et un minuteur peuvent tourner ensemble : les deux s'affichent-ils lisiblement dans la notch repliée ? Non vérifié | relecture de #69 | S |
 | 80 | Une instance de développement (`winapp run`) ne reçoit pas `SpaceNotch.exe --hook` lancé par Git Bash, alors que la notch installée le reçoit ; cause non établie (identité de paquet, propriétaire du tube) | essais du 2026-10-06 et du 2026-10-10 | S |
 | 39 | **Store en MSIX complet** : à étudier, pas à construire (voir direction) ; le Store n'accepte un installeur exe que signé | ADR-023 ; [exigences exe/MSI du Store](https://learn.microsoft.com/windows/apps/publish/publish-your-app/msi/app-package-requirements) | L |
 | 67 | winget : possible dès maintenant (avec `--notifications=off`), plus simple une fois signé | `SetupCommand.cs:54` | S |
 | 68 | ARM64 natif (PC Copilot+) | `release.yml:140` | M |
-| 69 | Fichiers de communauté : CONTRIBUTING, SECURITY, code de conduite, modèles d'issue et de PR, signalement privé de vulnérabilités | `gh api community/profile` (42 %) | S |
 | 70 | Rapide : arrêter un nouveau `TryEnqueue`/`Tick` nu (analyseur de symboles interdits — dépendance NuGet à approuver) | #45 | S |
 | 71 | Après des fautes répétées dans le rendu, proposer de relancer plutôt que de continuer en silence | #45 | S |
 | 72 | Reflet par le compositeur (~0 % du fil d'interface) | #47 | M |
-| 73 | Test instable : `HudActivityTests.Muted_SaysSo_AndEmptiesTheLevel` dépend de la langue globale | session du 2026-10-05 | S |
 | 74 | Moniteur CPU interrogé en continu, activé par défaut, doublon de l'échantillonneur de Pixel | `SystemMonitorFeature.cs:72` ; `PixelLife.cs:19` | S |
 | 75 | Pomodoro en doublon du Minuteur ; Discord et Canal local sans description, activés par défaut | `AppSettings.cs:670-688` | S–M |
 | 24 | Mémoire 214–311 Mo mesurés ; Native AOT non évalué | `performance.md:59` | L |
@@ -120,19 +117,16 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 26 | Machine à états en ombre ; `IslandWindow` = 31 fichiers | audit §4 | L |
 | 27 | Spotify et Discord exigent une application développeur | ADR-026 | L |
 | 28 | Greffon d'exemple qui figeait l'application : état inconnu | `performance.md:68-75` | M |
-| 29 | Fenêtre de réglages trop grande à 1366 × 768 ; tu/vous mélangés | `SettingsWindow.xaml.cs:148`, `SetupText.cs` | S |
+| 29 | Fenêtre de réglages trop grande à 1366 × 768 (tutoiement : fait, #54) | `SettingsWindow.xaml.cs:148`, `SetupText.cs` | S |
 | 30 | Documents périmés (README, performance.md, ADR-009 contre le manifeste, index des ADR) | enquête du 2026-10-06 | S |
 | 31 | `capture.ps1` non DPI-aware | constats | S |
 | 32 | ~529 couleurs écrites en dur | grep | S–M |
-| 48 | Boutons du Minuteur sans nom pour Narrateur | `TimerScene.xaml:64-99` ✔ | S |
-| 49 | Boucles non suspendues notch retirée (icône d'appel, accueil, paroles ; bulle et scène média) | relecture de #42 | S |
-| 50 | Menu rapide à aligner sur les tuiles (une seule source) | ADR-028 | S |
 
 ## Ordre proposé
 
-1. Fusionner #58 à #61 (à relire par l'auteur).
+1. Preuves à l'écran de #68 et #69, puis fusion de #63 à #69 (#67 avant #69 ; #68 et #69 se touchent : la seconde fusionnée est remise à jour).
 2. Après la réponse de SignPath : n° 82.
 3. Signature : n° 4 et n° 5 (SignPath Foundation en premier, n° 82), puis n° 67 (winget).
-4. Direction appliquée : noyau visible par défaut (n° 23, 63, 74, 75) ; intensité de Pixel (direction §7).
-5. Accessibilité : n° 57, 59, 22, 85.
+4. Direction : intensité de Pixel (direction §7) ; n° 54.
+5. Accessibilité : n° 57, 59, 22.
 6. Le reste des P1 courts.
