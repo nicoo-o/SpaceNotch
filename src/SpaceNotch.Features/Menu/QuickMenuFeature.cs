@@ -89,8 +89,8 @@ public sealed class QuickMenuFeature : IslandFeatureBase
     public void OfferClipboardHistory()
     {
         string subtitle = Lang.T(
-            "Garde tes dernières copies pour les retrouver. En mémoire seulement, sans les mots de passe.",
-            "Keeps your latest copies so you can find them again. In memory only, never passwords.");
+            "Garde tes dernières copies, en mémoire seulement, sans les mots de passe.",
+            "Keeps your latest copies, in memory only, never passwords.");
 
         IsClipboardOfferShown = true;
         PublishActivity(new IslandActivity
