@@ -219,6 +219,35 @@ public sealed class IslandControllerTests
     }
 
     [Fact]
+    public void Sans_animations_un_saut_de_forme_est_annonce_pour_son_fondu()
+    {
+        // n° 22 : l'hôte remplace le saut par un fondu ; il doit savoir quand.
+        (IslandController controller, _, ActivityManager activities) = Create(springs: false);
+        int snaps = 0;
+        controller.ShapeSnapped += (_, _) => snaps++;
+        activities.PostActivity(Music());
+
+        controller.RequestExpand();
+        Assert.Equal(1, snaps);
+
+        controller.RequestCollapse();
+        Assert.Equal(2, snaps);
+    }
+
+    [Fact]
+    public void Avec_ressort_aucun_saut_n_est_annonce()
+    {
+        (IslandController controller, _, ActivityManager activities) = Create();
+        int snaps = 0;
+        controller.ShapeSnapped += (_, _) => snaps++;
+        activities.PostActivity(Music());
+
+        controller.RequestExpand();
+
+        Assert.Equal(0, snaps);
+    }
+
+    [Fact]
     public void Une_cible_de_depot_garde_la_forme_jusqu_au_depart_du_fichier()
     {
         (IslandController controller, FakeAnimator animator, _) = Create();

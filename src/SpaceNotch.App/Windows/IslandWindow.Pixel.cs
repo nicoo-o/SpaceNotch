@@ -26,6 +26,34 @@ public sealed partial class IslandWindow
     /// <summary>Vrai quand Pixel habite la notch au repos.</summary>
     private bool PixelAtRest => _settings.ShowPixel && !UsesSideTab;
 
+    /// <summary>
+    /// Windows réduit les animations : Pixel se calme (ADR-029, n° 22). Yeux
+    /// ouverts et fixes, sans clignement, coup d'œil, bâillement ni battement ;
+    /// il change encore d'humeur (survol, sommeil, soir), en fondu.
+    /// </summary>
+    private bool PixelCalm => !_visualState.UseSpringAnimations;
+
+    /// <summary>
+    /// Windows vient de réduire ou de rétablir les animations : Pixel déjà vivant
+    /// suit aussitôt — le clignement reprend, ou s'arrête avec la goutte qui glisse.
+    /// </summary>
+    private void OnPixelCalmChanged()
+    {
+        RestEyes.Animate = !PixelCalm;
+
+        if (!_pixelLive)
+        {
+            return;
+        }
+
+        if (!PixelCalm && RestEyes.Mood != PixelMood.Asleep)
+        {
+            ArmBlink();
+        }
+
+        PixelTick();
+    }
+
     /// <summary>Montre ou cache les yeux, et arme ou arrête ce qui les fait vivre.</summary>
     /// <remarks>
     /// Chaque rendu cache puis remontre les yeux : arrêter et relancer à chaque
@@ -56,7 +84,9 @@ public sealed partial class IslandWindow
             return;
         }
 
-        RestEyes.Animate = UseSpringAnimations();
+        // Seul le mouvement réduit de Windows calme Pixel (ADR-029) ; « Rebond »
+        // ne concerne que le dépassement de la forme.
+        RestEyes.Animate = !PixelCalm;
 
         // Session verrouillée ou notch retirée : les yeux restent fermés, rien ne
         // tourne — un rendu pendant le retrait les relançait.
@@ -77,7 +107,7 @@ public sealed partial class IslandWindow
         _gazeTimer ??= CreateRepeatingTimer(GazeInterval, PixelTick);
         PixelTick();
         _gazeTimer.Start();
-        if (RestEyes.Mood != PixelMood.Asleep)
+        if (RestEyes.Mood != PixelMood.Asleep && !PixelCalm)
         {
             ArmBlink();
         }
@@ -116,6 +146,11 @@ public sealed partial class IslandWindow
             time);
         bool wasAsleep = RestEyes.Mood == PixelMood.Asleep;
 
+        if (mood != RestEyes.Mood && PixelCalm && RestEyes.Visibility == Visibility.Visible)
+        {
+            SpaceNotch_App.Animations.ContentTransition.Dissolve(RestEyes, from: 0f);
+        }
+
         RestEyes.SetMood(mood);
 
         // Pixel vivant : état du PC, soir, musique, coup d'œil, bonjour et au revoir.
@@ -124,7 +159,12 @@ public sealed partial class IslandWindow
 
         if (_gazeTimer is not null)
         {
-            _gazeTimer.Interval = mood == PixelMood.Asleep ? SleepCheckInterval : GazeInterval;
+            // Calme, Pixel ne suit plus le pointeur : son humeur se relit au rythme du
+            // sommeil, sauf une surprise, relue à sa fin (1,4 s) plutôt que 5 s après.
+            TimeSpan surpriseLeft = _pixelSurpriseUntil - DateTime.UtcNow;
+            _gazeTimer.Interval = PixelCalm && surpriseLeft > TimeSpan.Zero ? surpriseLeft + TimeSpan.FromMilliseconds(50)
+                : mood == PixelMood.Asleep || PixelCalm ? SleepCheckInterval
+                : GazeInterval;
         }
 
         if (mood == PixelMood.Asleep)
@@ -139,6 +179,13 @@ public sealed partial class IslandWindow
         }
 
         TrackEyes();
+
+        if (PixelCalm)
+        {
+            _blinkTimer?.Stop();
+            RestEyes.Look(0, 0);
+            return;
+        }
 
         if (_pixelLook is { } forced)
         {
@@ -188,8 +235,9 @@ public sealed partial class IslandWindow
 
     private void ArmBlink()
     {
-        // Un regard ou un réveil pendant un retrait ne relance pas le clignement.
-        if (!LoopsShown())
+        // Un regard ou un réveil pendant un retrait ne relance pas le clignement ;
+        // Pixel calmé ne cligne pas.
+        if (!LoopsShown() || PixelCalm)
         {
             return;
         }
