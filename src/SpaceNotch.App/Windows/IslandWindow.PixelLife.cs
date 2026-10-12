@@ -21,7 +21,12 @@ public sealed partial class IslandWindow
     private static readonly TimeSpan HelloDuration = TimeSpan.FromMilliseconds(2700);
     private static readonly TimeSpan ByeDuration = TimeSpan.FromMilliseconds(1400);
 
-    private readonly CpuSampler _cpuSampler = new();
+    /// <summary>
+    /// Pixel reprend la mesure du moniteur (toutes les 5 s au calme) plutôt que
+    /// d'interroger le système à son tour : un seul échantillonneur (n° 74).
+    /// Moniteur éteint, il mesure lui-même, au plus toutes les 5,5 s.
+    /// </summary>
+    private static readonly TimeSpan CpuReadingAge = TimeSpan.FromSeconds(5.5);
     private DispatcherQueueTimer? _vitalsTimer;
     private PixelCondition _condition;
     private ForegroundWatcher? _foreground;
@@ -106,7 +111,7 @@ public sealed partial class IslandWindow
             // Pas d'information sur l'alimentation : on ne suppose rien.
         }
 
-        double cpu = _cpuSampler.Sample() / 100;
+        double cpu = SpaceNotch.Platform.Windows.Power.CpuLoad.Shared.Get(CpuReadingAge) / 100;
         bool online = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
         _condition = PixelVitals.Condition(battery, charging, cpu, online);
     }
