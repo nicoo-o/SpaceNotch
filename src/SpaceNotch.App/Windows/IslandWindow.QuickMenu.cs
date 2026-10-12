@@ -48,7 +48,8 @@ public sealed partial class IslandWindow
             HasClipboard: HasActivity(ClipboardFeature.ActivityId),
             HasShelf: HasActivity(FileShelfManager.ShelfActivityId),
             TimerRunning: _timerFeature.IsMeasuring,
-            ClipboardOff: !_settings.ShowClipboard));
+            ClipboardOff: !_settings.ShowClipboard,
+            FocusActive: _pomodoroFeature.HasSession));
 
         // Le menu passe devant ce qui était présenté — la musique, un minuteur —
         // le temps d'être utilisé ; il rend la main en se refermant.
@@ -122,6 +123,20 @@ public sealed partial class IslandWindow
             case QuickMenuFeature.SearchAction:
                 CloseQuickMenu();
                 OpenLauncher();
+                return true;
+
+            case QuickMenuFeature.TimerAction when request.Value == SpaceNotch_App.Views.Scenes.QuickMenuScene.FocusValue:
+                CloseQuickMenu();
+
+                // Focus calé sur l'agenda (W3) : il finit avant la prochaine réunion.
+                _pomodoroFeature.StartFitted();
+                RevealPresented();
+                return true;
+
+            case QuickMenuFeature.TimerAction when request.Value == SpaceNotch_App.Views.Scenes.QuickMenuScene.FocusStopValue:
+                CloseQuickMenu();
+                _pomodoroFeature.Reset();
+                CollapseByUser("menu rapide");
                 return true;
 
             case QuickMenuFeature.TimerAction:

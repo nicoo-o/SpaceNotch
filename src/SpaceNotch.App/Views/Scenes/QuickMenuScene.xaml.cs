@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Numerics;
 using Microsoft.UI;
 using Microsoft.UI.Composition;
@@ -19,7 +20,7 @@ using Windows.System;
 namespace SpaceNotch_App.Views.Scenes;
 
 /// <summary>
-/// Menu rapide : Rechercher, Minuteur (5 / 15 / 25 min au survol),
+/// Menu rapide : Rechercher, Minuteur (5 / 15 min et Focus 25 min au survol),
 /// Presse-papier, Étagère · Détacher, Accrocher à… (trois bords dépliés sur
 /// place) · Réglages, Quitter. La vue décrit ; la fenêtre exécute.
 /// </summary>
@@ -27,7 +28,13 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
 {
     private static readonly bool French = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName == "fr";
 
-    private static readonly int[] TimerChoices = [5, 15, 25];
+    /// <summary>Durées simples ; la troisième puce est « Focus 25 min » (n° 75 : Pomodoro fondu dans le Minuteur).</summary>
+    private static readonly int[] TimerChoices = [5, 15];
+
+    /// <summary>Valeur de la puce Focus, et de l'arrêt d'un focus en cours.</summary>
+    public const string FocusValue = "focus";
+
+    public const string FocusStopValue = "focus.stop";
 
     private readonly DispatcherTimer _clock = new() { Interval = TimeSpan.FromSeconds(15) };
 
@@ -122,7 +129,14 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
             QuickMenuFeature.SearchAction,
             keys: payload.Hotkey?.Replace("Win+", "⊞+", StringComparison.Ordinal).Split('+')));
 
-        RowsPanel.Children.Add(TimerRow(payload.TimerRunning));
+        RowsPanel.Children.Add(TimerRow(payload.TimerRunning, payload.FocusActive));
+
+        // Un focus (en cours ou en pause) a sa propre ligne d'arrêt : le Minuteur
+        // garde la sienne, ou ses puces pour un thé pendant le focus.
+        if (payload.FocusActive)
+        {
+            RowsPanel.Children.Add(Row("Stop", French ? "Arrêter le focus" : "Stop focus", QuickMenuFeature.TimerAction, value: FocusStopValue));
+        }
 
         // Note éclair (F7) : aussi par un double-clic sur la notch. Nom et icône
         // des lignes communes viennent des tuiles : une seule source (n° 50).
@@ -243,10 +257,10 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
 
     /// <summary>
     /// Minuteur : la ligne lance 15 min ; au survol ou au clavier, les puces
-    /// 5 / 15 / 25 min apparaissent dans la ligne (140 ms, glissement de 8 DIPs,
+    /// 5 / 15 min et « Focus 25 min » apparaissent dans la ligne (140 ms, glissement de 8 DIPs,
     /// 20 ms d'écart). Un minuteur en cours se propose à l'arrêt.
     /// </summary>
-    private Grid TimerRow(bool running)
+    private Grid TimerRow(bool running, bool focusActive)
     {
         var host = new Grid();
 
@@ -283,7 +297,20 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
             chips.Children.Add(chip);
         }
 
+        // Le Focus est un minuteur de 25 min qui finit avant la prochaine réunion :
+        // une puce du Minuteur, plus une fonction à part (n° 75).
+        // Pas pendant un focus : un clic remplacerait sans prévenir la session en cours.
+        if (!focusActive)
+        {
+            var focus = new Button { Style = (Style)Application.Current.Resources["NfChipButtonStyle"], Content = "Focus 25 min" };
+            focus.Click += (_, _) => Raise(QuickMenuFeature.TimerAction, FocusValue);
+            chips.Children.Add(focus);
+        }
+
         host.Children.Add(chips);
+
+        // Le chevron s'efface sous les puces : « Focus 25 min » le touchait.
+        UIElement? chevron = (row.Content as Grid)?.Children.FirstOrDefault(c => c is GlyphView && Grid.GetColumn((FrameworkElement)c) == 2);
 
         void Reveal(bool show)
         {
@@ -293,6 +320,11 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
             }
 
             chips.Visibility = show ? Visibility.Visible : Visibility.Collapsed;
+
+            if (chevron is not null)
+            {
+                chevron.Opacity = show ? 0 : 1;
+            }
 
             if (show)
             {
