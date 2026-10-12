@@ -261,7 +261,7 @@ public sealed partial class SettingsWindow : Window
         {
             Key = glyph,
             Size = 16,
-            Tint = new SolidColorBrush(Color.FromArgb(0xB8, 0xFF, 0xFF, 0xFF)),
+            Tint = Token("NfSettingsGlyphBrush"),
             VerticalAlignment = VerticalAlignment.Center
         });
 
@@ -1532,11 +1532,17 @@ public sealed partial class SettingsWindow : Window
         }
     }
 
+    /// <summary>
+    /// Une encre des Réglages, lue dans le thème (n° 57) : en contraste élevé,
+    /// la couleur du système au lieu d'un blanc translucide écrit en dur.
+    /// </summary>
+    private static Brush Token(string key) => (Brush)Application.Current.Resources[key];
+
     private void UpdateNotificationCard()
     {
         var access = SpaceNotch.Platform.Windows.Notifications.WindowsNotificationListener.GetAccess();
-        var green = new SolidColorBrush(Color.FromArgb(0xFF, 0x8F, 0xF0, 0xA4));
-        var dim = new SolidColorBrush(Color.FromArgb(0x99, 0xFF, 0xFF, 0xFF));
+        Brush green = Token("NfSettingsPositiveBrush");
+        Brush dim = Token("NfSettingsNavGlyphBrush");
 
         (string Status, Brush Brush, string? Button) card = access switch
         {
@@ -1659,7 +1665,7 @@ public sealed partial class SettingsWindow : Window
             {
                 Text = Lang.T("Aucun greffon en attente.", "No pending plugins."),
                 FontSize = 12,
-                Foreground = new SolidColorBrush(Color.FromArgb(0x80, 0xFF, 0xFF, 0xFF))
+                Foreground = Token("NfSettingsDescriptionBrush")
             });
             return;
         }
@@ -1675,7 +1681,7 @@ public sealed partial class SettingsWindow : Window
             {
                 Text = name,
                 FontSize = 12.5,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                Foreground = Token("NfTextPrimaryBrush"),
                 VerticalAlignment = VerticalAlignment.Center,
                 TextTrimming = TextTrimming.CharacterEllipsis
             });
