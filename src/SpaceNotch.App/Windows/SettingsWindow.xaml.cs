@@ -327,6 +327,7 @@ public sealed partial class SettingsWindow : Window
         DensityBox.ItemsSource = new[] { Lang.T("Compacte", "Compact"), Lang.T("Confortable", "Comfortable"), Lang.T("Aérée", "Airy") };
         UpdateModeBox.ItemsSource = new[] { Lang.T("Désactivées", "Off"), Lang.T("Me prévenir", "Ask me"), Lang.T("Automatiques", "Automatic") };
         PixelIntensityBox.ItemsSource = new[] { Lang.T("Calme", "Calm"), Lang.T("Normal", "Normal"), Lang.T("Expressif", "Expressive") };
+        TopBarBox.ItemsSource = new[] { Lang.T("Me demander", "Ask me"), Lang.T("Sous la barre", "Below the bar"), Lang.T("Sur le côté", "On the side") };
         CutoutBox.ItemsSource = new[] { Lang.T("Aucune", "None"), Lang.T("Ordinaire (200 px)", "Standard (200 px)"), Lang.T("Personnalisée", "Custom") };
 
         // L'ordre suit l'énumération MotionStyle : l'index sélectionné en est la valeur.
@@ -377,6 +378,7 @@ public sealed partial class SettingsWindow : Window
             DetachToggle.IsOn = settings.AllowDetach;
             EdgeBox.SelectedIndex = (int)settings.DockEdge;
             SideEdgesToggle.IsOn = settings.AllowSideEdges;
+            TopBarBox.SelectedIndex = (int)settings.TopBarPlacement;
             SurfaceTintBox.SelectedIndex = (int)settings.SurfaceTint;
             CustomColorBox.Text = settings.CustomSurfaceColor;
             OpacitySlider.Value = settings.SurfaceOpacity * 100;
@@ -455,6 +457,23 @@ public sealed partial class SettingsWindow : Window
         UpdateValueLabels();
         UpdatePreview();
         ShowIgnoredApps(settings.IgnoredNotificationApps);
+
+        // Barre en haut, bord et côtés changent aussi depuis la notch (carte, languette) :
+        // la page Notch suit (n° 93).
+        bool loading = _loading;
+        _loading = true;
+
+        try
+        {
+            TopBarBox.SelectedIndex = (int)settings.TopBarPlacement;
+            SideEdgesToggle.IsOn = settings.AllowSideEdges;
+            EdgeBox.SelectedIndex = (int)settings.DockEdge;
+            EdgeBox.IsEnabled = settings.AllowSideEdges;
+        }
+        finally
+        {
+            _loading = loading;
+        }
     }
 
     private void UpdateValueLabels()
@@ -493,6 +512,9 @@ public sealed partial class SettingsWindow : Window
 
     private void OnSideEdgesToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.AllowSideEdges = SideEdgesToggle.IsOn);
+
+    private void OnTopBarChanged(object sender, SelectionChangedEventArgs e)
+        => Apply(s => s.TopBarPlacement = (SpaceNotch.Core.Scenes.TopBarPlacement)Math.Clamp(TopBarBox.SelectedIndex, 0, 2));
 
     private void OnSurfaceTintChanged(object sender, SelectionChangedEventArgs e)
         => Apply(s => s.SurfaceTint = (SurfaceTint)Math.Max(0, SurfaceTintBox.SelectedIndex));

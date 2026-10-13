@@ -342,6 +342,12 @@ public sealed class AppSettings
     /// <summary>Les côtés gauche et droit accrochent la notch en languette.</summary>
     public bool AllowSideEdges { get; set; } = true;
 
+    /// <summary>
+    /// Barre des tâches en haut (n° 93, ADR-030) : demander, se poser sous la
+    /// barre, ou passer en languette sur un côté.
+    /// </summary>
+    public SpaceNotch.Core.Scenes.TopBarPlacement TopBarPlacement { get; set; } = SpaceNotch.Core.Scenes.TopBarPlacement.Ask;
+
     /// <summary>Sensation de la pastille qui suit la main.</summary>
     public DetachFeel DetachFeel { get; set; } = DetachFeel.Natural;
 
@@ -995,6 +1001,11 @@ public sealed class AppSettings
         if (!Enum.IsDefined(UpdateMode))
         {
             UpdateMode = SpaceNotch.Core.Update.UpdateMode.Notify;
+        }
+
+        if (!Enum.IsDefined(TopBarPlacement))
+        {
+            TopBarPlacement = SpaceNotch.Core.Scenes.TopBarPlacement.Ask;
         }
 
         if (!Enum.IsDefined(PixelIntensity))

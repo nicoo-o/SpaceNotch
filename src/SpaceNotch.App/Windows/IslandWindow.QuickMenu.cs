@@ -181,6 +181,20 @@ public sealed partial class IslandWindow
                 CollapseByUser("historique du presse-papier : plus tard");
                 return true;
 
+            case QuickMenuFeature.TopBarUnderAction:
+                _quickMenuFeature.WithdrawTopBarOffer();
+                _activityManager.PinPresentation(null);
+                _settingsService.Update(s => s.TopBarPlacement = SpaceNotch.Core.Scenes.TopBarPlacement.UnderBar);
+                CollapseByUser("barre en haut : sous la barre");
+                return true;
+
+            case QuickMenuFeature.TopBarSideAction:
+                _quickMenuFeature.WithdrawTopBarOffer();
+                _activityManager.PinPresentation(null);
+                _settingsService.Update(s => s.TopBarPlacement = SpaceNotch.Core.Scenes.TopBarPlacement.SideTab);
+                CollapseByUser("barre en haut : sur le côté");
+                return true;
+
             case QuickMenuFeature.ShelfAction:
                 PresentFromMenu(FileShelfManager.ShelfActivityId);
                 return true;

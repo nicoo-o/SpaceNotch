@@ -61,6 +61,57 @@ public sealed class QuickMenuFeature : IslandFeatureBase
     /// <summary>Vrai tant que la proposition d'activer l'historique attend une réponse.</summary>
     public bool IsClipboardOfferShown { get; private set; }
 
+    /// <summary>La carte qui demande où se placer sous une barre des tâches en haut (n° 93, ADR-030).</summary>
+    public const string TopBarOfferId = "feature.quickmenu.topbar-offer";
+
+    /// <summary>« Sous la barre » sur cette carte.</summary>
+    public const string TopBarUnderAction = "menu.topbar.under";
+
+    /// <summary>« Sur le côté » sur cette carte.</summary>
+    public const string TopBarSideAction = "menu.topbar.side";
+
+    /// <summary>Vrai tant que la question de la barre en haut attend une réponse.</summary>
+    public bool IsTopBarOfferShown { get; private set; }
+
+    /// <summary>
+    /// Une barre des tâches occupe le haut de l'écran : la notch demande où se
+    /// placer, une fois (ADR-030). En attendant la réponse, elle est sous la barre.
+    /// </summary>
+    public void OfferTopBarPlacement()
+    {
+        string subtitle = Lang.T(
+            "Une barre des tâches occupe le haut de l’écran. Où placer la notch ?",
+            "A taskbar sits at the top of the screen. Where should the notch go?");
+
+        IsTopBarOfferShown = true;
+        PublishActivity(new IslandActivity
+        {
+            Id = TopBarOfferId,
+            FeatureId = FeatureKey,
+            SceneKey = IslandSceneCatalog.Card,
+            Title = Lang.T("Barre des tâches en haut", "Taskbar at the top"),
+            Subtitle = subtitle,
+            Source = "SpaceNotch",
+            IconKey = "Notch",
+            Layout = ActivityLayout.Stack,
+            State = IslandActivityState.Notification,
+            Priority = ActivityPriority.High,
+            ExpandedFootprint = CardFit.For(eyebrow: false, subtitle, progress: false, actions: true, ActivityLayout.Stack),
+            Actions =
+            [
+                new ActivityAction(TopBarUnderAction, Lang.T("Sous la barre", "Below the bar"), "Notch", ActivityActionKind.Invoke, IsPrimary: true),
+                new ActivityAction(TopBarSideAction, Lang.T("Sur le côté", "On the side"), "Side")
+            ]
+        });
+    }
+
+    /// <summary>Retire la question de la barre en haut, répondue ou non.</summary>
+    public void WithdrawTopBarOffer()
+    {
+        IsTopBarOfferShown = false;
+        RemoveActivity(TopBarOfferId);
+    }
+
     /// <summary>Présente le menu, décrit par la fenêtre qui seule connaît son bord et son état.</summary>
     public void Show(QuickMenuPayload state)
     {
