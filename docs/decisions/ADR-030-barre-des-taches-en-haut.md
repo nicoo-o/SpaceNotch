@@ -1,7 +1,7 @@
 # ADR-030 — Barre des tâches en haut : la notch demande à l'utilisateur où se placer
 
-**Statut** : Proposé. Direction choisie par l'auteur le 2026-10-13 (direction §7, point 6) ; à
-livrer (feuille de route, n° 93).
+**Statut** : Accepté (version à préciser). Direction choisie par l'auteur le 2026-10-13 (direction
+§7, point 6) ; livrée le 2026-10-13 (n° 93).
 
 ## Contexte
 
@@ -56,8 +56,13 @@ pour ne jamais la recouvrir.
   (épaules concaves, [ADR-017](ADR-017-notch-attachee.md)) ne touche alors plus le bord de l'écran :
   le dessin des épaules doit être revu pour ce cas. **C'est la partie la plus difficile.**
 - Une carte de plus à enseigner, et un réglage de plus dans Réglages › Notch.
-- Une barre en masquage automatique, qui n'occupe le haut que par moments, reste à trancher : faut-il
-  la traiter comme une barre absente ?
+- Une barre en masquage automatique ne réserve rien dans la zone de travail : elle est traitée comme
+  absente, et glisse par-dessus la notch quand on l'appelle, comme toute autre fenêtre.
+- Mesuré avant la livraison (barre de test qui réserve 40 DIP) : la notch se posait à y = 0, par-dessus
+  la barre. La détection lit la zone de travail (`SpaceNotch.Core/Scenes/TopBar.cs`).
+- Limites connues : la goutte d'un détachement se dessine encore jusqu'au bord de l'écran ; une
+  notch passée en languette à cause de la barre y reste si l'on choisit ensuite « Sous la barre »
+  (le bord se rechoisit dans Réglages › Notch).
 - Les tests doivent couvrir la détection et le placement en Core, sans dépendre d'un outil tiers
   installé.
 

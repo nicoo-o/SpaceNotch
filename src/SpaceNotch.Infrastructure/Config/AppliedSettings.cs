@@ -15,14 +15,15 @@ public readonly record struct AppliedSettings(
     long? CustomDisplayHandle,
     string? DockDisplayBounds,
     string LauncherHotkey,
-    PixelIntensity PixelIntensity)
+    PixelIntensity PixelIntensity,
+    SpaceNotch.Core.Scenes.TopBarPlacement TopBarPlacement)
 {
     /// <summary>Les valeurs de <paramref name="settings"/>, à cet instant.</summary>
     public static AppliedSettings Of(AppSettings settings)
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        return new AppliedSettings(settings.DisplayMode, settings.CustomDisplayHandle, settings.DockDisplayBounds, settings.LauncherHotkey, settings.PixelIntensity);
+        return new AppliedSettings(settings.DisplayMode, settings.CustomDisplayHandle, settings.DockDisplayBounds, settings.LauncherHotkey, settings.PixelIntensity, settings.TopBarPlacement);
     }
 
     /// <summary>

@@ -427,6 +427,21 @@
                             <ToggleSwitch x:Name="SideEdgesToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnSideEdgesToggled" />
                         </Grid>
                     </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Barre des tâches en haut StartAllBack ExplorerPatcher sous la barre languette côté taskbar top">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Notch" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Barre des tâches en haut', En='Taskbar at the top'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="{l:Loc Fr='Quand une barre occupe le haut de l’écran : la notch se pose dessous, ou passe sur le côté.', En='When a bar sits at the top of the screen: the notch sits below it, or moves to the side.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="TopBarBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnTopBarChanged" />
+                        </Grid>
+                    </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Détacher en tirant Tire la notch pour en faire une pastille ; double-clic pour la raccrocher.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>

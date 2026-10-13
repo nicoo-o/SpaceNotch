@@ -271,6 +271,7 @@ public sealed partial class IslandWindow : Window
 
         _settings = _settingsService.Current;
         _applied = AppliedSettings.Of(_settings);
+        _appliedTopBar = _settings.TopBarPlacement;
 
         // Le bord et la position enregistrés : la notch redémarre là où elle a
         // été accrochée la dernière fois (ADR-020).
@@ -886,6 +887,14 @@ public sealed partial class IslandWindow : Window
             // Refermer la notch sur la proposition du presse-papier, c'est
             // répondre « plus tard » : épinglée, elle passait sinon devant la
             // musique au repos jusqu'à ce qu'on réponde (n° 63).
+            // Refermer la notch sur la question de la barre en haut : elle reste
+            // sous la barre, et redemandera au prochain démarrage (n° 93).
+            if (folding && _quickMenuFeature.IsTopBarOfferShown)
+            {
+                _quickMenuFeature.WithdrawTopBarOffer();
+                _activityManager.PinPresentation(null);
+            }
+
             if (folding && _quickMenuFeature.IsClipboardOfferShown)
             {
                 _quickMenuFeature.WithdrawClipboardOffer();
@@ -992,6 +1001,9 @@ public sealed partial class IslandWindow : Window
         StartUpdates();
 
         MiniLogger.Log("IslandWindow prête");
+
+        // Une barre des tâches occupe déjà le haut : la notch demande où se placer (n° 93).
+        _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, ApplyTopBar);
     }
 
     // ------------------------------------------------------------------
@@ -2265,7 +2277,9 @@ public sealed partial class IslandWindow : Window
         // Règle n°1 : le bord supérieur de la notch est le bord supérieur du
         // moniteur, sans aucun décalage. Il n'existe pas de réglage qui la
         // décolle — une notch décalée vers le bas est une capsule flottante.
-        int y = display.Top;
+        // Seule exception (ADR-030, n° 93) : une barre des tâches occupe le haut,
+        // et la notch se pose juste dessous, au bord de ce qui reste de l'écran.
+        int y = display.Top + SpaceNotch.Core.Scenes.TopBar.TopInset(display.Top, display.WorkTop, _settings.TopBarPlacement);
 
         // Beaucoup d'images du ressort retombent sur le même rectangle en
         // pixels entiers, en particulier en fin de course où les écarts passent
@@ -2317,7 +2331,7 @@ public sealed partial class IslandWindow : Window
 
         PlaceBubbleAttached(
             display,
-            new ScreenRect((x - display.Left) / scale, 0, footprint.Width, footprint.Height),
+            new ScreenRect((x - display.Left) / scale, (y - display.Top) / scale, footprint.Width, footprint.Height),
             footprint);
 
         if (measured != 0)
@@ -2658,6 +2672,9 @@ public sealed partial class IslandWindow : Window
 
         ApplyGeometry(_controller.CurrentFootprint);
         _atmosphere.PlaceBehind(_hWnd);
+
+        // La zone de travail a pu changer : une barre des tâches arrive en haut, ou part.
+        ApplyTopBar();
 
         MiniLogger.Log($"Environnement rafraîchi : {updated}");
     }
@@ -4151,6 +4168,14 @@ public sealed partial class IslandWindow : Window
         _applied = now;
 
         _settings = settings;
+
+        // Barre des tâches en haut : sous la barre ou en languette, selon le choix (n° 93).
+        // Après la notification en cours : passer en languette réécrit les réglages.
+        if (now.TopBarPlacement != _appliedTopBar)
+        {
+            _appliedTopBar = now.TopBarPlacement;
+            _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, ApplyTopBar);
+        }
 
         // Calme, normal ou expressif : Pixel déjà vivant suit sur-le-champ, et le
         // prochain bâillement prend le nouveau rythme.
