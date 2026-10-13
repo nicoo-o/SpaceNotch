@@ -153,13 +153,21 @@ fichiers du dépôt passent par une PR.
 ## 7. Décisions qui restent à prendre
 
 1. ~~Tu ou vous~~ : tranché, le tutoiement (2026-10-07).
-2. **Langue des issues et des notes de version** : anglais, français, ou les deux.
-3. **FUNDING.yml** : accepter des dons, ou affirmer « gratuit, sans don ».
-4. **winget maintenant** (non signé, `--notifications=off`) ou après la signature.
-5. **ARM64 natif** (PC Copilot+) : une seconde chaîne de construction et de test.
-6. **Barre des tâches en haut** (StartAllBack, ExplorerPatcher) : décaler la notch sous la barre
-   (règle n° 1 du §15) ou proposer un bord latéral. Il faut un ADR.
-7. **Plus de deux langues un jour** : si oui, changer `Lang.T` avant qu'il ne grossisse encore.
-8. **Ouvrir aux contributions** : protection de `main`, CI obligatoire, CONTRIBUTING.
+2. ~~Langue des issues et des notes de version~~ : tranché (2026-10-13), notes de version en
+   français et en anglais, comme l'application ; issues acceptées dans l'une ou l'autre langue ;
+   modèles d'issue bilingues (n° 94).
+3. ~~FUNDING.yml~~ : tranché (2026-10-13), **gratuit, sans don**. Pas de bouton « Sponsor » ; on
+   pourra y revenir.
+4. ~~winget maintenant ou après la signature~~ : tranché (2026-10-13), **après la signature**
+   (n° 82, puis n° 67).
+5. ~~ARM64 natif~~ : tranché (2026-10-13), **plus tard, après la signature** ; la version x64
+   tourne émulée sur les PC ARM (n° 68).
+6. ~~Barre des tâches en haut~~ : tranché (2026-10-13), **la notch demande à l'utilisateur** :
+   sous la barre, ou en languette sur un côté ([ADR-030](../decisions/ADR-030-barre-des-taches-en-haut.md), n° 93).
+7. ~~Plus de deux langues un jour~~ : tranché (2026-10-13), **non** : français et anglais,
+   `Lang.T` reste tel quel.
+8. ~~Ouvrir aux contributions~~ : tranché (2026-10-13), **oui** : protection de `main` à appliquer
+   par l'auteur sur GitHub, marche à suivre dans
+   [protection-de-main.md](../development/protection-de-main.md).
 9. ~~Pixel : un réglage d'intensité~~ : tranché (2026-10-12), Calme / Normal / Expressif,
    Normal par défaut ; le mouvement réduit de Windows le calme quoi qu'il en soit (#75).

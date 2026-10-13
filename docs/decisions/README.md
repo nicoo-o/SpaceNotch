@@ -30,6 +30,7 @@ pourquoi la première avait été retenue.
 | [ADR-027](ADR-027-mise-a-jour-automatique.md) | Mise à jour automatique depuis les releases GitHub, vérifiée par SHA-256, installée au calme | Accepté |
 | [ADR-028](ADR-028-acces-tableau-de-bord-et-gestes-enseignes.md) | Le clic au repos ouvre la recherche et quatre tuiles ; les gestes s'enseignent au moment utile, dans la notch | Accepté |
 | [ADR-029](ADR-029-compagnon-vivant-pixel-identite.md) | Le compagnon vivant : Pixel est l'identité et l'avatar des agents (remplace Clawd) ; §15 rouvert pour Pixel au repos | Accepté (version à préciser) |
+| [ADR-030](ADR-030-barre-des-taches-en-haut.md) | Barre des tâches en haut : la notch demande à l'utilisateur de se placer sous la barre ou en languette sur un côté | Proposé |
 
 ## Format
 
