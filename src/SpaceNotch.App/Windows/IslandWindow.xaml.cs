@@ -86,6 +86,9 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private AppSettings _settings;
 
+    /// <summary>Ce qui est déjà appliqué des réglages : ils arrivent modifiés sur place (n° 92).</summary>
+    private AppliedSettings _applied;
+
     private readonly IslandStateManager _stateManager = new();
     private readonly ActivityManager _activityManager = new();
     private readonly EventBus _eventBus = new();
@@ -4184,7 +4187,7 @@ public sealed partial class IslandWindow : Window
         // bord de l'écran qui est désormais le sien.
         if (!_settings.AllowDetach || displayChanged)
         {
-            ForceAttach();
+            ForceAttach(followSettings: displayChanged);
         }
 
         // Le bord choisi dans les réglages — ou les côtés désactivés — : la

@@ -31,7 +31,7 @@ public sealed class AppliedSettingsTests : IDisposable
         AppSettings? received = null;
         service.Changed += (_, settings) => received = settings;
 
-        service.Update(s => s.LauncherHotkey = "Alt+Space");
+        service.Update(s => s.LauncherHotkey = "ctrl-alt-space");
 
         Assert.Same(kept, received);
         Assert.Equal(kept.LauncherHotkey, received!.LauncherHotkey);
@@ -43,7 +43,7 @@ public sealed class AppliedSettingsTests : IDisposable
         var service = new SettingsService(new ConfigManager(_directory));
         AppliedSettings applied = AppliedSettings.Of(service.Current);
 
-        service.Update(s => s.LauncherHotkey = "Alt+Space");
+        service.Update(s => s.LauncherHotkey = "ctrl-alt-space");
         AppliedSettings now = AppliedSettings.Of(service.Current);
         Assert.True(now.HotkeyDiffers(applied));
         Assert.False(now.DisplayDiffers(applied));

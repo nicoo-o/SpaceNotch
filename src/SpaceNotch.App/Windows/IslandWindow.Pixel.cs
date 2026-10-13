@@ -36,8 +36,6 @@ public sealed partial class IslandWindow
 
     private bool PixelExpressive => !PixelCalm && _settings.PixelIntensity == PixelIntensity.Expressive;
 
-    /// <summary>Ce qui est déjà appliqué des réglages : ils arrivent modifiés sur place (n° 92).</summary>
-    private SpaceNotch.Infrastructure.Config.AppliedSettings _applied;
 
     /// <summary>
     /// Dernière position du pointeur, et depuis quand il n'a pas bougé (Pixel
