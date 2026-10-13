@@ -27,15 +27,30 @@ public sealed partial class IslandWindow
     private bool PixelAtRest => _settings.ShowPixel && !UsesSideTab;
 
     /// <summary>
-    /// Windows réduit les animations : Pixel se calme (ADR-029, n° 22). Yeux
-    /// ouverts et fixes, sans clignement, coup d'œil, bâillement ni battement ;
-    /// il change encore d'humeur (survol, sommeil, soir), en fondu.
+    /// Windows réduit les animations, ou l'intensité « Calme » est choisie :
+    /// Pixel se calme (ADR-029, n° 22). Yeux ouverts et fixes, sans clignement,
+    /// coup d'œil, bâillement ni battement ; il change encore d'humeur (survol,
+    /// sommeil, soir), en fondu.
     /// </summary>
-    private bool PixelCalm => !_visualState.UseSpringAnimations;
+    private bool PixelCalm => !_visualState.UseSpringAnimations || _settings.PixelIntensity == PixelIntensity.Calm;
+
+    private bool PixelExpressive => !PixelCalm && _settings.PixelIntensity == PixelIntensity.Expressive;
+
+    /// <summary>L'intensité déjà appliquée : les réglages arrivent modifiés sur place.</summary>
+    private PixelIntensity _appliedPixelIntensity;
 
     /// <summary>
-    /// Windows vient de réduire ou de rétablir les animations : Pixel déjà vivant
-    /// suit aussitôt — le clignement reprend, ou s'arrête avec la goutte qui glisse.
+    /// Dernière position du pointeur, et depuis quand il n'a pas bougé (Pixel
+    /// expressif). Vide avant la première lecture : un pointeur en (0,0) n'est
+    /// pas pris pour un pointeur immobile depuis le démarrage.
+    /// </summary>
+    private NativeMethods.POINT? _lastCursor;
+    private DateTime _cursorStillSince = DateTime.UtcNow;
+
+    /// <summary>
+    /// Windows vient de réduire ou de rétablir les animations, ou l'intensité de
+    /// Pixel a changé : Pixel déjà vivant suit aussitôt — le clignement reprend,
+    /// ou s'arrête avec la goutte qui glisse.
     /// </summary>
     private void OnPixelCalmChanged()
     {
@@ -84,8 +99,8 @@ public sealed partial class IslandWindow
             return;
         }
 
-        // Seul le mouvement réduit de Windows calme Pixel (ADR-029) ; « Rebond »
-        // ne concerne que le dépassement de la forme.
+        // Calmé par le mouvement réduit de Windows ou l'intensité « Calme » ;
+        // « Rebond » ne concerne que le dépassement de la forme.
         RestEyes.Animate = !PixelCalm;
 
         // Session verrouillée ou notch retirée : les yeux restent fermés, rien ne
@@ -201,6 +216,20 @@ public sealed partial class IslandWindow
 
         if (!NativeMethods.GetCursorPos(out NativeMethods.POINT cursor))
         {
+            return;
+        }
+
+        if (_lastCursor is not { } last || cursor.X != last.X || cursor.Y != last.Y)
+        {
+            _lastCursor = cursor;
+            _cursorStillSince = DateTime.UtcNow;
+        }
+
+        // Expressif : un pointeur oublié ne fige pas le regard, Pixel regarde autour
+        // de lui — éveillé seulement : survolé ou surpris, il regarde le pointeur.
+        if (PixelExpressive && mood == PixelMood.Awake && PixelGaze.Wander(DateTime.UtcNow - _cursorStillSince) is { } wander)
+        {
+            RestEyes.Look(wander.X, wander.Y);
             return;
         }
 

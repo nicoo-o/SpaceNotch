@@ -326,6 +326,7 @@ public sealed partial class SettingsWindow : Window
 
         DensityBox.ItemsSource = new[] { Lang.T("Compacte", "Compact"), Lang.T("Confortable", "Comfortable"), Lang.T("Aérée", "Airy") };
         UpdateModeBox.ItemsSource = new[] { Lang.T("Désactivées", "Off"), Lang.T("Me prévenir", "Ask me"), Lang.T("Automatiques", "Automatic") };
+        PixelIntensityBox.ItemsSource = new[] { Lang.T("Calme", "Calm"), Lang.T("Normal", "Normal"), Lang.T("Expressif", "Expressive") };
         CutoutBox.ItemsSource = new[] { Lang.T("Aucune", "None"), Lang.T("Ordinaire (200 px)", "Standard (200 px)"), Lang.T("Personnalisée", "Custom") };
 
         // L'ordre suit l'énumération MotionStyle : l'index sélectionné en est la valeur.
@@ -399,6 +400,8 @@ public sealed partial class SettingsWindow : Window
             StackToggle.IsOn = settings.ShowActivityStack;
             ClockToggle.IsOn = settings.ShowClockAtRest;
             PixelToggle.IsOn = settings.ShowPixel;
+            PixelIntensityBox.SelectedIndex = (int)settings.PixelIntensity;
+            PixelIntensityDescription.Text = PixelIntensityText(settings.PixelIntensity);
             AdvancedToggle.IsOn = settings.ShowAdvancedSettings;
             UpdateAgentHooksButton();
             AssistantSourceBox.SelectedIndex = (int)settings.AssistantSource;
@@ -835,6 +838,23 @@ public sealed partial class SettingsWindow : Window
 
     private void OnPixelToggled(object sender, RoutedEventArgs e)
         => Apply(s => s.ShowPixel = PixelToggle.IsOn);
+
+    private void OnPixelIntensityChanged(object sender, SelectionChangedEventArgs e)
+    {
+        var intensity = (PixelIntensity)Math.Clamp(PixelIntensityBox.SelectedIndex, 0, 2);
+        PixelIntensityDescription.Text = PixelIntensityText(intensity);
+
+        // Le Narrateur lit la description du choix en cours, pas celle de l'ouverture.
+        AutomationProperties.SetHelpText(PixelIntensityBox, PixelIntensityDescription.Text);
+        Apply(s => s.PixelIntensity = intensity);
+    }
+
+    private static string PixelIntensityText(PixelIntensity intensity) => intensity switch
+    {
+        PixelIntensity.Calm => Lang.T("Immobile, il garde ses humeurs. Comme quand Windows réduit les animations.", "Still, keeps his moods. Like when Windows reduces animations."),
+        PixelIntensity.Expressive => Lang.T("Plus vivant : il regarde autour de lui quand tu ne bouges pas, et bâille plus souvent le soir.", "Livelier: looks around when you sit still, and yawns more often in the evening."),
+        _ => Lang.T("Il suit le curseur, cligne, jette un coup d’œil et bâille le soir.", "Follows the pointer, blinks, glances around and yawns in the evening.")
+    };
 
     private void OnAdvancedToggled(object sender, RoutedEventArgs e)
     {

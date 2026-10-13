@@ -58,6 +58,34 @@ public static class PixelGaze
     /// <summary>Vrai après une période sans saisie ni déplacement du pointeur.</summary>
     public static bool IsIdle(TimeSpan sinceLastInput) => sinceLastInput >= IdleThreshold;
 
+    /// <summary>Expressif : le pointeur immobile depuis ce délai, Pixel regarde autour de lui.</summary>
+    public static readonly TimeSpan WanderAfter = TimeSpan.FromSeconds(4);
+
+    /// <summary>Durée de chaque regard pendant qu'il vagabonde.</summary>
+    public static readonly TimeSpan WanderStep = TimeSpan.FromMilliseconds(2500);
+
+    /// <summary>
+    /// Pixel expressif (direction §7, point 9) : quand le pointeur ne bouge plus,
+    /// le regard fait le tour — à gauche, au centre, en haut à droite, au centre —
+    /// au lieu de rester sur un curseur oublié. Null tant que le pointeur bouge.
+    /// </summary>
+    public static (double X, double Y)? Wander(TimeSpan pointerStill)
+    {
+        if (pointerStill < WanderAfter)
+        {
+            return null;
+        }
+
+        long step = (long)((pointerStill - WanderAfter) / WanderStep) % 4;
+
+        return step switch
+        {
+            0 => (-MaxLookX * 0.8, 0),
+            2 => (MaxLookX * 0.8, -MaxLookY * 0.5),
+            _ => (0, 0)
+        };
+    }
+
     /// <summary>
     /// Décalage des yeux vers le curseur. Le regard suit sans jamais sortir de
     /// l'orbite : il sature doucement, comme un œil qui a atteint le coin.

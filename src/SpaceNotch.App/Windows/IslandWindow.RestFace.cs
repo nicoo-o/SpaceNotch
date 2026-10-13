@@ -221,7 +221,7 @@ public sealed partial class IslandWindow
         }
 
         bool changed = wanted != _restFace;
-        bool animate = changed && UseSpringAnimations() && _restFaceShown;
+        bool animate = changed && UseSpringAnimations() && !PixelCalm && _restFaceShown;
         _restFaceShown = true;
 
         if (wanted == RestFace.Clock)

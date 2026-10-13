@@ -519,6 +519,21 @@
                             <ToggleSwitch x:Name="PixelToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnPixelToggled" />
                         </Grid>
                     </Border>
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Intensité de Pixel calme normal expressif vivant regard bâillements coups d'œil animation">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Eyes" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Intensité de Pixel', En='Pixel intensity'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock x:Name="PixelIntensityDescription" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <ComboBox x:Name="PixelIntensityBox" Grid.Column="2" VerticalAlignment="Center" MinWidth="150" SelectionChanged="OnPixelIntensityChanged" />
+                        </Grid>
+                    </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Agents IA Claude Code hooks autoriser refuser progression canal">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>

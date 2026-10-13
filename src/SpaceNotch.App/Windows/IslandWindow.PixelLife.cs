@@ -81,7 +81,7 @@ public sealed partial class IslandWindow
 
         if (_nextYawn == DateTime.MaxValue)
         {
-            _nextYawn = DateTime.UtcNow + PixelVitals.NextYawn(_yawnSeed++);
+            _nextYawn = DateTime.UtcNow + PixelVitals.NextYawn(_yawnSeed++, _settings.PixelIntensity);
         }
     }
 
@@ -130,7 +130,8 @@ public sealed partial class IslandWindow
         double cx = boundsX + (boundsWidth / 2.0);
         double cy = boundsY + (boundsHeight / 2.0);
         _glance = PixelGaze.Look((window.CenterX - cx) / scale * 3, (window.CenterY - cy) / scale * 3);
-        _glanceUntil = DateTime.UtcNow + GlanceDuration;
+        // Expressif : le coup d'œil dure un peu plus, on le voit.
+        _glanceUntil = DateTime.UtcNow + (PixelExpressive ? GlanceDuration * 1.5 : GlanceDuration);
         PixelTick();
     }
 
@@ -244,7 +245,7 @@ public sealed partial class IslandWindow
         if (evening && now >= _nextYawn)
         {
             _yawnUntil = now + TimeSpan.FromMilliseconds(PixelVitals.YawnMilliseconds);
-            _nextYawn = now + PixelVitals.NextYawn(_yawnSeed++);
+            _nextYawn = now + PixelVitals.NextYawn(_yawnSeed++, _settings.PixelIntensity);
 
             // Différé : ce calcul tourne pendant le rendu, qui ne doit pas s'appeler lui-même.
             _ = _dispatcherQueue.TryEnqueueSafely(RequestRender);

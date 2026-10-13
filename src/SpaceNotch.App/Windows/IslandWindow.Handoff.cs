@@ -49,7 +49,8 @@ public sealed partial class IslandWindow
         IslandActivity? previous = _handoffLast;
         _handoffLast = activity;
 
-        if (!PixelAtRest || !UseSpringAnimations())
+        // Pixel calmé (Windows ou intensité « Calme ») ne s'envole pas vers l'activité.
+        if (!PixelAtRest || !UseSpringAnimations() || PixelCalm)
         {
             return;
         }
