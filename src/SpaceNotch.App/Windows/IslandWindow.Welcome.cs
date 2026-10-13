@@ -69,6 +69,9 @@ public sealed partial class IslandWindow
 
     private void OnWelcomeCompleted()
     {
+        // Une barre des tâches en haut attendait la fin de la présentation (n° 93).
+        _ = _dispatcherQueue.TryEnqueueSafely(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low, ApplyTopBar);
+
         _activityManager.PinPresentation(null);
 
         if (!_settings.WelcomeCompleted)

@@ -27,26 +27,29 @@ public sealed class TopBarTests
     [Fact]
     public void Without_a_bar_rule_one_holds_the_notch_touches_the_edge()
     {
+        Assert.Equal(0, TopBar.TopInset(0, 0));
+
         foreach (TopBarPlacement placement in new[] { TopBarPlacement.Ask, TopBarPlacement.UnderBar, TopBarPlacement.SideTab })
         {
-            Assert.Equal(0, TopBar.TopInset(0, 0, placement));
             Assert.False(TopBar.ShouldAsk(0, 0, placement));
             Assert.False(TopBar.WantsSide(0, 0, placement));
         }
     }
 
     [Fact]
-    public void With_a_bar_the_notch_sits_just_below_it_until_the_user_picks_the_side()
+    public void With_a_bar_the_notch_at_the_top_never_covers_it_whatever_the_choice()
     {
-        // En attendant la réponse, sous la barre : la notch ne la recouvre jamais.
-        Assert.Equal(60, TopBar.TopInset(0, 60, TopBarPlacement.Ask));
-        Assert.True(TopBar.ShouldAsk(0, 60, TopBarPlacement.Ask));
+        // Le décalage ne dépend que de la barre : même avec « Sur le côté », une
+        // notch ramenée en haut (raccrochage, « Accrocher à ») reste dessous.
+        Assert.Equal(60, TopBar.TopInset(0, 60));
 
-        Assert.Equal(60, TopBar.TopInset(0, 60, TopBarPlacement.UnderBar));
+        Assert.True(TopBar.ShouldAsk(0, 60, TopBarPlacement.Ask));
+        Assert.False(TopBar.WantsSide(0, 60, TopBarPlacement.Ask));
+
         Assert.False(TopBar.ShouldAsk(0, 60, TopBarPlacement.UnderBar));
         Assert.False(TopBar.WantsSide(0, 60, TopBarPlacement.UnderBar));
 
-        Assert.Equal(0, TopBar.TopInset(0, 60, TopBarPlacement.SideTab));
+        // Le choix « côté » ne décide que du bord.
         Assert.True(TopBar.WantsSide(0, 60, TopBarPlacement.SideTab));
         Assert.False(TopBar.ShouldAsk(0, 60, TopBarPlacement.SideTab));
     }

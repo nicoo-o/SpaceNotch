@@ -634,14 +634,14 @@ public sealed partial class IslandWindow
         {
             NotchEdge.Left => (pulledDepth - (body.Width / 2), attachedRect.CenterY),
             NotchEdge.Right => (screen.Right - pulledDepth + (body.Width / 2), attachedRect.CenterY),
-            _ => (attachedRect.CenterX, pulledDepth - (body.Height / 2))
+            _ => (attachedRect.CenterX, attachedRect.Y + pulledDepth - (body.Height / 2))
         };
 
         (_grabX, _grabY) = _edge switch
         {
             NotchEdge.Left => (_pressX - (body.Width / 2), _pressY - attachedRect.CenterY),
             NotchEdge.Right => (_pressX - (screen.Right - (body.Width / 2)), _pressY - attachedRect.CenterY),
-            _ => (_pressX - attachedRect.CenterX, _pressY - (body.Height / 2))
+            _ => (_pressX - attachedRect.CenterX, _pressY - attachedRect.Y - (body.Height / 2))
         };
 
         _pillSpring.SetParameters(_settings.DetachFollowSpring);
@@ -1296,7 +1296,9 @@ public sealed partial class IslandWindow
         if (!EdgeFrame.IsSide(edge))
         {
             IslandFootprint top = pull > 0 ? Detachment.Pulled(footprint, pull) : footprint;
-            return (new ScreenRect(AttachCenterX(display) - (top.Width / 2), 0, top.Width, top.Height), top);
+
+            // Sous une barre des tâches en haut, la forme accrochée part du bas de la barre (n° 93).
+            return (new ScreenRect(AttachCenterX(display) - (top.Width / 2), TopInsetDip(display), top.Width, top.Height), top);
         }
 
         IslandFootprint drawn = EdgeFrame.Oriented(footprint, edge, _settings.SideShoulderRadius);

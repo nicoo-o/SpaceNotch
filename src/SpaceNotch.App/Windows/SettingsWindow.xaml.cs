@@ -457,6 +457,23 @@ public sealed partial class SettingsWindow : Window
         UpdateValueLabels();
         UpdatePreview();
         ShowIgnoredApps(settings.IgnoredNotificationApps);
+
+        // Barre en haut, bord et côtés changent aussi depuis la notch (carte, languette) :
+        // la page Notch suit (n° 93).
+        bool loading = _loading;
+        _loading = true;
+
+        try
+        {
+            TopBarBox.SelectedIndex = (int)settings.TopBarPlacement;
+            SideEdgesToggle.IsOn = settings.AllowSideEdges;
+            EdgeBox.SelectedIndex = (int)settings.DockEdge;
+            EdgeBox.IsEnabled = settings.AllowSideEdges;
+        }
+        finally
+        {
+            _loading = loading;
+        }
     }
 
     private void UpdateValueLabels()

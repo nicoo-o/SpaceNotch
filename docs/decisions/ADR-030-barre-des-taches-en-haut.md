@@ -60,9 +60,16 @@ pour ne jamais la recouvrir.
   absente, et glisse par-dessus la notch quand on l'appelle, comme toute autre fenêtre.
 - Mesuré avant la livraison (barre de test qui réserve 40 DIP) : la notch se posait à y = 0, par-dessus
   la barre. La détection lit la zone de travail (`SpaceNotch.Core/Scenes/TopBar.cs`).
-- Limites connues : la goutte d'un détachement se dessine encore jusqu'au bord de l'écran ; une
-  notch passée en languette à cause de la barre y reste si l'on choisit ensuite « Sous la barre »
-  (le bord se rechoisit dans Réglages › Notch).
+- Accrochée en haut, la notch se pose sous une barre présente **quel que soit le choix** : « Sur le
+  côté » ne décide que du bord, au moment où on le choisit. Une notch ramenée en haut (raccrochage,
+  « Accrocher à ») ne recouvre donc jamais la barre. La question attend que la notch soit fermée et
+  que la présentation soit finie.
+- Limites connues :
+  - la goutte d'un détachement se dessine encore jusqu'au bord de l'écran ;
+  - les épaules concaves touchent le bas de la barre au lieu du bord de l'écran, sans être redessinées ;
+  - une notch passée en languette à cause de la barre y reste si l'on choisit ensuite « Sous la
+    barre » (le bord se rechoisit dans Réglages › Notch) ;
+  - en mode « écran du curseur », la question ne vient que si le curseur est sur l'écran à barre.
 - Les tests doivent couvrir la détection et le placement en Core, sans dépendre d'un outil tiers
   installé.
 

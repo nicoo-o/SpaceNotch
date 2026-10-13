@@ -78,7 +78,7 @@ public sealed partial class IslandWindow
         DisplayInfo display = _detachDisplay ?? ResolveDisplay();
         (double x, double y) = _tourCursor ?? CursorDipOn(display);
         IslandFootprint rest = _restFootprint;
-        var notch = new ScreenRect(AttachCenterX(display) - (rest.Width / 2), 0, rest.Width, rest.Height);
+        var notch = new ScreenRect(AttachCenterX(display) - (rest.Width / 2), TopInsetDip(display), rest.Width, rest.Height);
 
         MagnetPull pull = Magnet.For(x, y, notch);
         _controller.Lean(pull.Scale);

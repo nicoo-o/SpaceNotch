@@ -38,11 +38,13 @@ public static class TopBar
 
     /// <summary>
     /// Décalage vertical de la notch accrochée en haut : la hauteur de la barre,
-    /// sauf si l'utilisateur a choisi la languette. Sans barre, aucun : la règle
-    /// n° 1 (le bord de la notch est le bord de l'écran) reste vraie.
+    /// quel que soit le choix — même avec « Sur le côté », une notch ramenée en
+    /// haut (raccrochage, menu « Accrocher à ») ne recouvre jamais la barre ; le
+    /// choix ne décide que du bord. Sans barre, aucun : la règle n° 1 (le bord
+    /// de la notch est le bord de l'écran) reste vraie.
     /// </summary>
-    public static int TopInset(int monitorTop, int workTop, TopBarPlacement placement)
-        => IsPresent(monitorTop, workTop) && placement != TopBarPlacement.SideTab ? Reserved(monitorTop, workTop) : 0;
+    public static int TopInset(int monitorTop, int workTop)
+        => IsPresent(monitorTop, workTop) ? Reserved(monitorTop, workTop) : 0;
 
     /// <summary>Vrai s'il faut demander : une barre est là et l'utilisateur n'a pas encore répondu.</summary>
     public static bool ShouldAsk(int monitorTop, int workTop, TopBarPlacement placement)
