@@ -839,7 +839,7 @@ public sealed partial class IslandWindow
     /// nouveau accrochée — en haut, ou en languette sur un côté. Le bord, sa
     /// position et l'écran sont enregistrés : c'est là qu'elle redémarrera.
     /// </summary>
-    private void FinishReattach(NotchEdge edge, double offset)
+    private void FinishReattach(NotchEdge edge, double offset, bool persist = true)
     {
         DisplayInfo display = DetachDisplay();
 
@@ -857,7 +857,11 @@ public sealed partial class IslandWindow
         RefreshRestFootprint();
         RequestRender();
 
-        PersistDock(display);
+        if (persist)
+        {
+            PersistDock(display);
+        }
+
         _detachDisplay = null;
 
         ApplyGeometry(_controller.CurrentFootprint);
@@ -992,7 +996,13 @@ public sealed partial class IslandWindow
     /// désactivé, arrêt. La notch accrochée est la forme de référence ; tout
     /// ce qui rend la position flottante incertaine y ramène.
     /// </summary>
-    private void ForceAttach()
+    /// <param name="followSettings">
+    /// Vrai quand l'écran vient d'être choisi dans les Réglages (n° 92) : la
+    /// notch oublie l'écran où elle flottait, rejoint ce choix, et n'enregistre
+    /// rien — les réglages sont déjà la vérité. Sans cela, le raccrochage
+    /// réécrivait « Écran où elle a été accrochée » par-dessus le choix.
+    /// </param>
+    private void ForceAttach(bool followSettings = false)
     {
         if (!UsesFloatingGeometry && _dragPhase == DragPhase.None)
         {
@@ -1012,7 +1022,12 @@ public sealed partial class IslandWindow
 
         if (UsesFloatingGeometry)
         {
-            FinishReattach(_edge, _dockOffset);
+            if (followSettings)
+            {
+                _detachDisplay = null;
+            }
+
+            FinishReattach(_edge, _dockOffset, persist: !followSettings);
         }
         else
         {

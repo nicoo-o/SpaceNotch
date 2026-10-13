@@ -36,8 +36,6 @@ public sealed partial class IslandWindow
 
     private bool PixelExpressive => !PixelCalm && _settings.PixelIntensity == PixelIntensity.Expressive;
 
-    /// <summary>L'intensité déjà appliquée : les réglages arrivent modifiés sur place.</summary>
-    private PixelIntensity _appliedPixelIntensity;
 
     /// <summary>
     /// Dernière position du pointeur, et depuis quand il n'a pas bougé (Pixel

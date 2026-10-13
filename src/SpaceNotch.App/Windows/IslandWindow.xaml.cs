@@ -86,6 +86,9 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private AppSettings _settings;
 
+    /// <summary>Ce qui est déjà appliqué des réglages : ils arrivent modifiés sur place (n° 92).</summary>
+    private AppliedSettings _applied;
+
     private readonly IslandStateManager _stateManager = new();
     private readonly ActivityManager _activityManager = new();
     private readonly EventBus _eventBus = new();
@@ -267,7 +270,7 @@ public sealed partial class IslandWindow : Window
         _settingsService.WriteFailed = (path, ex) => MiniLogger.Log($"[CONFIG] écriture impossible : {path}", ex);
 
         _settings = _settingsService.Current;
-        _appliedPixelIntensity = _settings.PixelIntensity;
+        _applied = AppliedSettings.Of(_settings);
 
         // Le bord et la position enregistrés : la notch redémarre là où elle a
         // été accrochée la dernière fois (ADR-020).
@@ -4138,15 +4141,14 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void OnSettingsChanged(object? sender, AppSettings settings)
     {
-        bool displayChanged = settings.DisplayMode != _settings.DisplayMode
-            || settings.CustomDisplayHandle != _settings.CustomDisplayHandle;
-
-        bool hotkeyChanged = settings.LauncherHotkey != _settings.LauncherHotkey;
         // Le service modifie ses réglages sur place et notifie avec le même objet :
-        // l'intensité appliquée est donc gardée à part, sinon aucun changement ne
-        // se verrait (relecture de #75).
-        bool pixelIntensityChanged = settings.PixelIntensity != _appliedPixelIntensity;
-        _appliedPixelIntensity = settings.PixelIntensity;
+        // ce qui a changé se lit contre la photo de ce qui est appliqué (n° 92),
+        // jamais contre _settings, qui est déjà le nouvel état.
+        AppliedSettings now = AppliedSettings.Of(settings);
+        bool displayChanged = now.DisplayDiffers(_applied);
+        bool hotkeyChanged = now.HotkeyDiffers(_applied);
+        bool pixelIntensityChanged = now.PixelIntensity != _applied.PixelIntensity;
+        _applied = now;
 
         _settings = settings;
 
@@ -4185,7 +4187,7 @@ public sealed partial class IslandWindow : Window
         // bord de l'écran qui est désormais le sien.
         if (!_settings.AllowDetach || displayChanged)
         {
-            ForceAttach();
+            ForceAttach(followSettings: displayChanged);
         }
 
         // Le bord choisi dans les réglages — ou les côtés désactivés — : la
