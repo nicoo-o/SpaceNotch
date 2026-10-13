@@ -2,6 +2,10 @@ name: Bogue · Bug
 description: Quelque chose ne marche pas comme prévu · Something doesn't work as expected
 labels: [bogue]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Écris en français ou en anglais, comme tu préfères. · Write in French or English, whichever you prefer.
   - type: textarea
     id: ce-qui-se-passe
     attributes:
@@ -29,14 +33,14 @@ body:
     id: windows
     attributes:
       label: Windows
-      description: Ex. Windows 11 24H2 (winver)
+      description: Ex. Windows 11 24H2 (winver) · E.g. Windows 11 24H2 (winver)
     validations:
       required: true
   - type: input
     id: ecrans
     attributes:
       label: Écrans et échelle · Displays and scale
-      description: Ex. 1 écran, 2560 × 1600, 150 %, 240 Hz
+      description: Ex. 1 écran, 2560 × 1600, 150 %, 240 Hz · E.g. 1 display, 2560 × 1600, 150%, 240 Hz
   - type: textarea
     id: journal
     attributes:
