@@ -1,4 +1,4 @@
-# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-13)
+# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-13, soir)
 
 Première version : 2026-10-04, écrite « pour vendre ». L'auteur l'a précisé le 2026-10-05 :
 SpaceNotch reste **gratuite et open source**, sans vente. Cette version re-trie tout pour ce cadre.
@@ -51,7 +51,9 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 59 | Taille du texte de Windows | #73 | fusionnée : la notch garde la taille de son texte, les Réglages suivent (choix de l'auteur) ; **prouvé à l'écran à 150 %** |
 | 88 | Minuteur et focus ensemble | #74 | fusionnée : ils alternaient chaque seconde en tête de pile ; test qui échoue sans le correctif |
 | 54, direction §7.9 | Intensité de Pixel ; « Pixel actif par défaut » | #75 | fusionnée, **prouvée à l'écran** (Calme : yeux fixes ; Expressif : le regard fait le tour) : Calme / Normal / Expressif (choix de l'auteur), Normal par défaut ; le n° 54 est tranché par ADR-029 (Pixel vit au repos) |
-| 92 | Raccourci ou écran changé dans les Réglages appliqué au redémarrage seulement | #76 | **ouverte** : photo des réglages appliqués ; journal avant/après sur `main` et sur la branche ; un écran choisi pendant que la notch flotte est respecté |
+| 92 | Raccourci ou écran changé dans les Réglages appliqué au redémarrage seulement | #76 | fusionnée : photo des réglages appliqués ; journal avant/après sur `main` et sur la branche ; un écran choisi pendant que la notch flotte est respecté |
+| 93 | Barre des tâches en haut (ADR-030) | #78 | **ouverte** : mesuré d'abord (notch de `main` à y = 0, sur la barre) ; détection par la zone de travail ; question une fois ; sous la barre (y = 60 sous une barre de 60 px) ; languette ; Réglages › Notch ; preuves avec une AppBar de test |
+| 94 | Modèles d'issue et de PR bilingues | #79 | **ouverte** |
 
 ## Sans objet pour un projet gratuit
 
@@ -108,9 +110,8 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 89 | Notch agrandie avec la taille du texte de Windows, plafonnée à 150 % (forme et contenu) ; ADR à écrire | n° 59, choix « notch fixe » pour l'instant | L |
 | 90 | Réglages : fond et barre de titre choisis à l'ouverture seulement ; un passage en contraste élevé pendant qu'ils sont ouverts demande de les rouvrir | relecture de #72 | S |
 | 91 | Mouvement réduit : le halo et l'ombre (`AtmosphereWindow`) sautent encore ; « Rebond » éteint passe aussi en fondu au lieu d'un ressort sans dépassement | #71 | S |
-| 93 | Barre des tâches en haut (StartAllBack, ExplorerPatcher) : détecter, demander à l'utilisateur « sous la barre » ou « languette » ([ADR-030](../decisions/ADR-030-barre-des-taches-en-haut.md)) | direction §7.6 | M |
-| 94 | Modèles d'issue bilingues ; notes de version en français et en anglais | direction §7.2 | S |
 | 95 | Protection de `main` sur GitHub (à appliquer par l'auteur) | [protection-de-main.md](../development/protection-de-main.md) | S |
+| 96 | Barre en haut : épaules redessinées sous la barre ; goutte du détachement calée sur la barre ; arrachement et raccrochage à vérifier à l'écran | relecture de #78, ADR-030 | S |
 | 80 | Une instance de développement (`winapp run`) ne reçoit pas `SpaceNotch.exe --hook` lancé par Git Bash, alors que la notch installée le reçoit ; cause non établie (identité de paquet, propriétaire du tube) | essais du 2026-10-06 et du 2026-10-10 | S |
 | 39 | **Store en MSIX complet** : à étudier, pas à construire (voir direction) ; le Store n'accepte un installeur exe que signé | ADR-023 ; [exigences exe/MSI du Store](https://learn.microsoft.com/windows/apps/publish/publish-your-app/msi/app-package-requirements) | L |
 | 67 | winget : **après la signature** (décision du 2026-10-13, direction §7.4) | `SetupCommand.cs:54` | S |
@@ -130,9 +131,9 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 
 ## Ordre proposé
 
-1. #76 (n° 92) : fusion si l'auteur le demande.
+1. #78 (n° 93) et #79 (n° 94) : fusion si l'auteur le demande.
 2. n° 95 : protéger `main` (l'auteur, sur GitHub).
 3. Après la réponse de SignPath : n° 82 ; puis n° 4, 5, 67 (winget) et 68 (ARM64).
-4. n° 93 (barre des tâches en haut, ADR-030), n° 94 (bilingue).
+4. n° 96 (finitions de la barre en haut).
 5. Preuves restées à faire : #71 (effets d'animation coupés), #72 (contraste élevé).
 6. Le reste des P1 courts ; n° 89 si l'auteur le veut.
