@@ -677,6 +677,7 @@ public sealed partial class IslandWindow
     /// </summary>
     private void StartGoo(NotchEdge edge, ScreenRect attachedRect, IslandFootprint drawn, ScreenRect screen, bool rising)
     {
+        screen = GooFrame(edge, screen, DetachDisplay());
         double shoulder = ShoulderFor(edge);
         IslandFootprint local = LocalOf(edge, drawn);
         double s = IslandShape.EffectiveShoulder(local.Width, local.Height, shoulder);
@@ -1441,22 +1442,25 @@ public sealed partial class IslandWindow
 
         if (GooActive)
         {
+            // Le repère du bord : sous une barre des tâches en haut, la goutte part
+            // du bas de la barre, comme la forme accrochée (n° 96).
+            ScreenRect gooScreen = GooFrame(_gooEdge, screen, display);
             IslandFootprint residue = GooBridge.Residue(_gooAttached, _goo);
             var residueLocal = new ScreenRect(_gooCenterU - (residue.Width / 2), 0, residue.Width, residue.Height);
-            ScreenRect pillLocal = EdgeFrame.ToLocal(_gooEdge, pill, screen);
+            ScreenRect pillLocal = EdgeFrame.ToLocal(_gooEdge, pill, gooScreen);
 
             goo = [];
 
             if (residue.Height > 0.5)
             {
                 ShapePoint[] local = (geometry with { Shoulder = _gooShoulder }).Silhouette(residue);
-                goo.Add(EdgeFrame.ToScreen(_gooEdge, local, residueLocal.X, screen));
-                bounds = Union(bounds, EdgeFrame.ToScreenRect(_gooEdge, residueLocal, screen));
+                goo.Add(EdgeFrame.ToScreen(_gooEdge, local, residueLocal.X, gooScreen));
+                bounds = Union(bounds, EdgeFrame.ToScreenRect(_gooEdge, residueLocal, gooScreen));
             }
 
             foreach (ShapePoint[] piece in GooBridge.Neck(residueLocal, pillLocal, _goo))
             {
-                goo.Add(EdgeFrame.ToScreen(_gooEdge, piece, 0, screen));
+                goo.Add(EdgeFrame.ToScreen(_gooEdge, piece, 0, gooScreen));
             }
         }
 
@@ -1623,6 +1627,13 @@ public sealed partial class IslandWindow
     /// <summary>L'écran entier, en DIPs relatifs à son coin supérieur gauche.</summary>
     private static ScreenRect ScreenDip(DisplayInfo display)
         => new(0, 0, display.Width / display.DpiScale, display.Height / display.DpiScale);
+
+    /// <summary>
+    /// Le repère de la goutte : l'écran, sauf en haut sous une barre des tâches,
+    /// où le bord est le bas de la barre (n° 96, ADR-030). Les côtés ne changent pas.
+    /// </summary>
+    private static ScreenRect GooFrame(NotchEdge edge, ScreenRect screen, DisplayInfo display)
+        => SpaceNotch.Core.Scenes.TopBar.EdgeFrame(edge, screen, TopInsetDip(display));
 
     /// <summary>Zone de travail de l'écran, en DIPs relatifs à son coin supérieur gauche.</summary>
     private static ScreenRect WorkAreaDip(DisplayInfo display)

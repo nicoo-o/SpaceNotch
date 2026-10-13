@@ -1,4 +1,5 @@
 using System;
+using SpaceNotch.Core.Presentation;
 
 namespace SpaceNotch.Core.Scenes;
 
@@ -49,6 +50,17 @@ public static class TopBar
     /// <summary>Vrai s'il faut demander : une barre est là et l'utilisateur n'a pas encore répondu.</summary>
     public static bool ShouldAsk(int monitorTop, int workTop, TopBarPlacement placement)
         => IsPresent(monitorTop, workTop) && placement == TopBarPlacement.Ask;
+
+    /// <summary>
+    /// Le repère d'un bord, en DIP : l'écran, sauf en haut sous une barre, où le
+    /// bord est le bas de la barre (n° 96). La goutte d'un détachement et d'un
+    /// raccrochage s'y calcule : elle part du bas de la barre, comme la forme
+    /// accrochée. Les côtés ne changent pas.
+    /// </summary>
+    public static ScreenRect EdgeFrame(NotchEdge edge, ScreenRect screen, double insetDip)
+        => edge == NotchEdge.Top && insetDip > 0
+            ? new ScreenRect(screen.X, screen.Y + insetDip, screen.Width, Math.Max(0, screen.Height - insetDip))
+            : screen;
 
     /// <summary>Vrai si la notch accrochée en haut doit passer en languette : une barre est là et c'est le choix.</summary>
     public static bool WantsSide(int monitorTop, int workTop, TopBarPlacement placement)

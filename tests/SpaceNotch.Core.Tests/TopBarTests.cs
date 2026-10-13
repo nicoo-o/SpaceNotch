@@ -2,6 +2,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
+using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Features.Menu;
 using SpaceNotch.Infrastructure.Config;
@@ -52,6 +53,36 @@ public sealed class TopBarTests
         // Le choix « côté » ne décide que du bord.
         Assert.True(TopBar.WantsSide(0, 60, TopBarPlacement.SideTab));
         Assert.False(TopBar.ShouldAsk(0, 60, TopBarPlacement.SideTab));
+    }
+
+    [Fact]
+    public void Under_a_bar_the_top_edge_frame_starts_at_the_bottom_of_the_bar()
+    {
+        // n° 96 : la goutte d'un détachement part du bas de la barre (40 DIP), pas du haut de l'écran.
+        var screen = new ScreenRect(0, 0, 1707, 1067);
+
+        ScreenRect top = TopBar.EdgeFrame(SpaceNotch.Core.Presentation.NotchEdge.Top, screen, 40);
+        Assert.Equal(40, top.Y);
+        Assert.Equal(1027, top.Height);
+        Assert.Equal(screen.Width, top.Width);
+
+        // Sans barre, et sur les côtés, le repère reste l'écran.
+        Assert.Equal(screen, TopBar.EdgeFrame(SpaceNotch.Core.Presentation.NotchEdge.Top, screen, 0));
+        Assert.Equal(screen, TopBar.EdgeFrame(SpaceNotch.Core.Presentation.NotchEdge.Left, screen, 40));
+        Assert.Equal(screen, TopBar.EdgeFrame(SpaceNotch.Core.Presentation.NotchEdge.Right, screen, 40));
+    }
+
+    [Fact]
+    public void A_shape_at_the_bottom_of_the_bar_lands_at_the_bar_on_screen()
+    {
+        // Le bas du repère local (y = 0) tombe sur le bas de la barre à l'écran.
+        var screen = new ScreenRect(0, 0, 1707, 1067);
+        ScreenRect frame = TopBar.EdgeFrame(SpaceNotch.Core.Presentation.NotchEdge.Top, screen, 40);
+
+        ScreenRect onScreen = SpaceNotch.Core.Presentation.EdgeFrame.ToScreenRect(
+            SpaceNotch.Core.Presentation.NotchEdge.Top, new ScreenRect(800, 0, 100, 20), frame);
+
+        Assert.Equal(40, onScreen.Y);
     }
 
     [Fact]
