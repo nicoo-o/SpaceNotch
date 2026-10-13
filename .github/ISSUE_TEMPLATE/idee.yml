@@ -2,6 +2,10 @@ name: Idée · Idea
 description: Une amélioration ou une nouvelle fonction · An improvement or a new feature
 labels: [idée]
 body:
+  - type: markdown
+    attributes:
+      value: |
+        Écris en français ou en anglais, comme tu préfères. · Write in French or English, whichever you prefer.
   - type: textarea
     id: besoin
     attributes:
