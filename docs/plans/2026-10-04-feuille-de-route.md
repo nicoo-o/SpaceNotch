@@ -1,4 +1,4 @@
-# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-12, nuit)
+# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-13)
 
 Première version : 2026-10-04, écrite « pour vendre ». L'auteur l'a précisé le 2026-10-05 :
 SpaceNotch reste **gratuite et open source**, sans vente. Cette version re-trie tout pour ce cadre.
@@ -50,7 +50,8 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 57 | Réglages en contraste élevé | #72 | fusionnée : 10 jetons de thème, couleurs du système en contraste élevé ; UIA : sept pages ; pas vu en contraste élevé |
 | 59 | Taille du texte de Windows | #73 | fusionnée : la notch garde la taille de son texte, les Réglages suivent (choix de l'auteur) ; **prouvé à l'écran à 150 %** |
 | 88 | Minuteur et focus ensemble | #74 | fusionnée : ils alternaient chaque seconde en tête de pile ; test qui échoue sans le correctif |
-| 54, direction §7.9 | Intensité de Pixel ; « Pixel actif par défaut » | #75 | **ouverte** : Calme / Normal / Expressif (choix de l'auteur), Normal par défaut ; le n° 54 est tranché par ADR-029 (Pixel vit au repos) |
+| 54, direction §7.9 | Intensité de Pixel ; « Pixel actif par défaut » | #75 | fusionnée, **prouvée à l'écran** (Calme : yeux fixes ; Expressif : le regard fait le tour) : Calme / Normal / Expressif (choix de l'auteur), Normal par défaut ; le n° 54 est tranché par ADR-029 (Pixel vit au repos) |
+| 92 | Raccourci ou écran changé dans les Réglages appliqué au redémarrage seulement | #76 | **ouverte** : photo des réglages appliqués ; journal avant/après sur `main` et sur la branche ; un écran choisi pendant que la notch flotte est respecté |
 
 ## Sans objet pour un projet gratuit
 
@@ -107,11 +108,13 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 89 | Notch agrandie avec la taille du texte de Windows, plafonnée à 150 % (forme et contenu) ; ADR à écrire | n° 59, choix « notch fixe » pour l'instant | L |
 | 90 | Réglages : fond et barre de titre choisis à l'ouverture seulement ; un passage en contraste élevé pendant qu'ils sont ouverts demande de les rouvrir | relecture de #72 | S |
 | 91 | Mouvement réduit : le halo et l'ombre (`AtmosphereWindow`) sautent encore ; « Rebond » éteint passe aussi en fondu au lieu d'un ressort sans dépassement | #71 | S |
-| 92 | Réglages : changer le raccourci de recherche ou l'écran n'est appliqué qu'au redémarrage (`OnSettingsChanged` compare l'objet à lui-même : le service le modifie sur place) | relecture de #75 | S |
+| 93 | Barre des tâches en haut (StartAllBack, ExplorerPatcher) : détecter, demander à l'utilisateur « sous la barre » ou « languette » ([ADR-030](../decisions/ADR-030-barre-des-taches-en-haut.md)) | direction §7.6 | M |
+| 94 | Modèles d'issue bilingues ; notes de version en français et en anglais | direction §7.2 | S |
+| 95 | Protection de `main` sur GitHub (à appliquer par l'auteur) | [protection-de-main.md](../development/protection-de-main.md) | S |
 | 80 | Une instance de développement (`winapp run`) ne reçoit pas `SpaceNotch.exe --hook` lancé par Git Bash, alors que la notch installée le reçoit ; cause non établie (identité de paquet, propriétaire du tube) | essais du 2026-10-06 et du 2026-10-10 | S |
 | 39 | **Store en MSIX complet** : à étudier, pas à construire (voir direction) ; le Store n'accepte un installeur exe que signé | ADR-023 ; [exigences exe/MSI du Store](https://learn.microsoft.com/windows/apps/publish/publish-your-app/msi/app-package-requirements) | L |
-| 67 | winget : possible dès maintenant (avec `--notifications=off`), plus simple une fois signé | `SetupCommand.cs:54` | S |
-| 68 | ARM64 natif (PC Copilot+) | `release.yml:140` | M |
+| 67 | winget : **après la signature** (décision du 2026-10-13, direction §7.4) | `SetupCommand.cs:54` | S |
+| 68 | ARM64 natif (PC Copilot+) : **plus tard, après la signature** (direction §7.5) | `release.yml:140` | M |
 | 70 | Rapide : arrêter un nouveau `TryEnqueue`/`Tick` nu (analyseur de symboles interdits — dépendance NuGet à approuver) | #45 | S |
 | 71 | Après des fautes répétées dans le rendu, proposer de relancer plutôt que de continuer en silence | #45 | S |
 | 72 | Reflet par le compositeur (~0 % du fil d'interface) | #47 | M |
@@ -127,8 +130,9 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 
 ## Ordre proposé
 
-1. #75 (intensité de Pixel) : preuve à l'écran en Calme et en Expressif, puis fusion si l'auteur le demande.
-2. n° 92 (détection des changements de réglages) : court, déjà proposé en tâche à part.
-3. Preuves restées à faire : #71 (effets d'animation coupés), #72 (contraste élevé).
-4. Après la réponse de SignPath : n° 82 ; puis n° 4, 5 et 67 (winget).
-5. Le reste des P1 courts ; décisions de la direction §7 (points 2 à 8) ; n° 89 si l'auteur le veut.
+1. #76 (n° 92) : fusion si l'auteur le demande.
+2. n° 95 : protéger `main` (l'auteur, sur GitHub).
+3. Après la réponse de SignPath : n° 82 ; puis n° 4, 5, 67 (winget) et 68 (ARM64).
+4. n° 93 (barre des tâches en haut, ADR-030), n° 94 (bilingue).
+5. Preuves restées à faire : #71 (effets d'animation coupés), #72 (contraste élevé).
+6. Le reste des P1 courts ; n° 89 si l'auteur le veut.
