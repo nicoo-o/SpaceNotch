@@ -111,6 +111,7 @@ public sealed partial class IslandWindow
                 // à 15 min : le menu propose alors « Arrêter », la tuile ne doit pas l'écraser.
                 if (tile.ActionId == QuickMenuFeature.TimerAction && _timerFeature.HasMeasure)
                 {
+                    _timerPinnedByTile = true;
                     PresentFromMenu(SpaceNotch.Features.Productivity.TimerFeature.ActivityId);
                     return true;
                 }
@@ -238,6 +239,12 @@ public sealed partial class IslandWindow
     }
 
     /// <summary>Presse-papier, étagère : le menu cède la place à l'activité demandée.</summary>
+    /// <summary>
+    /// Le minuteur a été épinglé par sa tuile du tableau de bord : l'épingle se
+    /// relâche quand la notch se replie (n° 62).
+    /// </summary>
+    private bool _timerPinnedByTile;
+
     private void PresentFromMenu(string activityId)
     {
         if (HasActivity(activityId))

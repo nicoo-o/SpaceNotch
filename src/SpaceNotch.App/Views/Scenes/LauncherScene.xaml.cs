@@ -1269,8 +1269,16 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
     /// </summary>
     public bool ClipboardOff { get; set; }
 
+    /// <summary>
+    /// Vrai quand un minuteur tourne ou est en pause : la tuile le montre au lieu
+    /// de lancer 15 min, et ne l'annonce donc plus (n° 62).
+    /// </summary>
+    public bool TimerActive { get; set; }
+
     private readonly List<Button> _tiles = [];
     private Button? _clipboardTile;
+    private Button? _timerTile;
+    private TextBlock? _timerHint;
 
     /// <summary>
     /// Tableau de bord (ADR-028) : sous la recherche vide, les tuiles du menu
@@ -1300,9 +1308,12 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
                 // Ce que lance la tuile, quand son nom ne le dit pas (n° 62) : en
                 // retrait, à la couleur du bouton, qui suit le thème.
+                TextBlock? hintText = null;
+
                 if (tile.Hint is { } hint)
                 {
-                    caption.Children.Add(new TextBlock { Text = hint, FontSize = 11, Opacity = 0.6, VerticalAlignment = VerticalAlignment.Bottom });
+                    hintText = new TextBlock { Text = hint, FontSize = 11, Opacity = 0.6, VerticalAlignment = VerticalAlignment.Bottom };
+                    caption.Children.Add(hintText);
                 }
 
                 content.Children.Add(caption);
@@ -1322,7 +1333,8 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
 
                 if (tile.ActionId == SpaceNotch.Features.Menu.QuickMenuFeature.TimerAction)
                 {
-                    Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(button, SpaceNotch.Core.Localization.Lang.T("Lance 15 minutes", "Starts 15 minutes"));
+                    _timerTile = button;
+                    _timerHint = hintText;
                 }
                 else if (tile.ActionId == SpaceNotch.Features.Menu.QuickMenuFeature.ClipboardAction)
                 {
@@ -1341,6 +1353,20 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
                 Grid.SetColumn(button, i);
                 TilesRow.Children.Add(button);
             }
+        }
+
+        // Un minuteur en cours ou en pause : la tuile le montre, elle ne lance
+        // pas 15 min, et ne le dit donc ni à l'écran ni à Narrateur (n° 62).
+        if (_timerTile is not null)
+        {
+            if (_timerHint is not null)
+            {
+                _timerHint.Visibility = TimerActive ? Visibility.Collapsed : Visibility.Visible;
+            }
+
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetHelpText(_timerTile, TimerActive
+                ? SpaceNotch.Core.Localization.Lang.T("Montre le minuteur en cours", "Shows the current timer")
+                : SpaceNotch.Core.Localization.Lang.T("Lance 15 minutes", "Starts 15 minutes"));
         }
 
         if (_clipboardTile is not null)
