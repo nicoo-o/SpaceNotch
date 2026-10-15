@@ -47,7 +47,7 @@ public sealed partial class IslandWindow
             SideEdgesAllowed: _settings.AllowSideEdges,
             HasClipboard: HasActivity(ClipboardFeature.ActivityId),
             HasShelf: HasActivity(FileShelfManager.ShelfActivityId),
-            TimerRunning: _timerFeature.IsMeasuring,
+            TimerRunning: _timerFeature.HasMeasure,
             ClipboardOff: !_settings.ShowClipboard,
             FocusActive: _pomodoroFeature.HasSession));
 
@@ -107,9 +107,9 @@ public sealed partial class IslandWindow
                     return true;
                 }
 
-                // Un minuteur qui tourne est montré, pas relancé à 15 min : le menu
-                // propose alors « Arrêter », la tuile ne doit pas l'écraser.
-                if (tile.ActionId == QuickMenuFeature.TimerAction && _timerFeature.IsMeasuring)
+                // Un minuteur qui tourne, ou en pause (n° 62), est montré, pas relancé
+                // à 15 min : le menu propose alors « Arrêter », la tuile ne doit pas l'écraser.
+                if (tile.ActionId == QuickMenuFeature.TimerAction && _timerFeature.HasMeasure)
                 {
                     PresentFromMenu(SpaceNotch.Features.Productivity.TimerFeature.ActivityId);
                     return true;

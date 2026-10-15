@@ -1295,7 +1295,17 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
                 var content = new StackPanel { Spacing = 4, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
                 var glyph = new GlyphView { Key = tile.IconKey, Size = 16, HorizontalAlignment = HorizontalAlignment.Center };
                 content.Children.Add(glyph);
-                content.Children.Add(new TextBlock { Text = tile.Label, FontSize = 12, HorizontalAlignment = HorizontalAlignment.Center });
+                var caption = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, HorizontalAlignment = HorizontalAlignment.Center };
+                caption.Children.Add(new TextBlock { Text = tile.Label, FontSize = 12 });
+
+                // Ce que lance la tuile, quand son nom ne le dit pas (n° 62) : en
+                // retrait, à la couleur du bouton, qui suit le thème.
+                if (tile.Hint is { } hint)
+                {
+                    caption.Children.Add(new TextBlock { Text = hint, FontSize = 11, Opacity = 0.6, VerticalAlignment = VerticalAlignment.Bottom });
+                }
+
+                content.Children.Add(caption);
 
                 var button = new Button
                 {
