@@ -1446,6 +1446,22 @@
                             </StackPanel>
                         </StackPanel>
                     </Border>
+                    <TextBlock Text="{l:Loc Fr='AIDE', En='HELP'}" Style="{StaticResource NfSettingsGroupStyle}" />
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Signaler un problème Ouvre une page GitHub où décrire ce qui se passe ; rien n&#x27;est envoyé tout seul. Le journal se joint à la main : relis-le avant, il peut contenir des chemins de fichiers. bogue bug aide help report">
+                        <Grid ColumnSpacing="14">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="20" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <views:GlyphView Key="Bug" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                <TextBlock Text="{l:Loc Fr='Signaler un problème', En='Report a problem'}" Style="{StaticResource NfSettingsTitleStyle}" />
+                                <TextBlock Text="{l:Loc Fr='Ouvre une page GitHub où décrire ce qui se passe ; rien n’est envoyé tout seul. Le journal se joint à la main : relis-le avant, il peut contenir des chemins de fichiers.', En='Opens a GitHub page to describe what happens; nothing is sent on its own. Attach the log by hand: read it first, it can contain file paths.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><Button Style="{StaticResource NfSecondaryButtonStyle}" Content="{l:Loc Fr='Journal', En='Log'}" AutomationProperties.HelpText="{l:Loc Fr='Ouvre le dossier du journal', En='Opens the log folder'}" Click="OnOpenLogClicked" /><Button x:Name="ReportProblemButton" Style="{StaticResource NfPrimaryButtonStyle}" Content="{l:Loc Fr='Signaler', En='Report'}" Click="OnReportProblemClicked" /></StackPanel>
+                        </Grid>
+                    </Border>
                     <TextBlock Text="{l:Loc Fr='AVANCÉ', En='ADVANCED'}" Style="{StaticResource NfSettingsGroupStyle}" />
                     <Border Style="{StaticResource NfSettingsCardStyle}" ui:SettingsCard.Advanced="True" Tag="Fondu des bords Précis par défaut ; « compatible » si les bords scintillent.">
                         <Grid ColumnSpacing="14">
@@ -1483,21 +1499,6 @@
                                 <TextBlock Text="{l:Loc Fr='Mesures de performance dans le journal.', En='Performance measurements in the log.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
                             </StackPanel>
                             <ToggleSwitch x:Name="DiagnosticsToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnDiagnosticsToggled" />
-                        </Grid>
-                    </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Signaler un problème Ouvre une page GitHub où décrire ce qui se passe ; rien n&#x27;est envoyé tout seul. Le journal se joint à la main, relu avant.">
-                        <Grid ColumnSpacing="14">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="20" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <views:GlyphView Key="Bug" Size="16" Tint="{ThemeResource NfSettingsGlyphBrush}" VerticalAlignment="Center" />
-                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
-                                <TextBlock Text="{l:Loc Fr='Signaler un problème', En='Report a problem'}" Style="{StaticResource NfSettingsTitleStyle}" />
-                                <TextBlock Text="{l:Loc Fr='Ouvre une page GitHub où décrire ce qui se passe ; rien n’est envoyé tout seul. Le journal se joint à la main : relis-le avant, il peut contenir des chemins de fichiers.', En='Opens a GitHub page to describe what happens; nothing is sent on its own. Attach the log by hand: read it first, it can contain file paths.'}" Style="{StaticResource NfSettingsDescriptionStyle}" />
-                            </StackPanel>
-                            <StackPanel Grid.Column="2" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8"><Button Style="{StaticResource NfSecondaryButtonStyle}" Content="{l:Loc Fr='Journal', En='Log'}" Click="OnOpenLogClicked" /><Button Style="{StaticResource NfPrimaryButtonStyle}" Content="{l:Loc Fr='Signaler', En='Report'}" Click="OnReportProblemClicked" /></StackPanel>
                         </Grid>
                     </Border>
                     <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Fichiers de SpaceNotch ">
