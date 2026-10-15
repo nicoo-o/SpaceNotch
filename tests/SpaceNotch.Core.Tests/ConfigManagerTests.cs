@@ -337,4 +337,22 @@ public class ConfigManagerTests : IDisposable
 
         Assert.True(new SettingsService(manager).Current.ShowDiscord);
     }
+
+    // n° 18 : le miroir de la webcam ne l'allume pas sans qu'on l'ait demandé ;
+    // une configuration qui l'avait allumé le garde.
+
+    [Fact]
+    public void Load_LeMiroirDeLaWebcamEstEteintSurUneInstallationNeuve()
+        => Assert.False(new SettingsService(CreateManager()).Current.CameraMirror);
+
+    [Fact]
+    public void Load_UnMiroirDejaAllumeLeReste()
+    {
+        var manager = CreateManager();
+
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(manager.ConfigFilePath, """{ "CameraMirror": true }""");
+
+        Assert.True(new SettingsService(manager).Current.CameraMirror);
+    }
 }
