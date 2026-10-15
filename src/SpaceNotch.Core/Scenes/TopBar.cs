@@ -73,10 +73,10 @@ public static class TopBar
         => Presentation.EdgeFrame.ToLocal(edge, pill, FrameBelowBar(edge, screen, insetDip)).Y < attachedDepth;
 
     /// <summary>
-    /// La pastille qui remonte se raccrocher, retenue sous la barre : son ressort
-    /// la fait dépasser la forme accrochée. Sans barre, ce dépassement sort de
-    /// l'écran et ne se voit pas ; sous une barre, il mordait sur la barre pendant
-    /// une image (n° 96).
+    /// La pastille en mouvement, retenue sous la barre : son ressort dépasse sa
+    /// cible (raccrochage, retour vers un aimant du haut). Sans barre, ce
+    /// dépassement sort de l'écran et ne se voit pas ; sous une barre, il
+    /// mordait sur la barre pendant une image (n° 96).
     /// </summary>
     public static ScreenRect KeepBelowBar(NotchEdge edge, ScreenRect pill, ScreenRect screen, double insetDip)
         => edge == NotchEdge.Top && insetDip > 0 && pill.Y < screen.Y + insetDip

@@ -732,9 +732,12 @@ public sealed partial class IslandWindow
         double halfHeight = pill.Height / 2;
 
         // Les côtés et le haut restent atteignables même sous une barre des
-        // tâches : c'est là que la notch se raccroche.
+        // tâches : c'est là que la notch se raccroche. Sous une barre en haut,
+        // le haut est le bas de la barre (n° 96) : la pastille tenue n'y entre
+        // pas, et la goutte qui l'aspire n'a pas à la ramener d'un coup.
+        double top = SpaceNotch.Core.Scenes.TopBar.FrameBelowBar(NotchEdge.Top, screen, TopInsetDip(display)).Y;
         double targetX = Resist(x - _grabX, screen.X + halfWidth, screen.Right - halfWidth, pill.Width);
-        double targetY = Resist(y - _grabY, screen.Y + halfHeight, work.Bottom - halfHeight, pill.Height);
+        double targetY = Resist(y - _grabY, top + halfHeight, work.Bottom - halfHeight, pill.Height);
 
         _pillSpring.SetTarget(targetX, targetY);
 
@@ -1429,6 +1432,10 @@ public sealed partial class IslandWindow
             }
 
             pill = ScreenRect.Centered(_pillSpring.X, _pillSpring.Y, size.Width * sx * pop, size.Height * sy * pop);
+
+            // Le ressort dépasse sa cible : sans barre, ce dépassement sort de
+            // l'écran ; sous une barre, il la mordait (n° 96).
+            pill = SpaceNotch.Core.Scenes.TopBar.KeepBelowBar(NotchEdge.Top, pill, screen, TopInsetDip(display));
         }
         else
         {
@@ -1444,8 +1451,6 @@ public sealed partial class IslandWindow
             // Le repère du bord : sous une barre des tâches en haut, la goutte part
             // du bas de la barre, comme la forme accrochée (n° 96).
             ScreenRect gooScreen = GooFrame(_gooEdge, screen, display);
-            pill = SpaceNotch.Core.Scenes.TopBar.KeepBelowBar(_gooEdge, pill, screen, TopInsetDip(display));
-            bounds = pill;
             IslandFootprint residue = GooBridge.Residue(_gooAttached, _goo);
             var residueLocal = new ScreenRect(_gooCenterU - (residue.Width / 2), 0, residue.Width, residue.Height);
             ScreenRect pillLocal = EdgeFrame.ToLocal(_gooEdge, pill, gooScreen);
