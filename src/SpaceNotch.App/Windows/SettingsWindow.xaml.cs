@@ -1256,6 +1256,32 @@ public sealed partial class SettingsWindow : Window
         StatusText.Text = Lang.T("Valeurs par défaut rétablies.", "Defaults restored.");
     }
 
+    /// <summary>Le dossier du journal (n° 56) : il est dans %LocalAppData%, pas à côté de la configuration.</summary>
+    private void OnOpenLogClicked(object sender, RoutedEventArgs e)
+        => OpenFolder(Path.GetDirectoryName(MiniLogger.LogPath));
+
+    /// <summary>
+    /// Signaler un problème (n° 56) : la page d'un nouveau rapport s'ouvre dans le
+    /// navigateur, version et Windows remplis. Rien ne part sans l'utilisateur.
+    /// </summary>
+    private async void OnReportProblemClicked(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            string version = typeof(SettingsWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : string.Empty;
+
+            if (!await global::Windows.System.Launcher.LaunchUriAsync(SpaceNotch.Core.Setup.ProblemReport.NewIssue(version, Environment.OSVersion.Version)))
+            {
+                StatusText.Text = Lang.T("Impossible d’ouvrir le navigateur.", "Could not open the browser.");
+            }
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log("[RÉGLAGES] Ouverture du rapport de problème impossible", ex);
+            StatusText.Text = Lang.T("Impossible d’ouvrir le navigateur.", "Could not open the browser.");
+        }
+    }
+
     private void OnOpenConfigClicked(object sender, RoutedEventArgs e)
         => OpenFolder(Path.GetDirectoryName(_settings.ConfigFilePath));
 
