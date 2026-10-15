@@ -8,11 +8,11 @@ using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Launcher;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
 using SpaceNotch.Platform.Windows.Launcher;
-using SpaceNotch.Core.Localization;
 
 namespace SpaceNotch.Features.Launcher;
 
