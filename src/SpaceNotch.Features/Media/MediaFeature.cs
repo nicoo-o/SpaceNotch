@@ -32,7 +32,7 @@ public sealed class MediaFeature : IslandFeatureBase
         IEventBus events,
         WindowsMediaSessionManager sessionManager,
         bool isEnabled = true)
-        : base(FeatureKey, "Lecture média", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Lecture média", "Media playback"), activities, events, isEnabled)
     {
         _sessionManager = sessionManager ?? throw new ArgumentNullException(nameof(sessionManager));
     }

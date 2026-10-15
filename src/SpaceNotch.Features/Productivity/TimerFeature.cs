@@ -72,7 +72,7 @@ public sealed class TimerFeature : IslandFeatureBase
     private readonly object _publishGate = new();
 
     public TimerFeature(IActivityManager activities, IEventBus events, bool isEnabled = true, Func<DateTimeOffset>? now = null)
-        : base(FeatureKey, "Minuteur", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Minuteur", "Timer"), activities, events, isEnabled)
     {
         _now = now ?? (() => DateTimeOffset.UtcNow);
         _clock = new MeasureClock(now);

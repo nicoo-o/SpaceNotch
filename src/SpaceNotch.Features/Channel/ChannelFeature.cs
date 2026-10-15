@@ -83,7 +83,7 @@ public sealed class ChannelFeature : IslandFeatureBase
     private ChannelServer? _server;
 
     public ChannelFeature(IActivityManager activities, IEventBus events, bool isEnabled = true)
-        : base(FeatureKey, "Canal local", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Canal local", "Local channel"), activities, events, isEnabled)
     {
     }
 

@@ -63,7 +63,7 @@ public sealed class PhoneFeature : IslandFeatureBase
     private DateTimeOffset _deliverySince;
 
     public PhoneFeature(IActivityManager activities, IEventBus events, bool isEnabled = true, Func<DateTimeOffset>? now = null)
-        : base(FeatureKey, "Téléphone", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Téléphone", "Phone"), activities, events, isEnabled)
     {
         _now = now ?? (() => DateTimeOffset.Now);
         _clock = new Timer(Guarded(Tick), null, Timeout.Infinite, Timeout.Infinite);

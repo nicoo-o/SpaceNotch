@@ -35,7 +35,7 @@ public sealed class ChargeFeature : IslandFeatureBase
     private readonly object _gate = new();
 
     public ChargeFeature(IActivityManager activities, IEventBus events, PowerWatcher? watcher, bool isEnabled = true)
-        : base(FeatureKey, "Charge", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Charge", "Charging"), activities, events, isEnabled)
     {
         _watcher = watcher;
     }

@@ -46,7 +46,7 @@ public sealed class CopyAssistFeature : IslandFeatureBase
     private int _busy;
 
     public CopyAssistFeature(IActivityManager activities, IEventBus events, ClipboardMonitor monitor, IntPtr windowHandle, bool isEnabled, Func<DateTimeOffset>? now = null)
-        : base(FeatureKey, "Actions sur copie", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Actions sur copie", "Copy actions"), activities, events, isEnabled)
     {
         _monitor = monitor ?? throw new ArgumentNullException(nameof(monitor));
         _windowHandle = windowHandle;

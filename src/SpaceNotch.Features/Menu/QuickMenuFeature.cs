@@ -51,7 +51,7 @@ public sealed class QuickMenuFeature : IslandFeatureBase
     private QuickMenuPayload? _state;
 
     public QuickMenuFeature(IActivityManager activities, IEventBus events)
-        : base(FeatureKey, "Menu rapide", activities, events, isEnabled: true)
+        : base(FeatureKey, Lang.T("Menu rapide", "Quick menu"), activities, events, isEnabled: true)
     {
     }
 
