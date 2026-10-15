@@ -61,15 +61,15 @@ public sealed class TopBarTests
         // n° 96 : la goutte d'un détachement part du bas de la barre (40 DIP), pas du haut de l'écran.
         var screen = new ScreenRect(0, 0, 1707, 1067);
 
-        ScreenRect top = TopBar.EdgeFrame(SpaceNotch.Core.Presentation.NotchEdge.Top, screen, 40);
+        ScreenRect top = TopBar.FrameBelowBar(NotchEdge.Top, screen, 40);
         Assert.Equal(40, top.Y);
         Assert.Equal(1027, top.Height);
         Assert.Equal(screen.Width, top.Width);
 
         // Sans barre, et sur les côtés, le repère reste l'écran.
-        Assert.Equal(screen, TopBar.EdgeFrame(SpaceNotch.Core.Presentation.NotchEdge.Top, screen, 0));
-        Assert.Equal(screen, TopBar.EdgeFrame(SpaceNotch.Core.Presentation.NotchEdge.Left, screen, 40));
-        Assert.Equal(screen, TopBar.EdgeFrame(SpaceNotch.Core.Presentation.NotchEdge.Right, screen, 40));
+        Assert.Equal(screen, TopBar.FrameBelowBar(NotchEdge.Top, screen, 0));
+        Assert.Equal(screen, TopBar.FrameBelowBar(NotchEdge.Left, screen, 40));
+        Assert.Equal(screen, TopBar.FrameBelowBar(NotchEdge.Right, screen, 40));
     }
 
     [Fact]
@@ -77,12 +77,46 @@ public sealed class TopBarTests
     {
         // Le bas du repère local (y = 0) tombe sur le bas de la barre à l'écran.
         var screen = new ScreenRect(0, 0, 1707, 1067);
-        ScreenRect frame = TopBar.EdgeFrame(SpaceNotch.Core.Presentation.NotchEdge.Top, screen, 40);
+        ScreenRect frame = TopBar.FrameBelowBar(NotchEdge.Top, screen, 40);
 
-        ScreenRect onScreen = SpaceNotch.Core.Presentation.EdgeFrame.ToScreenRect(
-            SpaceNotch.Core.Presentation.NotchEdge.Top, new ScreenRect(800, 0, 100, 20), frame);
+        ScreenRect onScreen = EdgeFrame.ToScreenRect(
+            NotchEdge.Top, new ScreenRect(800, 0, 100, 20), frame);
 
         Assert.Equal(40, onScreen.Y);
+    }
+
+    [Fact]
+    public void A_pill_arrived_under_a_bar_taller_than_the_shape_reaches_the_dock()
+    {
+        // Relecture de #81 : barre de 48 DIP, forme au repos de 18 DIP. La pastille
+        // arrivée sous la barre a son haut à y = 48 : mesuré depuis le haut de
+        // l'écran (48 < 18 faux), elle n'atteignait jamais la forme.
+        var screen = new ScreenRect(0, 0, 1707, 1067);
+        var arrived = new ScreenRect(800, 48, 60, 18);
+
+        Assert.True(TopBar.PillReachesDock(NotchEdge.Top, arrived, screen, 48, 18));
+        Assert.False(TopBar.PillReachesDock(NotchEdge.Top, new ScreenRect(800, 200, 60, 18), screen, 48, 18));
+
+        // Sans barre, le repère est l'écran : rien ne change.
+        Assert.True(TopBar.PillReachesDock(NotchEdge.Top, new ScreenRect(800, 0, 60, 18), screen, 0, 18));
+        Assert.False(TopBar.PillReachesDock(NotchEdge.Top, arrived, screen, 0, 18));
+    }
+
+    [Fact]
+    public void A_pill_overshooting_while_it_docks_stays_below_the_bar()
+    {
+        // Mesuré à l'écran : le ressort faisait monter la pastille 4 px dans la barre.
+        var screen = new ScreenRect(0, 0, 1707, 1067);
+        var overshoot = new ScreenRect(800, 37, 60, 18);
+
+        ScreenRect kept = TopBar.KeepBelowBar(NotchEdge.Top, overshoot, screen, 40);
+        Assert.Equal(new ScreenRect(800, 40, 60, 18), kept);
+
+        // Plus bas que la barre, sans barre, ou sur un côté : rien ne bouge.
+        var below = new ScreenRect(800, 120, 60, 18);
+        Assert.Equal(below, TopBar.KeepBelowBar(NotchEdge.Top, below, screen, 40));
+        Assert.Equal(overshoot, TopBar.KeepBelowBar(NotchEdge.Top, overshoot, screen, 0));
+        Assert.Equal(overshoot, TopBar.KeepBelowBar(NotchEdge.Left, overshoot, screen, 40));
     }
 
     [Fact]

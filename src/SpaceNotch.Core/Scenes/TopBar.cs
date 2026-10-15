@@ -57,10 +57,31 @@ public static class TopBar
     /// raccrochage s'y calcule : elle part du bas de la barre, comme la forme
     /// accrochée. Les côtés ne changent pas.
     /// </summary>
-    public static ScreenRect EdgeFrame(NotchEdge edge, ScreenRect screen, double insetDip)
+    public static ScreenRect FrameBelowBar(NotchEdge edge, ScreenRect screen, double insetDip)
         => edge == NotchEdge.Top && insetDip > 0
             ? new ScreenRect(screen.X, screen.Y + insetDip, screen.Width, Math.Max(0, screen.Height - insetDip))
             : screen;
+
+    /// <summary>
+    /// Une pastille qui se raccroche atteint la forme accrochée : la goutte peut
+    /// l'aspirer. Mesuré dans le repère du bord, sous la barre s'il y en a une —
+    /// mesuré depuis le haut de l'écran, une pastille arrivée sous une barre plus
+    /// haute que la forme ne l'atteignait jamais, et le raccrochage ne finissait
+    /// pas (relecture de #81).
+    /// </summary>
+    public static bool PillReachesDock(NotchEdge edge, ScreenRect pill, ScreenRect screen, double insetDip, double attachedDepth)
+        => Presentation.EdgeFrame.ToLocal(edge, pill, FrameBelowBar(edge, screen, insetDip)).Y < attachedDepth;
+
+    /// <summary>
+    /// La pastille qui remonte se raccrocher, retenue sous la barre : son ressort
+    /// la fait dépasser la forme accrochée. Sans barre, ce dépassement sort de
+    /// l'écran et ne se voit pas ; sous une barre, il mordait sur la barre pendant
+    /// une image (n° 96).
+    /// </summary>
+    public static ScreenRect KeepBelowBar(NotchEdge edge, ScreenRect pill, ScreenRect screen, double insetDip)
+        => edge == NotchEdge.Top && insetDip > 0 && pill.Y < screen.Y + insetDip
+            ? new ScreenRect(pill.X, screen.Y + insetDip, pill.Width, pill.Height)
+            : pill;
 
     /// <summary>Vrai si la notch accrochée en haut doit passer en languette : une barre est là et c'est le choix.</summary>
     public static bool WantsSide(int monitorTop, int workTop, TopBarPlacement placement)

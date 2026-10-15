@@ -677,7 +677,6 @@ public sealed partial class IslandWindow
     /// </summary>
     private void StartGoo(NotchEdge edge, ScreenRect attachedRect, IslandFootprint drawn, ScreenRect screen, bool rising)
     {
-        screen = GooFrame(edge, screen, DetachDisplay());
         double shoulder = ShoulderFor(edge);
         IslandFootprint local = LocalOf(edge, drawn);
         double s = IslandShape.EffectiveShoulder(local.Width, local.Height, shoulder);
@@ -1253,9 +1252,9 @@ public sealed partial class IslandWindow
             (ScreenRect rect, IslandFootprint drawn) = AttachedRect(edge, RestFootprintFor(edge), display, pull: 0);
             _dockOffset = saved;
 
-            ScreenRect pillLocal = EdgeFrame.ToLocal(edge, NominalPillAt(_pillSpring.X, _pillSpring.Y), screen);
-
-            if (pillLocal.Y < LocalOf(edge, drawn).Height)
+            // Dans le repère du bord : sous une barre en haut, la forme accrochée
+            // commence au bas de la barre (n° 96).
+            if (SpaceNotch.Core.Scenes.TopBar.PillReachesDock(edge, NominalPillAt(_pillSpring.X, _pillSpring.Y), screen, TopInsetDip(display), LocalOf(edge, drawn).Height))
             {
                 if (AnimateGoo)
                 {
@@ -1445,6 +1444,8 @@ public sealed partial class IslandWindow
             // Le repère du bord : sous une barre des tâches en haut, la goutte part
             // du bas de la barre, comme la forme accrochée (n° 96).
             ScreenRect gooScreen = GooFrame(_gooEdge, screen, display);
+            pill = SpaceNotch.Core.Scenes.TopBar.KeepBelowBar(_gooEdge, pill, screen, TopInsetDip(display));
+            bounds = pill;
             IslandFootprint residue = GooBridge.Residue(_gooAttached, _goo);
             var residueLocal = new ScreenRect(_gooCenterU - (residue.Width / 2), 0, residue.Width, residue.Height);
             ScreenRect pillLocal = EdgeFrame.ToLocal(_gooEdge, pill, gooScreen);
@@ -1633,7 +1634,7 @@ public sealed partial class IslandWindow
     /// où le bord est le bas de la barre (n° 96, ADR-030). Les côtés ne changent pas.
     /// </summary>
     private static ScreenRect GooFrame(NotchEdge edge, ScreenRect screen, DisplayInfo display)
-        => SpaceNotch.Core.Scenes.TopBar.EdgeFrame(edge, screen, TopInsetDip(display));
+        => SpaceNotch.Core.Scenes.TopBar.FrameBelowBar(edge, screen, TopInsetDip(display));
 
     /// <summary>Zone de travail de l'écran, en DIPs relatifs à son coin supérieur gauche.</summary>
     private static ScreenRect WorkAreaDip(DisplayInfo display)
