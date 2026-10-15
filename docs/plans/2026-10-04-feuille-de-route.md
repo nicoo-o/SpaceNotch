@@ -1,4 +1,4 @@
-# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-13, soir)
+# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-15)
 
 Première version : 2026-10-04, écrite « pour vendre ». L'auteur l'a précisé le 2026-10-05 :
 SpaceNotch reste **gratuite et open source**, sans vente. Cette version re-trie tout pour ce cadre.
@@ -52,8 +52,13 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 88 | Minuteur et focus ensemble | #74 | fusionnée : ils alternaient chaque seconde en tête de pile ; test qui échoue sans le correctif |
 | 54, direction §7.9 | Intensité de Pixel ; « Pixel actif par défaut » | #75 | fusionnée, **prouvée à l'écran** (Calme : yeux fixes ; Expressif : le regard fait le tour) : Calme / Normal / Expressif (choix de l'auteur), Normal par défaut ; le n° 54 est tranché par ADR-029 (Pixel vit au repos) |
 | 92 | Raccourci ou écran changé dans les Réglages appliqué au redémarrage seulement | #76 | fusionnée : photo des réglages appliqués ; journal avant/après sur `main` et sur la branche ; un écran choisi pendant que la notch flotte est respecté |
-| 93 | Barre des tâches en haut (ADR-030) | #78 | **ouverte** : mesuré d'abord (notch de `main` à y = 0, sur la barre) ; détection par la zone de travail ; question une fois ; sous la barre (y = 60 sous une barre de 60 px) ; languette ; Réglages › Notch ; preuves avec une AppBar de test |
-| 94 | Modèles d'issue et de PR bilingues | #79 | **ouverte** |
+| 93 | Barre des tâches en haut (ADR-030) | #78 | fusionnée : mesuré d'abord (notch de `main` à y = 0, sur la barre) ; détection par la zone de travail ; question une fois ; sous la barre (y = 60 sous une barre de 60 px) ; languette ; Réglages › Notch ; preuves avec une AppBar de test |
+| 94 | Modèles d'issue et de PR bilingues | #79 | fusionnée |
+| 96 | Barre en haut : goutte, raccrochage, épaules | #81 | **ouverte** : la goutte part du bas de la barre ; à la relecture, un bloquant (le raccrochage ne finissait jamais sous une barre plus haute que la forme) et un saut de 40 DIP corrigés ; épaules gardées (choix de l'auteur) ; **prouvé à l'écran** (glisser par `mouse_event`, journal « raccrochée au bord Top » 5 fois sur 5) |
+| 18 | Miroir de la webcam actif par défaut | PR à ouvrir | **ouverte** : éteint sur une installation neuve ; une configuration existante garde sa valeur (comme Discord, n° 75) ; tests |
+| 62 | Tuile Minuteur | PR à ouvrir | **ouverte** : « 15 min » affiché sur la tuile (capture) ; un minuteur en pause n'est plus écrasé (`HasMeasure`, test) |
+| 15 | Noms des fonctionnalités en français dans l'interface anglaise | PR à ouvrir | **ouverte** : 23 noms par `Lang.T` ; test de garde |
+| 56 | Aucun chemin pour signaler un problème | PR à ouvrir | **ouverte** : carte « Signaler un problème » (À propos) : dossier du journal, rapport GitHub prérempli (version, Windows), rien d'envoyé seul ; capture de la carte |
 
 ## Sans objet pour un projet gratuit
 
@@ -79,19 +84,14 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 46b | Suite de n° 46 : première mise en page d'une scène pendant le ressort (74,7 ms une fois) ; tableaux de points du ressort (GC de génération 0) ; scènes à créer d'avance (n° 25) | #48 | moyen | M | moyen |
 | 11 | La notch disparaît derrière une fenêtre « toujours devant » qui couvre l'écran | `FullscreenPresenceWatcher.cs:357` ✔ | fort ? | S–M | régression plein écran |
 | 12 | Notifications Windows impossibles à activer après coup | `SetupWindow.xaml.cs:546` | moyen | M | faible |
-| 15 | Textes en français dans l'interface anglaise | `ChannelFeature.cs:86`… | moyen | S | faible |
 | 16 | Désinstallation incomplète (dossier `updates`, coffre, certificat, hooks) | `InstallLayout.cs:94-116` | moyen | S–M | faible |
 | 17 | Mise à jour qui réapplique les choix d'installation (démarrage, raccourci) : **non constaté** sur l'installation de l'auteur (choix identiques), code à revoir | `WindowsSetup.cs:207, 306` | moyen | S | faible |
-| 18 | Miroir de la webcam actif par défaut | `AppSettings.cs:545` ✔ | moyen | S | faible |
 | 19 | Alt+Espace pris globalement | `GlobalHotkey.cs:45` | moyen | S | faible |
 | 20 | Installeur : échec sans raison ; deux UAC de suite en « pour tous » | `SetupWindow.xaml.cs:540-599` | moyen | S–M | faible |
 | 21 | Notch minimisée par un tiers : ne revient pas | `IslandWindow.xaml.cs:280` ✔ | moyen ? | S | faible |
 | 34 | Écran mémorisé par `HMONITOR`, invalide après redémarrage | `AppSettings.cs:212` | moyen | S | faible |
 | 35 | Veille et reprise non traitées | `IslandWindow.PixelLife.cs:133-172` | moyen | S–M | faible |
-| 56 | **Aucun chemin pour signaler un problème** : le bouton « Fichiers » ouvre `%AppData%`, le journal est dans `%LocalAppData%` ; pas de modèle d'issue | `SettingsWindow.xaml.cs:1159` ; `MiniLogger.cs:43-48` | moyen | S | faible |
-| 60 | Barre des tâches en haut (StartAllBack, ExplorerPatcher) : la notch la recouvre — touche la règle n° 1 du §15, ADR nécessaire | `IslandWindow.xaml.cs:2227-2230` | moyen | M | décision |
 | 61 | Présentation du premier lancement : enseigne encore le clic droit, pas les tuiles d'ADR-028 ; README français faux sur le clic droit | `WelcomeScene.xaml.cs:85-87` ; `README.fr.md:111` | moyen | S | faible |
-| 62 | Tuile Minuteur : lance 15 min sans le dire ; écrase un minuteur en pause | `QuickMenuTiles.cs:32` ; `IslandWindow.QuickMenu.cs:110` | moyen | S | faible |
 | 64 | Molette au repos : avec « Survoler pour aperçu » éteint, la pile du presse-papier est injoignable | `IslandWindow.xaml.cs:3251` | faible | S | faible |
 | 65 | Réglages « Démarrer avec Windows » affiché activé alors que Windows l'a désactivé (Gestionnaire des tâches) | constaté sur l'installation de l'auteur le 2026-10-05 | moyen | S | faible |
 | 66 | Une copie de développement peut encore réécrire la clé de démarrage partagée (Réglages ouverts depuis le build) | `SettingsWindow.xaml.cs:387` | faible (dev) | S | faible |
@@ -102,6 +102,7 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 42 | Faux positifs antivirus | `IdentityManifestFile.cs:23-56` | moyen | M | réputation |
 | 43 | Consommation sur batterie non mesurée ; économiseur d'énergie ignoré | aucun `EnergySaverStatus` | moyen (portables) | S | faible |
 | 44 | Carte « actions sur copie » qui revient | `CopyAssistFeature.cs:134` | faible | S | faible |
+| 97 | Goutte éteinte, ressorts allumés : au raccrochage, `_goo = 0` sans `StartGoo` ; l'état de goutte du dernier arrachement se redessine (trace en haut, col jusqu'à la pastille) jusqu'à l'arrivée | relecture de #81, `IslandWindow.Detach.cs:1259-1266` | faible | S | faible |
 
 ## P2 — qualité, dette, confort
 
@@ -111,7 +112,8 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 90 | Réglages : fond et barre de titre choisis à l'ouverture seulement ; un passage en contraste élevé pendant qu'ils sont ouverts demande de les rouvrir | relecture de #72 | S |
 | 91 | Mouvement réduit : le halo et l'ombre (`AtmosphereWindow`) sautent encore ; « Rebond » éteint passe aussi en fondu au lieu d'un ressort sans dépassement | #71 | S |
 | 95 | Protection de `main` sur GitHub (à appliquer par l'auteur) | [protection-de-main.md](../development/protection-de-main.md) | S |
-| 96 | Barre en haut : épaules redessinées sous la barre ; goutte du détachement calée sur la barre ; arrachement et raccrochage à vérifier à l'écran | relecture de #78, ADR-030 | S |
+| 98 | Écran changé pendant l'arrachement (0,34 s) : la trace se redessine sur le nouvel écran ; forcer la fin de la goutte au changement | relecture de #81, `IslandWindow.Detach.cs:809` | S |
+| 99 | Test instable : `PhaseDTests.L_horloge_dit_ce_que_chaque_abonne_alloue` a échoué une fois sur trois passages (mesure d'allocation) | constaté le 2026-10-14 | S |
 | 80 | Une instance de développement (`winapp run`) ne reçoit pas `SpaceNotch.exe --hook` lancé par Git Bash, alors que la notch installée le reçoit ; cause non établie (identité de paquet, propriétaire du tube) | essais du 2026-10-06 et du 2026-10-10 | S |
 | 39 | **Store en MSIX complet** : à étudier, pas à construire (voir direction) ; le Store n'accepte un installeur exe que signé | ADR-023 ; [exigences exe/MSI du Store](https://learn.microsoft.com/windows/apps/publish/publish-your-app/msi/app-package-requirements) | L |
 | 67 | winget : **après la signature** (décision du 2026-10-13, direction §7.4) | `SetupCommand.cs:54` | S |
@@ -131,9 +133,8 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 
 ## Ordre proposé
 
-1. #78 (n° 93) et #79 (n° 94) : fusion si l'auteur le demande.
+1. #81 (n° 96) et les PR des n° 18, 62, 15, 56 : fusion si l'auteur le demande.
 2. n° 95 : protéger `main` (l'auteur, sur GitHub).
 3. Après la réponse de SignPath : n° 82 ; puis n° 4, 5, 67 (winget) et 68 (ARM64).
-4. n° 96 (finitions de la barre en haut).
-5. Preuves restées à faire : #71 (effets d'animation coupés), #72 (contraste élevé).
-6. Le reste des P1 courts ; n° 89 si l'auteur le veut.
+4. Preuves restées à faire : #71 (effets d'animation coupés), #72 (contraste élevé).
+5. Le reste des P1 courts (11, 21, 34, 35, 61, 64, 65, 12, 16, 17, 19, 20, 66, 97) ; n° 89 si l'auteur le veut.
