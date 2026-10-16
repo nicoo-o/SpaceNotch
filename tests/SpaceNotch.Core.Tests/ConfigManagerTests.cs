@@ -264,9 +264,9 @@ public class ConfigManagerTests : IDisposable
     }
 
     // « Me prévenir » par défaut (n° 77, 2026-10-06). Toutes les configurations
-    // existantes portent « Automatic », choisi ou resté par défaut : rien ne les
-    // distingue. Elles passent une fois à « Me prévenir » ; un « Automatique »
-    // remis ensuite dans les Réglages est respecté.
+    // existantes portaient « Automatic », choisi ou resté par défaut : elles
+    // passent à « Me prévenir ». Depuis n° 52, « Automatique » n'existe plus du
+    // tout : même remis à la main, il revient à « Me prévenir ».
 
     [Fact]
     public void Load_UneInstallationNeuvePrevientAvantDInstaller()
@@ -278,7 +278,7 @@ public class ConfigManagerTests : IDisposable
     }
 
     [Fact]
-    public void Load_UneConfigurationAutomatiquePasseUneFoisAMePrevenir()
+    public void Load_UneConfigurationAutomatiquePasseAMePrevenir()
     {
         var manager = CreateManager();
 
@@ -290,10 +290,10 @@ public class ConfigManagerTests : IDisposable
         Assert.Equal(SpaceNotch.Core.Update.UpdateMode.Notify, service.Current.UpdateMode);
         Assert.False(service.Current.ShowPixel);
 
-        // L'utilisateur remet « Automatique » : la migration ne repasse pas.
+        // « Automatique » est retiré (n° 52) : même remis à la main, il revient à « Me prévenir ».
         service.Update(s => s.UpdateMode = SpaceNotch.Core.Update.UpdateMode.Automatic);
 
-        Assert.Equal(SpaceNotch.Core.Update.UpdateMode.Automatic, new SettingsService(CreateManager()).Current.UpdateMode);
+        Assert.Equal(SpaceNotch.Core.Update.UpdateMode.Notify, new SettingsService(CreateManager()).Current.UpdateMode);
     }
 
     [Theory]
@@ -310,14 +310,16 @@ public class ConfigManagerTests : IDisposable
     }
 
     [Fact]
-    public void Reset_UnAutomatiqueChoisiApresUneRemiseAZeroEstGarde()
+    public void Load_UneConfigurationAutomatiqueDejaMigreePasseAMePrevenir()
     {
-        var service = new SettingsService(CreateManager());
+        // n° 52 : la migration unique de n° 77 laissait un « Automatique » remis à
+        // la main ; il n'existe plus.
+        var manager = CreateManager();
 
-        service.ResetToDefaults();
-        service.Update(s => s.UpdateMode = SpaceNotch.Core.Update.UpdateMode.Automatic);
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(manager.ConfigFilePath, """{ "UpdateMode": "Automatic", "UpdateDefaultApplied": true }""");
 
-        Assert.Equal(SpaceNotch.Core.Update.UpdateMode.Automatic, new SettingsService(CreateManager()).Current.UpdateMode);
+        Assert.Equal(SpaceNotch.Core.Update.UpdateMode.Notify, new SettingsService(manager).Current.UpdateMode);
     }
 
     // n° 75 : Discord, inerte sans application développeur, est éteint sur une

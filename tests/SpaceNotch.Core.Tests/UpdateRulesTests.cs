@@ -8,8 +8,8 @@ using Xunit;
 namespace SpaceNotch.Core.Tests;
 
 /// <summary>
-/// Mise à jour automatique (v1.17.0) : lecture de la release, empreinte,
-/// décision d'installer, relance après l'installation.
+/// Mise à jour (v1.17.0) : lecture de la release, empreinte, décision de
+/// proposer (rien ne s'installe seul, n° 52), relance après l'installation.
 /// </summary>
 public sealed class UpdateRulesTests
 {
@@ -120,31 +120,30 @@ public sealed class UpdateRulesTests
     private static readonly DateTimeOffset Now = new(2026, 10, 3, 12, 0, 0, TimeSpan.Zero);
 
     private static UpdateAction Decide(
-        UpdateMode mode = UpdateMode.Automatic,
+        UpdateMode mode = UpdateMode.Notify,
         bool downloaded = true,
         bool installed = true,
-        double idleMinutes = 10,
-        bool busy = false,
         DateTimeOffset? postponed = null)
-        => UpdateRules.Decide(mode, downloaded, installed, TimeSpan.FromMinutes(idleMinutes), busy, postponed, Now);
+        => UpdateRules.Decide(mode, downloaded, installed, postponed, Now);
 
     [Fact]
     public void Desactivees_rien_ne_se_passe()
         => Assert.Equal(UpdateAction.None, Decide(UpdateMode.Off));
 
     [Fact]
-    public void Automatique_installe_au_calme_seulement()
+    public void Rien_ne_s_installe_seul_meme_avec_une_ancienne_configuration_automatique()
     {
-        Assert.Equal(UpdateAction.Install, Decide());
-        Assert.Equal(UpdateAction.Wait, Decide(idleMinutes: 1));
-        Assert.Equal(UpdateAction.Wait, Decide(busy: true));
-        Assert.Equal(UpdateAction.Download, Decide(downloaded: false));
+        // n° 52 : l'empreinte est publiée dans la même release que l'installeur ;
+        // tant que rien n'est signé, la mise à jour est proposée, jamais installée seule.
+        Assert.Equal(UpdateAction.Offer, Decide(UpdateMode.Automatic));
+        Assert.Equal(UpdateAction.None, Decide(UpdateMode.Automatic, postponed: Now.AddHours(1)));
+        Assert.Equal(UpdateAction.Download, Decide(UpdateMode.Automatic, downloaded: false));
     }
 
     [Fact]
     public void Me_prevenir_propose_et_Plus_tard_se_tait_jusqu_a_l_echeance()
     {
-        Assert.Equal(UpdateAction.Offer, Decide(UpdateMode.Notify, busy: true));
+        Assert.Equal(UpdateAction.Offer, Decide(UpdateMode.Notify));
         Assert.Equal(UpdateAction.None, Decide(UpdateMode.Notify, postponed: Now.AddHours(1)));
         Assert.Equal(UpdateAction.Offer, Decide(UpdateMode.Notify, postponed: Now.AddHours(-1)));
     }
@@ -246,15 +245,6 @@ public sealed class UpdateRulesTests
     {
         Assert.True(UpdateRules.IsDeclined(1602));
         Assert.False(UpdateRules.IsDeclined(1603));
-    }
-
-    [Fact]
-    public void Apres_un_echec_l_automatique_attend_l_echeance_au_lieu_de_reessayer_au_calme()
-    {
-        // Sans cela, une élévation refusée redemandait l'autorisation au moment
-        // calme suivant, puis au suivant.
-        Assert.Equal(UpdateAction.Wait, Decide(postponed: Now.AddHours(1)));
-        Assert.Equal(UpdateAction.Install, Decide(postponed: Now.AddHours(-1)));
     }
 
     [Fact]

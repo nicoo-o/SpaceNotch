@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
 using SpaceNotch.Core.Setup;
-using SpaceNotch.Core.State;
 using SpaceNotch.Core.Update;
 using SpaceNotch.Features.Update;
 using SpaceNotch.Infrastructure.Logging;
@@ -14,7 +13,7 @@ using SpaceNotch.Platform.Windows.Update;
 namespace SpaceNotch_App.Windows;
 
 /// <summary>
-/// Mise à jour automatique (v1.17.0).
+/// Mise à jour (v1.17.0 ; rien ne s'installe sans l'utilisateur depuis ADR-031).
 ///
 /// <list type="bullet">
 /// <item>Deux minutes après le démarrage, puis toutes les six heures, la
@@ -22,10 +21,9 @@ namespace SpaceNotch_App.Windows;
 /// <item>Plus récente : l'installeur est téléchargé dans
 /// <c>%LocalAppData%\SpaceNotch\updates</c> et vérifié par son SHA-256,
 /// publié avec la version.</item>
-/// <item>« Automatiques » : installée en silence au premier moment calme —
-/// trois minutes sans souris ni clavier, notch au repos — puis la notch
-/// redémarre et dit « Mise à jour faite ». « Me prévenir » : une carte
-/// propose Installer ou Plus tard.</item>
+/// <item>Une carte propose Installer ou Plus tard ; installée, la notch
+/// redémarre et dit « Mise à jour faite ». Plus d'installation seule au
+/// « moment calme » (n° 52, ADR-031).</item>
 /// </list>
 /// </summary>
 public sealed partial class IslandWindow
@@ -33,7 +31,7 @@ public sealed partial class IslandWindow
     private UpdateFeature? _updateFeature;
     private UpdateClient? _updateClient;
     private DispatcherQueueTimer? _updateCheckTimer;
-    private DispatcherQueueTimer? _updateQuietTimer;
+    private DispatcherQueueTimer? _updateOfferTimer;
     private DownloadedUpdate? _pendingUpdate;
     private bool _updateChecking;
     private bool _updateInstalling;
@@ -65,7 +63,7 @@ public sealed partial class IslandWindow
         int? failure = UpdateRules.ParseFailure(Environment.GetCommandLineArgs());
 
         // Relancée par un installeur en échec (n° 7) : la notch le dit, et la
-        // mise à jour attend l'échéance au lieu de redemander au prochain calme.
+        // mise à jour attend l'échéance au lieu de se reproposer aussitôt.
         if (UpdateRules.ReportsFailure(failure, _settings.LastRunVersion, current))
         {
             _updateFailed = true;
@@ -147,8 +145,10 @@ public sealed partial class IslandWindow
             _pendingUpdate = downloaded;
             MiniLogger.Log($"[MISE À JOUR] {latest.Tag} prête ({downloaded.SetupPath})");
 
-            _updateQuietTimer ??= CreateRepeatingTimer(TimeSpan.FromMinutes(1), ConsiderUpdate);
-            _updateQuietTimer.Start();
+            // Plus de « moment calme » à guetter (n° 52) : la proposition ne
+            // revient qu'après « Plus tard » (20 h) ; un quart d'heure suffit.
+            _updateOfferTimer ??= CreateRepeatingTimer(TimeSpan.FromMinutes(15), ConsiderUpdate);
+            _updateOfferTimer.Start();
             ConsiderUpdate();
         }
         catch (Exception ex)
@@ -161,7 +161,7 @@ public sealed partial class IslandWindow
         }
     }
 
-    /// <summary>Chaque minute, une mise à jour prête : l'installer, la proposer, ou attendre.</summary>
+    /// <summary>Une mise à jour prête : la proposer, ou se taire jusqu'à l'échéance de « Plus tard ».</summary>
     private void ConsiderUpdate()
     {
         if (_pendingUpdate is not { } update || _isClosed || _touring || _updateInstalling)
@@ -170,24 +170,16 @@ public sealed partial class IslandWindow
         }
 
         bool installed = WindowsSetup.FindInstalled() is not null;
-        bool busy = _controller.State is IslandState.Expanded or IslandState.Expanding or IslandState.Preview
-            || (_controller.PresentedActivity is { } shown && shown.FeatureId != UpdateFeature.FeatureKey);
 
         UpdateAction action = UpdateRules.Decide(
             _settings.UpdateMode,
             downloaded: true,
             installed,
-            LastInputIdle(),
-            busy,
             _settings.UpdatePostponedUntil,
             DateTimeOffset.Now);
 
         switch (action)
         {
-            case UpdateAction.Install:
-                _ = InstallUpdateAsync();
-                break;
-
             case UpdateAction.Offer:
                 // Une seule proposition par période de report : ignorée, elle
                 // vaut « Plus tard » au lieu de revenir chaque minute.
@@ -297,7 +289,7 @@ public sealed partial class IslandWindow
     private void StopUpdates()
     {
         _updateCheckTimer?.Stop();
-        _updateQuietTimer?.Stop();
+        _updateOfferTimer?.Stop();
         _updateClient?.Dispose();
         _updateClient = null;
     }

@@ -325,7 +325,9 @@ public sealed partial class SettingsWindow : Window
         AssistantSourceBox.ItemsSource = new[] { Lang.T("Aucun", "None"), Lang.T("Windows (sur l’appareil)", "Windows (on device)"), "Claude" };
 
         DensityBox.ItemsSource = new[] { Lang.T("Compacte", "Compact"), Lang.T("Confortable", "Comfortable"), Lang.T("Aérée", "Airy") };
-        UpdateModeBox.ItemsSource = new[] { Lang.T("Désactivées", "Off"), Lang.T("Me prévenir", "Ask me"), Lang.T("Automatiques", "Automatic") };
+        // Pas d'« Automatiques » (n° 52) : rien ne s'installe sans l'utilisateur
+        // tant que les mises à jour ne sont pas signées.
+        UpdateModeBox.ItemsSource = new[] { Lang.T("Désactivées", "Off"), Lang.T("Me prévenir", "Ask me") };
         PixelIntensityBox.ItemsSource = new[] { Lang.T("Calme", "Calm"), Lang.T("Normal", "Normal"), Lang.T("Expressif", "Expressive") };
         TopBarBox.ItemsSource = new[] { Lang.T("Me demander", "Ask me"), Lang.T("Sous la barre", "Below the bar"), Lang.T("Sur le côté", "On the side") };
         CutoutBox.ItemsSource = new[] { Lang.T("Aucune", "None"), Lang.T("Ordinaire (200 px)", "Standard (200 px)"), Lang.T("Personnalisée", "Custom") };
@@ -759,7 +761,7 @@ public sealed partial class SettingsWindow : Window
 
     private void OnUpdateModeChanged(object sender, SelectionChangedEventArgs e)
     {
-        var mode = (SpaceNotch.Core.Update.UpdateMode)Math.Clamp(UpdateModeBox.SelectedIndex, 0, 2);
+        var mode = (SpaceNotch.Core.Update.UpdateMode)Math.Clamp(UpdateModeBox.SelectedIndex, 0, 1);
         UpdateDescription.Text = UpdateModeDescription(mode);
         Apply(s => s.UpdateMode = mode);
     }
@@ -768,7 +770,6 @@ public sealed partial class SettingsWindow : Window
     private static string UpdateModeDescription(SpaceNotch.Core.Update.UpdateMode mode) => mode switch
     {
         SpaceNotch.Core.Update.UpdateMode.Off => Lang.T("Aucune vérification : tu installes les nouvelles versions toi-même.", "No checks: you install new versions yourself."),
-        SpaceNotch.Core.Update.UpdateMode.Automatic => Lang.T("Les nouvelles versions s’installent seules, au premier moment calme.", "New versions install themselves at the first quiet moment."),
         _ => Lang.T("La notch te propose chaque nouvelle version ; rien ne s’installe sans ton accord.", "The notch offers each new version; nothing installs without your OK."),
     };
 

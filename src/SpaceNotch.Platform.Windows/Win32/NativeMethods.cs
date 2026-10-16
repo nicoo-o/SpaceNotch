@@ -90,6 +90,15 @@ public static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool IsIconic(IntPtr hWnd);
+
+    /// <summary>Le rectangle réel de la fenêtre, en pixels physiques — pas sa position « normale ».</summary>
+    [LibraryImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool GetWindowRect(IntPtr hWnd, out RECT rect);
+
     // ---- Styles étendus ---------------------------------------------------
     //
     // GetWindowLongPtrW n'est exportée que sur les cibles 64 bits : sur x86 c'est
