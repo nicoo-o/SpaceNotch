@@ -150,6 +150,13 @@ public sealed partial class BubbleWindow : Window, SpaceNotch_App.Views.ILooping
         {
             _appWindow.Show(activateWindow: false);
             _windowShown = true;
+
+            // Réduite par une autre application pendant qu'elle était cachée
+            // (n° 21) : Show la montrerait en vignette dans le coin de l'écran.
+            if (SpaceNotch.Platform.Windows.Win32.NativeMethods.IsIconic(_hWnd))
+            {
+                _ = SpaceNotch.Platform.Windows.Win32.NativeMethods.ShowWindow(_hWnd, SpaceNotch.Platform.Windows.Win32.NativeConstants.SW_SHOWNOACTIVATE);
+            }
         }
 
         PlayScale(from: UseSpringAnimations && ownAnimation ? BirthScale : 1f, to: 1f, bouncy: true);
