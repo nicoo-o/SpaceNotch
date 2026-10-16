@@ -357,6 +357,11 @@ public static class WindowsSetup
                 PurgeVault(log);
             }
 
+            // Les hooks de Claude Code appelleraient un SpaceNotch.exe disparu, et
+            // Claude Code afficherait une erreur à chaque tour (n° 16) : retirés
+            // dans tous les cas, depuis le processus de l'utilisateur.
+            RemoveAgentHooks(log);
+
             if (product.Options.Scope == InstallScope.AllUsers && !IsElevated)
             {
                 string self = Environment.ProcessPath ?? product.Executable;
@@ -431,6 +436,43 @@ public static class WindowsSetup
         using Process? _ = Process.Start(cleanup);
 
         log?.Invoke($"[SETUP] Désinstallée de {layout.Directory}.");
+    }
+
+    /// <summary>
+    /// Retire les hooks de SpaceNotch de <c>~/.claude/settings.json</c>, en
+    /// gardant les autres et une copie du fichier d'origine, comme le bouton des
+    /// Réglages. Un fichier illisible n'est pas touché.
+    /// </summary>
+    private static void RemoveAgentHooks(Action<string>? log)
+    {
+        string path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claude", "settings.json");
+
+        try
+        {
+            if (!File.Exists(path))
+            {
+                return;
+            }
+
+            string current = File.ReadAllText(path);
+
+            if (!SpaceNotch.Core.Channel.ClaudeHook.IsInstalled(current))
+            {
+                return;
+            }
+
+            // Calculé d'abord : un fichier illisible lève ici, avant toute écriture.
+            string next = SpaceNotch.Core.Channel.ClaudeHook.Uninstall(current);
+            File.Copy(path, path + ".spacenotch.bak", overwrite: true);
+            string temporary = path + ".spacenotch.tmp";
+            File.WriteAllText(temporary, next);
+            File.Move(temporary, path, overwrite: true);
+            log?.Invoke("[SETUP] Hooks de Claude Code retirés.");
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"[SETUP] Hooks de Claude Code non retirés : {ex.Message}");
+        }
     }
 
     /// <summary>Retire du coffre de Windows tous les identifiants de SpaceNotch.</summary>

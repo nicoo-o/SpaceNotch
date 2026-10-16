@@ -155,6 +155,9 @@ public class InstallLayoutTests
         Assert.Contains(layout.Directory, kept);
         Assert.Contains(@"C:\Users\ana\AppData\Local\Temp\.net\SpaceNotch", kept);
         Assert.Contains(@"C:\Users\ana\AppData\Local\Temp\.net\SpaceNotch-Setup", kept);
+
+        // n° 16 : les installeurs téléchargés ne sont pas des réglages, ils partent toujours.
+        Assert.Contains(@"C:\Users\ana\AppData\Local\SpaceNotch\updates", kept);
         Assert.DoesNotContain(@"C:\Users\ana\AppData\Roaming\SpaceNotch", kept);
         Assert.Contains(@"C:\Users\ana\AppData\Roaming\SpaceNotch", all);
 
