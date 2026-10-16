@@ -97,6 +97,24 @@ public static class NativeConstants
     public const uint WM_LBUTTONDOWN = 0x0201;
     public const uint WM_LBUTTONUP = 0x0202;
     public const uint WM_RBUTTONUP = 0x0205;
+    public const uint WM_SIZE = 0x0005;
+    public const uint WM_SYSCOMMAND = 0x0112;
+    public const uint WM_WINDOWPOSCHANGED = 0x0047;
+
+    /// <summary>Paramètre de WM_SIZE : la fenêtre vient d'être réduite.</summary>
+    public const int SIZE_MINIMIZED = 1;
+
+    /// <summary>Commande « Réduire » de WM_SYSCOMMAND.</summary>
+    public const int SC_MINIMIZE = 0xF020;
+
+    /// <summary>Masque de la commande de WM_SYSCOMMAND : les 4 bits bas sont réservés au système.</summary>
+    public const int SC_COMMAND_MASK = 0xFFF0;
+
+    /// <summary>ShowWindow : cache la fenêtre.</summary>
+    public const int SW_HIDE = 0;
+
+    /// <summary>ShowWindow : rétablit une fenêtre réduite sans lui donner le focus.</summary>
+    public const int SW_SHOWNOACTIVATE = 4;
 
     // ---- SPI_* (SystemParametersInfo) -------------------------------------
 

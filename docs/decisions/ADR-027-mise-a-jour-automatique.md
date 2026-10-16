@@ -1,6 +1,6 @@
 # ADR-027 — Mise à jour automatique depuis les releases GitHub
 
-**Statut** : Accepté (v1.17.0)
+**Statut** : Accepté (v1.17.0) ; amendé par [ADR-031](ADR-031-rien-ne-s-installe-sans-l-utilisateur.md) le 2026-10-16 : « Automatiques » est retiré, rien ne s'installe sans l'utilisateur tant que les mises à jour ne sont pas signées.
 
 ## Contexte
 
