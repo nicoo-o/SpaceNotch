@@ -13,7 +13,12 @@ public enum UpdateMode
     /// <summary>Vérifie, télécharge, et propose d'installer dans la notch.</summary>
     Notify = 1,
 
-    /// <summary>Vérifie, télécharge, et installe seule au premier moment calme.</summary>
+    /// <summary>
+    /// Retiré (n° 52) : une mise à jour n'est vérifiée que par une empreinte
+    /// publiée dans la même release, et rien ne doit donc s'installer sans
+    /// l'utilisateur tant qu'elle n'est pas signée. Gardé pour lire les
+    /// anciennes configurations, lu comme <see cref="Notify"/>.
+    /// </summary>
     Automatic = 2
 }
 
@@ -36,20 +41,9 @@ public enum UpdateAction
     Download,
 
     /// <summary>Proposer l'installation dans la notch.</summary>
-    Offer,
-
-    /// <summary>Installer maintenant, en silence.</summary>
-    Install,
-
-    /// <summary>Attendre un moment plus calme.</summary>
-    Wait
+    Offer
 }
 
-/// <summary>
-/// Les règles de la mise à jour automatique : quand vérifier, quoi télécharger,
-/// quand installer. Pures et testées ; le réseau, le disque et l'installeur
-/// vivent dans l'application.
-/// </summary>
 /// <summary>Ce que fait l'installeur d'une mise à jour, une fois son travail fini.</summary>
 public enum InstallFollowUp
 {
@@ -63,6 +57,11 @@ public enum InstallFollowUp
     RelaunchReportingFailure = 2
 }
 
+/// <summary>
+/// Les règles de la mise à jour : quand vérifier, quoi télécharger, quand
+/// proposer. Rien ne s'installe sans l'utilisateur (ADR-031). Pures et testées ;
+/// le réseau, le disque et l'installeur vivent dans l'application.
+/// </summary>
 public static class UpdateRules
 {
     /// <summary>Le dépôt dont les releases sont suivies.</summary>
@@ -82,9 +81,6 @@ public static class UpdateRules
 
     /// <summary>Intervalle entre deux vérifications (60 requêtes par heure au plus pour GitHub sans compte).</summary>
     public static readonly TimeSpan CheckInterval = TimeSpan.FromHours(6);
-
-    /// <summary>Inactivité qui fait un « moment calme » pour installer.</summary>
-    public static readonly TimeSpan QuietIdle = TimeSpan.FromMinutes(3);
 
     /// <summary>« Plus tard » repousse la proposition d'autant.</summary>
     public static readonly TimeSpan Postpone = TimeSpan.FromHours(20);
@@ -243,11 +239,9 @@ public static class UpdateRules
     /// <param name="mode">Le réglage de l'utilisateur.</param>
     /// <param name="downloaded">L'installeur est téléchargé et vérifié.</param>
     /// <param name="installed">SpaceNotch est installée (et non portable) : on peut installer par-dessus.</param>
-    /// <param name="idle">Temps depuis la dernière saisie.</param>
-    /// <param name="busy">La notch est ouverte, ou une activité importante (appel, réunion) est en cours.</param>
     /// <param name="postponedUntil">« Plus tard » choisi par l'utilisateur, jusqu'à quand.</param>
     /// <param name="now">Maintenant.</param>
-    public static UpdateAction Decide(UpdateMode mode, bool downloaded, bool installed, TimeSpan idle, bool busy, DateTimeOffset? postponedUntil, DateTimeOffset now)
+    public static UpdateAction Decide(UpdateMode mode, bool downloaded, bool installed, DateTimeOffset? postponedUntil, DateTimeOffset now)
     {
         if (mode == UpdateMode.Off)
         {
@@ -265,15 +259,9 @@ public static class UpdateRules
             return UpdateAction.Download;
         }
 
-        if (mode == UpdateMode.Notify)
-        {
-            return postponedUntil > now ? UpdateAction.None : UpdateAction.Offer;
-        }
-
-        // Automatique : seulement au calme, et jamais sous la main de l'utilisateur.
-        // Après un échec, l'échéance est respectée : une élévation refusée
-        // redemandait sinon l'autorisation au moment calme suivant (n° 7).
-        return !busy && idle >= QuietIdle && !(postponedUntil > now) ? UpdateAction.Install : UpdateAction.Wait;
+        // Rien ne s'installe sans l'utilisateur (n° 52) : « Automatique », d'une
+        // ancienne configuration, propose comme « Me prévenir ».
+        return postponedUntil > now ? UpdateAction.None : UpdateAction.Offer;
     }
 
     /// <summary>Code de sortie de l'installeur quand l'élévation est refusée (convention Windows Installer).</summary>

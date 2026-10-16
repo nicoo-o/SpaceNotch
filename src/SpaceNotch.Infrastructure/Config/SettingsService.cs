@@ -97,8 +97,8 @@ public sealed class SettingsService
         Current = new AppSettings();
 
         // Une configuration remise à zéro est neuve, pas ancienne : ses défauts
-        // ponctuels sont déjà appliqués, sinon un choix fait ensuite (« Automatique »)
-        // serait migré au lancement suivant.
+        // ponctuels sont déjà appliqués, sinon un choix fait ensuite serait migré
+        // au lancement suivant.
         Current.Migrate();
         Current.Sanitize();
         _config.Save(Current);
