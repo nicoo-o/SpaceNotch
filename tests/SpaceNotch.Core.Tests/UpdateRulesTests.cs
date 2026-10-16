@@ -120,7 +120,7 @@ public sealed class UpdateRulesTests
     private static readonly DateTimeOffset Now = new(2026, 10, 3, 12, 0, 0, TimeSpan.Zero);
 
     private static UpdateAction Decide(
-        UpdateMode mode = UpdateMode.Automatic,
+        UpdateMode mode = UpdateMode.Notify,
         bool downloaded = true,
         bool installed = true,
         double idleMinutes = 10,
@@ -133,12 +133,14 @@ public sealed class UpdateRulesTests
         => Assert.Equal(UpdateAction.None, Decide(UpdateMode.Off));
 
     [Fact]
-    public void Automatique_installe_au_calme_seulement()
+    public void Rien_ne_s_installe_seul_meme_avec_une_ancienne_configuration_automatique()
     {
-        Assert.Equal(UpdateAction.Install, Decide());
-        Assert.Equal(UpdateAction.Wait, Decide(idleMinutes: 1));
-        Assert.Equal(UpdateAction.Wait, Decide(busy: true));
-        Assert.Equal(UpdateAction.Download, Decide(downloaded: false));
+        // n° 52 : l'empreinte est publiée dans la même release que l'installeur ;
+        // tant que rien n'est signé, la mise à jour est proposée, jamais installée seule.
+        Assert.Equal(UpdateAction.Offer, Decide(UpdateMode.Automatic));
+        Assert.Equal(UpdateAction.Offer, Decide(UpdateMode.Automatic, idleMinutes: 30));
+        Assert.Equal(UpdateAction.None, Decide(UpdateMode.Automatic, postponed: Now.AddHours(1)));
+        Assert.Equal(UpdateAction.Download, Decide(UpdateMode.Automatic, downloaded: false));
     }
 
     [Fact]
@@ -246,15 +248,6 @@ public sealed class UpdateRulesTests
     {
         Assert.True(UpdateRules.IsDeclined(1602));
         Assert.False(UpdateRules.IsDeclined(1603));
-    }
-
-    [Fact]
-    public void Apres_un_echec_l_automatique_attend_l_echeance_au_lieu_de_reessayer_au_calme()
-    {
-        // Sans cela, une élévation refusée redemandait l'autorisation au moment
-        // calme suivant, puis au suivant.
-        Assert.Equal(UpdateAction.Wait, Decide(postponed: Now.AddHours(1)));
-        Assert.Equal(UpdateAction.Install, Decide(postponed: Now.AddHours(-1)));
     }
 
     [Fact]

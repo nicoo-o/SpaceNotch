@@ -1002,7 +1002,9 @@ public sealed class AppSettings
         StretchAmount = Clamp(StretchAmount, 0, 0.10, FluidMotion.MaximumStretch);
         TearDistance = Clamp(TearDistance, Detachment.MinimumTearDistance, Detachment.MaximumTearDistance, Detachment.TearDistance);
 
-        if (!Enum.IsDefined(UpdateMode))
+        // « Automatique » est retiré (n° 52) : une configuration qui l'avait garde
+        // les mises à jour, proposées au lieu d'installées seules.
+        if (!Enum.IsDefined(UpdateMode) || UpdateMode == SpaceNotch.Core.Update.UpdateMode.Automatic)
         {
             UpdateMode = SpaceNotch.Core.Update.UpdateMode.Notify;
         }

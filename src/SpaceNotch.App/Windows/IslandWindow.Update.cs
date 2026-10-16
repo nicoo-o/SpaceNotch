@@ -184,10 +184,6 @@ public sealed partial class IslandWindow
 
         switch (action)
         {
-            case UpdateAction.Install:
-                _ = InstallUpdateAsync();
-                break;
-
             case UpdateAction.Offer:
                 // Une seule proposition par période de report : ignorée, elle
                 // vaut « Plus tard » au lieu de revenir chaque minute.
