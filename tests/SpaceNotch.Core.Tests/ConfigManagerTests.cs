@@ -357,4 +357,22 @@ public class ConfigManagerTests : IDisposable
 
         Assert.True(new SettingsService(manager).Current.CameraMirror);
     }
+
+    // n° 34 : l'écran choisi était gardé par son HMONITOR, qui change à chaque
+    // démarrage ; il se retrouve par son rectangle.
+
+    [Fact]
+    public void Load_UnHmonitorEnregistreEstOublie()
+    {
+        var manager = CreateManager();
+
+        Directory.CreateDirectory(_directory);
+        File.WriteAllText(manager.ConfigFilePath, """{ "DisplayMode": "Custom", "CustomDisplayHandle": 65537, "DockDisplayBounds": "0,0,2560,1600" }""");
+
+        AppSettings settings = new SettingsService(manager).Current;
+
+        Assert.Null(settings.CustomDisplayHandle);
+        Assert.Equal(IslandDisplayMode.Custom, settings.DisplayMode);
+        Assert.Equal("0,0,2560,1600", settings.DockDisplayBounds);
+    }
 }
