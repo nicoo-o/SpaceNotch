@@ -58,7 +58,7 @@ public sealed class DownloadsFeature : IslandFeatureBase
         IEventBus events,
         Func<string> resolveFolder,
         bool isEnabled = true)
-        : base(FeatureKey, "Téléchargements", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Téléchargements", "Downloads"), activities, events, isEnabled)
     {
         _resolveFolder = resolveFolder ?? throw new ArgumentNullException(nameof(resolveFolder));
     }

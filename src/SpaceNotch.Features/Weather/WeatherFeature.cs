@@ -27,7 +27,7 @@ public sealed class WeatherFeature : IslandFeatureBase
     private WeatherPlace? _place;
 
     public WeatherFeature(IActivityManager activities, IEventBus events, string? city)
-        : base(FeatureKey, "Météo", activities, events, isEnabled: true)
+        : base(FeatureKey, Lang.T("Météo", "Weather"), activities, events, isEnabled: true)
     {
         _city = city;
         _timer = new Timer(_ => _ = RefreshAsync(), null, Timeout.Infinite, Timeout.Infinite);
