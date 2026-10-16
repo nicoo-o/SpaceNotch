@@ -2490,6 +2490,12 @@ public sealed partial class IslandWindow : Window
         SchedulePresenceRecheck();
     }
 
+    /// <summary>Dernier état de présence écrit au journal (n° 11).</summary>
+    private bool _islandVisibleForPresence = true;
+
+    /// <summary>Relecture lente tant que la notch est retirée devant un plein écran (n° 11).</summary>
+    private DispatcherQueueTimer? _presenceWhileHidden;
+
     /// <summary>
     /// Suit la présence de la session : l'Island se retire quand une application
     /// occupe l'écran, et reparaît exactement dans la forme qu'elle occupait.
@@ -2497,6 +2503,32 @@ public sealed partial class IslandWindow : Window
     private void ApplyPresence()
     {
         bool hide = _settings.HideOverFullscreen && _presence.ShouldHide;
+
+        // n° 11 : la notch disparaissait sans explication ; le journal le dit.
+        if (hide == _islandVisibleForPresence)
+        {
+            _islandVisibleForPresence = !hide;
+            MiniLogger.Log(hide ? "[PLEIN ÉCRAN] notch retirée : une application occupe l'écran" : "[PLEIN ÉCRAN] notch revenue");
+        }
+
+        // Retirée, la notch ne reçoit plus les messages qui relancent la lecture,
+        // et la fin d'un plein écran n'émet pas toujours d'événement (fenêtre
+        // fermée sans qu'une autre prenne le premier plan) : elle restait cachée.
+        // Tant qu'elle l'est, l'état est relu toutes les 2 s — rien n'est peint,
+        // la lecture coûte quelques appels au shell.
+        if (hide)
+        {
+            _presenceWhileHidden ??= CreateRepeatingTimer(TimeSpan.FromSeconds(2), _presence.Recheck);
+
+            if (!_presenceWhileHidden.IsRunning)
+            {
+                _presenceWhileHidden.Start();
+            }
+        }
+        else
+        {
+            _presenceWhileHidden?.Stop();
+        }
 
         SetIslandVisible(!hide);
     }

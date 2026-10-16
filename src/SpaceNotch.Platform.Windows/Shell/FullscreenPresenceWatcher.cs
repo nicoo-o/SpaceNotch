@@ -220,7 +220,116 @@ public sealed class FullscreenPresenceWatcher : IDisposable
     /// non comme « occupé » : ne pas pouvoir répondre ne doit pas faire
     /// disparaître l'Island, ce qui serait le pire des replis.
     /// </summary>
-    private bool Query() => SessionIsOccupied() || ForegroundCoversIsland();
+    private bool Query()
+    {
+        QueryUserNotificationState? state = SessionState();
+
+        return state switch
+        {
+            // La session est verrouillée, ou l'écran est éteint : rien à peindre.
+            QueryUserNotificationState.NotPresent => true,
+
+            // Jeu en Direct3D exclusif : la surface n'est plus gérée par le
+            // compositeur, une fenêtre toujours au-dessus n'y apparaîtrait pas.
+            QueryUserNotificationState.RunningD3DFullScreen => true,
+
+            QueryUserNotificationState.PresentationMode => true,
+
+            // « Une application occupe l'écran » : un navigateur en plein écran,
+            // un jeu fenêtré sans bordure… mais aussi une surcouche « toujours
+            // devant » que les clics traversent (n° 11). Le shell ne dit pas
+            // laquelle : on cherche une vraie fenêtre plein écran sur l'écran de
+            // la notch.
+            QueryUserNotificationState.Busy => FullscreenWindowOnIslandMonitor(),
+
+            _ => ForegroundCoversIsland()
+        };
+    }
+
+    /// <summary>
+    /// Le moniteur de l'Island, ou <c>null</c> si l'hôte ne le donne pas encore
+    /// (fenêtre pas encore placée) ou si Windows ne sait pas le décrire.
+    /// </summary>
+    private PixelRect? IslandMonitor()
+    {
+        Func<(int X, int Y, int Width, int Height)>? bounds = IslandBounds;
+
+        if (bounds is null)
+        {
+            return null;
+        }
+
+        (int x, int y, int width, int height) = bounds();
+
+        if (width <= 0 || height <= 0)
+        {
+            return null;
+        }
+
+        var island = new WindowRect { Left = x, Top = y, Right = x + width, Bottom = y + height };
+        IntPtr monitor = MonitorFromRect(ref island, MonitorDefaultToNearest);
+        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+
+        if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref info))
+        {
+            return null;
+        }
+
+        return new PixelRect(info.Monitor.Left, info.Monitor.Top, info.Monitor.Right, info.Monitor.Bottom);
+    }
+
+    /// <summary>
+    /// Le shell dit « occupé » : une fenêtre couvre-t-elle vraiment l'écran de la
+    /// notch ? Parcourt les fenêtres de premier niveau (seulement dans cet état,
+    /// rare) et s'arrête à la première qui compte (<see cref="FullscreenRule"/>).
+    /// Sans moniteur connu, on garde l'ancienne réponse : se retirer.
+    /// </summary>
+    private bool FullscreenWindowOnIslandMonitor()
+    {
+        if (IslandMonitor() is not { } monitor)
+        {
+            return true;
+        }
+
+        bool found = false;
+        uint own = (uint)Environment.ProcessId;
+
+        EnumWindows(
+            (window, parameter) =>
+            {
+                if (!GetWindowRect(window, out WindowRect rect))
+                {
+                    return true;
+                }
+
+                var box = new PixelRect(rect.Left, rect.Top, rect.Right, rect.Bottom);
+
+                // Le moins cher d'abord : la plupart des fenêtres ne couvrent pas l'écran.
+                if (!FullscreenRule.Covers(box, monitor) || !IsWindowVisible(window))
+                {
+                    return true;
+                }
+
+                _ = GetWindowThreadProcessId(window, out uint processId);
+                bool cloaked = DwmGetWindowAttribute(window, DwmaCloaked, out int cloak, sizeof(int)) == 0 && cloak != 0;
+
+                found = FullscreenRule.IsFullscreenWindow(
+                    box,
+                    monitor,
+                    (uint)GetWindowLongPtr(window, GwlExStyle).ToInt64(),
+                    visible: true,
+                    minimized: IsIconic(window),
+                    maximized: IsZoomed(window),
+                    cloaked,
+                    shell: IsShellWindow(window),
+                    ours: processId == own || IsSpaceNotchProcess(processId));
+
+                return !found;
+            },
+            IntPtr.Zero);
+
+        return found;
+    }
 
     /// <summary>
     /// Vrai lorsqu'une autre application occupe <em>tout</em> l'écran de l'Island.
@@ -235,16 +344,7 @@ public sealed class FullscreenPresenceWatcher : IDisposable
     /// </summary>
     private bool ForegroundCoversIsland()
     {
-        Func<(int X, int Y, int Width, int Height)>? bounds = IslandBounds;
-
-        if (bounds is null)
-        {
-            return false;
-        }
-
-        (int x, int y, int width, int height) = bounds();
-
-        if (width <= 0 || height <= 0)
+        if (IslandMonitor() is not { } monitor)
         {
             return false;
         }
@@ -268,20 +368,9 @@ public sealed class FullscreenPresenceWatcher : IDisposable
             return false;
         }
 
-        var island = new WindowRect { Left = x, Top = y, Right = x + width, Bottom = y + height };
-        IntPtr monitor = MonitorFromRect(ref island, MonitorDefaultToNearest);
-        var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
-
-        if (monitor == IntPtr.Zero || !GetMonitorInfo(monitor, ref info))
-        {
-            return false;
-        }
-
-        // Plein écran : la fenêtre couvre tout le moniteur de l'Island.
-        bool covers = rect.Left <= info.Monitor.Left
-            && rect.Top <= info.Monitor.Top
-            && rect.Right >= info.Monitor.Right
-            && rect.Bottom >= info.Monitor.Bottom;
+        // Plein écran : la fenêtre couvre tout le moniteur de l'Island, sans être
+        // simplement agrandie (barre des tâches masquée automatiquement, n° 11).
+        bool covers = FullscreenRule.IsFullscreen(new PixelRect(rect.Left, rect.Top, rect.Right, rect.Bottom), monitor, IsZoomed(foreground));
 
         // Nos propres fenêtres (l'installeur, un autre processus) ne comptent
         // pas. Vérifié en dernier, et mémorisé : interroger un processus est la
@@ -338,33 +427,12 @@ public sealed class FullscreenPresenceWatcher : IDisposable
         }
     }
 
-    /// <summary>Interroge le shell sur l'occupation de la session.</summary>
-    private static bool SessionIsOccupied()
-    {
-        if (SHQueryUserNotificationState(out QueryUserNotificationState state) != 0)
-        {
-            return false;
-        }
-
-        return state switch
-        {
-            // La session est verrouillée, ou l'écran est éteint : rien à peindre.
-            QueryUserNotificationState.NotPresent => true,
-
-            // Une application occupe l'écran. Le shell rapporte cet état aussi bien
-            // pour une présentation que pour un jeu qui n'est pas en Direct3D
-            // exclusif — un navigateur en plein écran, par exemple.
-            QueryUserNotificationState.Busy => true,
-
-            // Jeu en Direct3D exclusif : la surface n'est plus gérée par le
-            // compositeur, une fenêtre toujours au-dessus n'y apparaîtrait pas.
-            QueryUserNotificationState.RunningD3DFullScreen => true,
-
-            QueryUserNotificationState.PresentationMode => true,
-
-            _ => false
-        };
-    }
+    /// <summary>
+    /// L'état de la session selon le shell ; <c>null</c> si l'appel échoue (service,
+    /// session déconnectée) : ne pas savoir ne doit pas retirer l'Island.
+    /// </summary>
+    private static QueryUserNotificationState? SessionState()
+        => SHQueryUserNotificationState(out QueryUserNotificationState state) == 0 ? state : null;
 
     /// <summary>États rapportés par <c>SHQueryUserNotificationState</c>.</summary>
     private enum QueryUserNotificationState
@@ -406,6 +474,31 @@ public sealed class FullscreenPresenceWatcher : IDisposable
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
+
+    private delegate bool EnumWindowsProc(IntPtr window, IntPtr parameter);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool EnumWindows(EnumWindowsProc callback, IntPtr parameter);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsWindowVisible(IntPtr window);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool IsZoomed(IntPtr window);
+
+    private const int GwlExStyle = -20;
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+    private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
+
+    /// <summary><c>DWMWA_CLOAKED</c> : fenêtre masquée par le compositeur (autre bureau virtuel, application suspendue).</summary>
+    private const int DwmaCloaked = 14;
+
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out int value, int size);
 
     [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
