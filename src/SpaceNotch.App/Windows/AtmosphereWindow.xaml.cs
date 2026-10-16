@@ -153,7 +153,7 @@ public sealed partial class AtmosphereWindow : Window
         _messageMonitor.WindowMessageReceived += (_, e) =>
         {
             if (e.Message.MessageId == SpaceNotch.Platform.Windows.Win32.NativeConstants.WM_SYSCOMMAND
-                && ((int)e.Message.WParam & 0xFFF0) == SpaceNotch.Platform.Windows.Win32.NativeConstants.SC_MINIMIZE)
+                && ((int)e.Message.WParam & SpaceNotch.Platform.Windows.Win32.NativeConstants.SC_COMMAND_MASK) == SpaceNotch.Platform.Windows.Win32.NativeConstants.SC_MINIMIZE)
             {
                 e.Handled = true;
             }
@@ -173,7 +173,7 @@ public sealed partial class AtmosphereWindow : Window
     public event EventHandler? Displaced;
 
     /// <summary>Vrai si la fenêtre n'occupe plus le rectangle envoyé en dernier.</summary>
-    private bool IsDisplaced()
+    public bool IsDisplaced()
     {
         if (_lastX == int.MinValue)
         {
@@ -198,6 +198,16 @@ public sealed partial class AtmosphereWindow : Window
 
     /// <summary>Handle natif de la fenêtre décorative.</summary>
     public IntPtr Handle => _hWnd;
+
+    /// <summary>
+    /// Cesse d'écouter les messages de la fenêtre, à la fermeture de la notch :
+    /// le halo n'est jamais fermé lui-même (relecture de #88).
+    /// </summary>
+    public void StopWatchingMessages()
+    {
+        _messageMonitor?.Dispose();
+        _messageMonitor = null;
+    }
 
     /// <summary>
     /// Active ou désactive la dissolution portée par le compositeur.

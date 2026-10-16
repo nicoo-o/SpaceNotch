@@ -95,7 +95,7 @@ public static partial class NativeMethods
     public static partial bool IsIconic(IntPtr hWnd);
 
     /// <summary>Le rectangle réel de la fenêtre, en pixels physiques — pas sa position « normale ».</summary>
-    [LibraryImport("user32.dll", SetLastError = true)]
+    [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetWindowRect(IntPtr hWnd, out RECT rect);
 

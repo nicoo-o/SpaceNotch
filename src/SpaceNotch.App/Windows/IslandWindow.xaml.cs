@@ -949,7 +949,7 @@ public sealed partial class IslandWindow : Window
 
         _messageMonitor = new WindowMessageMonitor(_hWnd);
         _messageMonitor.WindowMessageReceived += OnWindowMessageReceived;
-        _atmosphere.Displaced += (_, _) => _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Normal, () => RestoreFromMinimized(haloDisplaced: true));
+        _atmosphere.Displaced += OnHaloDisplaced;
 
         // Le raccourci global ouvre la recherche de n'importe où : Alt+Espace,
         // ou Win+Maj+Espace si une autre application tient déjà le premier.
@@ -2461,6 +2461,15 @@ public sealed partial class IslandWindow : Window
     /// <summary>Dernier replacement du halo (n° 21), en millisecondes depuis le démarrage.</summary>
     private long _haloReplacedAt = long.MinValue / 2;
 
+    /// <summary>Un replacement du halo par demi-seconde au plus : Windows qui le replacerait lui-même ailleurs le signalerait sans fin.</summary>
+    private static readonly TimeSpan HaloReplaceInterval = TimeSpan.FromMilliseconds(500);
+
+    /// <summary>Replacement du halo différé par la limite : sans lui, il restait déplacé jusqu'au prochain changement de forme.</summary>
+    private DispatcherQueueTimer? _haloReplaceLater;
+
+    private void OnHaloDisplaced(object? sender, EventArgs e)
+        => _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Normal, () => RestoreFromMinimized(haloDisplaced: true));
+
     /// <summary>
     /// Rétablit la notch réduite par une autre application (n° 21), sans prendre
     /// le focus, à sa place et dans sa forme ; son halo aussi. Retirée devant un
@@ -2472,7 +2481,7 @@ public sealed partial class IslandWindow : Window
     /// </summary>
     private void RestoreFromMinimized(bool haloDisplaced)
     {
-        if (_isClosed || !_islandShown)
+        if (_isClosed)
         {
             return;
         }
@@ -2480,26 +2489,63 @@ public sealed partial class IslandWindow : Window
         bool island = SpaceNotch.Platform.Windows.Win32.NativeMethods.IsIconic(_hWnd);
         bool halo = SpaceNotch.Platform.Windows.Win32.NativeMethods.IsIconic(_atmosphere.Handle);
 
+        // La bulle, réduite avec elles : cachée, une réduction la rendait
+        // visible, en vignette dans le coin de l'écran (mesuré).
+        if (SpaceNotch.Platform.Windows.Win32.NativeMethods.IsIconic(_bubble.Handle))
+        {
+            _ = SpaceNotch.Platform.Windows.Win32.NativeMethods.ShowWindow(_bubble.Handle, _bubble.IsShown && _islandShown ? SpaceNotch.Platform.Windows.Win32.NativeConstants.SW_SHOWNOACTIVATE : SpaceNotch.Platform.Windows.Win32.NativeConstants.SW_HIDE);
+        }
+
+        // Retirée devant un plein écran : réduite, elle reste visible en
+        // vignette par-dessus le jeu ; elle est recachée, et revient avec la
+        // présence (SetIslandVisible).
+        if (!_islandShown)
+        {
+            if (island)
+            {
+                _ = SpaceNotch.Platform.Windows.Win32.NativeMethods.ShowWindow(_hWnd, SpaceNotch.Platform.Windows.Win32.NativeConstants.SW_HIDE);
+            }
+
+            if (halo)
+            {
+                _ = SpaceNotch.Platform.Windows.Win32.NativeMethods.ShowWindow(_atmosphere.Handle, SpaceNotch.Platform.Windows.Win32.NativeConstants.SW_HIDE);
+            }
+
+            return;
+        }
+
+        // Revérifié ici : entre le message et ce moment, un rendu a pu le replacer.
+        haloDisplaced = haloDisplaced && _atmosphere.IsDisplaced();
+
         if (!island && !halo && !haloDisplaced)
         {
             return;
         }
 
-        // Un halo que Windows replacerait lui-même ailleurs se signalerait sans
-        // fin : une fois par demi-seconde au plus.
         if (haloDisplaced && !island)
         {
-            if (Environment.TickCount64 - _haloReplacedAt < 500)
+            // En millisecondes : depuis la valeur de départ, l'écart déborde un TimeSpan.
+            if (Environment.TickCount64 - _haloReplacedAt < (long)HaloReplaceInterval.TotalMilliseconds)
             {
+                // Différé, pas perdu : au repos, plus aucun rendu ne le replacerait.
+                _haloReplaceLater ??= CreateOneShotTimer(HaloReplaceInterval, () => RestoreFromMinimized(haloDisplaced: true));
+
+                if (!_haloReplaceLater.IsRunning)
+                {
+                    _haloReplaceLater.Start();
+                }
+
                 return;
             }
 
             _haloReplacedAt = Environment.TickCount64;
         }
 
-        MiniLogger.Log(haloDisplaced
-            ? "[NOTCH] halo déplacé par une autre application : replacé"
-            : "[NOTCH] réduite par une autre application : rétablie");
+        // Un changement d'échelle déplace aussi le halo : le journal ne dit pas
+        // « une autre application » quand il ne le sait pas.
+        MiniLogger.Log(island || halo
+            ? "[NOTCH] réduite par une autre application : rétablie"
+            : "[NOTCH] halo déplacé : replacé");
 
         if (island)
         {
@@ -2521,12 +2567,12 @@ public sealed partial class IslandWindow : Window
 
     private void OnWindowMessageReceived(object? sender, WindowMessageEventArgs e)
     {
-        // n° 21 : la notch ne se réduit pas. Un « Réduire » du menu système
-        // (Alt+Espace, Win+flèche bas) est ignoré ; une autre application qui la
-        // réduit quand même (ShowWindow) la voyait disparaître pour de bon :
-        // elle se rétablit.
+        // n° 21 : la notch ne se réduit pas. Un « Réduire » envoyé par
+        // WM_SYSCOMMAND est ignoré (filet : la fenêtre n'a ni menu système ni
+        // bouton) ; une autre application qui la réduit quand même (ShowWindow)
+        // la voyait disparaître pour de bon : elle se rétablit.
         if (e.Message.MessageId == SpaceNotch.Platform.Windows.Win32.NativeConstants.WM_SYSCOMMAND
-            && ((int)e.Message.WParam & 0xFFF0) == SpaceNotch.Platform.Windows.Win32.NativeConstants.SC_MINIMIZE)
+            && ((int)e.Message.WParam & SpaceNotch.Platform.Windows.Win32.NativeConstants.SC_COMMAND_MASK) == SpaceNotch.Platform.Windows.Win32.NativeConstants.SC_MINIMIZE)
         {
             e.Handled = true;
             return;
@@ -2615,10 +2661,16 @@ public sealed partial class IslandWindow : Window
             // l'affichage : sinon la fenêtre apparaîtrait une image à sa position
             // d'avant, ce qui se voit immédiatement après un changement d'écran.
             _islandShown = true;
+
+            // Réduite pendant qu'elle était retirée (n° 21) : sa géométrie est
+            // reprise même identique, et elle est rétablie après l'affichage.
+            ForgetWindowGeometry();
+            _atmosphere.ForgetGeometry();
             ApplyGeometry(_controller.CurrentFootprint);
             _atmosphere.SetVisible(true);
             _atmosphere.PlaceBehind(_hWnd);
             _appWindow.Show(activateWindow: false);
+            RestoreFromMinimized(haloDisplaced: false);
             UpdateBubble();
 
             if (comingBack)
@@ -2733,7 +2785,9 @@ public sealed partial class IslandWindow : Window
         // à l'échelle) : la dernière géométrie envoyée n'est plus celle de la
         // fenêtre. Sans cet oubli, la notch restait décentrée après un
         // changement d'échelle (audit SN-03 : x 728 au lieu de 920 à 125 %).
+        // Le halo aussi (relecture de #88).
         ForgetWindowGeometry();
+        _atmosphere.ForgetGeometry();
 
         if (_environmentMovesNotch)
         {
@@ -4653,6 +4707,11 @@ public sealed partial class IslandWindow : Window
         Safely("miroir", () => _mirror?.Dispose());
         Safely("crête-mètre", SpaceNotch.Platform.Windows.Audio.AudioPeakMeter.DisposeShared);
         Safely("messages", () => _messageMonitor?.Dispose());
+        Safely("halo", () =>
+        {
+            _atmosphere.Displaced -= OnHaloDisplaced;
+            _atmosphere.StopWatchingMessages();
+        });
 
         MiniLogger.Log("IslandWindow fermée");
         MiniLogger.Flush(TimeSpan.FromMilliseconds(400));
