@@ -64,9 +64,12 @@ pour ne jamais la recouvrir.
   côté » ne décide que du bord, au moment où on le choisit. Une notch ramenée en haut (raccrochage,
   « Accrocher à ») ne recouvre donc jamais la barre. La question attend que la notch soit fermée et
   que la présentation soit finie.
+- La goutte d'un détachement et d'un raccrochage part du bas de la barre (n° 96). L'arrachement et le
+  raccrochage sous la barre sont prouvés par un glisser simulé.
+- Les épaules concaves restent telles quelles : la notch pend du bas de la barre comme elle pend du
+  bord de l'écran (choix de l'auteur, 2026-10-14). Sur une barre claire, elle se lit en noir, au lieu
+  de se fondre dans le cadre.
 - Limites connues :
-  - la goutte d'un détachement se dessine encore jusqu'au bord de l'écran ;
-  - les épaules concaves touchent le bas de la barre au lieu du bord de l'écran, sans être redessinées ;
   - une notch passée en languette à cause de la barre y reste si l'on choisit ensuite « Sous la
     barre » (le bord se rechoisit dans Réglages › Notch) ;
   - en mode « écran du curseur », la question ne vient que si le curseur est sur l'écran à barre.

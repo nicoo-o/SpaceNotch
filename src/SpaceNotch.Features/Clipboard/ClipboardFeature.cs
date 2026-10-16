@@ -99,7 +99,7 @@ public sealed class ClipboardFeature : IslandFeatureBase
         bool isEnabled = false,
         int capacity = 25,
         Func<DateTimeOffset>? now = null)
-        : base(FeatureKey, "Presse-papier", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Presse-papier", "Clipboard"), activities, events, isEnabled)
     {
         _monitor = monitor ?? throw new ArgumentNullException(nameof(monitor));
         _windowHandle = windowHandle;

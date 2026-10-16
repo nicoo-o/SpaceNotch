@@ -31,7 +31,7 @@ public sealed class SystemHudFeature : IslandFeatureBase
         IEventBus events,
         CoreAudioVolumeListener volumeListener,
         bool isEnabled = true)
-        : base(FeatureKey, "Retour volume", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Retour volume", "Volume feedback"), activities, events, isEnabled)
     {
         _volumeListener = volumeListener ?? throw new ArgumentNullException(nameof(volumeListener));
     }
