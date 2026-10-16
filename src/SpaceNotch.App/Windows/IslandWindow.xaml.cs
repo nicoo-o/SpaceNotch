@@ -2461,11 +2461,6 @@ public sealed partial class IslandWindow : Window
     /// <summary>Dernier replacement du halo (n° 21), en millisecondes depuis le démarrage.</summary>
     private long _haloReplacedAt = long.MinValue / 2;
 
-    private const uint WmSize = 0x0005;
-    private const uint WmSysCommand = 0x0112;
-    private const int SizeMinimized = 1;
-    private const int ScMinimize = 0xF020;
-
     /// <summary>
     /// Rétablit la notch réduite par une autre application (n° 21), sans prendre
     /// le focus, à sa place et dans sa forme ; son halo aussi. Retirée devant un
@@ -2508,12 +2503,12 @@ public sealed partial class IslandWindow : Window
 
         if (island)
         {
-            _ = SpaceNotch.Platform.Windows.Win32.NativeMethods.ShowWindow(_hWnd, SpaceNotch.Platform.Windows.Win32.NativeMethods.SwShowNoActivate);
+            _ = SpaceNotch.Platform.Windows.Win32.NativeMethods.ShowWindow(_hWnd, SpaceNotch.Platform.Windows.Win32.NativeConstants.SW_SHOWNOACTIVATE);
         }
 
         if (halo)
         {
-            _ = SpaceNotch.Platform.Windows.Win32.NativeMethods.ShowWindow(_atmosphere.Handle, SpaceNotch.Platform.Windows.Win32.NativeMethods.SwShowNoActivate);
+            _ = SpaceNotch.Platform.Windows.Win32.NativeMethods.ShowWindow(_atmosphere.Handle, SpaceNotch.Platform.Windows.Win32.NativeConstants.SW_SHOWNOACTIVATE);
         }
 
         // Réduite, la fenêtre a été parquée ailleurs : la géométrie est reprise
@@ -2530,13 +2525,15 @@ public sealed partial class IslandWindow : Window
         // (Alt+Espace, Win+flèche bas) est ignoré ; une autre application qui la
         // réduit quand même (ShowWindow) la voyait disparaître pour de bon :
         // elle se rétablit.
-        if (e.Message.MessageId == WmSysCommand && ((int)e.Message.WParam & 0xFFF0) == ScMinimize)
+        if (e.Message.MessageId == SpaceNotch.Platform.Windows.Win32.NativeConstants.WM_SYSCOMMAND
+            && ((int)e.Message.WParam & 0xFFF0) == SpaceNotch.Platform.Windows.Win32.NativeConstants.SC_MINIMIZE)
         {
             e.Handled = true;
             return;
         }
 
-        if (e.Message.MessageId == WmSize && (int)e.Message.WParam == SizeMinimized)
+        if (e.Message.MessageId == SpaceNotch.Platform.Windows.Win32.NativeConstants.WM_SIZE
+            && (int)e.Message.WParam == SpaceNotch.Platform.Windows.Win32.NativeConstants.SIZE_MINIMIZED)
         {
             _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Normal, () => RestoreFromMinimized(haloDisplaced: false));
         }

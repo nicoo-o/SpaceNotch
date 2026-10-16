@@ -90,9 +90,6 @@ public static partial class NativeMethods
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
-    /// <summary><c>SW_SHOWNOACTIVATE</c> : rétablit une fenêtre réduite sans lui donner le focus.</summary>
-    public const int SwShowNoActivate = 4;
-
     [LibraryImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool IsIconic(IntPtr hWnd);

@@ -152,11 +152,12 @@ public sealed partial class AtmosphereWindow : Window
         _messageMonitor = new WindowMessageMonitor(_hWnd);
         _messageMonitor.WindowMessageReceived += (_, e) =>
         {
-            if (e.Message.MessageId == 0x0112 && ((int)e.Message.WParam & 0xFFF0) == 0xF020)
+            if (e.Message.MessageId == SpaceNotch.Platform.Windows.Win32.NativeConstants.WM_SYSCOMMAND
+                && ((int)e.Message.WParam & 0xFFF0) == SpaceNotch.Platform.Windows.Win32.NativeConstants.SC_MINIMIZE)
             {
                 e.Handled = true;
             }
-            else if (e.Message.MessageId == 0x0047 && IsDisplaced())
+            else if (e.Message.MessageId == SpaceNotch.Platform.Windows.Win32.NativeConstants.WM_WINDOWPOSCHANGED && IsDisplaced())
             {
                 Displaced?.Invoke(this, EventArgs.Empty);
             }
