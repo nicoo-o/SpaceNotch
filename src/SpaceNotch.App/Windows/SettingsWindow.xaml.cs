@@ -131,7 +131,7 @@ public sealed partial class SettingsWindow : Window
         // Réglages avancés masqués tant qu'on ne les demande pas (n° 23).
         SetCardsVisible(all: true, string.Empty);
 
-        string version = typeof(SettingsWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : string.Empty;
+        string version = AppVersion();
         VersionText.Text = $"Version {version}";
         NavVersionText.Text = $"SpaceNotch {version}";
 
@@ -1255,6 +1255,41 @@ public sealed partial class SettingsWindow : Window
 
         StatusText.Text = Lang.T("Valeurs par défaut rétablies.", "Defaults restored.");
     }
+
+    /// <summary>Le dossier du journal (n° 56) : il est dans %LocalAppData%, pas à côté de la configuration.</summary>
+    private void OnOpenLogClicked(object sender, RoutedEventArgs e)
+        => OpenFolder(Path.GetDirectoryName(MiniLogger.LogPath));
+
+    /// <summary>
+    /// Signaler un problème (n° 56) : la page d'un nouveau rapport s'ouvre dans le
+    /// navigateur, version et Windows remplis. Rien ne part sans l'utilisateur.
+    /// </summary>
+    private async void OnReportProblemClicked(object sender, RoutedEventArgs e)
+    {
+        // Un double clic ouvrait deux rapports.
+        ReportProblemButton.IsEnabled = false;
+
+        try
+        {
+            if (!await global::Windows.System.Launcher.LaunchUriAsync(SpaceNotch.Core.Setup.ProblemReport.NewIssue(AppVersion(), Environment.OSVersion.Version)))
+            {
+                StatusText.Text = Lang.T("Impossible d’ouvrir le navigateur.", "Could not open the browser.");
+            }
+        }
+        catch (Exception ex)
+        {
+            MiniLogger.Log("[RÉGLAGES] Ouverture du rapport de problème impossible", ex);
+            StatusText.Text = Lang.T("Impossible d’ouvrir le navigateur.", "Could not open the browser.");
+        }
+        finally
+        {
+            ReportProblemButton.IsEnabled = true;
+        }
+    }
+
+    /// <summary>La version lue dans À propos, et envoyée telle quelle dans un rapport (n° 56).</summary>
+    private static string AppVersion()
+        => typeof(SettingsWindow).Assembly.GetName().Version is { } v ? $"{v.Major}.{v.Minor}.{v.Build}" : string.Empty;
 
     private void OnOpenConfigClicked(object sender, RoutedEventArgs e)
         => OpenFolder(Path.GetDirectoryName(_settings.ConfigFilePath));

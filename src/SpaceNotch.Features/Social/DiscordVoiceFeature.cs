@@ -34,7 +34,7 @@ public sealed class DiscordVoiceFeature : IslandFeatureBase
     private bool _selfMuted;
 
     public DiscordVoiceFeature(IActivityManager activities, IEventBus events, bool isEnabled)
-        : base(FeatureKey, "Discord (vocal)", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Discord (vocal)", "Discord (voice)"), activities, events, isEnabled)
     {
     }
 

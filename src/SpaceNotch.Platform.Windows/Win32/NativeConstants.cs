@@ -47,6 +47,7 @@ public static class NativeConstants
     public const int WS_EX_TRANSPARENT = 0x00000020;
     public const int WS_EX_TOOLWINDOW = 0x00000080;
     public const int WS_EX_NOACTIVATE = 0x08000000;
+    public const int WS_EX_TOPMOST = 0x00000008;
     public const int WS_EX_NOREDIRECTIONBITMAP = 0x00200000;
 
     // ---- Écrans -----------------------------------------------------------
@@ -66,6 +67,8 @@ public static class NativeConstants
 
     // ---- DWM --------------------------------------------------------------
 
+    /// <summary>Fenêtre masquée par le compositeur (autre bureau virtuel, application suspendue).</summary>
+    public const int DWMWA_CLOAKED = 14;
     public const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
     public const int DWMWA_BORDER_COLOR = 34;
 

@@ -61,7 +61,7 @@ public sealed class MeetingFeature : IslandFeatureBase
     public CalendarMeeting? Current => _meeting;
 
     public MeetingFeature(IActivityManager activities, IEventBus events, CalendarReader? reader, bool isEnabled = true, Func<DateTimeOffset>? now = null)
-        : base(FeatureKey, "Rendez-vous", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Rendez-vous", "Meetings"), activities, events, isEnabled)
     {
         _reader = reader;
         _now = now ?? (() => DateTimeOffset.Now);
