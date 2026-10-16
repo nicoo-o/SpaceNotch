@@ -1248,6 +1248,11 @@ public sealed partial class IslandWindow
         ScreenRect screen = ScreenDip(display);
         NotchEdge edge = _landing.Edge;
 
+        // Sans goutte, le raccrochage finit à l'arrivée au bord. Mettre la goutte
+        // à zéro, comme avant, la rendait « active » : la trace et le col du
+        // dernier arrachement se redessinaient jusqu'à l'arrivée (n° 97).
+        bool gooDone = _goo <= 0;
+
         if (_gooRate == 0 && _goo >= 1)
         {
             double saved = _dockOffset;
@@ -1265,7 +1270,7 @@ public sealed partial class IslandWindow
                 }
                 else
                 {
-                    _goo = 0;
+                    gooDone = true;
                 }
             }
         }
@@ -1273,7 +1278,7 @@ public sealed partial class IslandWindow
         bool arrived = Math.Abs(_pillSpring.X - _pillSpring.TargetX) < 1.5
             && Math.Abs(_pillSpring.Y - _pillSpring.TargetY) < 1.5;
 
-        if (_goo <= 0 && arrived)
+        if (gooDone && arrived)
         {
             FinishReattach(edge, _landing.Offset);
         }
