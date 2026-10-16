@@ -2610,6 +2610,11 @@ public sealed partial class IslandWindow : Window
             OnSessionChange((int)e.Message.WParam);
         }
 
+        if (e.Message.MessageId == SpaceNotch.Platform.Windows.Win32.NativeConstants.WM_POWERBROADCAST)
+        {
+            OnPowerBroadcast((int)e.Message.WParam);
+        }
+
         if (_screenWatcher.HandleMessage(e.Message.MessageId, e.Message.WParam))
         {
             ScheduleEnvironmentRefresh();

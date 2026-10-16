@@ -181,6 +181,50 @@ public sealed partial class IslandWindow
     /// <summary>Vrai entre le verrouillage de la session et son déverrouillage.</summary>
     private bool _sessionLocked;
 
+    /// <summary>Vrai entre la mise en veille et la reprise (n° 35).</summary>
+    private bool _asleep;
+
+    /// <summary>
+    /// Veille et reprise (n° 35). Sans mot de passe au réveil, la veille ne passe
+    /// pas par le verrouillage de session : rien n'arrêtait la vie de Pixel et
+    /// les minuteurs, qui repartaient tous en même temps au réveil ; et rien ne
+    /// relisait les écrans ni le plein écran, alors qu'un portable a pu être
+    /// débranché de son écran pendant la veille.
+    /// </summary>
+    private void OnPowerBroadcast(int change)
+    {
+        if (change == SpaceNotch.Platform.Windows.Win32.NativeConstants.PBT_APMSUSPEND)
+        {
+            if (_asleep)
+            {
+                return;
+            }
+
+            _asleep = true;
+            SpaceNotch.Infrastructure.Logging.MiniLogger.Log("[VEILLE] mise en veille : la notch s'arrête");
+            SuspendLife(true);
+            return;
+        }
+
+        // Windows envoie la reprise automatique, puis celle de l'utilisateur
+        // quand il est là : une seule suffit.
+        if ((change == SpaceNotch.Platform.Windows.Win32.NativeConstants.PBT_APMRESUMEAUTOMATIC
+                || change == SpaceNotch.Platform.Windows.Win32.NativeConstants.PBT_APMRESUMESUSPEND)
+            && _asleep)
+        {
+            _asleep = false;
+            SpaceNotch.Infrastructure.Logging.MiniLogger.Log("[VEILLE] reprise : écrans et plein écran relus");
+            ScheduleEnvironmentRefresh();
+            _presence.Recheck();
+
+            // Verrouillée au réveil : c'est le déverrouillage qui la ranimera.
+            if (_islandShown && !_sessionLocked)
+            {
+                SuspendLife(false);
+            }
+        }
+    }
+
     private DispatcherQueueTimer? _lockSuspendTimer;
 
     /// <summary>

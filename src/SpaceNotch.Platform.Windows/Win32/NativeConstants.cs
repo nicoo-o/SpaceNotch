@@ -97,6 +97,18 @@ public static class NativeConstants
     public const uint WM_LBUTTONDOWN = 0x0201;
     public const uint WM_LBUTTONUP = 0x0202;
     public const uint WM_RBUTTONUP = 0x0205;
+
+    /// <summary>Diffusé aux fenêtres de premier niveau à la mise en veille et à la reprise.</summary>
+    public const uint WM_POWERBROADCAST = 0x0218;
+
+    /// <summary>WM_POWERBROADCAST : le système se met en veille.</summary>
+    public const int PBT_APMSUSPEND = 0x0004;
+
+    /// <summary>WM_POWERBROADCAST : reprise après une veille, déclenchée par l'utilisateur.</summary>
+    public const int PBT_APMRESUMESUSPEND = 0x0007;
+
+    /// <summary>WM_POWERBROADCAST : reprise après une veille, toujours envoyée.</summary>
+    public const int PBT_APMRESUMEAUTOMATIC = 0x0012;
     public const uint WM_SIZE = 0x0005;
     public const uint WM_SYSCOMMAND = 0x0112;
     public const uint WM_WINDOWPOSCHANGED = 0x0047;
