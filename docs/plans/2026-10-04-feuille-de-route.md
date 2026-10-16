@@ -56,10 +56,10 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 94 | Modèles d'issue et de PR bilingues | #79 | fusionnée |
 | 95 | Protection de `main` sur GitHub | — | **faite par l'auteur** (2026-10-16) |
 | 96 | Barre en haut : goutte, raccrochage, épaules | #81 | **ouverte** : la goutte part du bas de la barre ; à la relecture, un bloquant (le raccrochage ne finissait jamais sous une barre plus haute que la forme) et un saut de 40 DIP corrigés ; épaules gardées (choix de l'auteur) ; **prouvé à l'écran** (glisser par `mouse_event`, journal « raccrochée au bord Top » 5 fois sur 5) |
-| 18 | Miroir de la webcam actif par défaut | PR à ouvrir | **ouverte** : éteint sur une installation neuve ; une configuration existante garde sa valeur (comme Discord, n° 75) ; tests |
-| 62 | Tuile Minuteur | PR à ouvrir | **ouverte** : « 15 min » affiché sur la tuile (capture) ; un minuteur en pause n'est plus écrasé, la tuile le montre (`HasMeasure`, test, **prouvé par UIA**) ; à la relecture, l'indice masqué et l'épingle relâchée devant un minuteur en cours |
-| 15 | Noms des fonctionnalités en français dans l'interface anglaise | PR à ouvrir | **ouverte** : 23 noms par `Lang.T` ; test de garde |
-| 56 | Aucun chemin pour signaler un problème | PR à ouvrir | **ouverte** : carte « Signaler un problème » (À propos) : dossier du journal, rapport GitHub prérempli (version, Windows), rien d'envoyé seul ; capture de la carte ; à la relecture, rangée sous « AIDE » au lieu d'« AVANCÉ », trouvable par « bug » |
+| 18 | Miroir de la webcam actif par défaut | #82 | **ouverte** : éteint sur une installation neuve ; une configuration existante garde sa valeur (comme Discord, n° 75) ; tests |
+| 62 | Tuile Minuteur | #83 | **ouverte** : « 15 min » affiché sur la tuile (capture) ; un minuteur en pause n'est plus écrasé, la tuile le montre (`HasMeasure`, test, **prouvé par UIA**) ; à la relecture, l'indice masqué et l'épingle relâchée devant un minuteur en cours |
+| 15 | Noms des fonctionnalités en français dans l'interface anglaise | #84 | **ouverte** : 23 noms par `Lang.T` ; test de garde |
+| 56 | Aucun chemin pour signaler un problème | #85 | **ouverte** : carte « Signaler un problème » (À propos) : dossier du journal, rapport GitHub prérempli (version, Windows), rien d'envoyé seul ; capture de la carte ; à la relecture, rangée sous « AIDE » au lieu d'« AVANCÉ », trouvable par « bug » |
 
 ## Sans objet pour un projet gratuit
 
@@ -142,7 +142,7 @@ répond ou si une autre voie de signature se présente.
 
 ## Ordre proposé
 
-1. #81 (n° 96) et les PR des n° 18, 62, 15, 56 : fusion si l'auteur le demande.
+1. #81 (n° 96), #82 à #85 (n° 18, 62, 15, 56) et #86 (clôture) : fusion si l'auteur le demande.
 2. n° 11 et n° 21 (prochain brief).
 3. n° 52 : la mise à jour automatique sans signature indépendante de GitHub — le seul P0 qui ne
    dépend pas de SignPath ; à trancher avec l'auteur.
