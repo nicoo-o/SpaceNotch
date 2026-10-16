@@ -949,6 +949,7 @@ public sealed partial class IslandWindow : Window
 
         _messageMonitor = new WindowMessageMonitor(_hWnd);
         _messageMonitor.WindowMessageReceived += OnWindowMessageReceived;
+        _atmosphere.Displaced += (_, _) => _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Normal, () => RestoreFromMinimized(haloDisplaced: true));
 
         // Le raccourci global ouvre la recherche de n'importe où : Alt+Espace,
         // ou Win+Maj+Espace si une autre application tient déjà le premier.
@@ -2457,8 +2458,88 @@ public sealed partial class IslandWindow : Window
     // Réaction à l'environnement (sans scrutation)
     // ------------------------------------------------------------------
 
+    /// <summary>Dernier replacement du halo (n° 21), en millisecondes depuis le démarrage.</summary>
+    private long _haloReplacedAt = long.MinValue / 2;
+
+    private const uint WmSize = 0x0005;
+    private const uint WmSysCommand = 0x0112;
+    private const int SizeMinimized = 1;
+    private const int ScMinimize = 0xF020;
+
+    /// <summary>
+    /// Rétablit la notch réduite par une autre application (n° 21), sans prendre
+    /// le focus, à sa place et dans sa forme ; son halo aussi. Retirée devant un
+    /// plein écran, elle le reste.
+    ///
+    /// Le halo réduit n'est pas toujours « iconique » pour Windows (mesuré :
+    /// IsIconic faux, fenêtre parquée en bas à gauche, 237 × 39) : signalé par
+    /// son propre message, il est replacé sans le demander à IsIconic.
+    /// </summary>
+    private void RestoreFromMinimized(bool haloDisplaced)
+    {
+        if (_isClosed || !_islandShown)
+        {
+            return;
+        }
+
+        bool island = SpaceNotch.Platform.Windows.Win32.NativeMethods.IsIconic(_hWnd);
+        bool halo = SpaceNotch.Platform.Windows.Win32.NativeMethods.IsIconic(_atmosphere.Handle);
+
+        if (!island && !halo && !haloDisplaced)
+        {
+            return;
+        }
+
+        // Un halo que Windows replacerait lui-même ailleurs se signalerait sans
+        // fin : une fois par demi-seconde au plus.
+        if (haloDisplaced && !island)
+        {
+            if (Environment.TickCount64 - _haloReplacedAt < 500)
+            {
+                return;
+            }
+
+            _haloReplacedAt = Environment.TickCount64;
+        }
+
+        MiniLogger.Log(haloDisplaced
+            ? "[NOTCH] halo déplacé par une autre application : replacé"
+            : "[NOTCH] réduite par une autre application : rétablie");
+
+        if (island)
+        {
+            _ = SpaceNotch.Platform.Windows.Win32.NativeMethods.ShowWindow(_hWnd, SpaceNotch.Platform.Windows.Win32.NativeMethods.SwShowNoActivate);
+        }
+
+        if (halo)
+        {
+            _ = SpaceNotch.Platform.Windows.Win32.NativeMethods.ShowWindow(_atmosphere.Handle, SpaceNotch.Platform.Windows.Win32.NativeMethods.SwShowNoActivate);
+        }
+
+        // Réduite, la fenêtre a été parquée ailleurs : la géométrie est reprise
+        // même identique à la dernière envoyée, pour la notch et pour son halo.
+        ForgetWindowGeometry();
+        _atmosphere.ForgetGeometry();
+        ApplyGeometry(_controller.CurrentFootprint);
+        _atmosphere.PlaceBehind(_hWnd);
+    }
+
     private void OnWindowMessageReceived(object? sender, WindowMessageEventArgs e)
     {
+        // n° 21 : la notch ne se réduit pas. Un « Réduire » du menu système
+        // (Alt+Espace, Win+flèche bas) est ignoré ; une autre application qui la
+        // réduit quand même (ShowWindow) la voyait disparaître pour de bon :
+        // elle se rétablit.
+        if (e.Message.MessageId == WmSysCommand && ((int)e.Message.WParam & 0xFFF0) == ScMinimize)
+        {
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Message.MessageId == WmSize && (int)e.Message.WParam == SizeMinimized)
+        {
+            _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Normal, () => RestoreFromMinimized(haloDisplaced: false));
+        }
         if (e.Message.MessageId == SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.WmHotkey
             && (int)e.Message.WParam == SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.LauncherId)
         {

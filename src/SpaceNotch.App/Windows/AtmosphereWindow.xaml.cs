@@ -13,6 +13,7 @@ using SpaceNotch_App.Composition;
 using Windows.Graphics;
 using Windows.UI;
 using WinRT.Interop;
+using WinUIEx.Messaging;
 
 namespace SpaceNotch_App.Windows;
 
@@ -87,6 +88,8 @@ public sealed partial class AtmosphereWindow : Window
 
     // Dernier rectangle physique réellement soumis au gestionnaire de fenêtres.
     // Sert uniquement à ne pas le resoumettre à l'identique (voir PositionAround).
+    private WindowMessageMonitor? _messageMonitor;
+
     private int _lastX = int.MinValue;
     private int _lastY = int.MinValue;
     private int _lastWidth = int.MinValue;
@@ -142,7 +145,54 @@ public sealed partial class AtmosphereWindow : Window
             }
         };
 
+        // n° 21 : le halo ne se réduit pas non plus. Réduit par une autre
+        // application, il restait parqué en bas à gauche de l'écran (237 × 39),
+        // sans que Windows le dise réduit ni lui envoie WM_SIZE : on le voit à
+        // ce qu'il n'est plus là où la notch l'a posé.
+        _messageMonitor = new WindowMessageMonitor(_hWnd);
+        _messageMonitor.WindowMessageReceived += (_, e) =>
+        {
+            if (e.Message.MessageId == 0x0112 && ((int)e.Message.WParam & 0xFFF0) == 0xF020)
+            {
+                e.Handled = true;
+            }
+            else if (e.Message.MessageId == 0x0047 && IsDisplaced())
+            {
+                Displaced?.Invoke(this, EventArgs.Empty);
+            }
+        };
+
         Closed += OnClosed;
+    }
+
+    /// <summary>
+    /// Le halo n'est plus là où la notch l'a posé : réduit ou déplacé par une
+    /// autre application (n° 21). La notch le replace.
+    /// </summary>
+    public event EventHandler? Displaced;
+
+    /// <summary>Vrai si la fenêtre n'occupe plus le rectangle envoyé en dernier.</summary>
+    private bool IsDisplaced()
+    {
+        if (_lastX == int.MinValue)
+        {
+            return false;
+        }
+
+        // AppWindow.Position rend la position « normale » : celle d'une fenêtre
+        // parquée par une réduction reste l'ancienne. Seul le rectangle réel le dit.
+        if (!SpaceNotch.Platform.Windows.Win32.NativeMethods.GetWindowRect(_hWnd, out SpaceNotch.Platform.Windows.Win32.NativeMethods.RECT rect))
+        {
+            return false;
+        }
+
+        return rect.Left != _lastX || rect.Top != _lastY || rect.Width != _lastWidth || rect.Height != _lastHeight;
+    }
+
+    /// <summary>Oublie la dernière géométrie envoyée : la prochaine sera appliquée même identique.</summary>
+    public void ForgetGeometry()
+    {
+        _lastX = _lastY = _lastWidth = _lastHeight = int.MinValue;
     }
 
     /// <summary>Handle natif de la fenêtre décorative.</summary>
@@ -749,6 +799,9 @@ public sealed partial class AtmosphereWindow : Window
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
+        _messageMonitor?.Dispose();
+        _messageMonitor = null;
+
         // Fermée pendant les 0,6 s des rayons : le minuteur ne touche plus une fenêtre fermée.
         _raysTimer?.Stop();
 
