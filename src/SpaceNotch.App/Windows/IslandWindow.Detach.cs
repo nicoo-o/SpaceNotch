@@ -1251,9 +1251,9 @@ public sealed partial class IslandWindow
         // Sans goutte, le raccrochage finit à l'arrivée au bord. Mettre la goutte
         // à zéro, comme avant, la rendait « active » : la trace et le col du
         // dernier arrachement se redessinaient jusqu'à l'arrivée (n° 97).
-        bool gooDone = _goo <= 0;
+        bool gooDone = _goo <= 0 || (!AnimateGoo && _gooRate == 0 && _goo >= 1);
 
-        if (_gooRate == 0 && _goo >= 1)
+        if (AnimateGoo && _gooRate == 0 && _goo >= 1)
         {
             double saved = _dockOffset;
             _dockOffset = _landing.Offset;
@@ -1264,14 +1264,7 @@ public sealed partial class IslandWindow
             // commence au bas de la barre (n° 96).
             if (SpaceNotch.Core.Scenes.TopBar.PillReachesDock(edge, NominalPillAt(_pillSpring.X, _pillSpring.Y), screen, TopInsetDip(display), LocalOf(edge, drawn).Height))
             {
-                if (AnimateGoo)
-                {
-                    StartGoo(edge, rect, drawn, screen, rising: true);
-                }
-                else
-                {
-                    gooDone = true;
-                }
+                StartGoo(edge, rect, drawn, screen, rising: true);
             }
         }
 
