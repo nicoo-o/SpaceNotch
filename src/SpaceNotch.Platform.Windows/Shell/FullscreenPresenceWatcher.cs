@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using SpaceNotch.Platform.Windows.Win32;
 
 namespace SpaceNotch.Platform.Windows.Shell;
 
@@ -22,7 +24,9 @@ namespace SpaceNotch.Platform.Windows.Shell;
 /// <b>Sur événement, jamais par scrutation.</b> L'état est relu quand une fenêtre
 /// prend le premier plan, ou quand l'une est réduite : ce sont les deux seuls
 /// moments où il peut changer sans que l'application soit au courant. Entre ces
-/// moments, rien ne tourne.
+/// moments, rien ne tourne — sauf pendant que l'Island est retirée : la fin d'un
+/// plein écran n'émet pas toujours d'événement, et l'hôte relit alors l'état
+/// toutes les 2 s (n° 11).
 /// </para>
 ///
 /// <para>
@@ -103,6 +107,12 @@ public sealed class FullscreenPresenceWatcher : IDisposable
 
     /// <summary>Vrai lorsque la session ne permet pas d'afficher par-dessus.</summary>
     public bool ShouldHide => _shouldHide;
+
+    /// <summary>
+    /// Pourquoi l'Island se retire, pour le journal (n° 11 : elle disparaissait
+    /// « sans explication ») ; vide quand rien ne l'y oblige.
+    /// </summary>
+    public string Reason { get; private set; } = string.Empty;
 
     /// <summary>
     /// Relit l'état et lève <see cref="Changed"/> s'il a changé. Appelé par l'hôte
@@ -224,26 +234,33 @@ public sealed class FullscreenPresenceWatcher : IDisposable
     {
         QueryUserNotificationState? state = SessionState();
 
-        return state switch
+        switch (state)
         {
             // La session est verrouillée, ou l'écran est éteint : rien à peindre.
-            QueryUserNotificationState.NotPresent => true,
+            case QueryUserNotificationState.NotPresent:
+                Reason = "session verrouillée ou écran éteint";
+                return true;
 
             // Jeu en Direct3D exclusif : la surface n'est plus gérée par le
             // compositeur, une fenêtre toujours au-dessus n'y apparaîtrait pas.
-            QueryUserNotificationState.RunningD3DFullScreen => true,
+            case QueryUserNotificationState.RunningD3DFullScreen:
+                Reason = "jeu en plein écran exclusif";
+                return true;
 
-            QueryUserNotificationState.PresentationMode => true,
+            case QueryUserNotificationState.PresentationMode:
+                Reason = "mode présentation";
+                return true;
 
             // « Une application occupe l'écran » : un navigateur en plein écran,
-            // un jeu fenêtré sans bordure… mais aussi une surcouche « toujours
-            // devant » que les clics traversent (n° 11). Le shell ne dit pas
-            // laquelle : on cherche une vraie fenêtre plein écran sur l'écran de
-            // la notch.
-            QueryUserNotificationState.Busy => FullscreenWindowOnIslandMonitor(),
+            // un jeu sans bordure… mais aussi une surcouche « toujours devant »
+            // que les clics traversent (n° 11). Le shell ne dit pas laquelle : on
+            // cherche une vraie fenêtre plein écran sur l'écran de la notch.
+            case QueryUserNotificationState.Busy:
+                return FullscreenWindowOnIslandMonitor();
 
-            _ => ForegroundCoversIsland()
-        };
+            default:
+                return ForegroundCoversIsland();
+        }
     }
 
     /// <summary>
@@ -280,56 +297,112 @@ public sealed class FullscreenPresenceWatcher : IDisposable
 
     /// <summary>
     /// Le shell dit « occupé » : une fenêtre couvre-t-elle vraiment l'écran de la
-    /// notch ? Parcourt les fenêtres de premier niveau (seulement dans cet état,
-    /// rare) et s'arrête à la première qui compte (<see cref="FullscreenRule"/>).
+    /// notch ? Les fenêtres de premier niveau sont parcourues de haut en bas, et
+    /// la première opaque qui couvre l'écran décide (<see cref="FullscreenRule"/>).
     /// Sans moniteur connu, on garde l'ancienne réponse : se retirer.
+    ///
+    /// <para>
+    /// Une surcouche permanente garde le shell « occupé », et les déplacements de
+    /// la fenêtre au premier plan arrivent par dizaines par seconde : la réponse
+    /// est gardée 250 ms, et le nom des processus est mémorisé (relecture de #87).
+    /// </para>
     /// </summary>
     private bool FullscreenWindowOnIslandMonitor()
     {
         if (IslandMonitor() is not { } monitor)
         {
+            Reason = "une application occupe l'écran (écran de la notch inconnu)";
             return true;
         }
 
-        bool found = false;
+        long now = Environment.TickCount64;
+
+        if (_busyAnswer is { } recent && now - _busyAt < BusyAnswerLifetimeMs && recent.Monitor == monitor)
+        {
+            Reason = recent.Reason;
+            return recent.Hide;
+        }
+
+        string? found = null;
         uint own = (uint)Environment.ProcessId;
+        _ = GetWindowThreadProcessId(GetForegroundWindow(), out uint foregroundProcess);
 
         EnumWindows(
             (window, parameter) =>
             {
-                if (!GetWindowRect(window, out WindowRect rect))
+                try
                 {
-                    return true;
+                    if (!GetWindowRect(window, out WindowRect rect))
+                    {
+                        return true;
+                    }
+
+                    var box = new PixelRect(rect.Left, rect.Top, rect.Right, rect.Bottom);
+
+                    // Le moins cher d'abord : la plupart des fenêtres ne couvrent pas l'écran.
+                    if (!FullscreenRule.Covers(box, monitor) || !IsWindowVisible(window))
+                    {
+                        return true;
+                    }
+
+                    _ = GetWindowThreadProcessId(window, out uint processId);
+
+                    // Fenêtre détruite pendant le parcours : ses lectures échouent sans bruit.
+                    if (processId == 0 || IsShellWindow(window))
+                    {
+                        return true;
+                    }
+
+                    uint style = (uint)NativeMethods.GetWindowLongPtr(window, NativeConstants.GWL_EXSTYLE).ToInt64();
+                    bool cloaked = DwmGetWindowAttribute(window, NativeConstants.DWMWA_CLOAKED, out int cloak, sizeof(int)) == 0 && cloak != 0;
+
+                    CoveringWindow verdict = FullscreenRule.Classify(
+                        box,
+                        monitor,
+                        style,
+                        minimized: IsIconic(window),
+                        maximized: IsZoomed(window),
+                        cloaked,
+                        shell: false,
+                        inFront: processId == foregroundProcess || (style & (uint)NativeConstants.WS_EX_TOPMOST) != 0);
+
+                    switch (verdict)
+                    {
+                        case CoveringWindow.Ignore:
+                            return true;
+
+                        case CoveringWindow.Occludes:
+                            return false;
+                    }
+
+                    // Nos propres fenêtres (l'installeur) ne comptent pas : vérifié
+                    // en dernier, c'est la partie la plus coûteuse.
+                    if (processId == own || IsSpaceNotchProcess(processId))
+                    {
+                        return true;
+                    }
+
+                    found = $"fenêtre plein écran : {ProcessName(processId)} ({ClassName(window)})";
+                    return false;
                 }
-
-                var box = new PixelRect(rect.Left, rect.Top, rect.Right, rect.Bottom);
-
-                // Le moins cher d'abord : la plupart des fenêtres ne couvrent pas l'écran.
-                if (!FullscreenRule.Covers(box, monitor) || !IsWindowVisible(window))
+                catch (Exception)
                 {
-                    return true;
+                    // Une exception ne doit pas traverser user32 : on s'arrête là.
+                    return false;
                 }
-
-                _ = GetWindowThreadProcessId(window, out uint processId);
-                bool cloaked = DwmGetWindowAttribute(window, DwmaCloaked, out int cloak, sizeof(int)) == 0 && cloak != 0;
-
-                found = FullscreenRule.IsFullscreenWindow(
-                    box,
-                    monitor,
-                    (uint)GetWindowLongPtr(window, GwlExStyle).ToInt64(),
-                    visible: true,
-                    minimized: IsIconic(window),
-                    maximized: IsZoomed(window),
-                    cloaked,
-                    shell: IsShellWindow(window),
-                    ours: processId == own || IsSpaceNotchProcess(processId));
-
-                return !found;
             },
             IntPtr.Zero);
 
-        return found;
+        Reason = found ?? string.Empty;
+        _busyAnswer = (monitor, found is not null, Reason);
+        _busyAt = now;
+        return found is not null;
     }
+
+    private const long BusyAnswerLifetimeMs = 250;
+
+    private (PixelRect Monitor, bool Hide, string Reason)? _busyAnswer;
+    private long _busyAt;
 
     /// <summary>
     /// Vrai lorsqu'une autre application occupe <em>tout</em> l'écran de l'Island.
@@ -344,6 +417,8 @@ public sealed class FullscreenPresenceWatcher : IDisposable
     /// </summary>
     private bool ForegroundCoversIsland()
     {
+        Reason = string.Empty;
+
         if (IslandMonitor() is not { } monitor)
         {
             return false;
@@ -375,11 +450,45 @@ public sealed class FullscreenPresenceWatcher : IDisposable
         // Nos propres fenêtres (l'installeur, un autre processus) ne comptent
         // pas. Vérifié en dernier, et mémorisé : interroger un processus est la
         // partie la plus coûteuse de la mesure.
-        return covers && !IsSpaceNotchProcess(processId);
+        if (!covers || IsSpaceNotchProcess(processId))
+        {
+            return false;
+        }
+
+        Reason = $"fenêtre au premier plan en plein écran : {ProcessName(processId)} ({ClassName(foreground)})";
+        return true;
     }
 
-    private uint _ownProcessChecked;
-    private bool _ownProcessIsOurs;
+    /// <summary>
+    /// SpaceNotch ou non, par processus. Un cache à une entrée alternait entre
+    /// l'Explorateur, la surcouche et les fenêtres agrandies, et ne servait
+    /// presque jamais (relecture de #87).
+    /// </summary>
+    private readonly Dictionary<uint, bool> _ourProcesses = [];
+
+    private static string ProcessName(uint processId)
+    {
+        try
+        {
+            using var process = global::System.Diagnostics.Process.GetProcessById((int)processId);
+            return process.ProcessName;
+        }
+        catch (ArgumentException)
+        {
+            return processId.ToString(global::System.Globalization.CultureInfo.InvariantCulture);
+        }
+        catch (InvalidOperationException)
+        {
+            return processId.ToString(global::System.Globalization.CultureInfo.InvariantCulture);
+        }
+    }
+
+    private static string ClassName(IntPtr window)
+    {
+        var name = new char[64];
+        int length = GetClassName(window, name, name.Length);
+        return length > 0 ? new string(name, 0, length) : "?";
+    }
 
     /// <summary>Le bureau et la barre des tâches : jamais « une application en plein écran ».</summary>
     private static bool IsShellWindow(IntPtr window)
@@ -400,14 +509,21 @@ public sealed class FullscreenPresenceWatcher : IDisposable
     /// <summary>L'installeur (SpaceNotch-Setup) est un autre processus, mais pas un autre produit.</summary>
     private bool IsSpaceNotchProcess(uint processId)
     {
-        if (processId == _ownProcessChecked)
+        if (_ourProcesses.TryGetValue(processId, out bool ours))
         {
-            return _ownProcessIsOurs;
+            return ours;
         }
 
-        _ownProcessChecked = processId;
-        _ownProcessIsOurs = ReadIsSpaceNotch(processId);
-        return _ownProcessIsOurs;
+        // Les identifiants de processus se réutilisent : un cache borné, vidé
+        // d'un coup, suffit.
+        if (_ourProcesses.Count > 64)
+        {
+            _ourProcesses.Clear();
+        }
+
+        ours = ReadIsSpaceNotch(processId);
+        _ourProcesses[processId] = ours;
+        return ours;
     }
 
     private static bool ReadIsSpaceNotch(uint processId)
@@ -488,14 +604,6 @@ public sealed class FullscreenPresenceWatcher : IDisposable
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool IsZoomed(IntPtr window);
-
-    private const int GwlExStyle = -20;
-
-    [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
-    private static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
-
-    /// <summary><c>DWMWA_CLOAKED</c> : fenêtre masquée par le compositeur (autre bureau virtuel, application suspendue).</summary>
-    private const int DwmaCloaked = 14;
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out int value, int size);

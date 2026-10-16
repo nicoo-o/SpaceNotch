@@ -2508,7 +2508,7 @@ public sealed partial class IslandWindow : Window
         if (hide == _islandVisibleForPresence)
         {
             _islandVisibleForPresence = !hide;
-            MiniLogger.Log(hide ? "[PLEIN ÉCRAN] notch retirée : une application occupe l'écran" : "[PLEIN ÉCRAN] notch revenue");
+            MiniLogger.Log(hide ? $"[PLEIN ÉCRAN] notch retirée : {_presence.Reason}" : "[PLEIN ÉCRAN] notch revenue");
         }
 
         // Retirée, la notch ne reçoit plus les messages qui relancent la lecture,
