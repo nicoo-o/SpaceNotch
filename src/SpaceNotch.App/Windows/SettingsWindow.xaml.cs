@@ -425,9 +425,9 @@ public sealed partial class SettingsWindow : Window
 
             ShowIgnoredApps(settings.IgnoredNotificationApps);
 
-            string executable = Environment.ProcessPath ?? string.Empty;
+            string executable = StartupExecutable();
             StartupToggle.IsOn = executable.Length > 0
-                && StartupRegistration.IsRegistered(StartupRegistration.BuildCommand(executable));
+                && StartupRegistration.IsEnabled(StartupRegistration.BuildCommand(executable));
 
             foreach (KeyValuePair<string, ToggleSwitch> pair in _featureToggles)
             {
@@ -1179,6 +1179,17 @@ public sealed partial class SettingsWindow : Window
     /// signalé au lieu d'être absorbé — une case à cocher sans effet serait pire
     /// que pas de case du tout.
     /// </summary>
+    /// <summary>
+    /// L'exécutable à inscrire : celui de l'installation s'il y en a une. Ouverts
+    /// depuis une copie de développement, les Réglages inscrivaient cette copie à
+    /// la place de la notch installée, dont la clé de démarrage est partagée
+    /// (n° 66) ; sans installation (portable), l'exécutable courant.
+    /// </summary>
+    private static string StartupExecutable()
+        => SpaceNotch.Platform.Windows.Setup.WindowsSetup.FindInstalled()?.Executable
+            ?? Environment.ProcessPath
+            ?? string.Empty;
+
     private void OnStartupToggled(object sender, RoutedEventArgs e)
     {
         if (_loading)
@@ -1186,7 +1197,7 @@ public sealed partial class SettingsWindow : Window
             return;
         }
 
-        string executable = Environment.ProcessPath ?? string.Empty;
+        string executable = StartupExecutable();
 
         if (executable.Length == 0)
         {
@@ -1203,10 +1214,17 @@ public sealed partial class SettingsWindow : Window
             // Le contrôle revient à l'état réel : il ne doit pas prétendre avoir
             // obtenu ce que le système a refusé.
             _loading = true;
-            StartupToggle.IsOn = StartupRegistration.IsRegistered(StartupRegistration.BuildCommand(executable));
+            StartupToggle.IsOn = StartupRegistration.IsEnabled(StartupRegistration.BuildCommand(executable));
             _loading = false;
 
             return;
+        }
+
+        // Rallumé ici après une désactivation dans le Gestionnaire des tâches :
+        // sans lever celle-ci, l'inscription restait sans effet (n° 65).
+        if (enabled)
+        {
+            StartupRegistration.ClearWindowsDisable();
         }
 
         StatusText.Text = enabled
