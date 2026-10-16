@@ -27,10 +27,11 @@ pourquoi la première avait été retenue.
 | [ADR-024](ADR-024-canal-local-et-capture.md) | Canal local (tube nommé), hooks de Claude Code, capture de texte | Accepté (Clawd : remplacé par ADR-029) |
 | [ADR-025](ADR-025-assistant-local-ou-distant.md) | Assistant : règles locales d'abord, Phi Silica sur l'appareil ou Claude avec ta clé | Accepté |
 | [ADR-026](ADR-026-telephone-et-salons.md) | Téléphone (Lien avec Windows), Discord (RPC local), paroles et Spotify, miroir webcam | Accepté |
-| [ADR-027](ADR-027-mise-a-jour-automatique.md) | Mise à jour automatique depuis les releases GitHub, vérifiée par SHA-256, installée au calme | Accepté |
+| [ADR-027](ADR-027-mise-a-jour-automatique.md) | Mise à jour automatique depuis les releases GitHub, vérifiée par SHA-256, installée au calme | Accepté (amendé par ADR-031 : plus d'installation seule) |
 | [ADR-028](ADR-028-acces-tableau-de-bord-et-gestes-enseignes.md) | Le clic au repos ouvre la recherche et quatre tuiles ; les gestes s'enseignent au moment utile, dans la notch | Accepté |
 | [ADR-029](ADR-029-compagnon-vivant-pixel-identite.md) | Le compagnon vivant : Pixel est l'identité et l'avatar des agents (remplace Clawd) ; §15 rouvert pour Pixel au repos | Accepté (version à préciser) |
 | [ADR-030](ADR-030-barre-des-taches-en-haut.md) | Barre des tâches en haut : la notch demande à l'utilisateur de se placer sous la barre ou en languette sur un côté | Accepté (version à préciser) |
+| [ADR-031](ADR-031-rien-ne-s-installe-sans-l-utilisateur.md) | Rien ne s'installe sans l'utilisateur tant que les mises à jour ne sont pas signées : « Automatiques » retiré | Accepté (version à préciser) |
 
 ## Format
 
