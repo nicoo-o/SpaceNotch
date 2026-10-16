@@ -1174,22 +1174,23 @@ public sealed partial class SettingsWindow : Window
         => Apply(s => s.UseCompositionAtmosphere = CompositionToggle.IsOn);
 
     /// <summary>
+    /// L'exécutable à inscrire : celui de l'installation s'il y en a une et
+    /// qu'elle est toujours là. Ouverts depuis une copie de développement, les
+    /// Réglages inscrivaient cette copie à la place de la notch installée, dont
+    /// la clé de démarrage est partagée (n° 66) ; sans installation (portable),
+    /// ou si son dossier a disparu, l'exécutable courant.
+    /// </summary>
+    private static string StartupExecutable()
+        => SpaceNotch.Platform.Windows.Setup.WindowsSetup.FindInstalled() is { } installed && File.Exists(installed.Executable)
+            ? installed.Executable
+            : Environment.ProcessPath ?? string.Empty;
+
+    /// <summary>
     /// La seule préférence qui écrit hors de l'application : l'inscription au
     /// démarrage. Elle n'est appliquée que sur action explicite, et son échec est
     /// signalé au lieu d'être absorbé — une case à cocher sans effet serait pire
     /// que pas de case du tout.
     /// </summary>
-    /// <summary>
-    /// L'exécutable à inscrire : celui de l'installation s'il y en a une. Ouverts
-    /// depuis une copie de développement, les Réglages inscrivaient cette copie à
-    /// la place de la notch installée, dont la clé de démarrage est partagée
-    /// (n° 66) ; sans installation (portable), l'exécutable courant.
-    /// </summary>
-    private static string StartupExecutable()
-        => SpaceNotch.Platform.Windows.Setup.WindowsSetup.FindInstalled()?.Executable
-            ?? Environment.ProcessPath
-            ?? string.Empty;
-
     private void OnStartupToggled(object sender, RoutedEventArgs e)
     {
         if (_loading)
@@ -1225,6 +1226,19 @@ public sealed partial class SettingsWindow : Window
         if (enabled)
         {
             StartupRegistration.ClearWindowsDisable();
+
+            // La marque de Windows n'a pas pu être levée : l'interrupteur ne
+            // prétend pas l'avoir fait.
+            if (!StartupRegistration.IsEnabled(StartupRegistration.BuildCommand(executable)))
+            {
+                StatusText.Text = Lang.T(
+                    "Windows garde le démarrage désactivé : rallume SpaceNotch dans le Gestionnaire des tâches, onglet Démarrage.",
+                    "Windows keeps startup disabled: turn SpaceNotch back on in Task Manager, Startup tab.");
+                _loading = true;
+                StartupToggle.IsOn = false;
+                _loading = false;
+                return;
+            }
         }
 
         StatusText.Text = enabled
