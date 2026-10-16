@@ -72,7 +72,7 @@ public sealed class TimerFeature : IslandFeatureBase
     private readonly object _publishGate = new();
 
     public TimerFeature(IActivityManager activities, IEventBus events, bool isEnabled = true, Func<DateTimeOffset>? now = null)
-        : base(FeatureKey, "Minuteur", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Minuteur", "Timer"), activities, events, isEnabled)
     {
         _now = now ?? (() => DateTimeOffset.UtcNow);
         _clock = new MeasureClock(now);
@@ -91,6 +91,13 @@ public sealed class TimerFeature : IslandFeatureBase
     /// éteinte.
     /// </summary>
     public bool IsMeasuring => _clock.IsRunning;
+
+    /// <summary>
+    /// Vrai s'il y a une mesure à garder : elle avance, ou elle est en pause.
+    /// Une commande « 15 min » l'écraserait (n° 62) : le menu et la tuile la
+    /// montrent ou proposent de l'arrêter.
+    /// </summary>
+    public bool HasMeasure => _clock.IsRunning || _clock.IsPaused;
 
     /// <summary>Démarre une mesure, ou la suspend si elle est déjà en cours.</summary>
     public void Toggle()

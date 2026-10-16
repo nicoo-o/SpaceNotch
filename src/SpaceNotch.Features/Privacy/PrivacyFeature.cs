@@ -147,7 +147,7 @@ public sealed class PrivacyFeature : IslandFeatureBase
         ICapabilityUsageSource source,
         bool isEnabled = true,
         Func<DateTimeOffset>? clock = null)
-        : base(FeatureKey, "Micro et caméra", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Micro et caméra", "Microphone and camera"), activities, events, isEnabled)
     {
         _source = source ?? throw new ArgumentNullException(nameof(source));
         _clock = clock ?? (() => DateTimeOffset.UtcNow);

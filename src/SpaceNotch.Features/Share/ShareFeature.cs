@@ -36,7 +36,7 @@ public sealed class ShareFeature : IslandFeatureBase
     private SharePayload? _shown;
 
     public ShareFeature(IActivityManager activities, IEventBus events, bool isEnabled = true)
-        : base(FeatureKey, "Partage", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Partage", "Share"), activities, events, isEnabled)
     {
         _server.Served += OnServed;
         _server.Stopped += OnStopped;

@@ -8,6 +8,7 @@ using SpaceNotch.Core.Activities;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Launcher;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
@@ -74,7 +75,7 @@ public sealed class LauncherFeature : IslandFeatureBase
     private bool _actionsOpen;
 
     public LauncherFeature(IActivityManager activities, IEventBus events, bool isEnabled = true, ILauncherHistoryStore? store = null)
-        : base(FeatureKey, "Recherche", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Recherche", "Search"), activities, events, isEnabled)
     {
         _store = store;
         string subtitle = _french ? "Paramètre Windows" : "Windows setting";

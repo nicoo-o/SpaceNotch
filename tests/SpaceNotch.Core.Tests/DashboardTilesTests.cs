@@ -28,6 +28,17 @@ public sealed class DashboardTilesTests
         => Assert.Equal("15", QuickMenuTiles.All()[0].Value);
 
     [Fact]
+    public void Le_minuteur_dit_ce_qu_il_lance()
+    {
+        // n° 62 : « Minuteur » lançait 15 min sans le dire.
+        QuickMenuTile timer = QuickMenuTiles.All()[0];
+        Assert.Equal("15 min", timer.Hint);
+        Assert.StartsWith(timer.Value!, timer.Hint, System.StringComparison.Ordinal);
+
+        Assert.All(QuickMenuTiles.All().Skip(1), t => Assert.Null(t.Hint));
+    }
+
+    [Fact]
     public void Chaque_tuile_est_nommee_et_a_une_icone()
     {
         foreach (QuickMenuTile tile in QuickMenuTiles.All())

@@ -62,7 +62,7 @@ public sealed class PomodoroFeature : IslandFeatureBase
         IEventBus events,
         bool isEnabled = true,
         Func<DateTimeOffset>? now = null)
-        : base(FeatureKey, "Minuteur de focus", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Minuteur de focus", "Focus timer"), activities, events, isEnabled)
     {
         // La valeur vient d'une échéance : juste après une mise en veille, sans
         // dérive d'un battement en retard.

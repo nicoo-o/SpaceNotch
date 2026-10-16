@@ -38,7 +38,7 @@ public sealed class FileShelfManager : IslandFeatureBase
         IActivityManager activities,
         IEventBus events,
         bool isEnabled = true)
-        : base(FeatureKey, "Étagère de fichiers", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Étagère de fichiers", "File shelf"), activities, events, isEnabled)
     {
     }
 
