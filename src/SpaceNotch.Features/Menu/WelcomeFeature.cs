@@ -31,7 +31,7 @@ public sealed class WelcomeFeature : IslandFeatureBase
     private string _access = "unavailable";
 
     public WelcomeFeature(IActivityManager activities, IEventBus events)
-        : base(FeatureKey, "Présentation", activities, events, isEnabled: true)
+        : base(FeatureKey, Lang.T("Présentation", "Introduction"), activities, events, isEnabled: true)
     {
     }
 

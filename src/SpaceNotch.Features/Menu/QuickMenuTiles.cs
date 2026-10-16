@@ -9,7 +9,8 @@ namespace SpaceNotch.Features.Menu;
 /// <param name="Label">Nom affiché et lu par Narrateur.</param>
 /// <param name="ActionId">Commande du menu rapide (<see cref="QuickMenuFeature"/>).</param>
 /// <param name="Value">Valeur de la commande, comme la ligne du menu.</param>
-public sealed record QuickMenuTile(string IconKey, string Label, string ActionId, string? Value = null);
+/// <param name="Hint">Ce que fait la tuile quand son nom ne le dit pas (« 15 min », n° 62), ou <c>null</c>.</param>
+public sealed record QuickMenuTile(string IconKey, string Label, string ActionId, string? Value = null, string? Hint = null);
 
 /// <summary>
 /// Les quatre tuiles qui suivent la recherche au clic sur le repos (ADR-028).
@@ -28,7 +29,7 @@ public static class QuickMenuTiles
     /// <summary>Les tuiles, dans l'ordre d'affichage.</summary>
     public static IReadOnlyList<QuickMenuTile> All() =>
     [
-        new("Timer", Lang.T("Minuteur", "Timer"), QuickMenuFeature.TimerAction, "15"),
+        new("Timer", Lang.T("Minuteur", "Timer"), QuickMenuFeature.TimerAction, "15", Hint: "15 min"),
         new("Clipboard", Lang.T("Presse-papier", "Clipboard"), QuickMenuFeature.ClipboardAction),
         new("Menu", Lang.T("Note", "Note"), QuickMenuFeature.NoteAction),
         new("Command", Lang.T("Plus", "More"), QuickMenuFeature.MoreAction)

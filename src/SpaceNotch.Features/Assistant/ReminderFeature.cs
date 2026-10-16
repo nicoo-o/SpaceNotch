@@ -54,7 +54,7 @@ public sealed class ReminderFeature : IslandFeatureBase
     private readonly System.Collections.Concurrent.ConcurrentDictionary<string, Reminder> _ringing = new(StringComparer.Ordinal);
 
     public ReminderFeature(IActivityManager activities, IEventBus events, string? folder, Func<DateTimeOffset>? now = null)
-        : base(FeatureKey, "Rappels", activities, events, isEnabled: true)
+        : base(FeatureKey, Lang.T("Rappels", "Reminders"), activities, events, isEnabled: true)
     {
         _now = now ?? (() => DateTimeOffset.Now);
         _path = folder is null ? null : Path.Combine(folder, "reminders.json");

@@ -73,7 +73,7 @@ public sealed class SystemMonitorFeature : IslandFeatureBase
     private DateTimeOffset _armedUntil;
 
     public SystemMonitorFeature(IActivityManager activities, IEventBus events, bool isEnabled = true, Func<DateTimeOffset>? now = null)
-        : base(FeatureKey, "Moniteur", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Moniteur", "System monitor"), activities, events, isEnabled)
     {
         _now = now ?? (() => DateTimeOffset.UtcNow);
         _timer = new Timer(Guarded(Tick), null, Timeout.Infinite, Timeout.Infinite);

@@ -63,7 +63,7 @@ public sealed class NotificationFeature : IslandFeatureBase
         WindowsNotificationListener listener,
         bool isEnabled = true,
         Func<bool>? isQuiet = null)
-        : base(FeatureKey, "Notifications", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Notifications", "Notifications"), activities, events, isEnabled)
     {
         _listener = listener ?? throw new ArgumentNullException(nameof(listener));
         _isQuiet = isQuiet ?? (() => false);

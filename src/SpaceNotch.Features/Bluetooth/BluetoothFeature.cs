@@ -31,7 +31,7 @@ public sealed class BluetoothFeature : IslandFeatureBase
         IEventBus events,
         BluetoothWatcher watcher,
         bool isEnabled = true)
-        : base(FeatureKey, "Bluetooth", activities, events, isEnabled)
+        : base(FeatureKey, Lang.T("Bluetooth", "Bluetooth"), activities, events, isEnabled)
     {
         _watcher = watcher ?? throw new ArgumentNullException(nameof(watcher));
     }

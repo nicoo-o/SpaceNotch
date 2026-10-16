@@ -546,8 +546,12 @@ public sealed class AppSettings
     /// <summary>Identifiant client de l'application Spotify de l'utilisateur (PKCE, sans secret).</summary>
     public string SpotifyClientId { get; set; } = string.Empty;
 
-    /// <summary>Miroir de la webcam au survol de « Rejoindre » (W5).</summary>
-    public bool CameraMirror { get; set; } = true;
+    /// <summary>
+    /// Miroir de la webcam au survol de « Rejoindre » (W5). Éteint par défaut
+    /// (n° 18) : la webcam ne s'allume pas sans qu'on l'ait demandé. Une
+    /// configuration qui l'a déjà allumé le garde.
+    /// </summary>
+    public bool CameraMirror { get; set; }
 
     /// <summary>
     /// Ville de l'aperçu météo (F10). Vide : la météo est coupée et rien n'est
