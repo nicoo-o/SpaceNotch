@@ -25,7 +25,8 @@ public static class UninstallEntry
     private const string ScopeValue = "SpaceNotchScope";
     private const string StartupValue = "SpaceNotchStartup";
     private const string DesktopValue = "SpaceNotchDesktop";
-    private const string NotificationsValue = "SpaceNotchNotifications";
+    /// <summary>Choix « notifications Windows » de l'installation (1 ou 0).</summary>
+    public const string NotificationsValue = "SpaceNotchNotifications";
 
     /// <summary>Valeurs à écrire sous <see cref="SetupIdentity.UninstallKeyPath"/>.</summary>
     /// <param name="layout">Plan d'installation.</param>

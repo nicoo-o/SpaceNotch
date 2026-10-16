@@ -242,6 +242,79 @@ public static class WindowsSetup
     }
 
     /// <summary>
+    /// Active les notifications Windows après coup (n° 12) : choisies « non » à
+    /// l'installation, rien ne permettait de les obtenir ensuite. Le paquet
+    /// d'identité et son certificat sont toujours copiés dans le dossier
+    /// d'installation : le certificat est approuvé (une demande d'accord à
+    /// Windows), le paquet enregistré, et le choix noté pour les mises à jour.
+    /// La notch doit ensuite redémarrer : l'identité se prend au lancement.
+    /// </summary>
+    public static async Task<bool> EnableNotificationsAsync(InstalledProduct product, Action<string>? log = null)
+    {
+        ArgumentNullException.ThrowIfNull(product);
+
+        try
+        {
+            InstallLayout layout = InstallLayout.For(product.Options.Scope, Folders());
+            string package = Path.Combine(layout.Directory, IdentityPackage.FileName);
+
+            if (!File.Exists(package))
+            {
+                log?.Invoke("[IDENTITÉ] Paquet d'identité absent du dossier d'installation : notifications impossibles.");
+                return false;
+            }
+
+            await TrustIdentityCertificateAsync(layout, product.Executable, log).ConfigureAwait(false);
+
+            if (!IdentityPackage.IsCertificateTrusted())
+            {
+                return false;
+            }
+
+            if (!await IdentityPackage.RegisterAsync(layout.Directory, package, log).ConfigureAwait(false))
+            {
+                return false;
+            }
+
+            // Noté pour les mises à jour ; une installation pour tous garde son
+            // entrée dans la ruche de l'ordinateur, que l'on ne réécrit pas sans
+            // droits : la mise à jour lit de toute façon l'identité présente.
+            if (product.Options.Scope == InstallScope.CurrentUser)
+            {
+                using RegistryKey? key = Registry.CurrentUser.OpenSubKey(SetupIdentity.UninstallKeyPath, writable: true);
+                key?.SetValue(UninstallEntry.NotificationsValue, 1, RegistryValueKind.DWord);
+            }
+
+            log?.Invoke("[IDENTITÉ] Notifications Windows activées après l'installation : redémarrage de la notch à faire.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"[IDENTITÉ] Activation des notifications impossible : {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>Relance la notch installée une fois ce processus sorti (n° 12).</summary>
+    public static bool RelaunchAfterExit(string executable)
+    {
+        if (SelfDelete.RelaunchAfterExit(executable) is not { } arguments)
+        {
+            return false;
+        }
+
+        using Process? _ = Process.Start(new ProcessStartInfo("cmd.exe", arguments)
+        {
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            WindowStyle = ProcessWindowStyle.Hidden,
+            WorkingDirectory = Path.GetTempPath()
+        });
+
+        return true;
+    }
+
+    /// <summary>
     /// Approuve le certificat du paquet d'identité pour l'ordinateur : Windows
     /// l'exige pour un certificat auto-signé. Directement si l'on est déjà élevé
     /// (installation pour tous), sinon par un processus élevé qui ne fait que

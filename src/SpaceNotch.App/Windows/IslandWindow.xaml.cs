@@ -4560,6 +4560,7 @@ public sealed partial class IslandWindow : Window
                     _settingsWindow = new SettingsWindow(_settingsService, _featureRegistry)
                     {
                         ReplayWelcome = ShowWelcome,
+                        RestartNotch = RestartNotch,
                         RequestNotificationAccess = _notificationFeature.RequestAccessAsync,
                         SearchHotkey = _launcherFeature.Hotkey,
                         FocusHotkey = _focusHotkey
@@ -4628,6 +4629,25 @@ public sealed partial class IslandWindow : Window
     /// sort. <c>Application.Exit()</c> seul coupait le processus pendant que
     /// l'arrêt attendait encore, et laissait le raccourci global enregistré.
     /// </summary>
+    /// <summary>
+    /// Redémarre la notch installée (notifications activées après coup, n° 12) :
+    /// la relance attend la sortie de ce processus, qui tient le verrou
+    /// d'instance unique.
+    /// </summary>
+    private void RestartNotch()
+    {
+        string? executable = SpaceNotch.Platform.Windows.Setup.WindowsSetup.FindInstalled()?.Executable;
+
+        if (executable is null || !SpaceNotch.Platform.Windows.Setup.WindowsSetup.RelaunchAfterExit(executable))
+        {
+            MiniLogger.Log("[NOTCH] Redémarrage impossible : installation introuvable");
+            return;
+        }
+
+        MiniLogger.Log("[NOTCH] Redémarrage demandé depuis les Réglages");
+        QuitApplication();
+    }
+
     private async void QuitApplication()
     {
         try

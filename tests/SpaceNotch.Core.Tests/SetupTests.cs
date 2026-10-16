@@ -355,4 +355,19 @@ public class SelfDeleteTests
     {
         Assert.DoesNotContain("rd ", SelfDelete.Arguments([directory]), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_restart_waits_for_this_process_to_exit_then_starts_the_installed_notch()
+    {
+        // n° 12 : lancée tout de suite, la nouvelle notch trouverait le verrou
+        // d'instance unique encore tenu.
+        string? arguments = SelfDelete.RelaunchAfterExit(@"C:\Users\ana\AppData\Local\Programs\SpaceNotch\SpaceNotch.exe");
+
+        Assert.NotNull(arguments);
+        Assert.StartsWith("/d /c ping -n 3 127.0.0.1 > nul & start", arguments, System.StringComparison.Ordinal);
+        Assert.EndsWith("\"C:\\Users\\ana\\AppData\\Local\\Programs\\SpaceNotch\\SpaceNotch.exe\"", arguments, System.StringComparison.Ordinal);
+
+        Assert.Null(SelfDelete.RelaunchAfterExit(@"C:\a\b\x\"" & del *.exe"));
+        Assert.Null(SelfDelete.RelaunchAfterExit(@"C:\x.exe"));
+    }
 }
