@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
 using SpaceNotch.Core.Setup;
-using SpaceNotch.Core.State;
 using SpaceNotch.Core.Update;
 using SpaceNotch.Features.Update;
 using SpaceNotch.Infrastructure.Logging;
