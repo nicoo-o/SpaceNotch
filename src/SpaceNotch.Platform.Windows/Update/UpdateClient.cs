@@ -79,7 +79,7 @@ public sealed class UpdateClient : IDisposable
 
         if (release.ChecksumsUrl is null)
         {
-            log?.Invoke($"[MISE À JOUR] {release.Tag} sans fichier d'empreintes : pas d'installation automatique.");
+            log?.Invoke($"[MISE À JOUR] {release.Tag} sans fichier d'empreintes : rien n'est proposé.");
             return null;
         }
 

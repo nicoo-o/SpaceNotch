@@ -12,7 +12,6 @@ namespace SpaceNotch.Infrastructure.Config;
 /// </summary>
 public readonly record struct AppliedSettings(
     IslandDisplayMode DisplayMode,
-    long? CustomDisplayHandle,
     string? DockDisplayBounds,
     string LauncherHotkey,
     PixelIntensity PixelIntensity,
@@ -23,16 +22,15 @@ public readonly record struct AppliedSettings(
     {
         ArgumentNullException.ThrowIfNull(settings);
 
-        return new AppliedSettings(settings.DisplayMode, settings.CustomDisplayHandle, settings.DockDisplayBounds, settings.LauncherHotkey, settings.PixelIntensity, settings.TopBarPlacement);
+        return new AppliedSettings(settings.DisplayMode, settings.DockDisplayBounds, settings.LauncherHotkey, settings.PixelIntensity, settings.TopBarPlacement);
     }
 
     /// <summary>
-    /// L'écran de la notch a changé : mode, écran choisi, ou écran d'accroche
-    /// (le mode « Custom » se résout d'abord par <see cref="DockDisplayBounds"/>).
+    /// L'écran de la notch a changé : mode, ou écran d'accroche (le mode
+    /// « Custom » se résout par <see cref="DockDisplayBounds"/>).
     /// </summary>
     public bool DisplayDiffers(AppliedSettings other)
         => DisplayMode != other.DisplayMode
-            || CustomDisplayHandle != other.CustomDisplayHandle
             || !string.Equals(DockDisplayBounds, other.DockDisplayBounds, StringComparison.Ordinal);
 
     /// <summary>Le raccourci de la recherche a changé.</summary>

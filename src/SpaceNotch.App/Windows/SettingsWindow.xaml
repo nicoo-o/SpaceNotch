@@ -175,7 +175,7 @@
                             <ToggleSwitch x:Name="StartupToggle" Grid.Column="2" VerticalAlignment="Center" OnContent="" OffContent="" MinWidth="0" Toggled="OnStartupToggled" />
                         </Grid>
                     </Border>
-                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Mises à jour automatiques Me prévenir Propose ou installe les nouvelles versions.">
+                    <Border Style="{StaticResource NfSettingsCardStyle}" Tag="Mises à jour Me prévenir Désactivées La notch te propose chaque nouvelle version ; rien ne s’installe sans ton accord.">
                         <Grid ColumnSpacing="14">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="20" />

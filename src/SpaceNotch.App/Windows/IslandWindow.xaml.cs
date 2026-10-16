@@ -2446,9 +2446,9 @@ public sealed partial class IslandWindow : Window
             case IslandDisplayMode.Custom when FindDisplayByBounds(_settings.DockDisplayBounds) is { } docked:
                 return docked;
 
-            case IslandDisplayMode.Custom when _settings.CustomDisplayHandle is > 0:
-                return DisplayManager.FromMonitor(new IntPtr(_settings.CustomDisplayHandle.Value));
-
+            // Sans écran d'accroche connu (débranché, ou configuration qui ne
+            // gardait qu'un HMONITOR, invalide après un redémarrage, n° 34) :
+            // l'écran principal.
             default:
                 return DisplayManager.GetPrimaryDisplay();
         }
