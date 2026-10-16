@@ -94,7 +94,7 @@ double-clic, et elle rentre chez elle.
   <tr>
     <td width="33%" valign="top"><h3>Silencieuse</h3>Presque rien ne tourne quand rien ne se passe : environ 0,15&nbsp;% d'un cœur au repos, <b>Pixel compris</b> (mesuré le 11&nbsp;octobre 2026, deux fois 60&nbsp;s). Seul Pixel, les yeux de la notch, cligne et suit ton curseur.</td>
     <td width="33%" valign="top"><h3>Discrète</h3>Elle s'efface quand un jeu ou une vidéo passe en plein écran, et ne s'ouvre jamais pour un simple changement de volume.</td>
-    <td width="33%" valign="top"><h3>Privée</h3>Aucun compte, aucune télémétrie. Par défaut, la seule connexion est la mise à jour depuis GitHub : toutes les 6&nbsp;h, elle vérifie et télécharge la nouvelle version, puis la notch te la propose ; rien ne s'installe sans ton accord (« Me prévenir » ; « Désactivées » dans les Réglages). La météo, les paroles, Spotify et l'assistant ne se connectent qu'une fois activés. Tout le détail : <a href="PRIVACY.md">PRIVACY.md</a>.</td>
+    <td width="33%" valign="top"><h3>Privée</h3>Aucun compte, aucune télémétrie. Par défaut, la seule connexion est la mise à jour depuis GitHub : toutes les 6&nbsp;h, elle vérifie et télécharge la nouvelle version, puis la notch te la propose ; rien ne s'installe sans ton accord (« Me prévenir » par défaut, ou « Désactivées » dans les Réglages). La météo, les paroles, Spotify et l'assistant ne se connectent qu'une fois activés. Tout le détail : <a href="PRIVACY.md">PRIVACY.md</a>.</td>
   </tr>
   <tr>
     <td width="33%" valign="top"><h3>Noir profond</h3>Un noir OLED pur, des épaules douces et concaves, comme si l'écran avait un peu grandi.</td>

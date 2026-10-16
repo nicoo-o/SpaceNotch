@@ -600,17 +600,17 @@ public sealed class AppSettings
 
     /// <summary>
     /// Mise à jour : vérifie la dernière release, la télécharge, la vérifie,
-    /// puis la propose dans la notch (Me prévenir, par défaut) ou l'installe
-    /// seule au premier moment calme (Automatique). « Me prévenir » par défaut
-    /// depuis le 2026-10-06 (n° 77) : un exécutable non signé ne s'installe
-    /// plus sans qu'on l'ait accepté.
+    /// puis la propose dans la notch (Me prévenir), ou rien (Désactivées).
+    /// « Me prévenir » par défaut depuis le 2026-10-06 (n° 77) ; « Automatique »
+    /// retiré le 2026-10-16 (n° 52, ADR-031) : rien ne s'installe sans
+    /// l'utilisateur tant que les mises à jour ne sont pas signées.
     /// </summary>
     public SpaceNotch.Core.Update.UpdateMode UpdateMode { get; set; } = SpaceNotch.Core.Update.UpdateMode.Notify;
 
     /// <summary>
-    /// Vrai une fois « Me prévenir » appliqué par défaut. Les configurations
-    /// écrites quand « Automatique » était le défaut le reçoivent une fois ;
-    /// remettre « Automatique » ensuite dans Réglages est respecté.
+    /// Vrai une fois « Me prévenir » appliqué par défaut (n° 77). Depuis n° 52,
+    /// <see cref="Sanitize"/> ramène de toute façon « Automatique » à « Me
+    /// prévenir » : cette marque ne sert plus qu'à ne pas rejouer la migration.
     /// </summary>
     public bool UpdateDefaultApplied { get; set; }
 

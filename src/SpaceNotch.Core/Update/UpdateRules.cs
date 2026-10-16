@@ -44,11 +44,6 @@ public enum UpdateAction
     Offer
 }
 
-/// <summary>
-/// Les règles de la mise à jour automatique : quand vérifier, quoi télécharger,
-/// quand installer. Pures et testées ; le réseau, le disque et l'installeur
-/// vivent dans l'application.
-/// </summary>
 /// <summary>Ce que fait l'installeur d'une mise à jour, une fois son travail fini.</summary>
 public enum InstallFollowUp
 {
@@ -62,6 +57,11 @@ public enum InstallFollowUp
     RelaunchReportingFailure = 2
 }
 
+/// <summary>
+/// Les règles de la mise à jour : quand vérifier, quoi télécharger, quand
+/// proposer. Rien ne s'installe sans l'utilisateur (ADR-031). Pures et testées ;
+/// le réseau, le disque et l'installeur vivent dans l'application.
+/// </summary>
 public static class UpdateRules
 {
     /// <summary>Le dépôt dont les releases sont suivies.</summary>
@@ -239,11 +239,9 @@ public static class UpdateRules
     /// <param name="mode">Le réglage de l'utilisateur.</param>
     /// <param name="downloaded">L'installeur est téléchargé et vérifié.</param>
     /// <param name="installed">SpaceNotch est installée (et non portable) : on peut installer par-dessus.</param>
-    /// <param name="idle">Temps depuis la dernière saisie.</param>
-    /// <param name="busy">La notch est ouverte, ou une activité importante (appel, réunion) est en cours.</param>
     /// <param name="postponedUntil">« Plus tard » choisi par l'utilisateur, jusqu'à quand.</param>
     /// <param name="now">Maintenant.</param>
-    public static UpdateAction Decide(UpdateMode mode, bool downloaded, bool installed, TimeSpan idle, bool busy, DateTimeOffset? postponedUntil, DateTimeOffset now)
+    public static UpdateAction Decide(UpdateMode mode, bool downloaded, bool installed, DateTimeOffset? postponedUntil, DateTimeOffset now)
     {
         if (mode == UpdateMode.Off)
         {

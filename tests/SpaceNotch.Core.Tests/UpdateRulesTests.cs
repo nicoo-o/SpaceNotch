@@ -8,8 +8,8 @@ using Xunit;
 namespace SpaceNotch.Core.Tests;
 
 /// <summary>
-/// Mise à jour automatique (v1.17.0) : lecture de la release, empreinte,
-/// décision d'installer, relance après l'installation.
+/// Mise à jour (v1.17.0) : lecture de la release, empreinte, décision de
+/// proposer (rien ne s'installe seul, n° 52), relance après l'installation.
 /// </summary>
 public sealed class UpdateRulesTests
 {
@@ -123,10 +123,8 @@ public sealed class UpdateRulesTests
         UpdateMode mode = UpdateMode.Notify,
         bool downloaded = true,
         bool installed = true,
-        double idleMinutes = 10,
-        bool busy = false,
         DateTimeOffset? postponed = null)
-        => UpdateRules.Decide(mode, downloaded, installed, TimeSpan.FromMinutes(idleMinutes), busy, postponed, Now);
+        => UpdateRules.Decide(mode, downloaded, installed, postponed, Now);
 
     [Fact]
     public void Desactivees_rien_ne_se_passe()
@@ -138,7 +136,6 @@ public sealed class UpdateRulesTests
         // n° 52 : l'empreinte est publiée dans la même release que l'installeur ;
         // tant que rien n'est signé, la mise à jour est proposée, jamais installée seule.
         Assert.Equal(UpdateAction.Offer, Decide(UpdateMode.Automatic));
-        Assert.Equal(UpdateAction.Offer, Decide(UpdateMode.Automatic, idleMinutes: 30));
         Assert.Equal(UpdateAction.None, Decide(UpdateMode.Automatic, postponed: Now.AddHours(1)));
         Assert.Equal(UpdateAction.Download, Decide(UpdateMode.Automatic, downloaded: false));
     }
@@ -146,7 +143,7 @@ public sealed class UpdateRulesTests
     [Fact]
     public void Me_prevenir_propose_et_Plus_tard_se_tait_jusqu_a_l_echeance()
     {
-        Assert.Equal(UpdateAction.Offer, Decide(UpdateMode.Notify, busy: true));
+        Assert.Equal(UpdateAction.Offer, Decide(UpdateMode.Notify));
         Assert.Equal(UpdateAction.None, Decide(UpdateMode.Notify, postponed: Now.AddHours(1)));
         Assert.Equal(UpdateAction.Offer, Decide(UpdateMode.Notify, postponed: Now.AddHours(-1)));
     }

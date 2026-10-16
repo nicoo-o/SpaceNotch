@@ -94,7 +94,7 @@ flows back home.
   <tr>
     <td width="33%" valign="top"><h3>Quiet</h3>Almost nothing runs when nothing happens: about 0.15&nbsp;% of one CPU core at rest, <b>Pixel included</b> (measured on 11&nbsp;October 2026, twice over 60&nbsp;s). Only Pixel, the notch's eyes, blinks and follows your cursor.</td>
     <td width="33%" valign="top"><h3>Respectful</h3>It steps aside when a game or a video goes fullscreen, and never pops open for a volume change.</td>
-    <td width="33%" valign="top"><h3>Private</h3>No account, no telemetry. By default, the only connection is updating from GitHub: every 6&nbsp;h it checks and downloads the new version, then the notch offers it — nothing installs without your OK (“Ask me”; or “Off” in Settings). Weather, lyrics, Spotify and the assistant connect only once you turn them on. Full details: <a href="PRIVACY.md">PRIVACY.md</a>.</td>
+    <td width="33%" valign="top"><h3>Private</h3>No account, no telemetry. By default, the only connection is updating from GitHub: every 6&nbsp;h it checks and downloads the new version, then the notch offers it — nothing installs without your OK (“Ask me” by default, or “Off” in Settings). Weather, lyrics, Spotify and the assistant connect only once you turn them on. Full details: <a href="PRIVACY.md">PRIVACY.md</a>.</td>
   </tr>
   <tr>
     <td width="33%" valign="top"><h3>Deep black</h3>Pure OLED black with soft, concave shoulders, as if the screen itself had grown a little.</td>

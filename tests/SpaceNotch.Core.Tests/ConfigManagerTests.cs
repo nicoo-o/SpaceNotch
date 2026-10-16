@@ -264,9 +264,9 @@ public class ConfigManagerTests : IDisposable
     }
 
     // « Me prévenir » par défaut (n° 77, 2026-10-06). Toutes les configurations
-    // existantes portent « Automatic », choisi ou resté par défaut : rien ne les
-    // distingue. Elles passent une fois à « Me prévenir » ; un « Automatique »
-    // remis ensuite dans les Réglages est respecté.
+    // existantes portaient « Automatic », choisi ou resté par défaut : elles
+    // passent à « Me prévenir ». Depuis n° 52, « Automatique » n'existe plus du
+    // tout : même remis à la main, il revient à « Me prévenir ».
 
     [Fact]
     public void Load_UneInstallationNeuvePrevientAvantDInstaller()
@@ -278,7 +278,7 @@ public class ConfigManagerTests : IDisposable
     }
 
     [Fact]
-    public void Load_UneConfigurationAutomatiquePasseUneFoisAMePrevenir()
+    public void Load_UneConfigurationAutomatiquePasseAMePrevenir()
     {
         var manager = CreateManager();
 
