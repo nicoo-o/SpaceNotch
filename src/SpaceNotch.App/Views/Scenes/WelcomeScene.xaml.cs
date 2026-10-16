@@ -124,8 +124,8 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopi
         // n° 61 : le clic au repos ouvre la recherche et quatre tuiles (ADR-028) ;
         // la présentation enseignait encore le clic droit comme porte d'entrée.
         1 => (French ? "Quatre raccourcis, d'un clic" : "Four shortcuts, one click",
-              French ? "Minuteur, presse-papier, note, et « Plus » pour le reste : détacher la notch, réglages. Le clic droit ouvre ce menu en entier."
-                     : "Timer, clipboard, note, and “More” for the rest: detach the notch, settings. Right-click opens that whole menu."),
+              French ? "Minuteur, presse-papier, note, et « Plus » : détacher, réglages. Clic droit : le menu entier."
+                     : "Timer, clipboard, note, and “More”: detach, settings. Right-click: the whole menu."),
         2 => (French ? "Cherche tout, de partout" : "Search everything, from anywhere",
               French ? "Applications, réglages Windows, fichiers, calculs. Ctrl+K sur un résultat pour plus d'actions."
                      : "Apps, Windows settings, files, math. Ctrl+K on a result for more actions."),
@@ -224,8 +224,8 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopi
                 // Le tableau de bord du clic (ADR-028) : la recherche, puis quatre tuiles.
                 Border menu = MiniNotch(210, 76, 12);
                 var board = new StackPanel { Padding = new Thickness(10, 8, 10, 0), Spacing = 7 };
-                board.Children.Add(Label(French ? "⌕  Rechercher" : "⌕  Search", 10.5, "NfTextSecondaryBrush"));
-                var tiles = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+                board.Children.Add(Label(French ? "⌕  Rechercher" : "⌕  Search", 11, "NfTextSecondaryBrush"));
+                var tiles = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center };
 
                 foreach (string glyph in new[] { "◷", "▭", "✎", "⋯" })
                 {
@@ -247,8 +247,8 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopi
                 menu.Child = board;
                 Place(menu, (CanvasWidth - 210) / 2, -1);
                 var ring = new Ellipse { Width = 22, Height = 22, Stroke = Brush("NfActiveBrush"), StrokeThickness = 1.5 };
-                Place(ring, 232, 14);
-                Place(Cursor(), 238, 20);
+                Place(ring, 248, 36);
+                Place(Cursor(), 254, 42);
                 Loop(ring, "Scale", [new Vector3(0.7f, 0.7f, 1), new Vector3(1.25f, 1.25f, 1), new Vector3(0.7f, 0.7f, 1)], 1.4, center: new Vector3(11, 11, 0));
                 break;
 
