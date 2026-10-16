@@ -1,9 +1,11 @@
 using System;
 using Microsoft.UI.Dispatching;
 using SpaceNotch.Core.Motion;
+using SpaceNotch.Infrastructure.Logging;
 using SpaceNotch.Platform.Windows.Audio;
 using SpaceNotch.Platform.Windows.Power;
 using SpaceNotch.Platform.Windows.Shell;
+using SpaceNotch.Platform.Windows.Win32;
 
 namespace SpaceNotch_App.Windows;
 
@@ -182,46 +184,70 @@ public sealed partial class IslandWindow
     private bool _sessionLocked;
 
     /// <summary>Vrai entre la mise en veille et la reprise (n° 35).</summary>
-    private bool _asleep;
+    private bool _systemAsleep;
+
+    /// <summary>Vrai tant que l'écran est éteint (n° 35).</summary>
+    private bool _displayOff;
+
+    /// <summary>Inscriptions aux notifications de veille et d'écran, libérées à la fermeture.</summary>
+    private (IntPtr SuspendResume, IntPtr Display) _powerNotifications;
 
     /// <summary>
-    /// Veille et reprise (n° 35). Sans mot de passe au réveil, la veille ne passe
-    /// pas par le verrouillage de session : rien n'arrêtait la vie de Pixel et
-    /// les minuteurs, qui repartaient tous en même temps au réveil ; et rien ne
-    /// relisait les écrans ni le plein écran, alors qu'un portable a pu être
-    /// débranché de son écran pendant la veille.
+    /// Veille, reprise et écran (n° 35). Sans mot de passe au réveil, la veille
+    /// ne passe pas par le verrouillage de session : rien n'arrêtait la vie de
+    /// Pixel et les minuteurs, et rien ne relisait les écrans ni le plein écran
+    /// au réveil, alors qu'un portable a pu être débranché de son écran. Sur un
+    /// PC en veille moderne (S0), l'écran s'éteint aussi sans veille : la notch
+    /// s'arrête de même, et reprend quand il se rallume.
     /// </summary>
-    private void OnPowerBroadcast(int change)
+    private void OnPowerBroadcast(int change, IntPtr setting)
     {
-        if (change == SpaceNotch.Platform.Windows.Win32.NativeConstants.PBT_APMSUSPEND)
-        {
-            if (_asleep)
-            {
-                return;
-            }
+        bool wasStopped = _systemAsleep || _displayOff;
 
-            _asleep = true;
-            SpaceNotch.Infrastructure.Logging.MiniLogger.Log("[VEILLE] mise en veille : la notch s'arrête");
+        if (change == NativeConstants.PBT_APMSUSPEND)
+        {
+            _systemAsleep = true;
+        }
+        else if (change is NativeConstants.PBT_APMRESUMEAUTOMATIC or NativeConstants.PBT_APMRESUMESUSPEND)
+        {
+            _systemAsleep = false;
+        }
+        else if (change == NativeConstants.PBT_POWERSETTINGCHANGE
+            && SpaceNotch.Platform.Windows.Shell.PowerNotifications.TryReadDisplayState(setting, out bool on))
+        {
+            _displayOff = !on;
+        }
+        else
+        {
+            return;
+        }
+
+        bool stopped = _systemAsleep || _displayOff;
+
+        if (stopped == wasStopped)
+        {
+            return;
+        }
+
+        if (stopped)
+        {
+            MiniLogger.Log(_systemAsleep ? "[VEILLE] mise en veille : la notch s'arrête" : "[VEILLE] écran éteint : la notch s'arrête");
             SuspendLife(true);
             return;
         }
 
-        // Windows envoie la reprise automatique, puis celle de l'utilisateur
-        // quand il est là : une seule suffit.
-        if ((change == SpaceNotch.Platform.Windows.Win32.NativeConstants.PBT_APMRESUMEAUTOMATIC
-                || change == SpaceNotch.Platform.Windows.Win32.NativeConstants.PBT_APMRESUMESUSPEND)
-            && _asleep)
-        {
-            _asleep = false;
-            SpaceNotch.Infrastructure.Logging.MiniLogger.Log("[VEILLE] reprise : écrans et plein écran relus");
-            ScheduleEnvironmentRefresh();
-            _presence.Recheck();
+        MiniLogger.Log("[VEILLE] reprise : écrans et plein écran relus");
+        ScheduleEnvironmentRefresh();
 
-            // Verrouillée au réveil : c'est le déverrouillage qui la ranimera.
-            if (_islandShown && !_sessionLocked)
-            {
-                SuspendLife(false);
-            }
+        // Relire la présence peut déjà ramener la notch, et ses boucles avec
+        // (retour de plein écran) : ne pas les relancer une seconde fois.
+        bool shownBefore = _islandShown;
+        _presence.Recheck();
+
+        // Verrouillée au réveil : c'est le déverrouillage qui la ranimera.
+        if (shownBefore && _islandShown && !_sessionLocked)
+        {
+            SuspendLife(false);
         }
     }
 

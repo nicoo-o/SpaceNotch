@@ -109,6 +109,12 @@ public static class NativeConstants
 
     /// <summary>WM_POWERBROADCAST : reprise après une veille, toujours envoyée.</summary>
     public const int PBT_APMRESUMEAUTOMATIC = 0x0012;
+
+    /// <summary>WM_POWERBROADCAST : un réglage suivi a changé (ici, l'état de l'écran).</summary>
+    public const int PBT_POWERSETTINGCHANGE = 0x8013;
+
+    /// <summary>Les notifications d'alimentation arrivent à une fenêtre.</summary>
+    public const int DEVICE_NOTIFY_WINDOW_HANDLE = 0;
     public const uint WM_SIZE = 0x0005;
     public const uint WM_SYSCOMMAND = 0x0112;
     public const uint WM_WINDOWPOSCHANGED = 0x0047;
