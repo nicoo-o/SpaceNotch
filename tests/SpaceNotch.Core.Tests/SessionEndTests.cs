@@ -95,4 +95,22 @@ public sealed class SessionEndTests
         Assert.Equal(TimeSpan.FromMinutes(20), pomodoro.Remaining);
         Assert.NotEqual("Session terminée", Assert.Single(activities.GetActiveActivities()).Title);
     }
+
+    [Fact]
+    public async System.Threading.Tasks.Task A_paused_timer_is_still_a_measure_to_keep()
+    {
+        // n° 62 : la tuile « 15 min » écrasait un minuteur en pause.
+        await using var timer = new TimerFeature(new ActivityManager(), new EventBus(), now: () => _now) { TickPeriod = Timeout.InfiniteTimeSpan };
+        Assert.False(timer.HasMeasure);
+
+        timer.StartCountdown(TimeSpan.FromMinutes(5));
+        _now += TimeSpan.FromMinutes(1);
+        timer.Toggle();
+
+        Assert.False(timer.IsMeasuring);
+        Assert.True(timer.HasMeasure);
+
+        timer.Reset();
+        Assert.False(timer.HasMeasure);
+    }
 }
