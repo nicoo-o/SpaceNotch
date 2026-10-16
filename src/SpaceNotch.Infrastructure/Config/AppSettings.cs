@@ -208,7 +208,12 @@ public sealed class AppSettings
 
     public IslandDisplayMode DisplayMode { get; set; } = IslandDisplayMode.Primary;
 
-    /// <summary>Identifiant du moniteur lorsque <see cref="DisplayMode"/> vaut <c>Custom</c>.</summary>
+    /// <summary>
+    /// Ancien repère de l'écran choisi : un <c>HMONITOR</c>, qui change à chaque
+    /// démarrage et peut alors désigner un autre écran (n° 34). Gardé pour relire
+    /// une configuration ancienne, toujours remis à zéro par <see cref="Sanitize"/> :
+    /// l'écran se retrouve par <see cref="DockDisplayBounds"/>, son rectangle.
+    /// </summary>
     public long? CustomDisplayHandle { get; set; }
 
     public CameraCutoutMode CutoutMode { get; set; } = CameraCutoutMode.None;
@@ -1001,6 +1006,9 @@ public sealed class AppSettings
 
         StretchAmount = Clamp(StretchAmount, 0, 0.10, FluidMotion.MaximumStretch);
         TearDistance = Clamp(TearDistance, Detachment.MinimumTearDistance, Detachment.MaximumTearDistance, Detachment.TearDistance);
+
+        // n° 34 : un HMONITOR enregistré ne survit pas au redémarrage.
+        CustomDisplayHandle = null;
 
         // « Automatique » est retiré (n° 52) : une configuration qui l'avait garde
         // les mises à jour, proposées au lieu d'installées seules.
