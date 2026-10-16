@@ -118,7 +118,7 @@ public sealed record LauncherPayload(
 /// <param name="SideEdgesAllowed">Faux si les réglages limitent la notch au haut de l'écran.</param>
 /// <param name="HasClipboard">Vrai si l'historique du presse-papier a quelque chose à montrer.</param>
 /// <param name="HasShelf">Vrai si l'étagère contient des fichiers.</param>
-/// <param name="TimerRunning">Vrai si un minuteur tourne : la ligne propose de l'arrêter.</param>
+/// <param name="TimerRunning">Vrai si un minuteur tourne ou est en pause : la ligne propose de l'arrêter.</param>
 public sealed record QuickMenuPayload(
     string? Hotkey,
     bool DockExpanded,

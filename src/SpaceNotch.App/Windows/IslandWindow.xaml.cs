@@ -901,6 +901,14 @@ public sealed partial class IslandWindow : Window
                 _activityManager.PinPresentation(null);
             }
 
+            // Le minuteur montré par sa tuile (n° 62) : épinglé sans bail (activité
+            // passive), un minuteur en pause oublié gardait la tête de pile.
+            if (folding && _timerPinnedByTile)
+            {
+                _timerPinnedByTile = false;
+                _activityManager.PinPresentation(null);
+            }
+
             if (folding && _quickMenuFeature.IsClipboardOfferShown)
             {
                 _quickMenuFeature.WithdrawClipboardOffer();
@@ -1374,6 +1382,7 @@ public sealed partial class IslandWindow : Window
             {
                 launcherTiles.ClipboardEmpty = !HasActivity(ClipboardFeature.ActivityId);
                 launcherTiles.ClipboardOff = !_settings.ShowClipboard;
+                launcherTiles.TimerActive = _timerFeature.HasMeasure;
             }
 
             scene.Apply(activity);
