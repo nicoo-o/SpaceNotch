@@ -118,11 +118,14 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopi
     private static (string Title, string Description) Texts(WelcomePayload payload) => payload.Step switch
     {
         0 => (French ? "Bienvenue dans SpaceNotch" : "Welcome to SpaceNotch",
-              French ? "Survole la notch pour un aperçu, clique pour l'ouvrir. Échap ou un clic ailleurs la referme."
-                     : "Hover the notch for a peek, click to open it. Esc or a click elsewhere closes it."),
-        1 => (French ? "Clic droit : le menu rapide" : "Right-click: the quick menu",
-              French ? "Minuteur, presse-papier, détacher la notch, réglages — tout est à un clic droit."
-                     : "Timer, clipboard, detach, settings — all one right-click away."),
+              French ? "Survole la notch pour un aperçu. Clique : la recherche et quatre raccourcis. Échap ou un clic ailleurs la referme."
+                     : "Hover the notch for a peek. Click: search and four shortcuts. Esc or a click elsewhere closes it."),
+
+        // n° 61 : le clic au repos ouvre la recherche et quatre tuiles (ADR-028) ;
+        // la présentation enseignait encore le clic droit comme porte d'entrée.
+        1 => (French ? "Quatre raccourcis, d'un clic" : "Four shortcuts, one click",
+              French ? "Minuteur, presse-papier, note, et « Plus » : détacher, réglages. Clic droit : le menu entier."
+                     : "Timer, clipboard, note, and “More”: detach, settings. Right-click: the whole menu."),
         2 => (French ? "Cherche tout, de partout" : "Search everything, from anywhere",
               French ? "Applications, réglages Windows, fichiers, calculs. Ctrl+K sur un résultat pour plus d'actions."
                      : "Apps, Windows settings, files, math. Ctrl+K on a result for more actions."),
@@ -213,21 +216,39 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopi
                 UIElement cursor = Place(Cursor(), 98, 12);
                 Place(Label("→", 18, "NfTextTertiaryBrush"), 172, 16);
                 Place(PlayingNotch(), 214, -1);
-                Place(Label(French ? "survol → aperçu · clic → ouvrir" : "hover → peek · click → open", 11, "NfTextTertiaryBrush"), 12, CanvasHeight - 24);
+                Place(Label(French ? "survol → aperçu · clic → recherche et raccourcis" : "hover → peek · click → search and shortcuts", 11, "NfTextTertiaryBrush"), 12, CanvasHeight - 24);
                 Loop(cursor, "Translation", [Vector3.Zero, new Vector3(8, 4, 0), Vector3.Zero], 1.6);
                 break;
 
             case 1:
-                Border menu = MiniNotch(150, 76, 12);
-                var lines = new StackPanel { Padding = new Thickness(10, 8, 10, 0), Spacing = 3 };
-                lines.Children.Add(Label(French ? "⌕  Rechercher" : "⌕  Search", 10.5, "NfTextPrimaryBrush"));
-                lines.Children.Add(Label(French ? "◷  Minuteur" : "◷  Timer", 10.5, "NfTextSecondaryBrush"));
-                lines.Children.Add(Label(French ? "▭  Presse-papier" : "▭  Clipboard", 10.5, "NfTextSecondaryBrush"));
-                menu.Child = lines;
-                Place(menu, (CanvasWidth - 150) / 2, -1);
+                // Le tableau de bord du clic (ADR-028) : la recherche, puis quatre tuiles.
+                Border menu = MiniNotch(210, 76, 12);
+                var board = new StackPanel { Padding = new Thickness(10, 8, 10, 0), Spacing = 7 };
+                board.Children.Add(Label(French ? "⌕  Rechercher" : "⌕  Search", 11, "NfTextSecondaryBrush"));
+                var tiles = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center };
+
+                foreach (string glyph in new[] { "◷", "▭", "✎", "⋯" })
+                {
+                    TextBlock symbol = Label(glyph, 12, "NfTextPrimaryBrush");
+                    symbol.HorizontalAlignment = HorizontalAlignment.Center;
+                    symbol.VerticalAlignment = VerticalAlignment.Center;
+
+                    tiles.Children.Add(new Border
+                    {
+                        Width = 39,
+                        Height = 30,
+                        CornerRadius = new CornerRadius(6),
+                        Background = new SolidColorBrush(ColorHelper.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)),
+                        Child = symbol
+                    });
+                }
+
+                board.Children.Add(tiles);
+                menu.Child = board;
+                Place(menu, (CanvasWidth - 210) / 2, -1);
                 var ring = new Ellipse { Width = 22, Height = 22, Stroke = Brush("NfActiveBrush"), StrokeThickness = 1.5 };
-                Place(ring, 232, 14);
-                Place(Cursor(), 238, 20);
+                Place(ring, 248, 36);
+                Place(Cursor(), 254, 42);
                 Loop(ring, "Scale", [new Vector3(0.7f, 0.7f, 1), new Vector3(1.25f, 1.25f, 1), new Vector3(0.7f, 0.7f, 1)], 1.4, center: new Vector3(11, 11, 0));
                 break;
 

@@ -2446,9 +2446,9 @@ public sealed partial class IslandWindow : Window
             case IslandDisplayMode.Custom when FindDisplayByBounds(_settings.DockDisplayBounds) is { } docked:
                 return docked;
 
-            case IslandDisplayMode.Custom when _settings.CustomDisplayHandle is > 0:
-                return DisplayManager.FromMonitor(new IntPtr(_settings.CustomDisplayHandle.Value));
-
+            // Sans écran d'accroche connu (débranché, ou configuration qui ne
+            // gardait qu'un HMONITOR, invalide après un redémarrage, n° 34) :
+            // l'écran principal.
             default:
                 return DisplayManager.GetPrimaryDisplay();
         }
@@ -3268,6 +3268,11 @@ public sealed partial class IslandWindow : Window
         bool resumed = _hoverLeaveTimer is { IsRunning: true };
         _hoverLeaveTimer?.Stop();
 
+        if (!resumed)
+        {
+            _pointerEnteredAt = Environment.TickCount64;
+        }
+
         // La main qui tient la notch passe sans cesse sur elle : ce n'est pas un
         // survol, et la forme ne doit pas changer sous elle.
         if (_dragPhase != DragPhase.None)
@@ -3756,8 +3761,14 @@ public sealed partial class IslandWindow : Window
 
         // Au repos, la molette ne sort la pile (une copie) qu'après la pose du
         // survol : défiler sur les onglets du navigateur, sous la lèvre, ne doit
-        // rien faire apparaître pendant 8 s.
-        if (_controller.PresentedActivity is null && _controller.State != IslandState.Preview)
+        // rien faire apparaître pendant 8 s. Sans aperçu au survol, la pose se
+        // mesure au temps passé sur la notch (n° 64).
+        if (!SpaceNotch.Core.Presentation.NotchGestures.WheelReachesStack(
+            _controller.PresentedActivity is not null,
+            _controller.State == IslandState.Preview,
+            _settings.HoverToPreview,
+            PointerRested(),
+            _controller.PresentedActivity is null && PixelAtRest ? RestPreviewDwell : PreviewEnterDwell))
         {
             return;
         }
@@ -3770,6 +3781,19 @@ public sealed partial class IslandWindow : Window
     }
 
     private long _lastSwipe;
+
+    /// <summary>Entrée du pointeur sur la notch (n° 64), en millisecondes depuis le démarrage ; <c>null</c> avant la première.</summary>
+    private long? _pointerEnteredAt;
+
+    /// <summary>
+    /// Temps passé par le pointeur sur la notch. Sans entrée vue (notch apparue
+    /// sous un pointeur immobile), zéro : la soustraction depuis une sentinelle
+    /// débordait un TimeSpan (relecture de #93).
+    /// </summary>
+    private TimeSpan PointerRested()
+        => _pointerEnteredAt is { } entered
+            ? TimeSpan.FromMilliseconds(Math.Max(0, Environment.TickCount64 - entered))
+            : TimeSpan.Zero;
 
     /// <summary>Envoie une commande au lecteur en cours, s'il y en a un.</summary>
     private async Task SendMediaActionAsync(string actionId)
