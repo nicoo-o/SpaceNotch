@@ -82,6 +82,26 @@ public static class WindowsSetup
     public static InstalledProduct? FindInstalled()
         => FindInstalled(InstallScope.CurrentUser) ?? FindInstalled(InstallScope.AllUsers);
 
+    /// <summary>
+    /// Les choix d'une installation tels qu'ils sont <em>aujourd'hui</em>, pour
+    /// une mise à jour : l'inscription au démarrage et le raccourci du bureau
+    /// lus sur la machine, pas les cases cochées à l'installation. Une mise à
+    /// jour rallumait sinon un démarrage éteint dans les Réglages, et recréait
+    /// un raccourci supprimé (n° 17).
+    /// </summary>
+    public static InstallOptions CurrentChoices(InstalledProduct product)
+    {
+        ArgumentNullException.ThrowIfNull(product);
+
+        InstallLayout layout = InstallLayout.For(product.Options.Scope, Folders());
+
+        return product.Options with
+        {
+            StartWithWindows = StartupRegistration.IsRegistered(StartupRegistration.BuildCommand(product.Executable)),
+            DesktopShortcut = File.Exists(layout.DesktopShortcut)
+        };
+    }
+
     /// <summary>SpaceNotch installée dans une portée précise, ou <c>null</c>.</summary>
     public static InstalledProduct? FindInstalled(InstallScope only)
     {
@@ -347,8 +367,11 @@ public static class WindowsSetup
 
         try
         {
-            // Préférence de l'utilisateur : retirée ici, dans sa ruche.
+            // Préférence de l'utilisateur : retirée ici, dans sa ruche, avec la
+            // marque « désactivée » que Windows aurait posée : une réinstallation
+            // qui demande le démarrage le retrouverait sinon éteint.
             StartupRegistration.SetEnabled(false, StartupRegistration.BuildCommand(product.Executable), out _);
+            StartupRegistration.ClearWindowsDisable();
 
             // Les clés (Claude, Spotify, Discord) sont dans le coffre de
             // l'utilisateur : retirées depuis son processus, jamais élevé.
