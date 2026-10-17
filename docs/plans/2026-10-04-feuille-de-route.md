@@ -67,11 +67,11 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 65, 66, 17 | « Démarrer avec Windows » faux ; copie de dev qui inscrit son chemin ; mise à jour qui réapplique les choix d'installation | #91 | fusionnée : `StartupApproved` lu ; l'exécutable installé visé ; la mise à jour passe les choix d'aujourd'hui ; **état à l'écran non vu** (registre virtualisé dans l'instance de dev) |
 | 61 | Présentation du premier lancement | #92 | fusionnée : le clic et ses quatre raccourcis ; capture des cartes |
 | 64 | Molette au repos sans aperçu au survol | #93 | fusionnée : la pose du pointeur suffit ; test |
-| 97 | Goutte éteinte : celle du dernier arrachement redessinée | #94 | **ouverte** |
-| 35 | Veille et reprise | #95 | **ouverte** : veille, reprise, et écran éteint (veille moderne S0, celle du PC de l'auteur) ; **prouvé** pour veille et reprise par messages simulés ; écran éteint non simulable |
-| 16 | Désinstallation incomplète | #96 | **ouverte** : installeurs téléchargés toujours effacés, hooks de Claude Code retirés |
-| 20 | Installeur : échec muet, deux UAC | #97 | **ouverte** : raison et chemin du journal affichés ; une seule élévation pour tous |
-| 12 | Notifications Windows impossibles à activer après coup | #98 | **ouverte** : « Activer » dans les Réglages, puis redémarrage de la notch |
+| 97 | Goutte éteinte : celle du dernier arrachement redessinée | #94 | fusionnée |
+| 35 | Veille et reprise | #95 | fusionnée : veille, reprise, et écran éteint (veille moderne S0, celle du PC de l'auteur) ; **prouvé** pour veille et reprise par messages simulés ; écran éteint non simulable |
+| 16 | Désinstallation incomplète | #96 | fusionnée : installeurs téléchargés toujours effacés, hooks de Claude Code retirés |
+| 20 | Installeur : échec muet, deux UAC | #97 | fusionnée : raison et chemin du journal affichés ; une seule élévation pour tous |
+| 12 | Notifications Windows impossibles à activer après coup | #98 | fusionnée : « Activer » dans les Réglages, puis redémarrage de la notch |
 | 19 | Alt+Espace pris globalement | — | **clos sans changement** : l'auteur garde Alt+Espace (2026-10-16) |
 
 ## Sans objet pour un projet gratuit
