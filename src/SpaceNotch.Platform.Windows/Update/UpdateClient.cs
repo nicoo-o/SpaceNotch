@@ -36,7 +36,7 @@ public sealed class UpdateClient : IDisposable
     public static string UpdatesDirectory => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         SetupIdentity.ProductName,
-        "updates");
+        InstallLayout.UpdatesFolder);
 
     /// <summary>La dernière release publiée, ou <c>null</c> (hors ligne, limite atteinte, release inutilisable).</summary>
     public async Task<ReleaseInfo?> LatestAsync(CancellationToken cancellationToken = default)

@@ -77,7 +77,10 @@ internal static class SetupRunner
 
                     if (product is not null)
                     {
-                        await Task.Run(() => WindowsSetup.RemoveFiles(product, command.RemoveSettings, Log, command.CallerProcessId)).ConfigureAwait(false);
+                        // Le dossier de la machine seulement : ce processus tourne
+                        // souvent sous un autre compte que celui de l'utilisateur,
+                        // qui efface ses propres dossiers (relecture de #96).
+                        await Task.Run(() => WindowsSetup.RemoveFiles(product, command.RemoveSettings, Log, command.CallerProcessId, userFolders: false)).ConfigureAwait(false);
 
                         // Déjà élevé : le certificat SpaceNotch quitte aussi le magasin
                         // de l'ordinateur (clé privée détruite, il reste inoffensif sinon).

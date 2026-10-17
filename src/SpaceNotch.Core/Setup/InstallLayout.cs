@@ -87,22 +87,37 @@ public sealed record InstallLayout(
 
     /// <summary>
     /// Ce que la désinstallation efface, une fois le processus terminé : le
-    /// dossier d'installation, le cache d'extraction de l'exécutable unique et,
-    /// sur demande, les réglages et journaux. Les greffons restent : ce sont les
-    /// fichiers de l'utilisateur.
+    /// dossier d'installation, le cache d'extraction de l'exécutable unique, les
+    /// installeurs de mise à jour téléchargés et, sur demande, les réglages et
+    /// journaux. Les greffons restent : ce sont les fichiers de l'utilisateur.
     /// </summary>
+    /// <summary>Dossier des installeurs de mise à jour, sous %LocalAppData%\SpaceNotch.</summary>
+    public const string UpdatesFolder = "updates";
+
     public IReadOnlyList<string> LeftoversAfterExit(SystemFolders folders, bool removeSettings)
+        => [Directory, .. UserLeftovers(folders, removeSettings)];
+
+    /// <summary>
+    /// Les restes qui appartiennent à l'utilisateur, dans son profil : caches
+    /// d'extraction, installeurs téléchargés et, sur demande, réglages et
+    /// journaux. Effacés par <em>son</em> processus : pour une installation pour
+    /// tous, le processus élevé tourne souvent sous un autre compte, et effaçait
+    /// les dossiers de l'administrateur au lieu des siens (relecture de #96).
+    /// </summary>
+    public static IReadOnlyList<string> UserLeftovers(SystemFolders folders, bool removeSettings)
     {
         ArgumentNullException.ThrowIfNull(folders);
 
         var paths = new List<string>
         {
-            Directory,
-
             // Chaque exécutable unique s'extrait sous %TEMP%\.net\<son nom> :
             // l'application installée, et l'installeur qui l'a posée.
             WindowsPath.Join(folders.Temp, ".net", SetupIdentity.ProcessName),
-            WindowsPath.Join(folders.Temp, ".net", SetupIdentity.ProcessName + "-Setup")
+            WindowsPath.Join(folders.Temp, ".net", SetupIdentity.ProcessName + "-Setup"),
+
+            // Les installeurs téléchargés par la mise à jour (des dizaines de
+            // Mo) : ce ne sont pas des réglages, ils partent toujours (n° 16).
+            WindowsPath.Join(folders.LocalAppData, SetupIdentity.ProductName, UpdatesFolder)
         };
 
         if (removeSettings)

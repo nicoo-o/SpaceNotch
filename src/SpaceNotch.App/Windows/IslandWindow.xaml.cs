@@ -280,6 +280,10 @@ public sealed partial class IslandWindow : Window
 
         // Bonjour et au revoir (vague 7) : la fenêtre apprend le verrouillage de session.
         _ = SpaceNotch.Platform.Windows.Shell.SessionNotifications.Register(_hWnd);
+
+        // Veille et écran éteint (n° 35) : inscrits, pour la veille moderne (S0).
+        _powerNotifications = SpaceNotch.Platform.Windows.Shell.PowerNotifications.Register(_hWnd);
+        MiniLogger.Log($"[VEILLE] inscrite : veille {(_powerNotifications.SuspendResume != IntPtr.Zero ? "oui" : "non")}, écran {(_powerNotifications.Display != IntPtr.Zero ? "oui" : "non")}");
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hWnd);
         _appWindow = AppWindow.GetFromWindowId(windowId);
         AppIcon.ApplyTo(_appWindow);
@@ -2610,6 +2614,11 @@ public sealed partial class IslandWindow : Window
             OnSessionChange((int)e.Message.WParam);
         }
 
+        if (e.Message.MessageId == SpaceNotch.Platform.Windows.Win32.NativeConstants.WM_POWERBROADCAST)
+        {
+            OnPowerBroadcast((int)e.Message.WParam, e.Message.LParam);
+        }
+
         if (_screenWatcher.HandleMessage(e.Message.MessageId, e.Message.WParam))
         {
             ScheduleEnvironmentRefresh();
@@ -3268,6 +3277,11 @@ public sealed partial class IslandWindow : Window
         bool resumed = _hoverLeaveTimer is { IsRunning: true };
         _hoverLeaveTimer?.Stop();
 
+        if (!resumed)
+        {
+            _pointerEnteredAt = Environment.TickCount64;
+        }
+
         // La main qui tient la notch passe sans cesse sur elle : ce n'est pas un
         // survol, et la forme ne doit pas changer sous elle.
         if (_dragPhase != DragPhase.None)
@@ -3756,8 +3770,14 @@ public sealed partial class IslandWindow : Window
 
         // Au repos, la molette ne sort la pile (une copie) qu'après la pose du
         // survol : défiler sur les onglets du navigateur, sous la lèvre, ne doit
-        // rien faire apparaître pendant 8 s.
-        if (_controller.PresentedActivity is null && _controller.State != IslandState.Preview)
+        // rien faire apparaître pendant 8 s. Sans aperçu au survol, la pose se
+        // mesure au temps passé sur la notch (n° 64).
+        if (!SpaceNotch.Core.Presentation.NotchGestures.WheelReachesStack(
+            _controller.PresentedActivity is not null,
+            _controller.State == IslandState.Preview,
+            _settings.HoverToPreview,
+            PointerRested(),
+            _controller.PresentedActivity is null && PixelAtRest ? RestPreviewDwell : PreviewEnterDwell))
         {
             return;
         }
@@ -3770,6 +3790,19 @@ public sealed partial class IslandWindow : Window
     }
 
     private long _lastSwipe;
+
+    /// <summary>Entrée du pointeur sur la notch (n° 64), en millisecondes depuis le démarrage ; <c>null</c> avant la première.</summary>
+    private long? _pointerEnteredAt;
+
+    /// <summary>
+    /// Temps passé par le pointeur sur la notch. Sans entrée vue (notch apparue
+    /// sous un pointeur immobile), zéro : la soustraction depuis une sentinelle
+    /// débordait un TimeSpan (relecture de #93).
+    /// </summary>
+    private TimeSpan PointerRested()
+        => _pointerEnteredAt is { } entered
+            ? TimeSpan.FromMilliseconds(Math.Max(0, Environment.TickCount64 - entered))
+            : TimeSpan.Zero;
 
     /// <summary>Envoie une commande au lecteur en cours, s'il y en a un.</summary>
     private async Task SendMediaActionAsync(string actionId)
@@ -4739,6 +4772,7 @@ public sealed partial class IslandWindow : Window
         Safely("miroir", () => _mirror?.Dispose());
         Safely("crête-mètre", SpaceNotch.Platform.Windows.Audio.AudioPeakMeter.DisposeShared);
         Safely("messages", () => _messageMonitor?.Dispose());
+        Safely("veille", () => SpaceNotch.Platform.Windows.Shell.PowerNotifications.Unregister(_powerNotifications));
         Safely("halo", () =>
         {
             _atmosphere.Displaced -= OnHaloDisplaced;
