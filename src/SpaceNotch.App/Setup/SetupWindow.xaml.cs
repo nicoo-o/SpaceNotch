@@ -663,6 +663,16 @@ public sealed partial class SetupWindow : Window
         int newline = reason.IndexOfAny(['\r', '\n']);
         reason = newline > 0 ? reason[..newline] : reason;
 
+        // « Installation interrompue : System.IO.IOException: … » : le type de
+        // l'exception n'apprend rien à l'utilisateur, le journal le garde.
+        int type = reason.IndexOf("Exception: ", StringComparison.Ordinal);
+
+        if (type > 0)
+        {
+            int start = reason.LastIndexOf(": ", type, StringComparison.Ordinal);
+            reason = (start > 0 ? reason[..(start + 2)] : string.Empty) + reason[(type + "Exception: ".Length)..];
+        }
+
         return reason + "\n" + log;
     }
 
