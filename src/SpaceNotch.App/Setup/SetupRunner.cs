@@ -51,6 +51,16 @@ internal static class SetupRunner
                     InstallLayout layout = InstallLayout.For(command.Options.Scope, WindowsSetup.Folders());
                     string certificate = System.IO.Path.Combine(layout.Directory, IdentityPackage.CertificateFileName);
 
+                    // Installation pour ce compte, élevée par un autre compte : le
+                    // dossier calculé ici est celui de l'administrateur. Le
+                    // certificat est alors pris à côté de cet exécutable — lancé
+                    // depuis l'installation (relecture de #98) ; l'empreinte
+                    // inscrite dans l'exécutable reste la vraie garde.
+                    if (!System.IO.File.Exists(certificate))
+                    {
+                        certificate = System.IO.Path.Combine(AppContext.BaseDirectory, IdentityPackage.CertificateFileName);
+                    }
+
                     return IdentityPackage.TrustCertificate(certificate, Log) ? Succeeded : Failed;
                 }
 

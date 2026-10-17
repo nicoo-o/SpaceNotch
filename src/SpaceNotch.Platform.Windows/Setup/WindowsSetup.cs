@@ -98,7 +98,12 @@ public static class WindowsSetup
         return product.Options with
         {
             StartWithWindows = StartupRegistration.IsRegistered(StartupRegistration.BuildCommand(product.Executable)),
-            DesktopShortcut = File.Exists(layout.DesktopShortcut)
+            DesktopShortcut = File.Exists(layout.DesktopShortcut),
+
+            // Activées après coup depuis les Réglages (n° 12) : une installation
+            // pour tous n'a pas pu le noter dans la ruche de l'ordinateur ; la
+            // notch qui se met à jour porte l'identité, c'est la preuve.
+            WindowsNotifications = product.Options.WindowsNotifications || IdentityPackage.HasIdentity
         };
     }
 
@@ -258,16 +263,18 @@ public static class WindowsSetup
             InstallLayout layout = InstallLayout.For(product.Options.Scope, Folders());
             string package = Path.Combine(layout.Directory, IdentityPackage.FileName);
 
-            if (!File.Exists(package))
+            if (!File.Exists(package) || !File.Exists(Path.Combine(layout.Directory, IdentityPackage.CertificateFileName)))
             {
-                log?.Invoke("[IDENTITÉ] Paquet d'identité absent du dossier d'installation : notifications impossibles.");
+                log?.Invoke("[IDENTITÉ] Paquet ou certificat d'identité absent du dossier d'installation : notifications impossibles.");
                 return false;
             }
 
-            await TrustIdentityCertificateAsync(layout, product.Executable, log).ConfigureAwait(false);
+            // L'exécutable de la machine, pas celui que dit le registre.
+            await TrustIdentityCertificateAsync(layout, layout.Executable, log).ConfigureAwait(false);
 
             if (!IdentityPackage.IsCertificateTrusted())
             {
+                log?.Invoke("[IDENTITÉ] Certificat non approuvé : notifications non activées.");
                 return false;
             }
 
@@ -278,7 +285,7 @@ public static class WindowsSetup
 
             // Noté pour les mises à jour ; une installation pour tous garde son
             // entrée dans la ruche de l'ordinateur, que l'on ne réécrit pas sans
-            // droits : la mise à jour lit de toute façon l'identité présente.
+            // droits : CurrentChoices lit l'identité de la notch qui se met à jour.
             if (product.Options.Scope == InstallScope.CurrentUser)
             {
                 using RegistryKey? key = Registry.CurrentUser.OpenSubKey(SetupIdentity.UninstallKeyPath, writable: true);
@@ -295,22 +302,18 @@ public static class WindowsSetup
         }
     }
 
-    /// <summary>Relance la notch installée une fois ce processus sorti (n° 12).</summary>
+    /// <summary>
+    /// Lance la notch installée, qui attendra la sortie de ce processus avant de
+    /// prendre la place (n° 12, <see cref="RestartArgument"/>).
+    /// </summary>
     public static bool RelaunchAfterExit(string executable)
     {
-        if (SelfDelete.RelaunchAfterExit(executable) is not { } arguments)
+        if (!File.Exists(executable))
         {
             return false;
         }
 
-        using Process? _ = Process.Start(new ProcessStartInfo("cmd.exe", arguments)
-        {
-            CreateNoWindow = true,
-            UseShellExecute = false,
-            WindowStyle = ProcessWindowStyle.Hidden,
-            WorkingDirectory = Path.GetTempPath()
-        });
-
+        Launch(executable, RestartArgument.For(Environment.ProcessId));
         return true;
     }
 

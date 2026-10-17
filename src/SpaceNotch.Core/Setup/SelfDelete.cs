@@ -53,24 +53,6 @@ public static class SelfDelete
         return "/d /c " + string.Join(" & ", commands);
     }
 
-    /// <summary>
-    /// Arguments de <c>cmd.exe</c> qui relancent la notch une fois ce processus
-    /// sorti (n° 12) : lancée tout de suite, la nouvelle trouverait le verrou
-    /// d'instance unique encore tenu et s'arrêterait. <c>null</c> pour un chemin
-    /// qui casserait la commande.
-    /// </summary>
-    public static string? RelaunchAfterExit(string executable)
-    {
-        ArgumentNullException.ThrowIfNull(executable);
-
-        if (executable.Contains('"', StringComparison.Ordinal) || !IsRooted(executable))
-        {
-            return null;
-        }
-
-        return $"/d /c ping -n 3 127.0.0.1 > nul & start \"\" \"{executable}\"";
-    }
-
     /// <summary>Un chemin absolu à lettre de lecteur, profond d'au moins deux dossiers : jamais la racine d'un disque.</summary>
     private static bool IsRooted(string path)
         => path.Length > 3

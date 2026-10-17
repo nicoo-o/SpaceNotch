@@ -67,8 +67,8 @@ public sealed partial class SettingsWindow : Window
     /// <summary>« Revoir la présentation » : la notch la rejoue (fourni par la fenêtre de la notch).</summary>
     public Action? ReplayWelcome { get; set; }
 
-    /// <summary>Redémarre la notch (notifications activées après coup, n° 12).</summary>
-    public Action? RestartNotch { get; set; }
+    /// <summary>Redémarre la notch (notifications activées après coup, n° 12) ; faux si c'est impossible.</summary>
+    public Func<bool>? RestartNotch { get; set; }
 
     /// <summary>Notifications activées depuis les Réglages : elles attendent le redémarrage de la notch.</summary>
     private bool _notificationsAwaitRestart;
@@ -1761,7 +1761,11 @@ public sealed partial class SettingsWindow : Window
             _ when _notificationsAwaitRestart => (Lang.T("Prêtes au redémarrage", "Ready after a restart"), dim, Lang.T("Redémarrer la notch", "Restart the notch")),
 
             // Installée sans les notifications Windows (n° 12) : elles s'activent
-            // ici, au lieu de demander de réinstaller.
+            // ici, au lieu de demander de réinstaller — sauf si l'exécutable
+            // installé a son identité éteinte (variante manquante) : redémarrer
+            // n'y changerait rien.
+            _ when InstalledWithoutNotifications() is { } product && !SpaceNotch.Platform.Windows.Setup.IdentityManifestFile.IsOn(InstalledExecutable(product))
+                => (Lang.T("Réinstalle SpaceNotch pour les activer", "Reinstall SpaceNotch to turn them on"), dim, null),
             _ when InstalledWithoutNotifications() is not null => (Lang.T("Pas activées à l'installation", "Not turned on at install"), dim, Lang.T("Activer", "Turn on")),
             _ => (Lang.T("Demande SpaceNotch installé", "Requires SpaceNotch to be installed"), dim, null)
         };
@@ -1784,7 +1788,11 @@ public sealed partial class SettingsWindow : Window
             {
                 if (_notificationsAwaitRestart)
                 {
-                    RestartNotch?.Invoke();
+                    if (RestartNotch?.Invoke() != true)
+                    {
+                        StatusText.Text = Lang.T("Redémarrage impossible : quitte la notch et relance-la depuis le menu Démarrer.", "Couldn't restart: quit the notch and start it again from the Start menu.");
+                    }
+
                     return;
                 }
 
@@ -1832,9 +1840,18 @@ public sealed partial class SettingsWindow : Window
     private static SpaceNotch.Core.Setup.InstalledProduct? InstalledWithoutNotifications()
         => !SpaceNotch.Platform.Windows.Setup.IdentityPackage.HasIdentity
             && SpaceNotch.Platform.Windows.Setup.WindowsSetup.FindInstalled() is { } product
-            && File.Exists(product.Executable)
+            && File.Exists(InstalledExecutable(product))
+
+            // Seulement dans la notch installée elle-même : une copie de
+            // développement ou une version portable à côté ne doit pas
+            // l'activer pour une autre (relecture de #98).
+            && string.Equals(Environment.ProcessPath, InstalledExecutable(product), StringComparison.OrdinalIgnoreCase)
                 ? product
                 : null;
+
+    /// <summary>L'exécutable de l'installation, tel que SpaceNotch le place — pas tel que le dit le registre.</summary>
+    private static string InstalledExecutable(SpaceNotch.Core.Setup.InstalledProduct product)
+        => SpaceNotch.Core.Setup.InstallLayout.For(product.Options.Scope, SpaceNotch.Platform.Windows.Setup.WindowsSetup.Folders()).Executable;
 
     private void ShowIgnoredApps(List<string> apps)
     {

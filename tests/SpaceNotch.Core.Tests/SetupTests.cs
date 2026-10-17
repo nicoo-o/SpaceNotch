@@ -357,17 +357,14 @@ public class SelfDeleteTests
     }
 
     [Fact]
-    public void A_restart_waits_for_this_process_to_exit_then_starts_the_installed_notch()
+    public void A_restart_names_the_process_to_wait_for()
     {
-        // n° 12 : lancée tout de suite, la nouvelle notch trouverait le verrou
-        // d'instance unique encore tenu.
-        string? arguments = SelfDelete.RelaunchAfterExit(@"C:\Users\ana\AppData\Local\Programs\SpaceNotch\SpaceNotch.exe");
-
-        Assert.NotNull(arguments);
-        Assert.StartsWith("/d /c ping -n 3 127.0.0.1 > nul & start", arguments, System.StringComparison.Ordinal);
-        Assert.EndsWith("\"C:\\Users\\ana\\AppData\\Local\\Programs\\SpaceNotch\\SpaceNotch.exe\"", arguments, System.StringComparison.Ordinal);
-
-        Assert.Null(SelfDelete.RelaunchAfterExit(@"C:\a\b\x\"" & del *.exe"));
-        Assert.Null(SelfDelete.RelaunchAfterExit(@"C:\x.exe"));
+        // n° 12, relecture de #98 : la nouvelle notch attend la sortie de
+        // l'ancienne au lieu de compter sur un délai.
+        Assert.Equal("--after-pid=4242", RestartArgument.For(4242));
+        Assert.Equal(4242, RestartArgument.Parse(["SpaceNotch.exe", "--after-pid=4242"]));
+        Assert.Null(RestartArgument.Parse(["SpaceNotch.exe", "--settings"]));
+        Assert.Null(RestartArgument.Parse(["--after-pid=-3"]));
+        Assert.Null(RestartArgument.Parse(["--after-pid=abc"]));
     }
 }

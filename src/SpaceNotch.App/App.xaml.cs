@@ -129,6 +129,13 @@ public partial class App : Application
             return;
         }
 
+        // Redémarrage demandé par l'ancienne notch (n° 12) : elle se ferme, on
+        // attend sa sortie avant de réclamer la place.
+        if (SpaceNotch.Core.Setup.RestartArgument.Parse(Environment.GetCommandLineArgs()) is int previous)
+        {
+            WaitForExit(previous);
+        }
+
         // Une seule notch par session : un second lancement réveille la
         // première et se retire.
         _instance = SingleInstance.TryClaim();
@@ -263,5 +270,27 @@ public partial class App : Application
     {
         int code = await SetupRunner.RunAsync(setup, version).ConfigureAwait(false);
         Environment.Exit(code);
+    }
+
+    /// <summary>Attend la sortie d'un processus, au plus <see cref="SpaceNotch.Core.Setup.RestartArgument.MaximumWait"/>.</summary>
+    private static void WaitForExit(int processId)
+    {
+        try
+        {
+            using var previous = System.Diagnostics.Process.GetProcessById(processId);
+
+            if (!previous.WaitForExit(SpaceNotch.Core.Setup.RestartArgument.MaximumWait))
+            {
+                MiniLogger.Log($"[NOTCH] L'ancienne notch ({processId}) ne s'est pas fermée à temps.");
+            }
+        }
+        catch (ArgumentException)
+        {
+            // Déjà sortie.
+        }
+        catch (InvalidOperationException)
+        {
+            // Déjà sortie.
+        }
     }
 }
