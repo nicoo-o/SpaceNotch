@@ -95,13 +95,21 @@ public sealed record InstallLayout(
     public const string UpdatesFolder = "updates";
 
     public IReadOnlyList<string> LeftoversAfterExit(SystemFolders folders, bool removeSettings)
+        => [Directory, .. UserLeftovers(folders, removeSettings)];
+
+    /// <summary>
+    /// Les restes qui appartiennent à l'utilisateur, dans son profil : caches
+    /// d'extraction, installeurs téléchargés et, sur demande, réglages et
+    /// journaux. Effacés par <em>son</em> processus : pour une installation pour
+    /// tous, le processus élevé tourne souvent sous un autre compte, et effaçait
+    /// les dossiers de l'administrateur au lieu des siens (relecture de #96).
+    /// </summary>
+    public static IReadOnlyList<string> UserLeftovers(SystemFolders folders, bool removeSettings)
     {
         ArgumentNullException.ThrowIfNull(folders);
 
         var paths = new List<string>
         {
-            Directory,
-
             // Chaque exécutable unique s'extrait sous %TEMP%\.net\<son nom> :
             // l'application installée, et l'installeur qui l'a posée.
             WindowsPath.Join(folders.Temp, ".net", SetupIdentity.ProcessName),

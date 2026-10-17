@@ -158,6 +158,10 @@ public class InstallLayoutTests
 
         // n° 16 : les installeurs téléchargés ne sont pas des réglages, ils partent toujours.
         Assert.Contains(@"C:\Users\ana\AppData\Local\SpaceNotch\updates", kept);
+
+        // Relecture de #96 : les restes de l'utilisateur ne comprennent jamais le
+        // dossier de la machine, que seul le processus élevé efface.
+        Assert.DoesNotContain(layout.Directory, InstallLayout.UserLeftovers(Folders, removeSettings: true));
         Assert.DoesNotContain(@"C:\Users\ana\AppData\Roaming\SpaceNotch", kept);
         Assert.Contains(@"C:\Users\ana\AppData\Roaming\SpaceNotch", all);
 

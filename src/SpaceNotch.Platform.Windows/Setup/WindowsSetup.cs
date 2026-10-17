@@ -373,33 +373,34 @@ public static class WindowsSetup
             StartupRegistration.SetEnabled(false, StartupRegistration.BuildCommand(product.Executable), out _);
             StartupRegistration.ClearWindowsDisable();
 
-            // Les clés (Claude, Spotify, Discord) sont dans le coffre de
-            // l'utilisateur : retirées depuis son processus, jamais élevé.
-            if (removeSettings)
-            {
-                PurgeVault(log);
-            }
-
-            // Les hooks de Claude Code appelleraient un SpaceNotch.exe disparu, et
-            // Claude Code afficherait une erreur à chaque tour (n° 16) : retirés
-            // dans tous les cas, depuis le processus de l'utilisateur.
-            RemoveAgentHooks(log);
-
             if (product.Options.Scope == InstallScope.AllUsers && !IsElevated)
             {
                 string self = Environment.ProcessPath ?? product.Executable;
                 var worker = new SetupCommand(SetupMode.UninstallWorker, product.Options, Quiet: true, removeSettings, Environment.ProcessId);
                 int? exit = await RunElevatedAsync(self, worker.ToCommandLine()).ConfigureAwait(false);
 
-                return exit switch
+                if (exit is null)
                 {
-                    null => SetupOutcome.ElevationDeclined,
-                    0 => SetupOutcome.Succeeded,
-                    _ => SetupOutcome.Failed
-                };
+                    return SetupOutcome.ElevationDeclined;
+                }
+
+                if (exit != 0)
+                {
+                    // Sans cette ligne, l'écran d'échec montrait la dernière
+                    // réussite notée comme raison (relecture de #96).
+                    log?.Invoke($"[SETUP] Le processus élevé a échoué (code {exit}).");
+                    return SetupOutcome.Failed;
+                }
+
+                // Le processus élevé n'a effacé que le dossier de la machine : les
+                // dossiers de l'utilisateur partent depuis son propre processus.
+                StartCleanup(InstallLayout.UserLeftovers(Folders(), removeSettings), []);
+                ForgetUser(removeSettings, log);
+                return SetupOutcome.Succeeded;
             }
 
             await Task.Run(() => RemoveFiles(product, removeSettings, log)).ConfigureAwait(false);
+            ForgetUser(removeSettings, log);
             return SetupOutcome.Succeeded;
         }
         catch (Exception ex)
@@ -414,7 +415,15 @@ public static class WindowsSetup
     /// l'interpréteur de commandes l'effacement des dossiers, une fois ce
     /// processus sorti.
     /// </summary>
-    public static void RemoveFiles(InstalledProduct product, bool removeSettings, Action<string>? log = null, int? callerProcessId = null)
+    /// <param name="product">L'installation à retirer.</param>
+    /// <param name="removeSettings">Effacer aussi réglages et données de l'utilisateur.</param>
+    /// <param name="log">Journal.</param>
+    /// <param name="callerProcessId">Processus de l'utilisateur à attendre (processus élevé).</param>
+    /// <param name="userFolders">
+    /// Faux dans le processus élevé : il ne connaît pas le profil de
+    /// l'utilisateur (souvent un autre compte), qui efface les siens lui-même.
+    /// </param>
+    public static void RemoveFiles(InstalledProduct product, bool removeSettings, Action<string>? log = null, int? callerProcessId = null, bool userFolders = true)
     {
         ArgumentNullException.ThrowIfNull(product);
 
@@ -441,14 +450,22 @@ public static class WindowsSetup
             root.DeleteSubKeyTree(SetupIdentity.UninstallKeyPath, throwOnMissingSubKey: false);
         }
 
-        List<string> leftovers = layout.LeftoversAfterExit(folders, removeSettings).ToList();
+        List<string> leftovers = (userFolders ? layout.LeftoversAfterExit(folders, removeSettings) : [layout.Directory]).ToList();
 
         if (!ownFolder)
         {
             leftovers.Remove(layout.Directory);
         }
 
-        var cleanup = new ProcessStartInfo("cmd.exe", SelfDelete.Arguments(leftovers, [IdentityPackage.RemoveCommand]))
+        StartCleanup(leftovers, [IdentityPackage.RemoveCommand]);
+
+        log?.Invoke($"[SETUP] Désinstallée de {layout.Directory}.");
+    }
+
+    /// <summary>Confie à l'interpréteur de commandes l'effacement, une fois ce processus sorti.</summary>
+    private static void StartCleanup(IEnumerable<string> directories, IEnumerable<string> afterExit)
+    {
+        var cleanup = new ProcessStartInfo("cmd.exe", SelfDelete.Arguments(directories, afterExit))
         {
             CreateNoWindow = true,
             UseShellExecute = false,
@@ -457,8 +474,24 @@ public static class WindowsSetup
         };
 
         using Process? _ = Process.Start(cleanup);
+    }
 
-        log?.Invoke($"[SETUP] Désinstallée de {layout.Directory}.");
+    /// <summary>
+    /// Ce qui appartient à l'utilisateur hors de ses dossiers, retiré depuis son
+    /// processus, et seulement une fois la désinstallation réussie : refusée ou
+    /// échouée, SpaceNotch reste, avec ses clés et ses hooks (relecture de #96).
+    /// </summary>
+    private static void ForgetUser(bool removeSettings, Action<string>? log)
+    {
+        // Les clés (Claude, Spotify, Discord) sont dans le coffre de l'utilisateur.
+        if (removeSettings)
+        {
+            PurgeVault(log);
+        }
+
+        // Les hooks de Claude Code appelleraient un SpaceNotch.exe disparu, et
+        // Claude Code afficherait une erreur à chaque tour (n° 16).
+        RemoveAgentHooks(log);
     }
 
     /// <summary>
@@ -490,11 +523,24 @@ public static class WindowsSetup
             string temporary = path + ".spacenotch.tmp";
             File.WriteAllText(temporary, next);
             File.Move(temporary, path, overwrite: true);
-            log?.Invoke("[SETUP] Hooks de Claude Code retirés.");
+            log?.Invoke("[SETUP] Hooks de Claude Code retirés (une session Claude Code déjà ouverte les garde jusqu'à son redémarrage).");
         }
         catch (Exception ex)
         {
             log?.Invoke($"[SETUP] Hooks de Claude Code non retirés : {ex.Message}");
+
+            try
+            {
+                File.Delete(path + ".spacenotch.tmp");
+            }
+            catch (IOException)
+            {
+                // Rien à nettoyer de plus.
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Rien à nettoyer de plus.
+            }
         }
     }
 
