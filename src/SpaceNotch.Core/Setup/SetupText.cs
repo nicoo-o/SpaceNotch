@@ -39,6 +39,9 @@ public sealed record SetupText
     public required string Done { get; init; }
     public required string DoneDetail { get; init; }
     public required string Failed { get; init; }
+
+    /// <summary>Sous un échec : où lire le détail (n° 20). {0} : chemin du journal.</summary>
+    public required string FailedLogFormat { get; init; }
     public required string ElevationDeclined { get; init; }
     public required string UninstallTitle { get; init; }
     public required string UninstallDetail { get; init; }
@@ -128,6 +131,7 @@ public sealed record SetupText
         Done = "C'est prêt.",
         DoneDetail = "Lève les yeux : ta notch est là-haut.",
         Failed = "L'installation n'a pas abouti.",
+        FailedLogFormat = "Le détail est dans le journal : {0}",
         ElevationDeclined = "Pour installer pour tous, Windows doit donner son accord. Réessaie, ou installe pour toi seul.",
         UninstallTitle = "Désinstaller SpaceNotch ?",
         UninstallDetail = "La notch, ses raccourcis et son lancement au démarrage seront retirés.",
@@ -170,6 +174,7 @@ public sealed record SetupText
         Done = "All set.",
         DoneDetail = "Look up: your notch is waiting.",
         Failed = "Installation didn't finish.",
+        FailedLogFormat = "Details are in the log: {0}",
         ElevationDeclined = "Installing for everyone needs Windows' permission. Try again, or install just for you.",
         UninstallTitle = "Uninstall SpaceNotch?",
         UninstallDetail = "The notch, its shortcuts and its start-up entry will be removed.",

@@ -228,7 +228,8 @@
                     x:Name="MessageText" AutomationProperties.LiveSetting="Assertive"
                     Style="{StaticResource NfBodyTextStyle}"
                     Foreground="{ThemeResource NfTextSecondaryBrush}"
-                    TextWrapping="WrapWholeWords"
+                    TextWrapping="Wrap"
+                    IsTextSelectionEnabled="True"
                     Visibility="Collapsed" />
 
                 <StackPanel

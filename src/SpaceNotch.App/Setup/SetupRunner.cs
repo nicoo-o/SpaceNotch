@@ -39,6 +39,21 @@ internal static class SetupRunner
                     string source = Environment.ProcessPath ?? throw new InvalidOperationException("Exécutable introuvable.");
 
                     await Task.Run(() => WindowsSetup.InstallFiles(layout, command.Options, source, version, null, Log)).ConfigureAwait(false);
+
+                    // Déjà élevé : le certificat des notifications est approuvé
+                    // ici. Le processus de l'utilisateur le trouve approuvé et ne
+                    // redemande pas l'accord de Windows — deux demandes de suite
+                    // pour une installation pour tous (n° 20).
+                    if (command.Options.WindowsNotifications)
+                    {
+                        string certificate = System.IO.Path.Combine(layout.Directory, IdentityPackage.CertificateFileName);
+
+                        if (System.IO.File.Exists(certificate) && !IdentityPackage.IsCertificateTrusted())
+                        {
+                            IdentityPackage.TrustCertificate(certificate, Log);
+                        }
+                    }
+
                     return Succeeded;
                 }
 
@@ -72,7 +87,10 @@ internal static class SetupRunner
 
                     if (product is not null)
                     {
-                        await Task.Run(() => WindowsSetup.RemoveFiles(product, command.RemoveSettings, Log, command.CallerProcessId)).ConfigureAwait(false);
+                        // Le dossier de la machine seulement : ce processus tourne
+                        // souvent sous un autre compte que celui de l'utilisateur,
+                        // qui efface ses propres dossiers (relecture de #96).
+                        await Task.Run(() => WindowsSetup.RemoveFiles(product, command.RemoveSettings, Log, command.CallerProcessId, userFolders: false)).ConfigureAwait(false);
 
                         // Déjà élevé : le certificat SpaceNotch quitte aussi le magasin
                         // de l'ordinateur (clé privée détruite, il reste inoffensif sinon).
