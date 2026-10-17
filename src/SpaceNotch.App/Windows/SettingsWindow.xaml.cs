@@ -67,6 +67,12 @@ public sealed partial class SettingsWindow : Window
     /// <summary>« Revoir la présentation » : la notch la rejoue (fourni par la fenêtre de la notch).</summary>
     public Action? ReplayWelcome { get; set; }
 
+    /// <summary>Redémarre la notch (notifications activées après coup, n° 12) ; faux si c'est impossible.</summary>
+    public Func<bool>? RestartNotch { get; set; }
+
+    /// <summary>Notifications activées depuis les Réglages : elles attendent le redémarrage de la notch.</summary>
+    private bool _notificationsAwaitRestart;
+
     /// <summary>Demande l'accès aux notifications Windows (fenêtre de consentement du système).</summary>
     public Func<Task<SpaceNotch.Platform.Windows.Notifications.NotificationAccess>>? RequestNotificationAccess { get; set; }
 
@@ -1752,6 +1758,15 @@ public sealed partial class SettingsWindow : Window
             SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Allowed => (Lang.T("● Autorisé", "● Allowed"), green, null),
             SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Denied => (Lang.T("Bloqué par Windows", "Blocked by Windows"), dim, Lang.T("Ouvrir les paramètres", "Open Settings")),
             SpaceNotch.Platform.Windows.Notifications.NotificationAccess.NotAsked => (string.Empty, dim, Lang.T("Autoriser", "Allow")),
+            _ when _notificationsAwaitRestart => (Lang.T("Prêtes au redémarrage", "Ready after a restart"), dim, Lang.T("Redémarrer la notch", "Restart the notch")),
+
+            // Installée sans les notifications Windows (n° 12) : elles s'activent
+            // ici, au lieu de demander de réinstaller — sauf si l'exécutable
+            // installé a son identité éteinte (variante manquante) : redémarrer
+            // n'y changerait rien.
+            _ when InstalledWithoutNotifications() is { } product && !SpaceNotch.Platform.Windows.Setup.IdentityManifestFile.IsOn(InstalledExecutable(product))
+                => (Lang.T("Réinstalle SpaceNotch pour les activer", "Reinstall SpaceNotch to turn them on"), dim, null),
+            _ when InstalledWithoutNotifications() is not null => (Lang.T("Pas activées à l'installation", "Not turned on at install"), dim, Lang.T("Activer", "Turn on")),
             _ => (Lang.T("Demande SpaceNotch installé", "Requires SpaceNotch to be installed"), dim, null)
         };
         (string status, Brush brush, string? button) = card;
@@ -1768,6 +1783,34 @@ public sealed partial class SettingsWindow : Window
         try
         {
             var access = SpaceNotch.Platform.Windows.Notifications.WindowsNotificationListener.GetAccess();
+
+            if (access == SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Unavailable)
+            {
+                if (_notificationsAwaitRestart)
+                {
+                    if (RestartNotch?.Invoke() != true)
+                    {
+                        StatusText.Text = Lang.T("Redémarrage impossible : quitte la notch et relance-la depuis le menu Démarrer.", "Couldn't restart: quit the notch and start it again from the Start menu.");
+                    }
+
+                    return;
+                }
+
+                if (InstalledWithoutNotifications() is { } product)
+                {
+                    NotificationButton.IsEnabled = false;
+                    _notificationsAwaitRestart = await SpaceNotch.Platform.Windows.Setup.WindowsSetup.EnableNotificationsAsync(product, MiniLogger.Log);
+                    NotificationButton.IsEnabled = true;
+
+                    if (!_notificationsAwaitRestart)
+                    {
+                        StatusText.Text = Lang.T("Les notifications n'ont pas pu être activées : le détail est dans le journal.", "Notifications couldn't be turned on: details are in the log.");
+                    }
+                }
+
+                UpdateNotificationCard();
+                return;
+            }
 
             if (access == SpaceNotch.Platform.Windows.Notifications.NotificationAccess.Denied)
             {
@@ -1788,6 +1831,27 @@ public sealed partial class SettingsWindow : Window
 
         UpdateNotificationCard();
     }
+
+    /// <summary>
+    /// L'installation, si elle est là et que ce processus n'a pas d'identité
+    /// (notifications non choisies à l'installation) ; sinon <c>null</c>. Une
+    /// version portable n'a rien à activer.
+    /// </summary>
+    private static SpaceNotch.Core.Setup.InstalledProduct? InstalledWithoutNotifications()
+        => !SpaceNotch.Platform.Windows.Setup.IdentityPackage.HasIdentity
+            && SpaceNotch.Platform.Windows.Setup.WindowsSetup.FindInstalled() is { } product
+            && File.Exists(InstalledExecutable(product))
+
+            // Seulement dans la notch installée elle-même : une copie de
+            // développement ou une version portable à côté ne doit pas
+            // l'activer pour une autre (relecture de #98).
+            && string.Equals(Environment.ProcessPath, InstalledExecutable(product), StringComparison.OrdinalIgnoreCase)
+                ? product
+                : null;
+
+    /// <summary>L'exécutable de l'installation, tel que SpaceNotch le place — pas tel que le dit le registre.</summary>
+    private static string InstalledExecutable(SpaceNotch.Core.Setup.InstalledProduct product)
+        => SpaceNotch.Core.Setup.InstallLayout.For(product.Options.Scope, SpaceNotch.Platform.Windows.Setup.WindowsSetup.Folders()).Executable;
 
     private void ShowIgnoredApps(List<string> apps)
     {

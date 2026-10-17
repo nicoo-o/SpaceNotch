@@ -280,6 +280,10 @@ public sealed partial class IslandWindow : Window
 
         // Bonjour et au revoir (vague 7) : la fenêtre apprend le verrouillage de session.
         _ = SpaceNotch.Platform.Windows.Shell.SessionNotifications.Register(_hWnd);
+
+        // Veille et écran éteint (n° 35) : inscrits, pour la veille moderne (S0).
+        _powerNotifications = SpaceNotch.Platform.Windows.Shell.PowerNotifications.Register(_hWnd);
+        MiniLogger.Log($"[VEILLE] inscrite : veille {(_powerNotifications.SuspendResume != IntPtr.Zero ? "oui" : "non")}, écran {(_powerNotifications.Display != IntPtr.Zero ? "oui" : "non")}");
         var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(_hWnd);
         _appWindow = AppWindow.GetFromWindowId(windowId);
         AppIcon.ApplyTo(_appWindow);
@@ -2610,6 +2614,11 @@ public sealed partial class IslandWindow : Window
             OnSessionChange((int)e.Message.WParam);
         }
 
+        if (e.Message.MessageId == SpaceNotch.Platform.Windows.Win32.NativeConstants.WM_POWERBROADCAST)
+        {
+            OnPowerBroadcast((int)e.Message.WParam, e.Message.LParam);
+        }
+
         if (_screenWatcher.HandleMessage(e.Message.MessageId, e.Message.WParam))
         {
             ScheduleEnvironmentRefresh();
@@ -4584,6 +4593,7 @@ public sealed partial class IslandWindow : Window
                     _settingsWindow = new SettingsWindow(_settingsService, _featureRegistry)
                     {
                         ReplayWelcome = ShowWelcome,
+                        RestartNotch = RestartNotch,
                         RequestNotificationAccess = _notificationFeature.RequestAccessAsync,
                         SearchHotkey = _launcherFeature.Hotkey,
                         FocusHotkey = _focusHotkey
@@ -4652,6 +4662,28 @@ public sealed partial class IslandWindow : Window
     /// sort. <c>Application.Exit()</c> seul coupait le processus pendant que
     /// l'arrêt attendait encore, et laissait le raccourci global enregistré.
     /// </summary>
+    /// <summary>
+    /// Redémarre la notch installée (notifications activées après coup, n° 12) :
+    /// la relance attend la sortie de ce processus, qui tient le verrou
+    /// d'instance unique.
+    /// </summary>
+    private bool RestartNotch()
+    {
+        string? executable = SpaceNotch.Platform.Windows.Setup.WindowsSetup.FindInstalled() is { } product
+            ? SpaceNotch.Core.Setup.InstallLayout.For(product.Options.Scope, SpaceNotch.Platform.Windows.Setup.WindowsSetup.Folders()).Executable
+            : null;
+
+        if (executable is null || !SpaceNotch.Platform.Windows.Setup.WindowsSetup.RelaunchAfterExit(executable))
+        {
+            MiniLogger.Log("[NOTCH] Redémarrage impossible : installation introuvable");
+            return false;
+        }
+
+        MiniLogger.Log("[NOTCH] Redémarrage demandé depuis les Réglages");
+        QuitApplication();
+        return true;
+    }
+
     private async void QuitApplication()
     {
         try
@@ -4763,6 +4795,7 @@ public sealed partial class IslandWindow : Window
         Safely("miroir", () => _mirror?.Dispose());
         Safely("crête-mètre", SpaceNotch.Platform.Windows.Audio.AudioPeakMeter.DisposeShared);
         Safely("messages", () => _messageMonitor?.Dispose());
+        Safely("veille", () => SpaceNotch.Platform.Windows.Shell.PowerNotifications.Unregister(_powerNotifications));
         Safely("halo", () =>
         {
             _atmosphere.Displaced -= OnHaloDisplaced;

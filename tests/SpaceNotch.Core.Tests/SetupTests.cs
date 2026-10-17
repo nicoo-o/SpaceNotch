@@ -155,6 +155,13 @@ public class InstallLayoutTests
         Assert.Contains(layout.Directory, kept);
         Assert.Contains(@"C:\Users\ana\AppData\Local\Temp\.net\SpaceNotch", kept);
         Assert.Contains(@"C:\Users\ana\AppData\Local\Temp\.net\SpaceNotch-Setup", kept);
+
+        // n° 16 : les installeurs téléchargés ne sont pas des réglages, ils partent toujours.
+        Assert.Contains(@"C:\Users\ana\AppData\Local\SpaceNotch\updates", kept);
+
+        // Relecture de #96 : les restes de l'utilisateur ne comprennent jamais le
+        // dossier de la machine, que seul le processus élevé efface.
+        Assert.DoesNotContain(layout.Directory, InstallLayout.UserLeftovers(Folders, removeSettings: true));
         Assert.DoesNotContain(@"C:\Users\ana\AppData\Roaming\SpaceNotch", kept);
         Assert.Contains(@"C:\Users\ana\AppData\Roaming\SpaceNotch", all);
 
@@ -354,5 +361,17 @@ public class SelfDeleteTests
     public void Never_removes_a_root_or_a_suspicious_path(string directory)
     {
         Assert.DoesNotContain("rd ", SelfDelete.Arguments([directory]), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_restart_names_the_process_to_wait_for()
+    {
+        // n° 12, relecture de #98 : la nouvelle notch attend la sortie de
+        // l'ancienne au lieu de compter sur un délai.
+        Assert.Equal("--after-pid=4242", RestartArgument.For(4242));
+        Assert.Equal(4242, RestartArgument.Parse(["SpaceNotch.exe", "--after-pid=4242"]));
+        Assert.Null(RestartArgument.Parse(["SpaceNotch.exe", "--settings"]));
+        Assert.Null(RestartArgument.Parse(["--after-pid=-3"]));
+        Assert.Null(RestartArgument.Parse(["--after-pid=abc"]));
     }
 }

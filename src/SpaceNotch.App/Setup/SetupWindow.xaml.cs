@@ -547,6 +547,7 @@ public sealed partial class SetupWindow : Window
             ? _installed.Options
             : new InstallOptions(_scope, StartupCheck.IsChecked == true, DesktopCheck.IsChecked == true, NotificationsCheck.IsChecked == true);
 
+        _lastSetupMessage = null;
         ShowWorking(_text.For(InstallStep.Preparing));
 
         var progress = new Progress<SetupProgress>(OnProgress);
@@ -565,7 +566,7 @@ public sealed partial class SetupWindow : Window
                 break;
 
             default:
-                ShowFailed(string.Empty);
+                ShowFailed(FailureMessage());
                 break;
         }
     }
@@ -577,6 +578,7 @@ public sealed partial class SetupWindow : Window
             return;
         }
 
+        _lastSetupMessage = null;
         ShowWorking(_text.Removing);
         Progress.IsIndeterminate = true;
 
@@ -596,7 +598,7 @@ public sealed partial class SetupWindow : Window
                 break;
 
             default:
-                ShowFailed(string.Empty);
+                ShowFailed(FailureMessage());
                 break;
         }
     }
@@ -630,7 +632,49 @@ public sealed partial class SetupWindow : Window
     // Outils
     // ------------------------------------------------------------------
 
-    private static void Log(string message) => MiniLogger.Log(message);
+    private static void Log(string message)
+    {
+        MiniLogger.Log(message);
+
+        // La dernière raison donnée par l'installation, pour l'écran d'échec.
+        if (message.StartsWith("[SETUP]", StringComparison.Ordinal))
+        {
+            _lastSetupMessage = message;
+        }
+    }
+
+    private static string? _lastSetupMessage;
+
+    /// <summary>
+    /// Ce que l'écran d'échec dit (n° 20) : la dernière raison notée (première
+    /// ligne, sans la pile d'appels) et le chemin du journal. Il restait vide :
+    /// « L'installation n'a pas abouti », sans un mot de plus.
+    /// </summary>
+    private string FailureMessage()
+    {
+        string log = string.Format(System.Globalization.CultureInfo.CurrentCulture, _text.FailedLogFormat, MiniLogger.LogPath);
+
+        if (_lastSetupMessage is not { } last)
+        {
+            return log;
+        }
+
+        string reason = last["[SETUP]".Length..].Trim();
+        int newline = reason.IndexOfAny(['\r', '\n']);
+        reason = newline > 0 ? reason[..newline] : reason;
+
+        // « Installation interrompue : System.IO.IOException: … » : le type de
+        // l'exception n'apprend rien à l'utilisateur, le journal le garde.
+        int type = reason.IndexOf("Exception: ", StringComparison.Ordinal);
+
+        if (type > 0)
+        {
+            int start = reason.LastIndexOf(": ", type, StringComparison.Ordinal);
+            reason = (start > 0 ? reason[..(start + 2)] : string.Empty) + reason[(type + "Exception: ".Length)..];
+        }
+
+        return reason + "\n" + log;
+    }
 
     private void After(TimeSpan delay, Action action)
     {
