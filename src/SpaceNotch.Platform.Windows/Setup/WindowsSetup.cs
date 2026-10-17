@@ -98,7 +98,12 @@ public static class WindowsSetup
         return product.Options with
         {
             StartWithWindows = StartupRegistration.IsRegistered(StartupRegistration.BuildCommand(product.Executable)),
-            DesktopShortcut = File.Exists(layout.DesktopShortcut)
+            DesktopShortcut = File.Exists(layout.DesktopShortcut),
+
+            // Activées après coup depuis les Réglages (n° 12) : une installation
+            // pour tous n'a pas pu le noter dans la ruche de l'ordinateur ; la
+            // notch qui se met à jour porte l'identité, c'est la preuve.
+            WindowsNotifications = product.Options.WindowsNotifications || IdentityPackage.HasIdentity
         };
     }
 
@@ -239,6 +244,77 @@ public static class WindowsSetup
             log?.Invoke($"[SETUP] Installation interrompue : {ex}");
             return SetupOutcome.Failed;
         }
+    }
+
+    /// <summary>
+    /// Active les notifications Windows après coup (n° 12) : choisies « non » à
+    /// l'installation, rien ne permettait de les obtenir ensuite. Le paquet
+    /// d'identité et son certificat sont toujours copiés dans le dossier
+    /// d'installation : le certificat est approuvé (une demande d'accord à
+    /// Windows), le paquet enregistré, et le choix noté pour les mises à jour.
+    /// La notch doit ensuite redémarrer : l'identité se prend au lancement.
+    /// </summary>
+    public static async Task<bool> EnableNotificationsAsync(InstalledProduct product, Action<string>? log = null)
+    {
+        ArgumentNullException.ThrowIfNull(product);
+
+        try
+        {
+            InstallLayout layout = InstallLayout.For(product.Options.Scope, Folders());
+            string package = Path.Combine(layout.Directory, IdentityPackage.FileName);
+
+            if (!File.Exists(package) || !File.Exists(Path.Combine(layout.Directory, IdentityPackage.CertificateFileName)))
+            {
+                log?.Invoke("[IDENTITÉ] Paquet ou certificat d'identité absent du dossier d'installation : notifications impossibles.");
+                return false;
+            }
+
+            // L'exécutable de la machine, pas celui que dit le registre.
+            await TrustIdentityCertificateAsync(layout, layout.Executable, log).ConfigureAwait(false);
+
+            if (!IdentityPackage.IsCertificateTrusted())
+            {
+                log?.Invoke("[IDENTITÉ] Certificat non approuvé : notifications non activées.");
+                return false;
+            }
+
+            if (!await IdentityPackage.RegisterAsync(layout.Directory, package, log).ConfigureAwait(false))
+            {
+                return false;
+            }
+
+            // Noté pour les mises à jour ; une installation pour tous garde son
+            // entrée dans la ruche de l'ordinateur, que l'on ne réécrit pas sans
+            // droits : CurrentChoices lit l'identité de la notch qui se met à jour.
+            if (product.Options.Scope == InstallScope.CurrentUser)
+            {
+                using RegistryKey? key = Registry.CurrentUser.OpenSubKey(SetupIdentity.UninstallKeyPath, writable: true);
+                key?.SetValue(UninstallEntry.NotificationsValue, 1, RegistryValueKind.DWord);
+            }
+
+            log?.Invoke("[IDENTITÉ] Notifications Windows activées après l'installation : redémarrage de la notch à faire.");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            log?.Invoke($"[IDENTITÉ] Activation des notifications impossible : {ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Lance la notch installée, qui attendra la sortie de ce processus avant de
+    /// prendre la place (n° 12, <see cref="RestartArgument"/>).
+    /// </summary>
+    public static bool RelaunchAfterExit(string executable)
+    {
+        if (!File.Exists(executable))
+        {
+            return false;
+        }
+
+        Launch(executable, RestartArgument.For(Environment.ProcessId));
+        return true;
     }
 
     /// <summary>

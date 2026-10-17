@@ -362,4 +362,16 @@ public class SelfDeleteTests
     {
         Assert.DoesNotContain("rd ", SelfDelete.Arguments([directory]), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void A_restart_names_the_process_to_wait_for()
+    {
+        // n° 12, relecture de #98 : la nouvelle notch attend la sortie de
+        // l'ancienne au lieu de compter sur un délai.
+        Assert.Equal("--after-pid=4242", RestartArgument.For(4242));
+        Assert.Equal(4242, RestartArgument.Parse(["SpaceNotch.exe", "--after-pid=4242"]));
+        Assert.Null(RestartArgument.Parse(["SpaceNotch.exe", "--settings"]));
+        Assert.Null(RestartArgument.Parse(["--after-pid=-3"]));
+        Assert.Null(RestartArgument.Parse(["--after-pid=abc"]));
+    }
 }
