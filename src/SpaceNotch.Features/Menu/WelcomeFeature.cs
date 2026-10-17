@@ -12,7 +12,8 @@ namespace SpaceNotch.Features.Menu;
 
 /// <summary>
 /// Présentation du premier lancement : la notch s'ouvre d'elle-même sur cinq
-/// cartes — survol et clic, clic droit, Alt+Espace, détacher, notifications.
+/// cartes — survol et clic, les quatre raccourcis du clic (ADR-028), la
+/// recherche de partout, détacher, notifications.
 /// La fonctionnalité tient l'étape ; la fenêtre décide quand la montrer et
 /// exécute « Autoriser » (la demande d'accès doit partir du fil d'interface).
 /// </summary>

@@ -86,6 +86,18 @@ public static class NotchGestures
             || string.Equals(presentedFeatureId, Features.FeatureKeys.VolumeHud, StringComparison.Ordinal);
 
     /// <summary>
+    /// Vrai si la molette, au repos, peut sortir la pile (une copie) : une
+    /// activité est présentée, ou le pointeur s'est vraiment posé sur la notch.
+    /// D'ordinaire, la pose se lit à l'aperçu ouvert par le survol ; avec
+    /// « Survoler pour aperçu » éteint, il n'y a jamais d'aperçu, et la pile
+    /// était injoignable à la molette (n° 64) : le temps passé sur la notch
+    /// en tient lieu. Défiler en passant sous la lèvre, sur les onglets du
+    /// navigateur, ne fait toujours rien apparaître.
+    /// </summary>
+    public static bool WheelReachesStack(bool presented, bool preview, bool hoverToPreview, TimeSpan pointerRested, TimeSpan dwell)
+        => presented || preview || (!hoverToPreview && pointerRested >= dwell);
+
+    /// <summary>
     /// Vrai si un appui relâché sans avoir bougé est un appui long : au doigt
     /// ou au stylet seulement (à la souris, le clic droit existe), tenu au
     /// moins <see cref="LongPressSeconds"/>.

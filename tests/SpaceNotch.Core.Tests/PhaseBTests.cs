@@ -175,4 +175,20 @@ public sealed class PhaseBTests
         Assert.True(rest.Count <= GestureHelp.MaxTips);
         Assert.Equal(TimeSpan.FromMilliseconds(300), NotchGestures.HelpDelay);
     }
+
+    [Fact]
+    public void Without_hover_preview_a_rested_pointer_lets_the_wheel_reach_the_stack()
+    {
+        // n° 64 : « Survoler pour aperçu » éteint, l'aperçu n'arrive jamais ; la
+        // pile du presse-papier était injoignable à la molette.
+        var dwell = TimeSpan.FromMilliseconds(220);
+
+        Assert.True(NotchGestures.WheelReachesStack(false, false, hoverToPreview: false, TimeSpan.FromMilliseconds(300), dwell));
+        Assert.False(NotchGestures.WheelReachesStack(false, false, hoverToPreview: false, TimeSpan.FromMilliseconds(50), dwell));
+
+        // Avec l'aperçu au survol, c'est lui qui dit la pose, comme avant.
+        Assert.False(NotchGestures.WheelReachesStack(false, false, hoverToPreview: true, TimeSpan.FromSeconds(5), dwell));
+        Assert.True(NotchGestures.WheelReachesStack(false, preview: true, hoverToPreview: true, TimeSpan.Zero, dwell));
+        Assert.True(NotchGestures.WheelReachesStack(presented: true, false, hoverToPreview: true, TimeSpan.Zero, dwell));
+    }
 }

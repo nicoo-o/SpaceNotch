@@ -20,6 +20,13 @@ public static class StartupRegistration
 {
     private const string RunKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
 
+    /// <summary>
+    /// Où le Gestionnaire des tâches (onglet Démarrage) et Paramètres › Applications
+    /// › Démarrage notent qu'une inscription est désactivée, sans toucher à
+    /// <c>Run</c> (n° 65).
+    /// </summary>
+    private const string ApprovedKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run";
+
     /// <summary>Nom de la valeur, visible par l'utilisateur dans le gestionnaire des tâches.</summary>
     public const string ValueName = "SpaceNotch";
 
@@ -50,6 +57,56 @@ public static class StartupRegistration
             // Une ruche illisible n'est pas une raison d'échouer : on considère
             // l'inscription absente, ce qui est le cas le plus sûr.
             return false;
+        }
+    }
+
+    /// <summary>
+    /// L'état noté par Windows pour une inscription : sans valeur, elle est
+    /// active ; sinon, un premier octet impair veut dire « désactivée » (02 :
+    /// active, 03 : désactivée depuis le Gestionnaire des tâches).
+    /// </summary>
+    public static bool IsApproved(byte[]? state) => state is not { Length: > 0 } || (state[0] & 1) == 0;
+
+    /// <summary>
+    /// Inscrite <em>et</em> laissée active par Windows : ce que l'interrupteur
+    /// des Réglages doit montrer. Il disait « activé » alors que le Gestionnaire
+    /// des tâches l'avait désactivée (n° 65).
+    /// </summary>
+    public static bool IsEnabled(string expectedCommand)
+    {
+        if (!IsRegistered(expectedCommand))
+        {
+            return false;
+        }
+
+        try
+        {
+            using RegistryKey? key = Registry.CurrentUser.OpenSubKey(ApprovedKeyPath, writable: false);
+            return IsApproved(key?.GetValue(ValueName) as byte[]);
+        }
+        catch (Exception)
+        {
+            // Illisible : on s'en tient à l'inscription.
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Lève la désactivation notée par Windows : l'utilisateur vient de rallumer
+    /// l'interrupteur des Réglages. Seulement sur ce geste — une mise à jour qui
+    /// réinscrit l'application ne doit pas défaire un choix fait dans le
+    /// Gestionnaire des tâches.
+    /// </summary>
+    public static void ClearWindowsDisable()
+    {
+        try
+        {
+            using RegistryKey? key = Registry.CurrentUser.OpenSubKey(ApprovedKeyPath, writable: true);
+            key?.DeleteValue(ValueName, throwOnMissingValue: false);
+        }
+        catch (Exception)
+        {
+            // Sans droit d'écriture : l'interrupteur relit l'état réel ensuite.
         }
     }
 

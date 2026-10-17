@@ -230,7 +230,8 @@ public sealed partial class IslandWindow
 
             _updateFeature?.ShowInstalling(update.Release.Version);
 
-            if (!UpdateClient.StartInstall(update.SetupPath, product.Options, MiniLogger.Log))
+            // Les choix d'aujourd'hui, pas ceux de l'installation (n° 17).
+            if (!UpdateClient.StartInstall(update.SetupPath, WindowsSetup.CurrentChoices(product), MiniLogger.Log))
             {
                 // L'installeur n'a pas démarré : la notch tourne toujours, elle le dit (n° 7).
                 _updateFailed = true;
