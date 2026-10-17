@@ -1,4 +1,4 @@
-# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-16)
+# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-17)
 
 Première version : 2026-10-04, écrite « pour vendre ». L'auteur l'a précisé le 2026-10-05 :
 SpaceNotch reste **gratuite et open source**, sans vente. Cette version re-trie tout pour ce cadre.
@@ -55,11 +55,24 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 93 | Barre des tâches en haut (ADR-030) | #78 | fusionnée : mesuré d'abord (notch de `main` à y = 0, sur la barre) ; détection par la zone de travail ; question une fois ; sous la barre (y = 60 sous une barre de 60 px) ; languette ; Réglages › Notch ; preuves avec une AppBar de test |
 | 94 | Modèles d'issue et de PR bilingues | #79 | fusionnée |
 | 95 | Protection de `main` sur GitHub | — | **faite par l'auteur** (2026-10-16) |
-| 96 | Barre en haut : goutte, raccrochage, épaules | #81 | **ouverte** : la goutte part du bas de la barre ; à la relecture, un bloquant (le raccrochage ne finissait jamais sous une barre plus haute que la forme) et un saut de 40 DIP corrigés ; épaules gardées (choix de l'auteur) ; **prouvé à l'écran** (glisser par `mouse_event`, journal « raccrochée au bord Top » 5 fois sur 5) |
-| 18 | Miroir de la webcam actif par défaut | #82 | **ouverte** : éteint sur une installation neuve ; une configuration existante garde sa valeur (comme Discord, n° 75) ; tests |
-| 62 | Tuile Minuteur | #83 | **ouverte** : « 15 min » affiché sur la tuile (capture) ; un minuteur en pause n'est plus écrasé, la tuile le montre (`HasMeasure`, test, **prouvé par UIA**) ; à la relecture, l'indice masqué et l'épingle relâchée devant un minuteur en cours |
-| 15 | Noms des fonctionnalités en français dans l'interface anglaise | #84 | **ouverte** : 23 noms par `Lang.T` ; test de garde |
-| 56 | Aucun chemin pour signaler un problème | #85 | **ouverte** : carte « Signaler un problème » (À propos) : dossier du journal, rapport GitHub prérempli (version, Windows), rien d'envoyé seul ; capture de la carte ; à la relecture, rangée sous « AIDE » au lieu d'« AVANCÉ », trouvable par « bug » |
+| 96 | Barre en haut : goutte, raccrochage, épaules | #81 | fusionnée : la goutte part du bas de la barre ; à la relecture, un bloquant (le raccrochage ne finissait jamais sous une barre plus haute que la forme) et un saut de 40 DIP corrigés ; épaules gardées (choix de l'auteur) ; **prouvé à l'écran** (glisser par `mouse_event`, journal « raccrochée au bord Top » 5 fois sur 5) |
+| 18 | Miroir de la webcam actif par défaut | #82 | fusionnée : éteint sur une installation neuve ; une configuration existante garde sa valeur (comme Discord, n° 75) ; tests |
+| 62 | Tuile Minuteur | #83 | fusionnée : « 15 min » affiché sur la tuile (capture) ; un minuteur en pause n'est plus écrasé, la tuile le montre (`HasMeasure`, test, **prouvé par UIA**) ; à la relecture, l'indice masqué et l'épingle relâchée devant un minuteur en cours |
+| 15 | Noms des fonctionnalités en français dans l'interface anglaise | #84 | fusionnée : 23 noms par `Lang.T` ; test de garde |
+| 56 | Aucun chemin pour signaler un problème | #85 | fusionnée : carte « Signaler un problème » (À propos) : dossier du journal, rapport GitHub prérempli (version, Windows), rien d'envoyé seul ; capture de la carte ; à la relecture, rangée sous « AIDE » au lieu d'« AVANCÉ », trouvable par « bug » |
+| 11 | Notch disparue derrière une surcouche « toujours devant » | #87 | fusionnée : trois causes — surcouche traversable (le shell dit « occupé »), fenêtre **agrandie** prise pour un plein écran avec la barre des tâches masquée automatiquement, et notch jamais revenue (aucun événement à la fin du plein écran) ; la première fenêtre opaque de haut en bas décide ; journal `[PLEIN ÉCRAN]` avec la raison ; **prouvé à l'écran** (surcouche de test, plein écran opaque) |
+| 21 | Notch réduite par un tiers : ne revenait pas | #88 | fusionnée : notch, halo et bulle rétablis, aussi après une réduction pendant un plein écran ; **prouvé** (réduction par un autre processus, relevés à 30 ms… 3 s) |
+| 52 | Mise à jour vérifiée seulement par une empreinte publiée sur GitHub même | #89 | fusionnée : « Automatiques » retiré, rien ne s'installe sans l'utilisateur tant que rien n'est signé ([ADR-031](../decisions/ADR-031-rien-ne-s-installe-sans-l-utilisateur.md), choix de l'auteur) |
+| 34 | Écran mémorisé par `HMONITOR` | #90 | fusionnée : le handle n'est plus lu ; l'écran se retrouve par son rectangle |
+| 65, 66, 17 | « Démarrer avec Windows » faux ; copie de dev qui inscrit son chemin ; mise à jour qui réapplique les choix d'installation | #91 | fusionnée : `StartupApproved` lu ; l'exécutable installé visé ; la mise à jour passe les choix d'aujourd'hui ; **état à l'écran non vu** (registre virtualisé dans l'instance de dev) |
+| 61 | Présentation du premier lancement | #92 | fusionnée : le clic et ses quatre raccourcis ; capture des cartes |
+| 64 | Molette au repos sans aperçu au survol | #93 | fusionnée : la pose du pointeur suffit ; test |
+| 97 | Goutte éteinte : celle du dernier arrachement redessinée | #94 | **ouverte** |
+| 35 | Veille et reprise | #95 | **ouverte** : veille, reprise, et écran éteint (veille moderne S0, celle du PC de l'auteur) ; **prouvé** pour veille et reprise par messages simulés ; écran éteint non simulable |
+| 16 | Désinstallation incomplète | #96 | **ouverte** : installeurs téléchargés toujours effacés, hooks de Claude Code retirés |
+| 20 | Installeur : échec muet, deux UAC | #97 | **ouverte** : raison et chemin du journal affichés ; une seule élévation pour tous |
+| 12 | Notifications Windows impossibles à activer après coup | #98 | **ouverte** : « Activer » dans les Réglages, puis redémarrage de la notch |
+| 19 | Alt+Espace pris globalement | — | **clos sans changement** : l'auteur garde Alt+Espace (2026-10-16) |
 
 ## Sans objet pour un projet gratuit
 
@@ -88,33 +101,18 @@ répond ou si une autre voie de signature se présente.
 
 | # | Sujet | Preuve | Impact | Effort | Risque |
 |---|---|---|---|---|---|
-| 52 | **Mise à jour automatique par défaut, sans signature indépendante de GitHub** ; 27 versions en 10 jours installées seules | `UpdateClient.cs:90` ✔ (empreinte prise dans la même release) ; `AppSettings.cs:591` | fort (confiance) | S–M | moyen |
 
 ## P1 — gêne un usage normal
 
 | # | Sujet | Preuve | Impact | Effort | Risque |
 |---|---|---|---|---|---|
 | 46b | Suite de n° 46 : première mise en page d'une scène pendant le ressort (74,7 ms une fois) ; tableaux de points du ressort (GC de génération 0) ; scènes à créer d'avance (n° 25) | #48 | moyen | M | moyen |
-| 11 | La notch disparaît derrière une fenêtre « toujours devant » qui couvre l'écran | `FullscreenPresenceWatcher.cs:357` ✔ | fort ? | S–M | régression plein écran |
-| 12 | Notifications Windows impossibles à activer après coup | `SetupWindow.xaml.cs:546` | moyen | M | faible |
-| 16 | Désinstallation incomplète (dossier `updates`, coffre, certificat, hooks) | `InstallLayout.cs:94-116` | moyen | S–M | faible |
-| 17 | Mise à jour qui réapplique les choix d'installation (démarrage, raccourci) : **non constaté** sur l'installation de l'auteur (choix identiques), code à revoir | `WindowsSetup.cs:207, 306` | moyen | S | faible |
-| 19 | Alt+Espace pris globalement | `GlobalHotkey.cs:45` | moyen | S | faible |
-| 20 | Installeur : échec sans raison ; deux UAC de suite en « pour tous » | `SetupWindow.xaml.cs:540-599` | moyen | S–M | faible |
-| 21 | Notch minimisée par un tiers : ne revient pas | `IslandWindow.xaml.cs:280` ✔ | moyen ? | S | faible |
-| 34 | Écran mémorisé par `HMONITOR`, invalide après redémarrage | `AppSettings.cs:212` | moyen | S | faible |
-| 35 | Veille et reprise non traitées | `IslandWindow.PixelLife.cs:133-172` | moyen | S–M | faible |
-| 61 | Présentation du premier lancement : enseigne encore le clic droit, pas les tuiles d'ADR-028 ; README français faux sur le clic droit | `WelcomeScene.xaml.cs:85-87` ; `README.fr.md:111` | moyen | S | faible |
-| 64 | Molette au repos : avec « Survoler pour aperçu » éteint, la pile du presse-papier est injoignable | `IslandWindow.xaml.cs:3251` | faible | S | faible |
-| 65 | Réglages « Démarrer avec Windows » affiché activé alors que Windows l'a désactivé (Gestionnaire des tâches) | constaté sur l'installation de l'auteur le 2026-10-05 | moyen | S | faible |
-| 66 | Une copie de développement peut encore réécrire la clé de démarrage partagée (Réglages ouverts depuis le build) | `SettingsWindow.xaml.cs:387` | faible (dev) | S | faible |
 | 36 | Coût par image du ressort (géométries neuves, mises en page) | voir n° 46 | (cause de 46) | M | moyen |
 | 37 | Caméra du miroir, crête-mètre, cache d'icônes sans borne | `IslandWindow.Phone.cs:225` | faible | S | faible |
 | 40 | Remontée des plantages sur accord explicite | `MiniLogger` | moyen | M | vie privée |
 | 42 | Faux positifs antivirus | `IdentityManifestFile.cs:23-56` | moyen | M | réputation |
 | 43 | Consommation sur batterie non mesurée ; économiseur d'énergie ignoré | aucun `EnergySaverStatus` | moyen (portables) | S | faible |
 | 44 | Carte « actions sur copie » qui revient | `CopyAssistFeature.cs:134` | faible | S | faible |
-| 97 | Goutte éteinte, ressorts allumés : au raccrochage, `_goo = 0` sans `StartGoo` ; l'état de goutte du dernier arrachement se redessine (trace en haut, col jusqu'à la pastille) jusqu'à l'arrivée | relecture de #81, `IslandWindow.Detach.cs:1259-1266` | faible | S | faible |
 
 ## P2 — qualité, dette, confort
 
@@ -124,6 +122,7 @@ répond ou si une autre voie de signature se présente.
 | 90 | Réglages : fond et barre de titre choisis à l'ouverture seulement ; un passage en contraste élevé pendant qu'ils sont ouverts demande de les rouvrir | relecture de #72 | S |
 | 91 | Mouvement réduit : le halo et l'ombre (`AtmosphereWindow`) sautent encore ; « Rebond » éteint passe aussi en fondu au lieu d'un ressort sans dépassement | #71 | S |
 | 98 | Écran changé pendant l'arrachement (0,34 s) : la trace se redessine sur le nouvel écran ; forcer la fin de la goutte au changement | relecture de #81, `IslandWindow.Detach.cs:809` | S |
+| 100 | Présentation, carte 3 : elle montre Alt+Espace même quand le raccourci de recherche est un autre (Ctrl+Maj+Espace sur la machine de l'auteur) | relecture de #92, `WelcomeScene.xaml.cs` | S |
 | 99 | Test instable : `PhaseDTests.L_horloge_dit_ce_que_chaque_abonne_alloue` a échoué une fois sur trois passages (mesure d'allocation) | constaté le 2026-10-14 | S |
 | 80 | Une instance de développement (`winapp run`) ne reçoit pas `SpaceNotch.exe --hook` lancé par Git Bash, alors que la notch installée le reçoit ; cause non établie (identité de paquet, propriétaire du tube) | essais du 2026-10-06 et du 2026-10-10 | S |
 | 39 | **Store en MSIX complet** : à étudier, pas à construire (voir direction) ; le Store n'accepte un installeur exe que signé | ADR-023 ; [exigences exe/MSI du Store](https://learn.microsoft.com/windows/apps/publish/publish-your-app/msi/app-package-requirements) | L |
@@ -142,9 +141,11 @@ répond ou si une autre voie de signature se présente.
 
 ## Ordre proposé
 
-1. #81 (n° 96), #82 à #85 (n° 18, 62, 15, 56) et #86 (clôture) : fusion si l'auteur le demande.
-2. n° 11 et n° 21 (prochain brief).
-3. n° 52 : la mise à jour automatique sans signature indépendante de GitHub — le seul P0 qui ne
-   dépend pas de SignPath ; à trancher avec l'auteur.
-4. Preuves restées à faire : #71 (effets d'animation coupés), #72 (contraste élevé).
-5. Le reste des P1 courts (34, 35, 61, 64, 65, 12, 16, 17, 19, 20, 66, 97) ; n° 89 si l'auteur le veut.
+1. #94 à #98 : fusion si l'auteur le demande.
+2. Preuves restées à faire : #71 (effets d'animation coupés), #72 (contraste élevé) — l'auteur change
+   le réglage système ; et, sur l'installation après la prochaine version : « Démarrer avec Windows »
+   (#91), `[VEILLE]` au journal après une vraie veille (#95).
+3. P1 courts restants : 37 (caméra du miroir, crête-mètre, cache d'icônes), 43 (batterie, économiseur
+   d'énergie), 44 (carte « actions sur copie » qui revient) ; puis 100, 98, 99.
+4. Plus tard, les chantiers longs : 46b, 36, 89, 26, 24 ; 40 et 42 (vie privée, réputation) à
+   trancher avec l'auteur.
