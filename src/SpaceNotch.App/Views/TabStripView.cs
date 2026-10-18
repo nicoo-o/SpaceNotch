@@ -25,6 +25,14 @@ public sealed partial class TabStripView : Grid
     private readonly Border _pill = new() { Height = TabHeight, CornerRadius = new CornerRadius(12), HorizontalAlignment = HorizontalAlignment.Left, IsHitTestVisible = false };
     private readonly StackPanel _tabs = new() { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly List<(string Id, Button Tab)> _items = [];
+
+
+    /// <summary>
+    /// Les boutons de la bande, dans l'arbre, dans l'ordre : les premiers
+    /// portent les onglets (<see cref="_items"/>), les autres sont repliés.
+    /// </summary>
+    private readonly List<Button> _slots = [];
+
     private string? _selected;
 
     public TabStripView()
@@ -58,19 +66,16 @@ public sealed partial class TabStripView : Grid
     /// <summary>Faux quand Windows réduit les animations : la pilule saute.</summary>
     public bool Animate { get; set; } = true;
 
-    /// <summary>Affiche les onglets ; <paramref name="activities"/> vide replie la bande.</summary>
+    /// <summary>Affiche les onglets ; <paramref name="activities"/> vide les retire.</summary>
     public void Show(IReadOnlyList<IslandActivity> activities, string? selectedId, Brush? text, Brush? dim)
     {
         ArgumentNullException.ThrowIfNull(activities);
         Visibility = activities.Count >= 2 ? Visibility.Visible : Visibility.Collapsed;
 
-        // Les onglets sont réutilisés par position : seuls ceux qui manquent sont
-        // créés, ceux de trop retirés, et l'icône, la teinte, le titre et le nom
-        // accessible des autres mis à jour sur place. Reconstruits à chaque rendu,
-        // les boutons neufs faisaient provoquer à XAML des GC de génération 2,
-        // 11 à 20 ms de pause au milieu d'une ouverture ; reconstruits à chaque
-        // changement d'activité, ils coûtaient encore 4 à 8 ms (n° 46b, visites
-        // du 2026-10-18).
+        // Les boutons restent dans l'arbre et sont réutilisés par position : y
+        // entrer et en sortir coûtait 4 à 8 ms par rendu (n° 46b, visites du
+        // 2026-10-18), avant cela, reconstruits à chaque rendu, ils faisaient
+        // provoquer à XAML des GC de génération 2 de 11 à 20 ms.
         Sync(activities, text);
 
         bool changed = !string.Equals(selectedId, _selected, StringComparison.Ordinal);
@@ -95,42 +100,47 @@ public sealed partial class TabStripView : Grid
         _placed = false;
     }
 
-    /// <summary>Les onglets affichés deviennent ceux de <paramref name="activities"/>, en réutilisant les boutons déjà là.</summary>
+    /// <summary>Les onglets affichés deviennent ceux de <paramref name="activities"/>, dans leur ordre.</summary>
     private void Sync(IReadOnlyList<IslandActivity> activities, Brush? text)
     {
-        // Sans onglets, la bande est repliée : ses boutons sont gardés pour la
-        // prochaine ouverture à plusieurs activités, qui n'aura qu'à les remplir.
-        if (activities.Count == 0)
-        {
-            return;
-        }
-
-        while (_items.Count > activities.Count)
-        {
-            _items.RemoveAt(_items.Count - 1);
-            _tabs.Children.RemoveAt(_tabs.Children.Count - 1);
-        }
+        _items.Clear();
 
         for (int i = 0; i < activities.Count; i++)
         {
             IslandActivity activity = activities[i];
 
-            if (i == _items.Count)
+            if (i == _slots.Count)
             {
                 Button created = CreateTab();
                 _tabs.Children.Add(created);
-                _items.Add((activity.Id, created));
+                _slots.Add(created);
             }
 
-            Button tab = _items[i].Tab;
-            _items[i] = (activity.Id, tab);
+            Button tab = _slots[i];
+
+            // Un onglet qui a le focus ou qu'on est en train d'appuyer ne change
+            // jamais d'activité sous la main : il est remplacé par un neuf, et
+            // perd le focus ou l'appui comme quand la bande était reconstruite.
+            if (tab.Tag is string previous
+                && !string.Equals(previous, activity.Id, StringComparison.Ordinal)
+                && (tab.IsPressed || tab.FocusState != FocusState.Unfocused))
+            {
+                tab = CreateTab();
+                _tabs.Children[i] = tab;
+                _slots[i] = tab;
+            }
+
             tab.Tag = activity.Id;
+            tab.Visibility = Visibility.Visible;
+            _items.Add((activity.Id, tab));
 
             if (tab.Content is not StackPanel { Children.Count: > 1 } content)
             {
                 continue;
             }
 
+            // Une autre activité à cette place : son icône remplace la précédente
+            // en faisant voyager les pixels (P6), comme dans la notch.
             if (content.Children[0] is GlyphView glyph)
             {
                 if (!string.Equals(glyph.Key, activity.IconKey, StringComparison.Ordinal))
@@ -151,9 +161,13 @@ public sealed partial class TabStripView : Grid
                 Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(tab, activity.Title);
             }
         }
+
+        for (int i = activities.Count; i < _slots.Count; i++)
+        {
+            _slots[i].Visibility = Visibility.Collapsed;
+        }
     }
 
-    /// <summary>Un onglet vide ; <see cref="Sync"/> lui donne son activité.</summary>
     private Button CreateTab()
     {
         var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
@@ -182,7 +196,8 @@ public sealed partial class TabStripView : Grid
             tab.Style = ghost;
         }
 
-        // L'activité de l'onglet change quand il est réutilisé : elle est lue au clic.
+        // L'activité est lue au clic : elle change quand le bouton est réutilisé,
+        // mais jamais pendant un appui (voir Sync).
         tab.Click += (sender, _) =>
         {
             if (sender is Button { Tag: string id })
