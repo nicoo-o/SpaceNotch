@@ -530,9 +530,11 @@ public sealed partial class IslandWindow : Window
         => _visualState.UseSpringAnimations && _settings.AllowBouncyAnimations;
 
     /// <summary>
-    /// La forme suit un ressort dès que Windows l'autorise ; « Rebond » éteint
-    /// le rend seulement sans dépassement (<see cref="AppSettings.Motion"/>, n° 91),
-    /// au lieu d'un saut suivi d'un fondu.
+    /// Le mouvement que Windows autorise : le ressort de la forme et les fondus
+    /// du contenu qui l'accompagnent. « Rebond » éteint ne retire que le
+    /// dépassement (<see cref="AppSettings.Motion"/>, n° 91) — au lieu d'un saut
+    /// suivi d'un fondu — et les effets qui ne vivent que du rebond, qui restent
+    /// sous <see cref="UseSpringAnimations"/>.
     /// </summary>
     private bool UseShapeSpring() => _visualState.UseSpringAnimations;
 
@@ -1192,7 +1194,7 @@ public sealed partial class IslandWindow : Window
             }
         }
 
-        if (!ContentTransition.Leave(root, UseSpringAnimations(), () => _dispatcherQueue.TryEnqueueSafely(Finish)))
+        if (!ContentTransition.Leave(root, UseShapeSpring(), () => _dispatcherQueue.TryEnqueueSafely(Finish)))
         {
             EndSceneLeave(collapse: true);
             return;
@@ -1360,7 +1362,7 @@ public sealed partial class IslandWindow : Window
             // posait sur le texte de la scène encore lisible.
             if (wasShowingScene && _leavingSceneRoot is not null)
             {
-                ContentTransition.Play(IdleRestView, UseSpringAnimations(), ContentTransition.LeaveDuration);
+                ContentTransition.Play(IdleRestView, UseShapeSpring(), ContentTransition.LeaveDuration);
             }
 
             // « Annuler » prend la place des yeux le temps de l'annulation.
@@ -1445,12 +1447,12 @@ public sealed partial class IslandWindow : Window
 
                 // Une seule ligne de temps : la forme grandit, puis le contenu
                 // arrive, flou, et se précise.
-                ContentTransition.Play(scene.Root, UseSpringAnimations(), TimeSpan.FromMilliseconds(80));
+                ContentTransition.Play(scene.Root, UseShapeSpring(), TimeSpan.FromMilliseconds(80));
                 PlayVeil(TimeSpan.FromMilliseconds(40));
 
                 if (morph is not null)
                 {
-                    MorphPlayer.PlayWhenLaidOut(morph, scene, ContentArea, UseSpringAnimations());
+                    MorphPlayer.PlayWhenLaidOut(morph, scene, ContentArea, UseShapeSpring());
                 }
             }
 
@@ -1474,7 +1476,7 @@ public sealed partial class IslandWindow : Window
             {
                 // Sans fondu de sortie (compositeur qui refuse), rien à attendre.
                 TimeSpan wait = _leavingSceneRoot is not null ? ContentTransition.LeaveDuration : TimeSpan.FromMilliseconds(60);
-                ContentTransition.Play(rest, UseSpringAnimations(), wait);
+                ContentTransition.Play(rest, UseShapeSpring(), wait);
             }
         }
         else if (changedActivity)
@@ -1742,7 +1744,7 @@ public sealed partial class IslandWindow : Window
             if (now - _lastRoll >= 200)
             {
                 _lastRoll = now;
-                ContentTransition.Roll(target, UseSpringAnimations());
+                ContentTransition.Roll(target, UseShapeSpring());
             }
 
             return;
@@ -1750,7 +1752,7 @@ public sealed partial class IslandWindow : Window
 
         if (visible && !metric)
         {
-            ContentTransition.Play(target, UseSpringAnimations(), TimeSpan.FromMilliseconds(60), ContentTransition.SwapDuration);
+            ContentTransition.Play(target, UseShapeSpring(), TimeSpan.FromMilliseconds(60), ContentTransition.SwapDuration);
 
             // Un titre qui change se lit flou, puis net ; une mesure qui défile
             // — une taille reçue, un pourcentage — change sans voile.

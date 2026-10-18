@@ -379,6 +379,7 @@ public sealed partial class SettingsWindow : Window
             BounceSlider.Value = settings.SpringBounce;
 
             BouncyToggle.IsOn = settings.AllowBouncyAnimations;
+            BounceSlider.IsEnabled = settings.AllowBouncyAnimations;
             HypnoticToggle.IsOn = settings.AllowHypnoticMotion;
             RainToggle.IsOn = settings.ShowBinaryRain;
             HoverToggle.IsOn = settings.HoverToPreview;
@@ -859,7 +860,12 @@ public sealed partial class SettingsWindow : Window
         => Apply(s => s.HideOverFullscreen = FullscreenToggle.IsOn);
 
     private void OnBouncyToggled(object sender, RoutedEventArgs e)
-        => Apply(s => s.AllowBouncyAnimations = BouncyToggle.IsOn);
+    {
+        // Rebond éteint : le ressort est amorti au point critique, l'amortissement
+        // choisi n'agit plus (n° 91).
+        BounceSlider.IsEnabled = BouncyToggle.IsOn;
+        Apply(s => s.AllowBouncyAnimations = BouncyToggle.IsOn);
+    }
 
 
     private void OnClockToggled(object sender, RoutedEventArgs e)
