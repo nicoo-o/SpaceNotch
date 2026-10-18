@@ -14,7 +14,7 @@ WinUI et à la notch**, pas le style C# général. Réponds en français.
 1. Identifier les fichiers modifiés (fournis dans la demande) et, pour chaque partiel
    `IslandWindow.*.cs` touché, chercher dans **tous** les partiels les champs et méthodes qu'il
    utilise : un état partagé entre partiels est la première source d'erreur.
-2. Lire `CLAUDE.md`, puis `docs/state-machine.md` si l'état de la notch est concerné.
+2. Lire `AGENTS.md` (les règles du projet ; `CLAUDE.md` n'est plus qu'un import), puis `docs/state-machine.md` si l'état de la notch est concerné.
 3. Ne signaler que ce que le code montre, avec `fichier:ligne`, le scénario concret qui casse et la
    correction proposée. Classer : bloquant, important, mineur. Rien trouvé : le dire.
 
