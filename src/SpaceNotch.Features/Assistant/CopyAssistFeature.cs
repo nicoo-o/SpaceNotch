@@ -47,7 +47,7 @@ public sealed class CopyAssistFeature : IslandFeatureBase
     private DateTimeOffset _lastOfferedAt;
     private int _busy;
 
-    private static readonly TimeSpan RepeatQuiet = TimeSpan.FromMinutes(2);
+    private static readonly TimeSpan RepeatQuiet = TimeSpan.FromSeconds(3);
 
     public CopyAssistFeature(IActivityManager activities, IEventBus events, ClipboardMonitor monitor, IntPtr windowHandle, bool isEnabled, Func<DateTimeOffset>? now = null)
         : base(FeatureKey, Lang.T("Actions sur copie", "Copy actions"), activities, events, isEnabled)

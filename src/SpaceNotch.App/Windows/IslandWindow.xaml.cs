@@ -302,7 +302,7 @@ public sealed partial class IslandWindow : Window
 
         _visualState = SystemVisualState.Read();
         GlyphView.AnimationsEnabled = _visualState.UseSpringAnimations;
-        global::Windows.System.Power.PowerManager.EnergySaverStatusChanged += OnEnergySaverChanged;
+        Safely("économiseur", () => global::Windows.System.Power.PowerManager.EnergySaverStatusChanged += OnEnergySaverChanged);
 
         // La couche décorative est créée avant le contrôleur : celui-ci applique
         // sa géométrie initiale dès sa construction (SnapTo), et la géométrie
