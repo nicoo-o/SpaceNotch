@@ -111,11 +111,13 @@ public sealed partial class IslandWindow
         if (_pixelLive)
         {
             PixelTick();
+            RenderMark("pixel·regard");
             return;
         }
 
         _pixelLive = true;
         StartPixelLife();
+        RenderMark("pixel·vie");
 
         _gazeTimer ??= CreateRepeatingTimer(GazeInterval, PixelTick);
         PixelTick();

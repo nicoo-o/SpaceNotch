@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
@@ -27,7 +26,6 @@ public sealed partial class TabStripView : Grid
     private readonly StackPanel _tabs = new() { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly List<(string Id, Button Tab)> _items = [];
     private string? _selected;
-    private string _signature = string.Empty;
 
     public TabStripView()
     {
@@ -66,11 +64,17 @@ public sealed partial class TabStripView : Grid
         ArgumentNullException.ThrowIfNull(activities);
         Visibility = activities.Count >= 2 ? Visibility.Visible : Visibility.Collapsed;
 
-        string signature = string.Join('|', activities.Select(a => a.Id + "·" + a.IconKey + "·" + a.Title));
-
-        if (!string.Equals(signature, _signature, StringComparison.Ordinal))
+        // Les onglets ne sont reconstruits que si la liste des activités change.
+        // Une icône ou un titre qui change (une progression, un minuteur) est mis
+        // à jour sur place : reconstruits à chaque rendu, les boutons neufs
+        // faisaient provoquer à XAML des GC de génération 2, 11 à 20 ms de pause
+        // au milieu d'une ouverture (n° 46b, visite du 2026-10-18).
+        if (SameActivities(activities))
         {
-            _signature = signature;
+            Refresh(activities, text);
+        }
+        else
+        {
             Rebuild(activities, text);
         }
 
@@ -94,6 +98,60 @@ public sealed partial class TabStripView : Grid
         // la mise en page, sur le ressort si l'onglet a changé.
         _slideNext = changed && Animate;
         _placed = false;
+    }
+
+    /// <summary>Mêmes activités, dans le même ordre, que les onglets affichés.</summary>
+    private bool SameActivities(IReadOnlyList<IslandActivity> activities)
+    {
+        if (activities.Count != _items.Count)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < activities.Count; i++)
+        {
+            if (!string.Equals(activities[i].Id, _items[i].Id, StringComparison.Ordinal))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>Icône, teinte, titre et nom accessible mis à jour sur place, seulement s'ils ont changé.</summary>
+    private void Refresh(IReadOnlyList<IslandActivity> activities, Brush? text)
+    {
+        for (int i = 0; i < activities.Count; i++)
+        {
+            IslandActivity activity = activities[i];
+            Button tab = _items[i].Tab;
+
+            if (tab.Content is not StackPanel { Children.Count: > 1 } content)
+            {
+                continue;
+            }
+
+            if (content.Children[0] is GlyphView glyph)
+            {
+                if (!string.Equals(glyph.Key, activity.IconKey, StringComparison.Ordinal))
+                {
+                    glyph.Key = activity.IconKey;
+                }
+
+                // Le thème ou le contraste a pu changer : le pinceau du titre est déjà reposé à chaque passage.
+                if (!ReferenceEquals(glyph.Tint, text))
+                {
+                    glyph.Tint = text;
+                }
+            }
+
+            if (content.Children[1] is TextBlock label && !string.Equals(label.Text, activity.Title, StringComparison.Ordinal))
+            {
+                label.Text = activity.Title;
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(tab, activity.Title);
+            }
+        }
     }
 
     private void Rebuild(IReadOnlyList<IslandActivity> activities, Brush? text)
