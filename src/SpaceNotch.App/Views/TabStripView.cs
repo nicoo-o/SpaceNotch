@@ -58,25 +58,20 @@ public sealed partial class TabStripView : Grid
     /// <summary>Faux quand Windows réduit les animations : la pilule saute.</summary>
     public bool Animate { get; set; } = true;
 
-    /// <summary>Affiche les onglets ; <paramref name="activities"/> vide les retire.</summary>
+    /// <summary>Affiche les onglets ; <paramref name="activities"/> vide replie la bande.</summary>
     public void Show(IReadOnlyList<IslandActivity> activities, string? selectedId, Brush? text, Brush? dim)
     {
         ArgumentNullException.ThrowIfNull(activities);
         Visibility = activities.Count >= 2 ? Visibility.Visible : Visibility.Collapsed;
 
-        // Les onglets ne sont reconstruits que si la liste des activités change.
-        // Une icône ou un titre qui change (une progression, un minuteur) est mis
-        // à jour sur place : reconstruits à chaque rendu, les boutons neufs
-        // faisaient provoquer à XAML des GC de génération 2, 11 à 20 ms de pause
-        // au milieu d'une ouverture (n° 46b, visite du 2026-10-18).
-        if (SameActivities(activities))
-        {
-            Refresh(activities, text);
-        }
-        else
-        {
-            Rebuild(activities, text);
-        }
+        // Les onglets sont réutilisés par position : seuls ceux qui manquent sont
+        // créés, ceux de trop retirés, et l'icône, la teinte, le titre et le nom
+        // accessible des autres mis à jour sur place. Reconstruits à chaque rendu,
+        // les boutons neufs faisaient provoquer à XAML des GC de génération 2,
+        // 11 à 20 ms de pause au milieu d'une ouverture ; reconstruits à chaque
+        // changement d'activité, ils coûtaient encore 4 à 8 ms (n° 46b, visites
+        // du 2026-10-18).
+        Sync(activities, text);
 
         bool changed = !string.Equals(selectedId, _selected, StringComparison.Ordinal);
         _selected = selectedId;
@@ -100,32 +95,36 @@ public sealed partial class TabStripView : Grid
         _placed = false;
     }
 
-    /// <summary>Mêmes activités, dans le même ordre, que les onglets affichés.</summary>
-    private bool SameActivities(IReadOnlyList<IslandActivity> activities)
+    /// <summary>Les onglets affichés deviennent ceux de <paramref name="activities"/>, en réutilisant les boutons déjà là.</summary>
+    private void Sync(IReadOnlyList<IslandActivity> activities, Brush? text)
     {
-        if (activities.Count != _items.Count)
+        // Sans onglets, la bande est repliée : ses boutons sont gardés pour la
+        // prochaine ouverture à plusieurs activités, qui n'aura qu'à les remplir.
+        if (activities.Count == 0)
         {
-            return false;
+            return;
         }
 
-        for (int i = 0; i < activities.Count; i++)
+        while (_items.Count > activities.Count)
         {
-            if (!string.Equals(activities[i].Id, _items[i].Id, StringComparison.Ordinal))
-            {
-                return false;
-            }
+            _items.RemoveAt(_items.Count - 1);
+            _tabs.Children.RemoveAt(_tabs.Children.Count - 1);
         }
 
-        return true;
-    }
-
-    /// <summary>Icône, teinte, titre et nom accessible mis à jour sur place, seulement s'ils ont changé.</summary>
-    private void Refresh(IReadOnlyList<IslandActivity> activities, Brush? text)
-    {
         for (int i = 0; i < activities.Count; i++)
         {
             IslandActivity activity = activities[i];
+
+            if (i == _items.Count)
+            {
+                Button created = CreateTab();
+                _tabs.Children.Add(created);
+                _items.Add((activity.Id, created));
+            }
+
             Button tab = _items[i].Tab;
+            _items[i] = (activity.Id, tab);
+            tab.Tag = activity.Id;
 
             if (tab.Content is not StackPanel { Children.Count: > 1 } content)
             {
@@ -154,47 +153,45 @@ public sealed partial class TabStripView : Grid
         }
     }
 
-    private void Rebuild(IReadOnlyList<IslandActivity> activities, Brush? text)
+    /// <summary>Un onglet vide ; <see cref="Sync"/> lui donne son activité.</summary>
+    private Button CreateTab()
     {
-        _tabs.Children.Clear();
-        _items.Clear();
-
-        foreach (IslandActivity activity in activities)
+        var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        content.Children.Add(new GlyphView { Size = 12, VerticalAlignment = VerticalAlignment.Center });
+        content.Children.Add(new TextBlock
         {
-            var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
-            content.Children.Add(new GlyphView { Key = activity.IconKey, Size = 12, Tint = text, VerticalAlignment = VerticalAlignment.Center });
-            content.Children.Add(new TextBlock
-            {
-                Text = activity.Title,
-                FontSize = 11.5,
-                MaxWidth = 140,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                VerticalAlignment = VerticalAlignment.Center
-            });
+            FontSize = 11.5,
+            MaxWidth = 140,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center
+        });
 
-            var tab = new Button
-            {
-                Content = content,
-                Height = TabHeight,
-                MinHeight = 0,
-                Padding = new Thickness(10, 0, 10, 0),
-                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
-                BorderThickness = new Thickness(0),
-                CornerRadius = new CornerRadius(12)
-            };
+        var tab = new Button
+        {
+            Content = content,
+            Height = TabHeight,
+            MinHeight = 0,
+            Padding = new Thickness(10, 0, 10, 0),
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(12)
+        };
 
-            if (Application.Current.Resources.TryGetValue("NfGhostButtonStyle", out object? style) && style is Style ghost)
-            {
-                tab.Style = ghost;
-            }
-
-            string id = activity.Id;
-            tab.Click += (_, _) => TabInvoked?.Invoke(this, id);
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(tab, activity.Title);
-
-            _tabs.Children.Add(tab);
-            _items.Add((id, tab));
+        if (Application.Current.Resources.TryGetValue("NfGhostButtonStyle", out object? style) && style is Style ghost)
+        {
+            tab.Style = ghost;
         }
+
+        // L'activité de l'onglet change quand il est réutilisé : elle est lue au clic.
+        tab.Click += (sender, _) =>
+        {
+            if (sender is Button { Tag: string id })
+            {
+                TabInvoked?.Invoke(this, id);
+            }
+        };
+
+        return tab;
     }
 
     private bool _placed;
