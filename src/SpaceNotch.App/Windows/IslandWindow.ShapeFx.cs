@@ -104,7 +104,9 @@ public sealed partial class IslandWindow
 
         _fxRunning = true;
         _fxLast = System.Diagnostics.Stopwatch.GetTimestamp();
-        SpaceNotch_App.Animations.FrameClock.Rendering += OnFxFrame;
+
+        // StopFx en cas d'échec : sans lui la goutte ne repartait plus au survol suivant.
+        SpaceNotch_App.Animations.FrameClock.Subscribe(OnFxFrame, StopFx);
     }
 
     private void StopFx()

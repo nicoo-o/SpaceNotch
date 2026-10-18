@@ -132,6 +132,9 @@ fréquent ne peut donc pas introduire de latence dans ce rappel.
   `CompositionTarget.Rendering`, posé seulement tant qu'une animation tourne et redistribué à toutes.
   Il sert au ressort de la forme, au détachement, au visage, aux passages, à la teinte, aux
   compteurs et à la goutte, qui avait jusque-là son propre minuteur à 16 ms.
+  Un abonné qui lève une erreur est retiré, les autres continuent. Une animation qui garde un drapeau
+  « je tourne » s'abonne par `FrameClock.Subscribe(handler, onFailed)` et y remet le drapeau à faux :
+  avec `Rendering +=`, le drapeau restait vrai et l'animation ne repartait plus.
 - **`SilhouetteCache`** : les contours sont arrondis au quart de DIP et les 96 derniers sont gardés,
   car un ressort repasse par les mêmes tailles.
 - **Pochettes** décodées à 192 pixels au lieu de leur taille d'origine (souvent 600 à 1 000), avec
