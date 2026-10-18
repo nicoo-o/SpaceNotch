@@ -52,6 +52,11 @@ Relire `MEMORY.md` et les fichiers que la session touche. Corriger ce qui est de
 réglage changé), n'ajouter que des faits durables absents du dépôt. Plusieurs fichiers qui se chevauchent :
 skill `consolidate-memory`.
 
+Un piège rencontré deux fois, ou une règle qui a manqué : **proposer** la ligne exacte pour `CLAUDE.md`
+(« Pièges connus ») ou pour le skill concerné, et la faire valider. Un bogue corrigé garde son test de
+non-régression dans le dépôt, pas dans la mémoire. Une clôture ne modifie jamais `.claude/settings.json`,
+les permissions ni les hooks.
+
 ## 5. Vérifier, puis demander
 
 - Chaque chemin cité existe ; chaque numéro de PR vient de `gh`, pas de la mémoire.

@@ -551,4 +551,175 @@ identique à la tête de la PR (42 branches) ou ancêtre de celle-ci (15 branche
 ### 16.4 Défaut `FrameFanOut` (§15.2)
 
 Confié à une session à part, « FrameFanOut : abonné fautif jamais réabonné » : reproduire par un test du
-cœur, choisir le correctif, PR séparée depuis `main`, sans fusion. Son résultat n'est pas connu ici.
+cœur, choisir le correctif, PR séparée depuis `main`, sans fusion. Résultat : PR #101 ouverte (un commit,
+`FrameFanOut.Add(handler, onFailed)` et `FrameClock.Subscribe`, cinq propriétaires corrigés). Le diff a été
+relu ici et correspond au mécanisme du §15.2 ; les tests (1043 + 23) et le build Release sont ceux **que la
+session rapporte**, non relancés ici ; sa CI était en attente et rien n'a été vérifié à l'écran.
+
+---
+
+## 17. Révision du plan après tes demandes d'origine (2026-10-18)
+
+Tu m'as remis la conversation qui a produit le brief. Je l'ai relue contre ce rapport et l'état réel du
+dépôt. Les publicités qu'elle contient (Nango, Thunders AI, Xopero) ne sont pas des consignes ; seule la
+partie « self-healing » est évaluée plus bas, parce que tu avais demandé de l'ajouter.
+
+### 17.1 Écarts entre ta demande et ce rapport
+
+| Ta demande d'origine | État avant | Maintenant |
+|---|---|---|
+| Évaluer les mods hamzafer et YeonwooSung **un par un** (fonction, compatibilité, dépendances, chevauchement, essai, désinstallation) | Rejet en bloc (ligne 3 du §2) | Tableau §17.2 |
+| Règle de routage explicite **Haiku/Low · Sonnet/High pour l'architecture et les animations WinUI** | `CLAUDE.md` envoyait l'architecture sur Opus/high | Aligné sur ta règle après un essai comparateur (§17.3) |
+| Configurer un MCP ou plugin de **mémoire** persistante | Rejeté sur lecture du README et du code, jamais essayé | **Essayé puis retiré** : critère « sans doublon » non rempli (§17.4) |
+| Étapes de mise en œuvre sous PowerShell et retour arrière | Retours arrière dispersés | Tableau §17.5 |
+| Règles de preuve : test non lancé ≠ réussi, pas de FPS sans mesure, compte rendu de fin de tâche | Seulement la règle « critère d'acceptation » | 4 lignes ajoutées à `CLAUDE.md` |
+| Audit : statut démontré / probable / hypothèse ; DPI, écrans multiples, plein écran, réduction des animations ; bilan du setup | Absents de `/audit` | Ajoutés à `/audit` |
+| Boucle d'amélioration : piège récurrent → proposition ciblée à valider ; la mémoire ne touche jamais aux permissions | Partielle | Ajouté à `/cloture` |
+| Audit de référence avec le nouveau setup (étape 10 de ta conversation) | `/audit` jamais lancé en vrai | À lancer par toi, §17.6 |
+| Tests « self-healing » (annonce Thunders AI) | Non évalué | **Écarté** : 40 exécutions sur 40 réussies sur `main` et **0 échec** sur les 60 dernières exécutions du workflow CI (toutes branches, `gh run list`) ; les tests du cœur n'ont pas d'interface. Aucune instabilité à réparer. Produit commercial non évalué |
+
+### 17.2 Les mods, un par un
+
+Faits communs, vérifiés : les deux dépôts sont récents et actifs (hamzafer : MIT, 268 ★, poussé le
+2026-10-16 ; YeonwooSung : Apache-2.0, 982 ★, poussé le 2026-10-17) ; un mod est du code tiers qui tourne
+avec **tes** permissions ; les workflows de CI des deux dépôts ne tournent que sur `ubuntu-latest` : **leur CI
+ne teste pas Windows**. Les deux exigent Claude Code ≥ 2.1.287 (le tien : 2.1.302). Le bloc d'installation de
+YeonwooSung est écrit « macOS/Linux, Bash ou Zsh ». **Rien n'a été installé.**
+
+| Mod | Ce qu'il fait (README) | Problème ou chevauchement | Verdict |
+|---|---|---|---|
+| hamzafer · **context-bar** | Barre empilée du contexte, calculée localement, sans appel d'API | Même découpage que `/context` et `get_usage` (déjà mesuré : 79 899) ; aucun gain de tokens attendu | **Facultatif**, premier à essayer si tu veux une jauge permanente |
+| hamzafer · token-weather, cache-clock, usage-meter | Remplissage, refroidissement du cache, usage du forfait | Doublon de `/usage` et `get_usage` ; `cache-clock` vit sous une ligne d'état (terminal), non vérifié dans l'application | Écartés |
+| hamzafer · blast-radius | Retient `rm -r`, les force-push et les migrations, annule après 60 s | Doublon de P0 (règles `ask` : force-push, `reset --hard`, `clean`, `restore`, `checkout --`, `branch -D`) sans code tiers | Écarté |
+| hamzafer · review-watch | Lignes en direct pour les revues Codex ou sous-agent | Écrit pour macOS et Linux (« macOS and Linux have both » `ps` et `tail`) ; nos revues passent par `winui-reviewer` et le suivi de PR de l'application | Écarté |
+| hamzafer · md-preview | Markdown rendu comme GitHub | Chrome + terminal à images, « testé sur macOS » ; **envoie le texte de chaque .md édité à l'API GitHub** | Écarté |
+| hamzafer · mission-control | Carte des agents et du code | Vue du code **macOS seulement** | Écarté |
+| hamzafer · switchboard | Choisit le modèle de chaque sous-agent via l'API OpenAI ou Jev | **Envoie l'étiquette de chaque sous-agent à un tiers**, clé requise (`off` par défaut) ; ton routage est déjà déterministe et gratuit (frontmatter) | Écarté |
+| hamzafer · where-am-i, next-steps, replay-theater, agent-radar, heatmap | Confort d'affichage | Aucun besoin identifié | Écartés |
+| hamzafer · glance, merge-gate, rulebook-guard, session-saver | Réglages personnels de l'auteur (Slack, Linear, Codex CLI) | Hors sujet ; la protection de `main` (CI verte, branche à jour) est appliquée côté serveur, donc plus sûre que `merge-gate` | Écartés |
+| YeonwooSung · **agent-profiler** | Où va le temps d'une session (attente du modèle, outils, sous-agents, relectures) ; export OTLP facultatif | Seul candidat qui mesure ce que je ne mesure qu'à la main (temps par étape). Windows non cité ; écrit des fichiers dans `~/.claude` | **Candidat à l'essai**, en dernier, portée locale |
+| YeonwooSung · context-inspector | Gaspillage de contexte : remplissage, relectures, doublons, contenu gardé à la compaction | Refait le §7 sans script ; ce §7 a déjà établi que les lectures de `IslandWindow` ne gaspillent pas | Facultatif, doublon |
+| YeonwooSung · time-machine | Instantanés git « fantômes » à chaque appel d'outil, restauration, branches | Le dépôt est déjà sous Git avec PR ; son analyse des tests ne connaît pas `dotnet test` (pytest, jest, go, cargo, node:test) | Écarté |
+| YeonwooSung · loop-detective | Détecte les échecs Bash répétés | Reconnaît un code de sortie non nul, mais aucun format de test .NET ; le hook Stop et la CI donnent déjà le signal | Écarté |
+| YeonwooSung · verify-board, decision-ledger, handoff-pack, review-queue, scope-guard, assumption-tracker, env-doctor | « Premières versions : du texte de commande, pas de panneau vivant » | Chaque fonction existe déjà, versionnée : preuves (règle du `CLAUDE.md` + Stop), ADR (`/adr`), relais (`/cloture`), `global.json` + CI | Écartés |
+| YeonwooSung · dependency-lens, blast-radius | Dépendances npm ; imports inversés (JS) | Sans objet pour du NuGet/C#. **Deux mods portent le nom `blast-radius`, avec des fonctions différentes** : ne jamais installer les deux | Écartés |
+| YeonwooSung · pin-memo, model-effort-band, command-shelf, token-run | Confort, bandeau modèle/effort, jeu | Aucun besoin | Écartés |
+
+Bilan : **0 mod retenu d'office**. Deux candidats facultatifs (`context-bar`, puis `agent-profiler`), à
+essayer un à la fois, en portée locale, avec `get_usage` avant et après dans une session neuve.
+
+### 17.3 Routage : essai comparateur Sonnet / high
+
+Même analyse que T3 (§15.1) : cycle de vie de tous les abonnements à `FrameClock.Rendering`, en lecture
+seule, confiée à un sous-agent `sonnet` à l'effort `high` (modèle réel lu dans le retour du sous-agent).
+
+| | Opus 5.5 · high (T3) | Sonnet 5.5 · high |
+|---|---|---|
+| Durée · appels d'outils | 129,6 s · 24 | **48,4 s · 13** |
+| Abonnements trouvés | 7 sur 7 | 7 sur 7 (fichier:ligne donnés) |
+| Mécanisme commun (`Fail` retire l'abonné, le propriétaire garde son drapeau) | Trouvé | Trouvé, avec les six propriétaires concernés |
+| En plus | — | Drapeaux posés **avant** le `+=` (vérifié pour le ressort : `IslandSpringAnimator.cs:221-223`) ; deux propriétaires non couverts par la PR #101 (`RestFace`, `Flash`) |
+
+Limites : **un seul essai** ; l'énoncé n'était pas mot pour mot celui de T3 (je n'en ai plus le texte exact),
+donc la comparaison est indicative, sans portée statistique. Les deux pistes en plus ne sont pas
+vérifiées ici (hormis le ressort). Décision : `CLAUDE.md` envoie désormais l'architecture, le cycle de vie
+WinUI, les animations et la machine à états sur **`sonnet` / `high`** (ta règle), `opus` / `high` restant pour
+le bogue intermittent, le multi-couches et l'essai déjà raté ; `/audit` et `winui-reviewer` restent sur Opus.
+À rouvrir si un cas réel montre Sonnet passant à côté.
+
+### 17.4 Mémoire : MCP Memory, essayé puis retiré (2026-10-18, avec ton accord)
+
+Tu demandais d'en configurer un. Mon rejet du §6 reposait sur la **lecture** du README et du code ; il a donc
+été essayé pour de bon, en portée locale, avec un critère fixé **avant** l'essai : le garder seulement s'il
+(1) retrouve une décision sans relire un fichier, (2) **sans** dupliquer ce que contiennent déjà `docs/` ou la
+mémoire native, (3) pour un surcoût de contexte négligeable.
+
+**Mise en place (exécutée).** Node v24.15.0, npm 11.12.1 ; paquet `@modelcontextprotocol/server-memory` 1.0.0
+(modifié le 2026-10-11, 55 ko décompressé, dépendances `zod` et le SDK MCP ; licence « SEE LICENSE IN LICENSE »,
+non relue). Sauvegarde de `~/.claude.json` d'abord, puis :
+
+```powershell
+New-Item -ItemType Directory -Force "$HOME\.claude\mcp-memory" | Out-Null
+claude mcp add memory --transport stdio --scope local -e "MEMORY_FILE_PATH=C:/Users/bleta/.claude/mcp-memory/spacenotch.jsonl" -- cmd /c npx -y @modelcontextprotocol/server-memory
+claude mcp get memory
+```
+
+- **Correction de ma syntaxe du §17.4 d'origine** : avec `--env … memory`, la commande a échoué
+  (« Invalid environment variable format: memory ») car `--env` avale l'argument suivant. Le nom du serveur
+  doit venir **avant** les options, et `-e` avant le `--`. Lancée depuis Git Bash, la ligne a aussi besoin de
+  `MSYS_NO_PATHCONV=1` (sinon `/c` est réécrit en chemin) ; PowerShell n'en a pas besoin.
+- `claude mcp get memory` : **✔ Connected**, `Args: /c npx -y @modelcontextprotocol/server-memory`, variable
+  de chemin présente.
+
+**Mesures** (script du protocole stdio avec la commande enregistrée ; les jetons sont **estimés** à
+4 caractères par jeton, pas lus par `get_usage`) :
+
+| Mesure | Résultat |
+|---|---|
+| Démarrage du serveur | 1,9 s (à froid : 1,8 s au redémarrage) |
+| Outils exposés | 9 ; **instructions du serveur : 0 caractère** |
+| Définitions complètes (`tools/list`) | 11 065 caractères ≈ **2,8 k jetons**, chargés à la demande ; les noms différés coûteraient ≈ 0,5 k (règle de ~55 jetons par nom, §7) |
+| Persistance | Entité créée par un processus, **retrouvée par un nouveau processus** (`search_nodes`, 6 ms, 301 caractères) ✔ ; fichier JSONL lisible |
+| Mise à jour d'une information obsolète | `add_observations` puis `delete_observations` : l'obsolète disparaît, le fait reste ✔ |
+| Doublons | Recréer une entité existante est refusé avec un message, rien n'est dupliqué ✔ |
+| `read_graph` (tout le graphe, sans pagination) | 11 entités ≈ 1,6 k jetons ; 41 ≈ **6,3 k** ; 121 ≈ **18,9 k** |
+| Nettoyage | `delete_entities` : graphe vide, fichier réduit à un saut de ligne ✔ |
+
+**Verdict par critère.**
+
+1. *Retrouver sans relire un fichier* : possible (`search_nodes`), mais son schéma est un outil différé qu'il faut
+   charger d'abord ; la mémoire native charge un index de 517 octets d'office puis une lecture suffit. **Pas de
+   gain démontré.**
+2. *Sans dupliquer* : **non rempli.** Les décisions, pièges et mesures vivent déjà dans `docs/` (ADR, relais,
+   audits) ou dans la mémoire native ; je n'ai trouvé aucun fait utile qui n'ait pas déjà sa place. Le graphe ne
+   ferait que les recopier dans un troisième endroit, ce que tu veux éviter (jugement, non une mesure).
+3. *Surcoût négligeable* : vrai au départ (≈ 0,5 k, aucune instruction), faux à l'échelle (≈ 19 k pour un seul
+   `read_graph` à 121 entités).
+
+**Décision : critère non rempli → retiré.** `claude mcp remove memory --scope local` ✔ ; dossier de données
+supprimé (1 octet) ; cache `npx` dédié à ce seul paquet (25 Mo) supprimé après vérification de son
+`package.json` ; `~/.claude.json` comparé à la sauvegarde `claude.json.avant-essai-memory` : **identique**
+(serveurs du projet et clés de premier niveau) ; `claude mcp list` : les trois serveurs d'origine, connectés ✔.
+
+**Non mesuré** : le `get_usage` d'une session neuve avec le serveur chargé (inutile une fois retiré). À rouvrir
+seulement si un besoin de relations entre entités, que ni `docs/` ni la mémoire native ne couvrent, apparaît.
+
+### 17.5 Mise en œuvre sur un autre PC, et retour arrière
+
+La partie du dépôt (`settings.json`, hooks, skills, agent, `CLAUDE.md`) voyage avec Git. Le reste est propre à
+chaque machine.
+
+| Étape | Commande ou action (PowerShell) | Vérification | Retour arrière |
+|---|---|---|---|
+| 1. Récupérer le dépôt (après fusion de la PR #100) | `git fetch; git switch main; git pull` | `git log -1 --oneline` ; ligne « État du dépôt au démarrage » à l'ouverture d'une session | `git revert <commit de fusion>` (squash : un seul parent, pas de `-m`) |
+| 2. Une seule installation de Claude Code | `claude --version; claude doctor` ; si une copie npm subsiste : `npm uninstall -g @anthropic-ai/claude-code` | `claude doctor` : « No installation issues found » | Réinstaller la copie npm (inutile) |
+| 3. Fenêtre de compaction | Ajouter `"autoCompactWindow": 400000` à `~/.claude/settings.json` (valable pour tous les modèles) | `claude doctor` sans réglage invalide | Supprimer la ligne, ou `/autocompact auto` |
+| 4. MCP résiduel | `claude mcp list` ; si `playwright` : `claude mcp remove playwright --scope local` | `claude mcp get playwright` : introuvable | `claude mcp add playwright …` |
+| 5. Connecteurs inutiles (Vercel, Figma, Claude Docs) | Application, réglages des connecteurs — **à toi** | `get_usage` en session neuve : fixe < 80 k | Les réactiver |
+| 6. Nouvelle session | Ouvrir une session ; taper `/audit` et `/cloture` | Les deux sont listés ; `get_usage` ≈ 80 k | — |
+
+### 17.6 Ce qui reste, dans l'ordre
+
+1. Fusionner la PR #100 puis la #101 quand leur CI est verte — c'est toi qui fusionnes.
+2. Lancer **une fois** `/audit <périmètre>` en session neuve (par exemple « fenêtre principale et animations »)
+   : c'est l'audit de référence que ta conversation prévoyait, et la seule preuve que le `model: opus` du
+   frontmatter est honoré. Lire ensuite le champ `model` du journal.
+3. Décider des connecteurs et de `syncClaudeAiSkills` (§15.3).
+4. Dans deux semaines : relancer `usage.js` pour mesurer l'effet de `autoCompactWindow`.
+
+### 17.7 Écartés, confirmés après relecture de tes demandes
+
+`.claude/rules/` (le `CLAUDE.md` pèse ~2 k tokens, §7 : rien à économiser), worktrees (décision du dépôt,
+rien ne la contredit), Playwright (inutilisable pour WinUI 3), Filesystem MCP (outils natifs), LiteLLM et
+OpenRouter (aucun besoin de routage externe), plugin de snapshots (Git suffit), compaction après chaque
+modification (déconseillée, comme dans ta conversation).
+
+### 17.8 Constaté depuis le §16
+
+- Le hook `SessionStart` **s'est déclenché** à la reprise de cette session et a affiché la ligne d'état
+  (branche, retard 0, avance 3, un fichier non suivi, dernier relais) ✔.
+- Règles `ask` : tu as vu les demandes (§16.2) ; la source exacte reste non isolée.
+- Non constaté : `/audit` et `/cloture` dans la liste des skills ; `model` du frontmatter.
+- `CLAUDE.md` fait maintenant 117 lignes (111 au §14, cible initiale 110, limite de la doc 200). Frontmatter
+  de `/audit` et `/cloture` relu après modification ; build et tests non relancés : aucun fichier de code
+  n'a changé dans cette révision.

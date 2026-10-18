@@ -79,6 +79,10 @@ samples/                          greffon d'exemple, écrit comme le ferait un t
   `get_symbol_source`, `find_references`) plutôt qu'en lisant des fichiers entiers ;
   `IslandWindow.xaml.cs` dépasse 3 000 lignes. Premier appel : ~25 s de chargement.
 - Une demande sans critère d'acceptation : en fixer un, et le prouver (test, `/snapshot`).
+- Preuves : un test non lancé n'est jamais « réussi ». Une fluidité s'annonce avec la cadence, le trou max
+  et les images longues de `RuntimeDiagnostics` (`docs/performance.md`), sinon « non mesurée ». Fin de
+  tâche : ce qui a changé et pourquoi, commandes lancées avec leur résultat, vérifié à l'écran ou non,
+  limites restantes.
 - Déboguer : lire d'abord `%LocalAppData%\SpaceNotch\logs\spacenotch.log`.
 - Gros chantier (nouvelle vague, machine à états) : proposer le mode plan avant d'écrire du code.
 - Confier une session à une autre conversation (Opus) : `/prompt-opus <tâche>` écrit le brief dans
@@ -89,10 +93,12 @@ samples/                          greffon d'exemple, écrit comme le ferait un t
 
 ## Modèle, effort et contexte
 
-- Pas de routage automatique : `/model` et `/effort` se règlent à la main. Défaut : `sonnet`, effort
-  `medium`. Architecture, cycle de vie WinUI, animations, bogue qui résiste : `opus`, effort `high`
-  (`/model opusplan` : Opus planifie, Sonnet exécute). Fichier ou test sauté : monter l'effort ; erreur
-  malgré tout le contexte : monter le modèle. `/audit` et `winui-reviewer` fixent déjà le leur.
+- Pas de routage automatique : `/model` et `/effort` se règlent à la main. Consultation pure ou retouche
+  mécanique : `haiku`, effort `low`. Défaut : `sonnet`, effort `medium`. Architecture, cycle de vie WinUI,
+  animations, machine à états : `sonnet`, effort `high`. Bogue intermittent, problème multi-couches ou
+  essai déjà raté : `opus`, effort `high` (`/model opusplan` : Opus planifie, Sonnet exécute). Fichier ou
+  test sauté : monter l'effort ; erreur malgré tout le contexte : monter le modèle. `/audit` et
+  `winui-reviewer` fixent déjà le leur (Opus).
 - Une session coûte par sa longueur, pas par son démarrage (80 k tokens fixes, mesurés le 2026-10-18) :
   `/clear` entre deux tâches sans lien ; l'état durable vit dans `docs/plans/relais-*.md`.
 

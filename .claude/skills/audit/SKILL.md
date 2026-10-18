@@ -37,7 +37,7 @@ la réponse.
 | P/Invoke, Win32 | `Platform.Windows/Win32/NativeMethods.cs`, `NativeConstants` |
 | États, géométrie | `docs/state-machine.md`, `Core/Machine/NotchMachine.cs`, `IslandScreenBounds()` |
 | Performance, animation | `docs/performance.md` (18 s de stabilisation), `docs/animation-system.md`. Une mesure exige l'instance de développement, notch de l'auteur **fermée par lui** : sinon « estimé d'après le code » |
-| UX, accessibilité | `docs/ux/design-language.md` : noms accessibles, cibles ≥ 32 DIP, texte via `Lang.T` |
+| UX, accessibilité | `docs/ux/design-language.md` : noms accessibles, cibles ≥ 32 DIP, texte via `Lang.T`. Aussi : écrans multiples et DPI, plein écran, réduction des animations de Windows, contraste élevé — ce qui ne se voit que sur écran est « non vérifié » |
 | Sécurité | réseau, secrets, greffons (ADR-010) |
 | Tests | `get_test_coverage_map` : comportements de Core sans test |
 
@@ -55,13 +55,17 @@ Tout constat 🔴 ou 🟠 : relire le code cité et essayer de le **réfuter** �
 un test le couvre-t-il ? un ADR le justifie-t-il ? Retirer ou rétrograder ce qui ne tient pas, et le dire
 (« écarté après revérification »).
 
+Chaque constat porte un **statut** : *démontré* (reproduit, ou prouvé par le code relu et un test),
+*probable* (chemin atteignable, rien de reproduit), *hypothèse* (plausible, non vérifié). Ne jamais
+présenter une hypothèse comme un constat démontré.
+
 ## 5. Écrire `docs/audit/AAAA-MM-<slug>.md`
 
 Gabarit de `docs/audit/2026-10-audit.md`, en français, chemins relatifs à `src/` :
 
 1. Titre, méthode en trois lignes, légende 🔴 critique · 🟠 haute · 🟡 moyenne · ⚪ basse.
 2. Synthèse (dix lignes au plus, chiffres compris).
-3. Constats par dimension : tableau n° · gravité · constat · preuve · correction · effort (S, M, L).
+3. Constats par dimension : tableau n° · gravité · statut · constat · preuve · correction · effort (S, M, L).
 4. `## Non vérifié` : ce qui n'a pas pu l'être, et pourquoi.
 5. `## Décisions à prendre` : ce qui revient à l'auteur.
 
@@ -71,4 +75,5 @@ Ni ADR ni modification de la feuille de route ici : les constats retenus y entre
 ## 6. Rendre
 
 Le chemin du rapport, cinq lignes de synthèse, les trois constats les plus graves, ce qui n'a pas été
-vérifié.
+vérifié, et une ligne sur l'audit lui-même : outils qui ont servi, outils sans usage, étape qu'il a fallu
+faire à la main.
