@@ -219,15 +219,16 @@ public sealed partial class SettingsWindow : Window
     /// </summary>
     private void ApplyChrome()
     {
-        bool highContrast = IsHighContrast();
-
-        if (_appWindow is null || highContrast == _chromeHighContrast)
+        if (_appWindow is null || _closed)
         {
             return;
         }
 
-        _chromeHighContrast = highContrast;
+        bool highContrast = IsHighContrast();
 
+        // En contraste élevé, le pinceau du système est relu à chaque fois : passer
+        // d'un thème de contraste à un autre (Aquatique → Désert) ne change pas
+        // l'état, mais change la couleur du fond.
         if (highContrast)
         {
             RootLayout.RequestedTheme = ElementTheme.Default;
@@ -235,7 +236,15 @@ public sealed partial class SettingsWindow : Window
                 ? window
                 : null;
         }
-        else
+
+        if (highContrast == _chromeHighContrast)
+        {
+            return;
+        }
+
+        _chromeHighContrast = highContrast;
+
+        if (!highContrast)
         {
             RootLayout.RequestedTheme = ElementTheme.Dark;
             RootLayout.Background = _darkBackground;
@@ -267,6 +276,9 @@ public sealed partial class SettingsWindow : Window
 
     /// <summary>Contraste élevé au dernier habillage ; null avant le premier.</summary>
     private bool? _chromeHighContrast;
+
+    /// <summary>Fenêtre fermée : un changement de thème encore en file n'habille plus rien.</summary>
+    private bool _closed;
 
     /// <summary>
     /// Signale l'entrée et la sortie du contraste élevé ; gardée en champ, sans
@@ -1798,8 +1810,6 @@ public sealed partial class SettingsWindow : Window
     private void OnSystemThemeChanged()
         => DispatcherQueue.TryEnqueueSafely(() =>
         {
-            ApplyChrome();
-
             foreach ((DependencyObject target, DependencyProperty property, string key) in _inks)
             {
                 target.SetValue(property, Token(key));
@@ -1807,6 +1817,9 @@ public sealed partial class SettingsWindow : Window
 
             UpdateNotificationCard();
             ShowPendingPlugins();
+
+            // En dernier : une barre de titre refusée ne prive pas les encres de leur mise à jour.
+            ApplyChrome();
         });
 
     private void UpdateNotificationCard()
@@ -2108,6 +2121,7 @@ public sealed partial class SettingsWindow : Window
 
     private void OnWindowClosed(object sender, WindowEventArgs args)
     {
+        _closed = true;
         _settings.Changed -= OnSettingsChanged;
         SpaceNotch_App.UI.SystemTheme.Changed -= OnSystemThemeChanged;
 
