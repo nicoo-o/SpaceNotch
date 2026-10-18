@@ -22,7 +22,8 @@ public static class MotionSettings
 
             try
             {
-                _animationsEnabled = new global::Windows.UI.ViewManagement.UISettings().AnimationsEnabled;
+                _animationsEnabled = new global::Windows.UI.ViewManagement.UISettings().AnimationsEnabled
+                    && !SpaceNotch.Platform.Windows.System.SystemVisualState.IsEnergySaverOn();
             }
             catch (Exception)
             {

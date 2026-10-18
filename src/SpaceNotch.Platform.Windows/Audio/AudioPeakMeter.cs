@@ -84,9 +84,18 @@ public sealed class AudioPeakMeter : IDisposable
 
         var iid = typeof(IAudioMeterInformation).GUID;
 
-        if (device.Activate(ref iid, CLSCTX.CLSCTX_ALL, IntPtr.Zero, out object meter) == 0)
+        try
         {
-            _meter = (IAudioMeterInformation)meter;
+            if (device.Activate(ref iid, CLSCTX.CLSCTX_ALL, IntPtr.Zero, out object meter) == 0)
+            {
+                _meter = (IAudioMeterInformation)meter;
+            }
+        }
+        finally
+        {
+            // Le périphérique n'est plus utile une fois le compteur obtenu : sans cette
+            // libération, chaque reliaison (toutes les 5 s) en laissait un au ramasse-miettes.
+            Marshal.ReleaseComObject(device);
         }
     }
 

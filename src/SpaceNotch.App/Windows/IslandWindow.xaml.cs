@@ -302,6 +302,7 @@ public sealed partial class IslandWindow : Window
 
         _visualState = SystemVisualState.Read();
         GlyphView.AnimationsEnabled = _visualState.UseSpringAnimations;
+        Safely("économiseur", () => global::Windows.System.Power.PowerManager.EnergySaverStatusChanged += OnEnergySaverChanged);
 
         // La couche décorative est créée avant le contrôleur : celui-ci applique
         // sa géométrie initiale dès sa construction (SnapTo), et la géométrie
@@ -2800,6 +2801,9 @@ public sealed partial class IslandWindow : Window
 
     private bool _environmentMovesNotch;
 
+    /// <summary>L'économiseur d'énergie s'active ou s'arrête (n° 43) : l'état visuel est relu, sur le fil d'interface.</summary>
+    private void OnEnergySaverChanged(object? sender, object e) => OnUiThread(ScheduleEnvironmentRefresh);
+
     /// <summary>
     /// Les messages de changement arrivent en rafale (un changement de résolution
     /// en produit plusieurs). Un unique minuteur à usage unique les coalesce en
@@ -4796,6 +4800,7 @@ public sealed partial class IslandWindow : Window
         Safely("crête-mètre", SpaceNotch.Platform.Windows.Audio.AudioPeakMeter.DisposeShared);
         Safely("messages", () => _messageMonitor?.Dispose());
         Safely("veille", () => SpaceNotch.Platform.Windows.Shell.PowerNotifications.Unregister(_powerNotifications));
+        Safely("économiseur", () => global::Windows.System.Power.PowerManager.EnergySaverStatusChanged -= OnEnergySaverChanged);
         Safely("halo", () =>
         {
             _atmosphere.Displaced -= OnHaloDisplaced;
