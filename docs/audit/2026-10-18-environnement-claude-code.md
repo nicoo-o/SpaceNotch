@@ -497,3 +497,53 @@ tournait) → `ui status`, `ui inspect --depth 4`, `ui get-property`, `ui screen
 
 Fichier suivi modifié depuis la PR : `.claude/skills/snapshot/SKILL.md` (étape UIA). Ce §15 est lui aussi
 nouveau dans le rapport. **Rien de cela n'est commité** : la PR #100 contient encore le contenu du §14.
+
+---
+
+## 16. Suite : essai de `/cloture`, règles `ask`, élagage des branches, FrameFanOut
+
+### 16.1 Essai à blanc de `/cloture` sur la clôture du 17 (étape 1, lecture seule)
+
+La commande de collecte du skill (`gh pr list --state merged --search "merged:>=2026-10-15" --json …`) renvoie
+**19 PR, de #81 à #99**. Comparée à `docs/plans/relais-2026-10-17.md` :
+
+- 16 des PR renvoyées sont citées dans le relais ;
+- #83 et #84 n'y sont pas citées une à une (le relais écrit « #82 à #85 ») et #99 est la clôture elle-même,
+  fusionnée après le relais : ce sont des écarts attendus ;
+- #63, #71 et #72 sont citées par le relais mais la requête ne les renvoie pas (fusionnées avant le 15, ou
+  non fusionnées : non vérifié).
+
+Les sections du skill couvrent celles du relais du 17 (État, Fait, Relectures, Décisions de l'auteur,
+Découvert en route, Non vérifié, Configuration de l'auteur, Décisions de cette session, Reste à faire), sauf
+« Prochain brief », renvoyé à `/prompt-opus` à dessein. **Non joué** : l'écriture du relais (étape 2), dont les
+preuves viennent de la conversation de l'époque, que je n'ai pas ; rien n'a été écrit dans `docs/`. Verdict :
+la collecte est fiable ; le reste se constatera à la prochaine vraie clôture.
+
+### 16.2 Règles `ask` — **inconclusif**
+
+`git push --force --dry-run origin refs/heads/inexistante-test:…` n'a **pas été bloqué** : git a répondu lui-même
+« src refspec … does not match any ». Deux explications : tu as accepté une demande de confirmation, ou la règle
+ne s'est pas déclenchée. La session est en mode `auto`, où la doc dit que les règles `ask` demandent quand même.
+La règle `deny` voisine (`gh pr merge *--admin*`, même forme de motif) a bien refusé, donc le motif est bon.
+**À trancher par toi** : as-tu vu une demande pour ce test (et pour le `git branch -D` de l'élagage) ? Tant
+qu'on ne le sait pas, les règles `ask` ne sont **pas démontrées**.
+
+### 16.3 Élagage des branches locales ✔
+
+67 branches locales avant, **10 après** : 57 supprimées. Critère : une PR fusionnée du même nom (par `gh`, car
+le dépôt fusionne en squash et `git branch --merged` n'en verrait presque aucune) **et** un commit local
+identique à la tête de la PR (42 branches) ou ancêtre de celle-ci (15 branches en retard sur elle).
+
+- **Sauvegarde** : `~/.claude/backups/reliquats-2026-10-18/branches-locales-supprimees.txt` (nom et commit de
+  chacune). Pour en recréer une : `git branch <nom> <commit>`.
+- **Gardées** : `main`, `chore/claude-env-2026-10-18` (PR #100), `fix/setup-uninstall-launch` (aucune PR
+  fusionnée de ce nom) et **sept branches dont la PR est fusionnée mais qui portent des commits locaux absents
+  de la PR** : `chore/tutoiement`, `feat/installeur-signable`, `feat/me-prevenir-par-defaut`,
+  `feat/raccourci-notch-visible`, `fix/a11y-boucles-menu`, `fix/minuteur-reprendre`, `fix/narrateur-reglages`.
+  Travail non poussé ou historique réécrit : à regarder avant de les supprimer.
+- Rien n'a été touché sur GitHub ; les 68 branches distantes sont intactes.
+
+### 16.4 Défaut `FrameFanOut` (§15.2)
+
+Confié à une session à part, « FrameFanOut : abonné fautif jamais réabonné » : reproduire par un test du
+cœur, choisir le correctif, PR séparée depuis `main`, sans fusion. Son résultat n'est pas connu ici.
