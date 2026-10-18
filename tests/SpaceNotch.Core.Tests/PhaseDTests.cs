@@ -52,7 +52,8 @@ public sealed class PhaseDTests
         fan.Raise(null, new object());
 
         Assert.True(allocated[greedy] >= 64 * 1024);
-        Assert.True(allocated[frugal] < 1024);
+        // Le compteur par fil avance par blocs d'allocation (~8 Ko) : un seuil de 1 Ko échouait une fois sur trois (n° 99).
+        Assert.True(allocated[frugal] < 16 * 1024);
     }
 
     [Fact]
