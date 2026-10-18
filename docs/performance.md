@@ -108,8 +108,9 @@ Le build local est non empaqueté : pour le lancer avec l'identité de développ
 procédure `winapp run` du [guide de construction](development/building.md#lancer-build-local-non-empaqueté).
 
 Pour la fluidité, `--tour --frames` (après `--exe SpaceNotch.App.exe --args`) rejoue une visite des
-formes et écrit au journal une ligne `[IMAGES]` par rafale : images en retard, images au-delà de
-16,7 ms et de 50 ms, et la sous-étape lente.
+formes et écrit au journal une ligne `[IMAGES]` par rafale : images manquées, coût p50 / p95 / max,
+images au-delà de 8,3 et de 16,7 ms, et les raisons des GC. Chaque image de plus de 16,7 ms a sa
+propre ligne, qui nomme les abonnés les plus coûteux.
 
 Puis, dans le menu de la zone de notification, **Diagnostics** affiche l'état, la mémoire, le nombre
 d'images rendues et le temps de repos. Pour une mesure CPU fiable, relever deux fois le temps
