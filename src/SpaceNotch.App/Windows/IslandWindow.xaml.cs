@@ -959,6 +959,7 @@ public sealed partial class IslandWindow : Window
         // ou Win+Maj+Espace si une autre application tient déjà le premier.
         _launcherFeature.Hotkey = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.RegisterLauncher(_hWnd, _settings.LauncherHotkey);
         _focusHotkey = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.RegisterFocus(_hWnd);
+        WelcomeSceneView.SearchHotkey = _launcherFeature.Hotkey;
         MiniLogger.Log($"Raccourci « aller à la notch » : {_focusHotkey ?? "indisponible"}");
         MiniLogger.Log($"Raccourci de recherche : {_launcherFeature.Hotkey ?? "aucun (tous sont pris)"}");
 
@@ -4411,6 +4412,7 @@ public sealed partial class IslandWindow : Window
         {
             _launcherFeature.Hotkey = SpaceNotch.Platform.Windows.Launcher.GlobalHotkey.RegisterLauncher(_hWnd, settings.LauncherHotkey);
             MiniLogger.Log($"Raccourci de recherche : {_launcherFeature.Hotkey ?? "aucun (tous sont pris)"}");
+            WelcomeSceneView.SearchHotkey = _launcherFeature.Hotkey;
 
             if (_settingsWindow is not null)
             {
