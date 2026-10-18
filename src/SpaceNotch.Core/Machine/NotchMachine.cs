@@ -258,7 +258,7 @@ public sealed class NotchMachine
         if (state.Placement == Placement.Floating)
         {
             return state.Hand == HandPhase.Pressed && Detachment.ExceedsClickSlop(input.LateralDip, input.PullDip)
-                ? state with { Hand = HandPhase.Dragging }
+                ? EndPreviewInHand(state with { Hand = HandPhase.Dragging }, effects)
                 : state;
         }
 
@@ -269,11 +269,26 @@ public sealed class NotchMachine
 
             case HandPhase.Pulling when rules.AllowDetach && Detachment.ShouldTear(input.PullDip, rules.TearDistance):
                 effects.Add(NotchEffect.Tear);
-                return state with { Hand = HandPhase.Tearing, Placement = Placement.Floating };
+                return EndPreviewInHand(state with { Hand = HandPhase.Tearing, Placement = Placement.Floating }, effects);
 
             default:
                 return state;
         }
+    }
+
+    /// <summary>
+    /// La pastille arrachée ou déplacée quitte l'aperçu : il se lisait sous la
+    /// main, elle l'emporte au repos (<c>BeginTear</c>, <c>BeginFloatingDrag</c>).
+    /// </summary>
+    private static NotchSnapshot EndPreviewInHand(NotchSnapshot state, List<NotchEffect> effects)
+    {
+        if (state.Surface != Surface.Preview)
+        {
+            return state;
+        }
+
+        effects.Add(NotchEffect.EndPreview);
+        return state with { Surface = Surface.Rest };
     }
 
     private static NotchSnapshot Release(NotchSnapshot state, NotchInput input, NotchRules rules, List<NotchEffect> effects)
