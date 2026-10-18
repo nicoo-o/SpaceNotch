@@ -459,7 +459,7 @@ public sealed partial class IslandWindow : Window
             UsesSideTab
                 ? SideTab.Rest(_settings.TabSize, _settings.SideShoulderRadius)
                 : IslandFootprint.For(IslandPresentation.Resolve(null), _settings.Density),
-            UseSpringAnimations,
+            UseShapeSpring,
             ApplyGeometry,
             (update, settled) => new IslandSpringAnimator(_settings.Motion, update, settled),
             (message, exception) => MiniLogger.Log(message, exception));
@@ -528,6 +528,13 @@ public sealed partial class IslandWindow : Window
     /// <summary>Le ressort n'est utilisé que si Windows l'autorise.</summary>
     private bool UseSpringAnimations()
         => _visualState.UseSpringAnimations && _settings.AllowBouncyAnimations;
+
+    /// <summary>
+    /// La forme suit un ressort dès que Windows l'autorise ; « Rebond » éteint
+    /// le rend seulement sans dépassement (<see cref="AppSettings.Motion"/>, n° 91),
+    /// au lieu d'un saut suivi d'un fondu.
+    /// </summary>
+    private bool UseShapeSpring() => _visualState.UseSpringAnimations;
 
     // ------------------------------------------------------------------
     // Matière hypnotique
@@ -823,7 +830,11 @@ public sealed partial class IslandWindow : Window
         };
         _activityManager.ActivityRemoved += (_, activity) => OnUiThread(() => ShadowForget(activity));
         // Animations réduites : la forme ne saute plus, elle apparaît en fondu (n° 22).
-        _controller.ShapeSnapped += (_, _) => OnUiThread(() => SpaceNotch_App.Animations.ContentTransition.Dissolve(RootLayout));
+        _controller.ShapeSnapped += (_, _) => OnUiThread(() =>
+        {
+            SpaceNotch_App.Animations.ContentTransition.Dissolve(RootLayout);
+            _atmosphere.Dissolve();
+        });
         _controller.AnimationCompleted += (_, _) =>
         {
             RequestRender();
