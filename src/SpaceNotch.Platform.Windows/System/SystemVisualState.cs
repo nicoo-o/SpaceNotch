@@ -43,10 +43,28 @@ public sealed record SystemVisualState(
     public static SystemVisualState Read()
     {
         return new SystemVisualState(
-            AnimationsEnabled: ReadBool(NativeConstants.SPI_GETCLIENTAREAANIMATION, defaultValue: true),
+            // L'économiseur d'énergie vaut « animations coupées » (n° 43) : mêmes fondus, Pixel calme.
+            AnimationsEnabled: ReadBool(NativeConstants.SPI_GETCLIENTAREAANIMATION, defaultValue: true) && !IsEnergySaverOn(),
             UiEffectsEnabled: ReadBool(NativeConstants.SPI_GETUIEFFECTS, defaultValue: true),
             HighContrast: ReadHighContrast(),
             TransparencyEffectsEnabled: ReadTransparencyEffects());
+    }
+
+    /// <summary>
+    /// L'économiseur d'énergie de Windows est actif. Un changement émet
+    /// <c>PowerManager.EnergySaverStatusChanged</c> : pas de scrutation.
+    /// </summary>
+    public static bool IsEnergySaverOn()
+    {
+        try
+        {
+            return global::Windows.System.Power.PowerManager.EnergySaverStatus == global::Windows.System.Power.EnergySaverStatus.On;
+        }
+        catch (Exception)
+        {
+            // API indisponible : on n'économise pas plus qu'on ne le sait.
+            return false;
+        }
     }
 
     private static bool ReadBool(uint spiAction, bool defaultValue)
