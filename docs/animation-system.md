@@ -102,5 +102,9 @@ d'une Island ouverte, dont le bas doit se perdre beaucoup plus loin.
 
 Si `SystemVisualState` signale que Windows demande la réduction des animations — ou que
 l'économiseur d'énergie est actif (n° 43) —, le contrôleur reçoit `UseSpringAnimations = false` et
-les transitions deviennent des fondus. Le comportement demandé par
-l'utilisateur prime sur l'esthétique du projet.
+les transitions deviennent des fondus. La notch, son halo et son ombre passent dans le même fondu.
+Le comportement demandé par l'utilisateur prime sur l'esthétique du projet.
+
+« Rebond » éteint dans les Réglages ne retire que le dépassement : la forme garde son ressort, amorti
+au point critique (rapport 1,0), et les effets qui ne vivent que du rebond — goutte, bosse, voile —
+sont coupés (n° 91).
