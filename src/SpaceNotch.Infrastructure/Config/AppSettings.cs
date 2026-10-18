@@ -143,7 +143,7 @@ public sealed class AppSettings
     /// Le rendu de référence est celui du compositeur ; ce réglage existe pour
     /// pouvoir le comparer à la solution de repli — un dégradé XAML — sur la même
     /// machine, et pour offrir une issue si un pilote graphique se comportait mal.
-    /// Voir ADR-008 et ADR-013.
+    /// Voir ADR-008 et docs/ux/design-language.md, « La contrainte sans bord ».
     /// </summary>
     public bool UseCompositionAtmosphere { get; set; } = true;
 
@@ -152,7 +152,7 @@ public sealed class AppSettings
     /// <summary>
     /// Densité du contenu des cartes. Remplace les anciennes largeur et hauteur
     /// réglables : la hauteur d'une carte est la somme de son contenu, pas un
-    /// curseur. Voir <see cref="IslandFootprint"/> et ADR-012.
+    /// curseur. Voir <see cref="IslandFootprint"/> et docs/ux/design-language.md, « Espacement ».
     /// </summary>
     public IslandContentDensity Density { get; set; } = IslandContentDensity.Comfortable;
 

@@ -67,6 +67,13 @@ pas de trait, pas de séparateur.
 
 Le bas se dissout progressivement dans le fond de l'écran.
 
+La séparation d'avec le bureau vient de la **surface**, pas de l'ombre : c'est la règle des thèmes
+sombres, où l'élévation s'exprime par la surface et l'ombre accompagne. Le reflet spéculaire est donc
+le second porteur de la séparation, pas une décoration. Au repos, la notch est un objet — sa
+silhouette est son contour — et la dissolution n'apparaît qu'au déploiement, portée par la couche
+décorative. Une ombre refusée par le compositeur est remontée aux diagnostics : sinon, on ne la
+distinguerait pas d'une ombre simplement invisible sur un fond sombre.
+
 ## Comment la dissolution est calculée
 
 Ce n'est **pas** un dégradé XAML. Un dégradé XAML est calculé par le processeur, et son fondu ne suit
@@ -126,6 +133,12 @@ fermée.
 Les encombrements sont **déclarés** par le catalogue de scènes, jamais écrits en dur dans une vue.
 C'est ce qui garantit qu'ajouter une fonctionnalité n'oblige pas à retoucher la fenêtre.
 
+La hauteur d'une forme est la **somme de son contenu**, jamais un curseur : une carte vaut
+10 + 14 + 2 + 16 + 10 — marge, ligne de légende, écart, ligne de titre, marge (`IslandFootprint`).
+Une hauteur réglable séparerait ces lignes jusqu'à faire un panneau vide ; la densité (`Density`)
+remplace les anciennes largeur et hauteur réglables. C'est aussi pourquoi la notch garde la taille de
+son texte quand Windows l'agrandit (n° 59) : un texte plus grand serait rogné.
+
 ## Icônes
 
 Un jeu de glyphes, résolu par `.IconKey`. Les émojis sont réservés aux contenus où ils portent du
@@ -154,6 +167,9 @@ Voir [animation-system.md](../animation-system.md).
   l'interaction et retiré ensuite (voir [windows-integration.md](../windows-integration.md)).
 - Si Windows demande la réduction des animations, les ressorts deviennent des fondus, et Pixel se
   pose : l'avatar garde une pose fixe et lisible, signe compris.
-- L'état d'un agent ne passe jamais par la couleur seule : forme des yeux et signe le disent.
+- L'état d'un agent ne passe jamais par la couleur seule : forme des yeux et signe le disent. De même,
+  la teinte d'une activité n'est jamais le seul porteur de son état : la légende de la carte le nomme
+  en mots (`StatePalette`) — sauf les états qui n'ont rien à dire, la veille ou un retour système. En
+  contraste élevé, la teinte cède la place à l'encre du système.
 - Le contraste élevé et les effets de transparence sont lus dans `SystemVisualState` ; en mode
   `Auto`, l'absence de transparence retombe sur une surface opaque, jamais sur une surface invisible.

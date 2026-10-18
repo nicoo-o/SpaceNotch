@@ -242,7 +242,7 @@ public sealed class IslandController : IDisposable
     ///
     /// Deux lois pour un même geste : celle de l'ouverture, autoritaire, et
     /// celle du survol, plus élastique. C'est la seconde qui porte le rebond
-    /// visible, l'Island n'ayant qu'un bord libre. Voir ADR-012.
+    /// visible, l'Island n'ayant qu'un bord libre. Voir docs/animation-system.md, « Paramètres ».
     /// </summary>
     public void UpdateSpringParameters(SpringParameters motion, SpringParameters hover)
     {

@@ -55,8 +55,8 @@ mesure, qui créerait précisément la charge qu'elle prétend mesurer.
 | Mesure | Cible | Résultat mesuré |
 |---|---|---|
 | CPU au repos | ~0 % | **0,00 % d'un cœur** (0,000 s sur 10 s, sous la résolution du chronomètre) ; 0,24 à 0,31 % sur des relevés plus longs. **Pixel compris** (ADR-029) : 0,18 % puis 0,13 % sur deux fois 60 s, après 18 s de stabilisation, curseur immobile (2026-10-11, `main` 7d698d7, instance de développement, Release) |
-| Encombrement au repos | veille 34 × 28 | **34 × 28 DIP**, centré sur l'écran, à 150 % d'échelle |
-| Mémoire, Island fermée | 30–60 MB | **96–99 MB** — au-dessus de la cible, voir ci-dessous |
+| Encombrement au repos | lèvre 80 × 18 | **80 × 18 DIP** déclarés (`IslandFootprint.Idle`, SpaceNotch 2.0) ; le 34 × 28 mesuré avant 2.0 n'existe plus. Non remesuré à l'écran depuis |
+| Mémoire, Island fermée | 30–60 MB | **214 Mo** (build de développement au repos) et **311 Mo** (notch installée), 2026-10-03 — au-dessus de la cible, voir ci-dessous. Les 96–99 MB d'avant SpaceNotch 2.0 ne valent plus |
 | Mémoire, croissance | nulle | stable sur 20 s, threads décroissants |
 | Journal pendant l'inactivité | aucune ligne | **aucune ligne ajoutée** sur 15 s d'affilée |
 
@@ -65,9 +65,10 @@ et une valeur unique donnerait une fausse impression de précision. Le dernier p
 parlant — le processus est resté strictement silencieux pendant 15 secondes, avec **10 fonctionnalités
 actives sur 10**, dont la surveillance du presse-papier.
 
-### Défaut connu et ouvert : le greffon d'exemple fige l'application
+### Défaut connu, état inconnu : le greffon d'exemple figeait l'application
 
-Les mesures ci-dessus valent **greffon d'exemple retiré**. Installé, il fige l'Island en cours de
+Constaté avant SpaceNotch 2.0 et **non revérifié depuis** (n° 28 de la feuille de route). Les mesures
+ci-dessus valent **greffon d'exemple retiré**. Installé, il fige l'Island en cours de
 morphing (136 × 39 DIP, reproduit à chaque démarrage) et fait tourner deux fils à 25–55 % d'un cœur,
 sans erreur au journal. La publication depuis un fil de travail en est le déclencheur ; le mécanisme
 n'est **pas** établi (détail et hypothèses écartées : [ADR-011](decisions/ADR-011-fil-interface.md)).
@@ -76,26 +77,27 @@ ouvert, il est recommandé de ne pas le laisser installé.
 
 ### Écart assumé sur la mémoire
 
-La cible de 30–60 MB n'est pas atteinte : le runtime .NET et WinUI 3 posent un plancher
-incompressible. La réduction viendrait de Native AOT, dont la compatibilité WinUI doit être vérifiée
+La cible de 30–60 MB n'est pas atteinte, et l'écart s'est creusé avec SpaceNotch 2.0 (n° 24 de la
+feuille de route) : le runtime .NET et WinUI 3 posent un plancher, et la cause du reste n'est pas
+établie. La réduction viendrait de Native AOT, dont la compatibilité WinUI doit être vérifiée
 avant d'être promise. La mesure reste publiée telle quelle — une cible manquée est une information,
 pas une gêne.
 
 ### Combien de fonctionnalités sont actives
 
-Le journal annonce `Fonctionnalités actives : N/10` pour les fonctionnalités intégrées. Le
-presse-papier est **désactivé par défaut** : sur une configuration neuve, le compte est donc `9/10`,
-et `10/10` après activation explicite. Ce n'est pas une anomalie, c'est la règle « aucune capture
+Le journal annonce `Fonctionnalités actives : N/M` : `M` compte les fonctionnalités chargées,
+`N` celles qui tournent. Le compte dépend des réglages — `26/26` sur la machine de l'auteur le
+2026-10-18. Le presse-papier et Discord sont **éteints par défaut**, et la météo attend une ville : sur une
+configuration neuve, `N` est donc plus petit que `M`. Ce n'est pas une anomalie, c'est la règle « aucune capture
 sans consentement » rendue visible.
 
-Un greffon installé **s'ajoute au dénominateur** : avec le greffon d'exemple, le journal annonce
-`11/11`. Il suit exactement le même cycle de vie, et une panne de sa part ne fait pas échouer les
+Un greffon installé **s'ajoute au dénominateur**. Il suit exactement le même cycle de vie, et une panne de sa part ne fait pas échouer les
 autres.
 
 ## Mesurer soi-même
 
 ```bash
-dotnet build -c Release
+dotnet build SpaceNotch.sln -c Release -p:Platform=x64
 WINAPP="$HOME/.nuget/packages/microsoft.windows.sdk.buildtools.winapp/0.6.1/tools/win-x64/winapp.exe"
 "$WINAPP" run src/SpaceNotch.App/bin/x64/Release/net10.0-windows10.0.26100.0/win-x64 \\
   --manifest src/SpaceNotch.App/Package.appxmanifest --exe SpaceNotch.App.exe --detach
@@ -104,6 +106,10 @@ sleep 18            # stabilisation : le démarrage domine sinon la mesure
 
 Le build local est non empaqueté : pour le lancer avec l'identité de développement, suivre la
 procédure `winapp run` du [guide de construction](development/building.md#lancer-build-local-non-empaqueté).
+
+Pour la fluidité, `--tour --frames` (après `--exe SpaceNotch.App.exe --args`) rejoue une visite des
+formes et écrit au journal une ligne `[IMAGES]` par rafale : images en retard, images au-delà de
+16,7 ms et de 50 ms, et la sous-étape lente.
 
 Puis, dans le menu de la zone de notification, **Diagnostics** affiche l'état, la mémoire, le nombre
 d'images rendues et le temps de repos. Pour une mesure CPU fiable, relever deux fois le temps
