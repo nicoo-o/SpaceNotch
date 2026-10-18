@@ -1091,7 +1091,11 @@ public sealed partial class IslandWindow
             }
 
             _lastDetachFrame = _detachClock.Elapsed.TotalSeconds;
-            SpaceNotch_App.Animations.FrameClock.Rendering += OnDetachFrame;
+
+            // Drapeau remis à faux si OnDetachFrame échoue : la pastille en vol
+            // garde NeedsDetachFrames vrai, donc rien ne se réabonnait plus et
+            // elle restait suspendue à mi-course.
+            SpaceNotch_App.Animations.FrameClock.Subscribe(OnDetachFrame, () => _detachFramesHooked = false);
         }
         else if (!needed && _detachFramesHooked)
         {

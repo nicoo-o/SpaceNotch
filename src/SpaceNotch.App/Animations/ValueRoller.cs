@@ -52,7 +52,10 @@ internal sealed class ValueRoller
         if (!_running)
         {
             _running = true;
-            SpaceNotch_App.Animations.FrameClock.Rendering += OnFrame;
+
+            // Stop en cas d'échec : sans lui le rouleau se croyait en marche et ne
+            // défilait plus jamais tant qu'une valeur posée sans animation ne le remettait pas à zéro.
+            SpaceNotch_App.Animations.FrameClock.Subscribe(OnFrame, Stop);
         }
     }
 

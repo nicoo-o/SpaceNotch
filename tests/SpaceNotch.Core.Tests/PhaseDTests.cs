@@ -184,6 +184,183 @@ public sealed class PhaseDTests
         Assert.Equal(1, fan.Count);
     }
 
+    [Fact]
+    public void Un_proprietaire_dont_l_abonne_a_echoue_peut_se_reabonner()
+    {
+        // Les propriétaires de l'horloge (ressort, détachement, effets de forme,
+        // compteur, teinte) gardent un drapeau « je tourne » pour ne pas
+        // s'abonner deux fois. L'abonné en échec est retiré, mais le drapeau
+        // restait vrai : le démarrage suivant sortait tôt et l'animation ne
+        // repartait plus avant le redémarrage de l'application.
+        var fan = new FrameFanOut(() => { }, () => { });
+        var owner = new FrameOwner(fan);
+
+        owner.Start();
+        owner.Fails = true;
+        fan.Raise(null, new object());
+        Assert.Equal(0, fan.Count);
+
+        owner.Fails = false;
+        owner.Start();
+        fan.Raise(null, new object());
+
+        Assert.Equal(1, owner.Frames);
+    }
+
+    [Fact]
+    public void Le_rappel_d_echec_n_est_pas_appele_quand_l_abonne_se_retire_normalement()
+    {
+        var fan = new FrameFanOut(() => { }, () => { });
+        int failed = 0;
+        EventHandler<object> a = (_, _) => { };
+
+        fan.Add(a, () => failed++);
+        fan.Remove(a);
+        fan.Raise(null, new object());
+
+        Assert.Equal(0, failed);
+    }
+
+    [Fact]
+    public void Le_rappel_d_echec_est_appele_apres_le_retrait_et_ne_vise_que_l_abonne_en_echec()
+    {
+        var fan = new FrameFanOut(() => { }, () => { });
+        var failed = new List<string>();
+        int countSeenByCallback = -1;
+        EventHandler<object> broken = (_, _) => throw new InvalidOperationException("cassée");
+        EventHandler<object> healthy = (_, _) => { };
+
+        // L'ordre d'ajout n'est pas l'ordre de retrait : les rappels suivent leur abonné.
+        fan.Add(healthy, () => failed.Add("saine"));
+        fan.Add(broken, () =>
+        {
+            failed.Add("cassée");
+            countSeenByCallback = fan.Count;
+        });
+        fan.Raise(null, new object());
+        fan.Raise(null, new object());
+
+        Assert.Equal(["cassée"], failed);
+        Assert.Equal(1, countSeenByCallback);
+        Assert.Equal(1, fan.Count);
+    }
+
+    [Fact]
+    public void Un_rappel_d_echec_qui_leve_une_erreur_ne_prive_pas_les_autres_de_leur_image()
+    {
+        var errors = new List<Exception>();
+        var fan = new FrameFanOut(() => { }, () => { }, errors.Add);
+        int frames = 0;
+        EventHandler<object> broken = (_, _) => throw new InvalidOperationException("cassée");
+        EventHandler<object> healthy = (_, _) => frames++;
+
+        fan.Add(broken, () => throw new InvalidOperationException("rappel cassé"));
+        fan.Add(healthy);
+        fan.Raise(null, new object());
+
+        Assert.Equal(1, frames);
+        Assert.Equal(2, errors.Count);
+
+        // Le journal doit pouvoir dire que c'est le rappel qui a échoué.
+        Assert.IsType<InvalidOperationException>(errors[1]);
+        Assert.Equal("rappel cassé", errors[1].InnerException?.Message);
+    }
+
+    [Fact]
+    public void Un_abonne_qui_se_reabonne_puis_echoue_ne_laisse_ni_inscription_ni_drapeau()
+    {
+        // Fin de course d'un ressort : il s'arrête, la fin relance une animation
+        // (nouvelle inscription du même abonné), puis l'erreur tombe dans ce même appel.
+        var fan = new FrameFanOut(() => { }, () => { });
+        bool running = false;
+        EventHandler<object>? frame = null;
+
+        void Start()
+        {
+            if (running)
+            {
+                return;
+            }
+
+            running = true;
+            fan.Add(frame, () => running = false);
+        }
+
+        frame = (_, _) =>
+        {
+            fan.Remove(frame);
+            running = false;
+            Start();
+            throw new InvalidOperationException("cassée");
+        };
+
+        Start();
+        fan.Raise(null, new object());
+
+        Assert.Equal(0, fan.Count);
+        Assert.False(running);
+    }
+
+    [Fact]
+    public void Un_proprietaire_peut_se_reabonner_dans_son_propre_rappel_d_echec()
+    {
+        // Redémarrer tout de suite : l'abonné neuf est appelé à l'image suivante,
+        // jamais dans celle qui l'a vu échouer (même règle qu'un ajout en cours d'image).
+        var fan = new FrameFanOut(() => { }, () => { });
+        int calls = 0;
+        EventHandler<object>? frame = null;
+        frame = (_, _) =>
+        {
+            calls++;
+
+            if (calls == 1)
+            {
+                throw new InvalidOperationException("cassée");
+            }
+        };
+
+        void Start() => fan.Add(frame, Start);
+
+        Start();
+        fan.Raise(null, new object());
+        Assert.Equal(1, calls);
+        Assert.Equal(1, fan.Count);
+
+        fan.Raise(null, new object());
+        Assert.Equal(2, calls);
+    }
+
+    /// <summary>Un propriétaire d'animation tel que ceux de l'application : un drapeau, un abonné.</summary>
+    private sealed class FrameOwner(FrameFanOut fan)
+    {
+        private bool _running;
+
+        public bool Fails { get; set; }
+
+        public int Frames { get; private set; }
+
+        public void Start()
+        {
+            if (_running)
+            {
+                return;
+            }
+
+            _running = true;
+            fan.Add(OnFrame, () => _running = false);
+        }
+
+        private void OnFrame(object? sender, object e)
+        {
+            if (Fails)
+            {
+                throw new InvalidOperationException("cassée");
+            }
+
+            Frames++;
+        }
+    }
+
     // ---------------- Cache des contours ----------------
 
     [Fact]

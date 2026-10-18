@@ -21,6 +21,12 @@ public sealed class FrameFanOut
     private readonly List<EventHandler<object>> _handlers = [];
 
     /// <summary>
+    /// Rappel d'échec de chaque inscription, de même rang que <see cref="_handlers"/>
+    /// (null : aucun). Lu seulement à l'ajout, au retrait et à l'échec, jamais par image.
+    /// </summary>
+    private readonly List<Action?> _failureCallbacks = [];
+
+    /// <summary>
     /// Copie de la liste pour l'image, refaite seulement quand la liste change :
     /// une copie neuve à chaque image allouait sur le chemin le plus chaud (n° 46).
     /// </summary>
@@ -56,7 +62,14 @@ public sealed class FrameFanOut
     public bool IsAttached => _attached;
 
     /// <summary>Ajoute un abonné ; le premier pose l'abonnement unique.</summary>
-    public void Add(EventHandler<object>? handler)
+    /// <param name="handler">L'abonné, appelé une fois par image.</param>
+    /// <param name="onFailed">
+    /// Appelé, l'abonné déjà retiré, quand il lève une erreur. Un propriétaire qui
+    /// garde un drapeau « je tourne » y remet le drapeau à faux : sans cela, son
+    /// démarrage suivant sortait tôt et ne se réabonnait jamais. Pas appelé quand
+    /// l'abonné est retiré par <see cref="Remove"/>.
+    /// </param>
+    public void Add(EventHandler<object>? handler, Action? onFailed = null)
     {
         if (handler is null)
         {
@@ -64,6 +77,7 @@ public sealed class FrameFanOut
         }
 
         _handlers.Add(handler);
+        _failureCallbacks.Add(onFailed);
         _snapshotStale = true;
 
         if (!_attached)
@@ -79,6 +93,7 @@ public sealed class FrameFanOut
             catch
             {
                 _handlers.RemoveAt(_handlers.Count - 1);
+                _failureCallbacks.RemoveAt(_failureCallbacks.Count - 1);
                 _snapshotStale = true;
                 throw;
             }
@@ -100,6 +115,7 @@ public sealed class FrameFanOut
         if (index >= 0)
         {
             _handlers.RemoveAt(index);
+            _failureCallbacks.RemoveAt(index);
             _snapshotStale = true;
         }
 
@@ -112,15 +128,49 @@ public sealed class FrameFanOut
 
     private void Fail(EventHandler<object> handler, Exception exception)
     {
-        Remove(handler);
-        _onError?.Invoke(exception);
+        // Lu avant le retrait, qui défait l'inscription et son rang.
+        int index = _handlers.LastIndexOf(handler);
+        Action? onFailed = index >= 0 ? _failureCallbacks[index] : null;
+
+        try
+        {
+            Remove(handler);
+            _onError?.Invoke(exception);
+        }
+        finally
+        {
+            // Même si le retrait ou le journal échoue : un rappel sauté laisserait le
+            // drapeau du propriétaire vrai, soit le défaut qu'il corrige.
+            NotifyOwner(onFailed);
+        }
+    }
+
+    private void NotifyOwner(Action? onFailed)
+    {
+        if (onFailed is null)
+        {
+            return;
+        }
+
+        // Le rappel d'un propriétaire ne doit pas priver les autres de leur image :
+        // l'erreur qui sortirait d'ici traverserait Raise jusqu'au signal de rendu.
+        try
+        {
+            onFailed();
+        }
+        catch (Exception ex)
+        {
+            // Enveloppée : le journal dit que c'est le rappel qui a échoué, pas une animation de plus.
+            _onError?.Invoke(new InvalidOperationException("Le rappel d'échec d'un abonné de l'horloge a lui-même échoué.", ex));
+        }
     }
 
     /// <summary>
     /// Une image : chaque abonné est appelé une fois. Un abonné retiré pendant
     /// l'image par un autre n'est plus appelé ; un abonné ajouté pendant
     /// l'image l'est à la suivante. Un abonné qui lève une erreur est retiré :
-    /// il n'empêche plus les autres d'avancer.
+    /// il n'empêche plus les autres d'avancer, et son propriétaire en est prévenu
+    /// (<c>onFailed</c> de <see cref="Add"/>) pour pouvoir se réabonner.
     /// </summary>
     public void Raise(object? sender, object args)
     {

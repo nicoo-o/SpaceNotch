@@ -3,6 +3,7 @@ using System.Diagnostics;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml.Media;
 using SpaceNotch.Core.Animation;
+using SpaceNotch.Core.State;
 using SpaceNotch.Infrastructure.Logging;
 
 namespace SpaceNotch_App.Animations;
@@ -24,7 +25,15 @@ public static class FrameClock
     private static readonly FrameFanOut Fan = new(
         () => CompositionTarget.Rendering += OnRendering,
         Detach,
-        ex => MiniLogger.Log("[ANIMATION] une animation a échoué ; elle est arrêtée, les autres continuent", ex));
+        OnAnimationFailed);
+
+    /// <summary>
+    /// Une animation en échec peut être relancée (<see cref="Subscribe"/>) : si son
+    /// erreur est déterministe, elle revient à chaque redémarrage — la goutte, par
+    /// exemple, repart à chaque survol de fichier. Les premières s'écrivent en
+    /// entier, les suivantes sont comptées (n° 33).
+    /// </summary>
+    private static readonly FaultBudget AnimationFaults = new();
 
     private static DispatcherQueue? _queue;
 
@@ -75,8 +84,48 @@ public static class FrameClock
         remove => OnUiThread(() => Fan.Remove(value));
     }
 
+    /// <summary>
+    /// Abonne une animation qui garde un drapeau « je tourne » : si elle lève une
+    /// erreur, l'horloge la retire (les autres continuent) puis appelle
+    /// <paramref name="onFailed"/>, où le propriétaire remet son drapeau à faux.
+    /// Sans cela le drapeau restait vrai, son démarrage suivant sortait tôt et
+    /// l'animation ne repartait plus avant le redémarrage de l'application.
+    /// </summary>
+    /// <remarks>
+    /// Le rappel est appelé par l'horloge, sur le fil d'interface où elle bat
+    /// (ADR-011) : le propriétaire n'a pas à le rétablir. Il ne relance rien — une
+    /// erreur déterministe reviendrait à chaque image — : la prochaine demande
+    /// d'animer, qui vient d'un événement, se réabonne (ADR-004).
+    /// </remarks>
+    public static void Subscribe(EventHandler<object> handler, Action onFailed)
+    {
+        // Un abonné nul est ignoré par l'horloge : le propriétaire, déjà passé à « je tourne »,
+        // resterait bloqué comme avant ce correctif.
+        ArgumentNullException.ThrowIfNull(handler);
+        ArgumentNullException.ThrowIfNull(onFailed);
+        OnUiThread(() => Fan.Add(handler, onFailed));
+    }
+
     /// <summary>Nombre d'animations abonnées (diagnostics).</summary>
     public static int Subscribers => Fan.Count;
+
+    private static void OnAnimationFailed(Exception exception)
+    {
+        FaultVerdict verdict = AnimationFaults.Record(DateTimeOffset.UtcNow);
+
+        if (!verdict.Log)
+        {
+            return;
+        }
+
+        string silenced = verdict.Silenced switch
+        {
+            0 => string.Empty,
+            1 => " (1 autre tue depuis la précédente)",
+            _ => $" ({verdict.Silenced} autres tues depuis la précédente)"
+        };
+        MiniLogger.Log("[ANIMATION] une animation a échoué ; elle est arrêtée, les autres continuent" + silenced, exception);
+    }
 
     private static void OnUiThread(Action action)
     {
