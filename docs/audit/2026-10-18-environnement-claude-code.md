@@ -374,8 +374,9 @@ Ne commite rien sans me le redemander. » Quatre fichiers suivis modifiés (+77 
 
 ### Non vérifié, et comment le faire
 
-- **Règles `ask`** : elles demandent même en mode auto (doc) ; je ne les ai pas déclenchées pour ne pas
-  interrompre la session. Test sans effet : `git push --force --dry-run origin refs/heads/inexistante`.
+- **Règles `ask`** : elles demandent même en mode auto (doc). Essayées ensuite (§16.2) : l'auteur a vu une
+  demande pour le force-push de test et pour `git branch -D` ; la source exacte de la demande (règle ou mode
+  `auto`) n'est pas isolée.
 - **Règle `Read(~/.claude/.credentials.json)`** : syntaxe `~/` conforme à la doc ; non testée, car le seul
   vrai test consiste à lire le secret.
 - **Chargement du hook `SessionStart`, des skills `/cloture` et `/audit`, du `model` de l'agent** : ils
@@ -519,14 +520,18 @@ Découvert en route, Non vérifié, Configuration de l'auteur, Décisions de cet
 preuves viennent de la conversation de l'époque, que je n'ai pas ; rien n'a été écrit dans `docs/`. Verdict :
 la collecte est fiable ; le reste se constatera à la prochaine vraie clôture.
 
-### 16.2 Règles `ask` — **inconclusif**
+### 16.2 Règles `ask` — **constatées par l'auteur**
 
-`git push --force --dry-run origin refs/heads/inexistante-test:…` n'a **pas été bloqué** : git a répondu lui-même
-« src refspec … does not match any ». Deux explications : tu as accepté une demande de confirmation, ou la règle
-ne s'est pas déclenchée. La session est en mode `auto`, où la doc dit que les règles `ask` demandent quand même.
-La règle `deny` voisine (`gh pr merge *--admin*`, même forme de motif) a bien refusé, donc le motif est bon.
-**À trancher par toi** : as-tu vu une demande pour ce test (et pour le `git branch -D` de l'élagage) ? Tant
-qu'on ne le sait pas, les règles `ask` ne sont **pas démontrées**.
+`git push --force --dry-run origin refs/heads/inexistante-test:…` n'a **pas été bloqué** pour moi : git a répondu
+lui-même « src refspec … does not match any ». Deux explications : l'auteur a accepté une demande de
+confirmation, ou la règle ne s'est pas déclenchée. La session est en mode `auto`, où la doc dit que les règles
+`ask` demandent quand même. La règle `deny` voisine (`gh pr merge *--admin*`, même forme de motif) a bien
+refusé, donc le motif est bon.
+
+**Tranché par l'auteur** (2026-10-18) : il a vu une demande de confirmation pour le force-push de test **et**
+pour le `git branch -D` de l'élagage. Les deux règles ont donc demandé, y compris en mode `auto`. Limites : c'est
+un constat de l'auteur, pas une trace que je lis ; et rien ne distingue ici une demande venue de la règle `ask`
+d'une demande du mode `auto` lui-même. Pour lever ce doute, il faudrait refaire l'essai en retirant la règle.
 
 ### 16.3 Élagage des branches locales ✔
 
