@@ -93,7 +93,12 @@ samples/                          greffon d'exemple, écrit comme le ferait un t
 
 ## Modèle, effort et contexte
 
-- Pas de routage automatique : `/model` et `/effort` se règlent à la main. Consultation pure ou retouche
+- Routage automatique seulement par l'en-tête (`model:`/`effort:`) des skills et agents : `reperage` (haiku,
+  low : recherche mécanique en lecture seule, à lui confier plutôt qu'au modèle principal), `winui-reviewer`
+  (opus, high), `/audit` (opus, xhigh), `/cloture` (sonnet, medium). Ne pas définir
+  `CLAUDE_CODE_SUBAGENT_MODEL` : il écraserait ces choix. **Le modèle principal reste celui qui délègue et
+  rédige les consignes** : jamais haiku, qui ne fait que chercher. Le reste se règle à la main avec
+  `/model` et `/effort`. Consultation pure ou retouche
   mécanique : `haiku`, effort `low`. Défaut : `sonnet`, effort `medium`. Architecture, cycle de vie WinUI,
   animations, machine à états : `sonnet`, effort `high`. Bogue intermittent, problème multi-couches ou
   essai déjà raté : `opus`, effort `high` (`/model opusplan` : Opus planifie, Sonnet exécute). Fichier ou
