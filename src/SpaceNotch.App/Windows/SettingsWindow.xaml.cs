@@ -190,8 +190,12 @@ public sealed partial class SettingsWindow : Window
 
         // 920 × 660 DIP : le menu latéral et une colonne de cartes lisible, à
         // toutes les échelles d'affichage (AppWindow parle en pixels physiques).
+        // Bornée à la zone de travail de l'écran principal, où elle s'ouvre : sur
+        // 1366 × 768 à 125 %, le bas de la fenêtre sortait de l'écran (n° 29).
         double scale = GetDpiForWindow(handle) / 96.0;
-        appWindow.Resize(new SizeInt32((int)(920 * scale), (int)(660 * scale)));
+        RectInt32 area = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary).WorkArea;
+        (int width, int height) = WindowFit.Fit((int)(920 * scale), (int)(660 * scale), area.Width, area.Height, (int)(16 * scale));
+        appWindow.Resize(new SizeInt32(width, height));
 
         _appWindow = appWindow;
         _darkBackground = RootLayout.Background;
@@ -199,7 +203,6 @@ public sealed partial class SettingsWindow : Window
 
         // La fenêtre de réglages se place au centre de l'écran principal : les
         // réglages se lisent, ils ne doivent pas aller chercher l'utilisateur.
-        RectInt32 area = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary).WorkArea;
         appWindow.Move(new PointInt32(
             area.X + ((area.Width - appWindow.Size.Width) / 2),
             area.Y + ((area.Height - appWindow.Size.Height) / 2)));
