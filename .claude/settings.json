@@ -10,7 +10,14 @@
       "Bash(git diff:*)",
       "Bash(git log:*)",
       "Bash(git show:*)",
-      "Bash(git branch:*)",
+      "Bash(git branch)",
+      "Bash(git branch --list:*)",
+      "Bash(git branch --show-current)",
+      "Bash(git branch --contains:*)",
+      "Bash(git branch --merged:*)",
+      "Bash(git branch -a:*)",
+      "Bash(git branch -r:*)",
+      "Bash(git branch -vv:*)",
       "Bash(git fetch:*)",
       "Bash(git grep:*)",
       "Bash(gh pr view:*)",
@@ -22,9 +29,39 @@
       "mcp__cwm-roslyn-navigator",
       "mcp__microsoft-learn",
       "mcp__context7"
+    ],
+    "ask": [
+      "Bash(git push *--force*)",
+      "Bash(git push -f:*)",
+      "Bash(git push * -f)",
+      "Bash(git push * -f *)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean:*)",
+      "Bash(git restore:*)",
+      "Bash(git checkout -- :*)",
+      "Bash(git branch -D:*)",
+      "Bash(gh pr merge *--auto*)"
+    ],
+    "deny": [
+      "Bash(gh pr merge *--admin*)",
+      "Read(~/.claude/.credentials.json)",
+      "Read(**/*.pfx)",
+      "Read(**/*.p12)"
     ]
   },
   "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.js\"",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "PostToolUse": [
       {
         "matcher": "Edit|Write|MultiEdit",

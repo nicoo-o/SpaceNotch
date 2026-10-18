@@ -1,7 +1,9 @@
 # Outillage à imposer dans un brief
 
-Inventaire relevé le 2026-10-03 dans une session Claude Code (app de bureau, Windows 11, dossier du
-dépôt). Les noms dérivent : quand un outil manque, le retrouver avec `ToolSearch` et corriger ce fichier.
+Inventaire relevé le 2026-10-18 dans une session Claude Code (app de bureau, Windows 11, dossier du
+dépôt, Sonnet 5.5). Les noms dérivent : quand un outil manque, le retrouver avec `ToolSearch` et corriger
+ce fichier. Les connecteurs claude.ai (Vercel, Figma, Claude Docs) ont des noms à UUID et pèsent ~18 k
+tokens de noms d'outils (estimation du rapport `docs/audit/2026-10-18-environnement-claude-code.md`).
 
 « Tous les outils » veut dire : chaque famille utile là où elle apporte quelque chose, et **fermées** celles
 qui achètent, déploient, publient ou suppriment à distance. Le brief l'écrit, sans quoi Opus pourrait
@@ -26,8 +28,9 @@ Skills — invoque-les avant l'action qu'ils couvrent :
   comportement de Core, Features et Infrastructure ; `superpowers:systematic-debugging` avant de corriger
   un défaut ; `superpowers:receiving-code-review` pour traiter les retours des relecteurs ;
   `superpowers:finishing-a-development-branch` avant chaque PR.
-- `/snapshot` pour tout changement visible ; `/adr` pour toute décision structurante. `/new-feature`
-  n'est pas invocable par un modèle : lis `.claude/skills/new-feature/SKILL.md` et suis-le.
+- `/snapshot` pour tout changement visible ; `/adr` pour toute décision structurante. `/new-feature`,
+  `/audit` et `/cloture` ne sont pas invocables par un modèle : lis leur `SKILL.md` dans
+  `.claude/skills/<nom>/` et suis-le.
 - `/code-review` (niveau high) sur chaque branche avant sa PR ; `/security-review` si P/Invoke, réseau ou
   secrets sont touchés.
 
@@ -51,8 +54,8 @@ précis. Ne ferme ni ne relance une instance de SpaceNotch déjà ouverte sans m
 Sous-agents (outil Agent) — je te les demande explicitement. Types : `Explore` (recherche large,
 inventaire d'usages), `Plan` (second avis sur un plan avant de l'exécuter), `general-purpose` (pistes
 indépendantes aux fichiers disjoints), `winui-reviewer` (après toute modification de `src/SpaceNotch.App`,
-de `src/SpaceNotch.Platform.Windows` ou de la machine à états), `claude-code-guide` (questions sur Claude
-Code lui-même). Délègue seulement des pistes grandes, indépendantes et parallélisables, pas ce que tu
+de `src/SpaceNotch.Platform.Windows` ou de la machine à états ; il tourne sur Opus en effort `high` quel
+que soit le modèle de la session), `claude-code-guide` (questions sur Claude Code lui-même). Délègue seulement des pistes grandes, indépendantes et parallélisables, pas ce que tu
 finis en quelques appels ; un agent suffit s'il suffit ; jamais deux agents qui écrivent les mêmes
 fichiers ; pas de sous-agent pour revérifier ton propre travail — `winui-reviewer` avant une PR est
 l'exception demandée. Donne à chacun un brief autonome (objectif, fichiers, contraintes, retour en
@@ -99,18 +102,20 @@ Pour Workflow, écrire « utilise l'outil Workflow » (une demande dans les mots
 l'autoriser) et ne pas y mettre le mot « ultracode » : il peut basculer toute la session en orchestration à
 grande échelle, au lieu de la borner à l'usage voulu.
 
-## Ce que la session contient (2026-10-03)
+## Ce que la session contient (2026-10-18)
 
 | Famille | Noms |
 |---|---|
-| Skills du projet | `adr`, `snapshot` (invocables) ; `new-feature` (tapé par l'utilisateur seulement) |
-| Skills intégrés | `code-review`, `simplify`, `security-review`, `run`, `init`, `loop`, `schedule`, `claude-api`, `update-config`, `fewer-permission-prompts`, `keybindings-help` |
-| superpowers (actif au niveau du projet) | `brainstorming`, `writing-plans`, `executing-plans`, `subagent-driven-development`, `dispatching-parallel-agents`, `test-driven-development`, `systematic-debugging`, `verification-before-completion`, `requesting-code-review`, `receiving-code-review`, `finishing-a-development-branch`, `writing-skills`, `diagnosing-superpowers` ; `using-git-worktrees` est écarté par `CLAUDE.md` (pas de worktree) |
-| Autres skills | `doc-coauthoring`, `learn`, `skill-creator`, `consolidate-memory`, `explain-usage`, `artifact-design`, `artifact-diagramming`, `artifact-capabilities`, `dataviz`, `workflow-authoring` ; les skills docx, pdf, pptx, xlsx n'ont pas d'objet ici |
-| Agents | `Explore`, `Plan`, `general-purpose`, `claude`, `claude-code-guide`, `winui-reviewer` (projet ; lecture seule : Read, Grep, Glob) |
-| MCP du projet (`.mcp.json`) | `cwm-roslyn-navigator`, `microsoft-learn`, `context7` |
-| MCP de la session | `Claude_Browser` (navigateur intégré), `claude-in-chrome`, `computer-use`, `terminal`, `visualize`, `ccd_*` (pr, session_mgmt, sidebar, view, window, directory, connectors), `scheduled-tasks`, `mcp-registry`, Figma, Vercel, Claude Docs |
-| Outils natifs | Read, Edit, Write, Glob, Grep, Bash, PowerShell, Agent, AskUserQuestion, Skill, ToolSearch, WebSearch, WebFetch, EnterPlanMode, ExitPlanMode, Monitor, ScheduleWakeup, Cron*, RemoteTrigger, PushNotification, SendMessage, ListAgents, TaskStop, Workflow, Artifact*, ListSkills, SearchSkills, SuggestSkills, ListPlugins, SearchPlugins, SuggestPluginInstall |
+| Skills du projet | `adr`, `snapshot` (invocables) ; `new-feature`, `prompt-opus`, `audit`, `cloture` (tapés par l'utilisateur seulement) |
+| Skills intégrés | `code-review`, `simplify`, `security-review`, `run`, `init`, `loop`, `schedule`, `claude-api`, `update-config`, `fewer-permission-prompts`, `keybindings-help`, `workflow-authoring` |
+| superpowers 6.4.1 (actif au niveau du projet) | `brainstorming`, `writing-plans`, `executing-plans`, `subagent-driven-development`, `dispatching-parallel-agents`, `test-driven-development`, `systematic-debugging`, `verification-before-completion`, `requesting-code-review`, `receiving-code-review`, `finishing-a-development-branch`, `writing-skills`, `diagnosing-superpowers`, `using-git-worktrees` (écarté par `CLAUDE.md` : pas de worktree), `using-superpowers` |
+| Skills synchronisés par le compte claude.ai (`anthropic-skills:*`, `cowork-plugin-management:*`) | `doc-coauthoring`, `learn`, `skill-creator`, `consolidate-memory`, `explain-usage`, `deep-research`, `schedule`, `built-in-browser`, `chrome-browser`, `computer-use`… ; docx, pdf, pptx, xlsx, `docs`, `google-workspace` n'ont pas d'objet ici. Un `false` dans `enabledPlugins` ne les retire pas |
+| Skills d'artefacts | `artifact-design`, `artifact-diagramming`, `artifact-capabilities`, `dataviz` |
+| Agents | `Explore`, `Plan`, `general-purpose`, `claude`, `claude-code-guide`, `statusline-setup`, `winui-reviewer` (projet ; lecture seule : Read, Grep, Glob ; Opus, effort `high`) |
+| MCP du projet (`.mcp.json`) | `cwm-roslyn-navigator` (20 outils), `microsoft-learn` (3), `context7` (2) |
+| MCP de la session | `Claude_Browser` (navigateur intégré), `claude-in-chrome`, `computer-use`, `terminal`, `visualize`, `ccd_*` (pr, turn, session, session_mgmt, sidebar, view, window, directory, connectors, host, settings), `scheduled-tasks`, `mcp-registry` |
+| Connecteurs claude.ai | Vercel (237 outils), Figma (42), Claude Docs (8), `visualize` (2) — sans usage dans ce projet |
+| Outils natifs | Read, Edit, Write, Glob, Grep, Bash, PowerShell, Agent, AskUserQuestion, Skill, ToolSearch, WebSearch, WebFetch, EnterPlanMode, ExitPlanMode, Monitor, ScheduleWakeup, Cron*, RemoteTrigger, PushNotification, SendMessage, SendUserFile, ListAgents, TaskStop, Workflow, Artifact*, ReportFindings, NotebookEdit, ListSkills, SearchSkills, SuggestSkills, ListPlugins, SearchPlugins, SuggestPluginInstall |
 | Plugins | seul `superpowers` est actif dans le projet ; les autres sont désactivés volontairement depuis le 2026-10-03 (`ecc` : son hook GateGuard a bloqué des écritures) |
 
 ## Rafraîchir ce fichier

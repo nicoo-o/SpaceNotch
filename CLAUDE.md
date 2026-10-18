@@ -84,6 +84,23 @@ samples/                          greffon d'exemple, écrit comme le ferait un t
 - Confier une session à une autre conversation (Opus) : `/prompt-opus <tâche>` écrit le brief dans
   `docs/prompts/` (mission, critères, outillage, autorisations). Le coller après la ligne d'amorce qu'il
   donne.
+- Auditer un périmètre (fonctionnalité, couche, tout le dépôt) : skill `/audit` (lecture seule, rapport
+  dans `docs/audit/`). Clore une session : skill `/cloture` (relais, feuille de route, PR de clôture).
+
+## Modèle, effort et contexte
+
+- Pas de routage automatique : `/model` et `/effort` se règlent à la main. Défaut : `sonnet`, effort
+  `medium`. Architecture, cycle de vie WinUI, animations, bogue qui résiste : `opus`, effort `high`
+  (`/model opusplan` : Opus planifie, Sonnet exécute). Fichier ou test sauté : monter l'effort ; erreur
+  malgré tout le contexte : monter le modèle. `/audit` et `winui-reviewer` fixent déjà le leur.
+- Une session coûte par sa longueur, pas par son démarrage (80 k tokens fixes, mesurés le 2026-10-18) :
+  `/clear` entre deux tâches sans lien ; l'état durable vit dans `docs/plans/relais-*.md`.
+
+## Compact instructions
+
+Quand la conversation est compactée, conserver : la liste des fichiers modifiés, les commandes de test
+lancées avec leur résultat, le numéro de la feuille de route en cours, et les décisions de l'auteur pas
+encore écrites dans `docs/`.
 
 ## Pièges connus
 
