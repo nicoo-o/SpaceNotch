@@ -26,7 +26,6 @@ public sealed partial class TabStripView : Grid
     private readonly StackPanel _tabs = new() { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly List<(string Id, Button Tab)> _items = [];
 
-
     /// <summary>
     /// Les boutons de la bande, dans l'arbre, dans l'ordre : les premiers
     /// portent les onglets (<see cref="_items"/>), les autres sont repliés.
@@ -66,7 +65,7 @@ public sealed partial class TabStripView : Grid
     /// <summary>Faux quand Windows réduit les animations : la pilule saute.</summary>
     public bool Animate { get; set; } = true;
 
-    /// <summary>Affiche les onglets ; <paramref name="activities"/> vide les retire.</summary>
+    /// <summary>Affiche les onglets ; <paramref name="activities"/> vide replie la bande.</summary>
     public void Show(IReadOnlyList<IslandActivity> activities, string? selectedId, Brush? text, Brush? dim)
     {
         ArgumentNullException.ThrowIfNull(activities);
@@ -123,7 +122,7 @@ public sealed partial class TabStripView : Grid
             // perd le focus ou l'appui comme quand la bande était reconstruite.
             if (tab.Tag is string previous
                 && !string.Equals(previous, activity.Id, StringComparison.Ordinal)
-                && (tab.IsPressed || tab.FocusState != FocusState.Unfocused))
+                && (tab.IsPressed || tab.PointerCaptures is { Count: > 0 } || tab.FocusState != FocusState.Unfocused))
             {
                 tab = CreateTab();
                 _tabs.Children[i] = tab;
@@ -162,9 +161,11 @@ public sealed partial class TabStripView : Grid
             }
         }
 
+        // Repliés, ils n'ont plus d'activité : un clic ou Entrée n'y peut plus rien ouvrir.
         for (int i = activities.Count; i < _slots.Count; i++)
         {
             _slots[i].Visibility = Visibility.Collapsed;
+            _slots[i].Tag = null;
         }
     }
 
@@ -188,7 +189,11 @@ public sealed partial class TabStripView : Grid
             Padding = new Thickness(10, 0, 10, 0),
             Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
             BorderThickness = new Thickness(0),
-            CornerRadius = new CornerRadius(12)
+            CornerRadius = new CornerRadius(12),
+
+            // Un clic ne prend pas le focus à la scène (une note en cours de
+            // frappe) ; le clavier atteint toujours les onglets par Tab.
+            AllowFocusOnInteraction = false
         };
 
         if (Application.Current.Resources.TryGetValue("NfGhostButtonStyle", out object? style) && style is Style ghost)
