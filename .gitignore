@@ -72,3 +72,6 @@ spacenotch.log*
 
 # Réglages personnels de Claude Code (les réglages partagés sont dans .claude/settings.json)
 .claude/settings.local.json
+
+# Traces de session du profileur (chemins de la machine, jamais à commiter)
+.claude/agent-profiler/

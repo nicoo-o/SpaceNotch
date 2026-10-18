@@ -30,6 +30,14 @@
       "mcp__microsoft-learn",
       "mcp__context7"
     ],
+    "deny": [
+      "Bash(gh pr merge *--admin*)",
+      "Read(~/.claude/.credentials.json)",
+      "Read(**/*.pfx)",
+      "Read(**/*.p12)",
+      "Read(/src/NotchFlow.*/**)",
+      "Read(/tests/NotchFlow.*/**)"
+    ],
     "ask": [
       "Bash(git push *--force*)",
       "Bash(git push -f:*)",
@@ -41,12 +49,6 @@
       "Bash(git checkout -- :*)",
       "Bash(git branch -D:*)",
       "Bash(gh pr merge *--auto*)"
-    ],
-    "deny": [
-      "Bash(gh pr merge *--admin*)",
-      "Read(~/.claude/.credentials.json)",
-      "Read(**/*.pfx)",
-      "Read(**/*.p12)"
     ]
   },
   "hooks": {
@@ -88,6 +90,15 @@
   },
   "enabledPlugins": {
     "claude-code-setup@claude-plugins-official": false,
+    "ponytail@ponytail": true,
     "superpowers@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "ponytail": {
+      "source": {
+        "source": "github",
+        "repo": "DietrichGebert/ponytail"
+      }
+    }
   }
 }

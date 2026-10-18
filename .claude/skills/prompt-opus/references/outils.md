@@ -108,15 +108,16 @@ grande échelle, au lieu de la borner à l'usage voulu.
 |---|---|
 | Skills du projet | `adr`, `snapshot` (invocables) ; `new-feature`, `prompt-opus`, `audit`, `cloture` (tapés par l'utilisateur seulement) |
 | Skills intégrés | `code-review`, `simplify`, `security-review`, `run`, `init`, `loop`, `schedule`, `claude-api`, `update-config`, `fewer-permission-prompts`, `keybindings-help`, `workflow-authoring` |
-| superpowers 6.4.1 (actif au niveau du projet) | `brainstorming`, `writing-plans`, `executing-plans`, `subagent-driven-development`, `dispatching-parallel-agents`, `test-driven-development`, `systematic-debugging`, `verification-before-completion`, `requesting-code-review`, `receiving-code-review`, `finishing-a-development-branch`, `writing-skills`, `diagnosing-superpowers`, `using-git-worktrees` (écarté par `CLAUDE.md` : pas de worktree), `using-superpowers` |
+| superpowers 7.0.0 (actif au niveau du projet) | `brainstorming`, `writing-plans`, `executing-plans`, `subagent-driven-development`, `dispatching-parallel-agents`, `test-driven-development`, `systematic-debugging`, `verification-before-completion`, `requesting-code-review`, `receiving-code-review`, `finishing-a-development-branch`, `writing-skills`, `diagnosing-superpowers`, `using-git-worktrees` (écarté par `CLAUDE.md` : pas de worktree), `using-superpowers` |
+| ponytail 5.3.2 (actif au niveau du projet ; 3 hooks Node) | `ponytail`, `ponytail-review`, `ponytail-audit`, `ponytail-debt`, `ponytail-gain`, `ponytail-help` |
 | Skills synchronisés par le compte claude.ai (`anthropic-skills:*`, `cowork-plugin-management:*`) | `doc-coauthoring`, `learn`, `skill-creator`, `consolidate-memory`, `explain-usage`, `deep-research`, `schedule`, `built-in-browser`, `chrome-browser`, `computer-use`… ; docx, pdf, pptx, xlsx, `docs`, `google-workspace` n'ont pas d'objet ici. Un `false` dans `enabledPlugins` ne les retire pas |
 | Skills d'artefacts | `artifact-design`, `artifact-diagramming`, `artifact-capabilities`, `dataviz` |
-| Agents | `Explore`, `Plan`, `general-purpose`, `claude`, `claude-code-guide`, `statusline-setup`, `winui-reviewer` (projet ; lecture seule : Read, Grep, Glob ; Opus, effort `high`) |
+| Agents | `Explore`, `Plan`, `general-purpose`, `claude`, `claude-code-guide`, `statusline-setup`, `winui-reviewer` (projet ; lecture seule : Read, Grep, Glob ; Opus, effort `high`), `reperage` (projet ; lecture seule + Roslyn ; Haiku, effort `low`) |
 | MCP du projet (`.mcp.json`) | `cwm-roslyn-navigator` (20 outils), `microsoft-learn` (3), `context7` (2) |
 | MCP de la session | `Claude_Browser` (navigateur intégré), `claude-in-chrome`, `computer-use`, `terminal`, `visualize`, `ccd_*` (pr, turn, session, session_mgmt, sidebar, view, window, directory, connectors, host, settings), `scheduled-tasks`, `mcp-registry` |
 | Connecteurs claude.ai | Vercel (237 outils), Figma (42), Claude Docs (8), `visualize` (2) — sans usage dans ce projet |
 | Outils natifs | Read, Edit, Write, Glob, Grep, Bash, PowerShell, Agent, AskUserQuestion, Skill, ToolSearch, WebSearch, WebFetch, EnterPlanMode, ExitPlanMode, Monitor, ScheduleWakeup, Cron*, RemoteTrigger, PushNotification, SendMessage, SendUserFile, ListAgents, TaskStop, Workflow, Artifact*, ReportFindings, NotebookEdit, ListSkills, SearchSkills, SuggestSkills, ListPlugins, SearchPlugins, SuggestPluginInstall |
-| Plugins | seul `superpowers` est actif dans le projet ; les autres sont désactivés volontairement depuis le 2026-10-03 (`ecc` : son hook GateGuard a bloqué des écritures) |
+| Plugins | seuls `superpowers` et `ponytail` sont actifs dans le projet ; les autres sont désactivés volontairement depuis le 2026-10-03 (`ecc` : son hook GateGuard a bloqué des écritures) |
 
 ## Rafraîchir ce fichier
 
