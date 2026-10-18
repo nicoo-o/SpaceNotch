@@ -752,7 +752,10 @@ public sealed partial class AtmosphereWindow : Window
         }
 
         _tintRunning = true;
-        SpaceNotch_App.Animations.FrameClock.Rendering += OnTintFrame;
+
+        // Drapeau remis à faux si OnTintFrame échoue : la teinte restait à mi-chemin
+        // et ne changeait plus.
+        SpaceNotch_App.Animations.FrameClock.Subscribe(OnTintFrame, () => _tintRunning = false);
     }
 
     private void OnTintFrame(object? sender, object e)

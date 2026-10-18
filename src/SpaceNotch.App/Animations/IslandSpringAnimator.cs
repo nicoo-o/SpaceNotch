@@ -220,7 +220,10 @@ public sealed class IslandSpringAnimator : IShapeAnimator
         {
             _isRunning = true;
             _lastRenderTimestamp = 0;
-            SpaceNotch_App.Animations.FrameClock.Rendering += OnRendering;
+
+            // Stop en cas d'échec : l'abonné retiré par l'horloge laissait _isRunning
+            // vrai, et plus aucun AnimateTo ne se réabonnait.
+            SpaceNotch_App.Animations.FrameClock.Subscribe(OnRendering, Stop);
         }
     }
 
