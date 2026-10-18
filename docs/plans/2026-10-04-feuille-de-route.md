@@ -108,11 +108,11 @@ répond ou si une autre voie de signature se présente.
 |---|---|---|---|---|---|
 | 46b | Suite de n° 46 : première mise en page d'une scène pendant le ressort (74,7 ms une fois) ; tableaux de points du ressort (GC de génération 0) ; scènes à créer d'avance (n° 25) | #48 | moyen | M | moyen |
 | 36 | Coût par image du ressort (géométries neuves, mises en page) | voir n° 46 | (cause de 46) | M | moyen |
-| 37 | Caméra du miroir, crête-mètre, cache d'icônes sans borne | `IslandWindow.Phone.cs:225` | faible | S | faible |
+| 37 | ~~Caméra du miroir, crête-mètre, cache d'icônes sans borne~~ — PR #102 ouverte | `IslandWindow.Phone.cs:225` | faible | S | faible |
 | 40 | Remontée des plantages sur accord explicite | `MiniLogger` | moyen | M | vie privée |
 | 42 | Faux positifs antivirus | `IdentityManifestFile.cs:23-56` | moyen | M | réputation |
-| 43 | Consommation sur batterie non mesurée ; économiseur d'énergie ignoré | aucun `EnergySaverStatus` | moyen (portables) | S | faible |
-| 44 | Carte « actions sur copie » qui revient | `CopyAssistFeature.cs:134` | faible | S | faible |
+| 43 | ~~Consommation sur batterie non mesurée ; économiseur d'énergie ignoré~~ — PR #102 ouverte | aucun `EnergySaverStatus` | moyen (portables) | S | faible |
+| 44 | ~~Carte « actions sur copie » qui revient~~ — PR #102 ouverte | `CopyAssistFeature.cs:134` | faible | S | faible |
 
 ## P2 — qualité, dette, confort
 
@@ -122,8 +122,8 @@ répond ou si une autre voie de signature se présente.
 | 90 | Réglages : fond et barre de titre choisis à l'ouverture seulement ; un passage en contraste élevé pendant qu'ils sont ouverts demande de les rouvrir | relecture de #72 | S |
 | 91 | Mouvement réduit : le halo et l'ombre (`AtmosphereWindow`) sautent encore ; « Rebond » éteint passe aussi en fondu au lieu d'un ressort sans dépassement | #71 | S |
 | 98 | Écran changé pendant l'arrachement (0,34 s) : la trace se redessine sur le nouvel écran ; forcer la fin de la goutte au changement | relecture de #81, `IslandWindow.Detach.cs:809` | S |
-| 100 | Présentation, carte 3 : elle montre Alt+Espace même quand le raccourci de recherche est un autre (Ctrl+Maj+Espace sur la machine de l'auteur) | relecture de #92, `WelcomeScene.xaml.cs` | S |
-| 99 | Test instable : `PhaseDTests.L_horloge_dit_ce_que_chaque_abonne_alloue` a échoué une fois sur trois passages (mesure d'allocation) | constaté le 2026-10-14 | S |
+| 100 | ~~Présentation, carte 3 : elle montre Alt+Espace même quand le raccourci de recherche est un autre (Ctrl+Maj+Espace sur la machine de l'auteur)~~ — PR #103 ouverte | relecture de #92, `WelcomeScene.xaml.cs` | S |
+| 99 | ~~Test instable : `PhaseDTests.L_horloge_dit_ce_que_chaque_abonne_alloue` a échoué une fois sur trois passages (mesure d'allocation)~~ — PR #104 ouverte | constaté le 2026-10-14 | S |
 | 80 | Une instance de développement (`winapp run`) ne reçoit pas `SpaceNotch.exe --hook` lancé par Git Bash, alors que la notch installée le reçoit ; cause non établie (identité de paquet, propriétaire du tube) | essais du 2026-10-06 et du 2026-10-10 | S |
 | 39 | **Store en MSIX complet** : à étudier, pas à construire (voir direction) ; le Store n'accepte un installeur exe que signé | ADR-023 ; [exigences exe/MSI du Store](https://learn.microsoft.com/windows/apps/publish/publish-your-app/msi/app-package-requirements) | L |
 | 70 | Rapide : arrêter un nouveau `TryEnqueue`/`Tick` nu (analyseur de symboles interdits — dépendance NuGet à approuver) | #45 | S |
