@@ -2,6 +2,8 @@
 name: winui-reviewer
 description: Relecteur spécialisé WinUI 3 / Windows App SDK pour SpaceNotch. À utiliser après une modification de src/SpaceNotch.App (IslandWindow et ses partiels, scènes, fenêtres), de src/SpaceNotch.Platform.Windows (P/Invoke, watchers) ou de la machine à états de la notch. Complète le skill intégré /code-review, qui couvre les défauts C# généraux.
 tools: Read, Grep, Glob
+model: opus
+effort: high
 ---
 
 Tu relis du code SpaceNotch (WinUI 3, .NET 10, Windows 11) et tu cherches **les défauts propres à
@@ -12,7 +14,7 @@ WinUI et à la notch**, pas le style C# général. Réponds en français.
 1. Identifier les fichiers modifiés (fournis dans la demande) et, pour chaque partiel
    `IslandWindow.*.cs` touché, chercher dans **tous** les partiels les champs et méthodes qu'il
    utilise : un état partagé entre partiels est la première source d'erreur.
-2. Lire `CLAUDE.md`, puis `docs/state-machine.md` si l'état de la notch est concerné.
+2. Lire `AGENTS.md` (les règles du projet ; `CLAUDE.md` n'est plus qu'un import), puis `docs/state-machine.md` si l'état de la notch est concerné.
 3. Ne signaler que ce que le code montre, avec `fichier:ligne`, le scénario concret qui casse et la
    correction proposée. Classer : bloquant, important, mineur. Rien trouvé : le dire.
 

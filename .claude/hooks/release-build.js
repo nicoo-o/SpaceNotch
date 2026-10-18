@@ -72,15 +72,36 @@ function main() {
   const build = spawnSync('dotnet', [
     'build', 'SpaceNotch.sln', '-c', 'Release', '-p:Platform=x64',
     '-v', 'q', '-nologo', '-clp:ErrorsOnly;NoSummary',
-  ], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: 840000 });
+  ], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: 780000 });
 
   const output = `${build.stdout || ''}${build.stderr || ''}`;
-  const ok = build.status === 0;
-  fs.writeFileSync(stateFile, JSON.stringify({ hash, ok }));
+  const built = build.status === 0;
 
-  if (ok) {
-    return 0;
+  if (built) {
+    // Les tests suivent le build : « un test non lancé n'est jamais réussi ». Même commande que la CI
+    // (~5 s mesurées pour 1 060 tests, sans interface graphique). La garde d'empreinte vaut aussi pour
+    // eux : un échec n'est renvoyé qu'une fois pour un même état du code.
+    const tests = spawnSync('dotnet', [
+      'test', 'SpaceNotch.sln', '-c', 'Release', '-nologo', '-v', 'q',
+    ], { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: 110000 });
+
+    const testOutput = `${tests.stdout || ''}${tests.stderr || ''}`;
+    const passed = tests.status === 0;
+    fs.writeFileSync(stateFile, JSON.stringify({ hash, ok: passed }));
+
+    if (passed) {
+      return 0;
+    }
+
+    const failures = [...new Set(testOutput.split(/\r?\n/).map((l) => l.trim())
+      .filter((l) => /^(échoué|échec|failed)|\[FAIL\]|(échec|failed)\s*:\s*[1-9]|assert|timed? ?out/i.test(l)))];
+    process.stderr.write(
+      'Les tests (dotnet test, Release) échouent : la CI échouera aussi. Corriger avant de terminer.\n'
+      + (failures.length ? failures.slice(0, 40).join('\n') : testOutput.slice(-4000)) + '\n');
+    return 2;
   }
+
+  fs.writeFileSync(stateFile, JSON.stringify({ hash, ok: false }));
 
   // Une copie refusée vient d'un exécutable en cours d'utilisation (l'app lancée
   // depuis bin\x64\Release), pas du code : ce n'est pas à Claude de le corriger.

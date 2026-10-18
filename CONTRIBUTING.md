@@ -18,7 +18,7 @@ le journal avant : il peut contenir des chemins de fichiers.
 3. Code, commentaires, commits et descriptions de PR sont **en français**. Les textes affichés
    sont bilingues (`Lang.T("français", "English")`).
 4. Une décision d'architecture s'écrit dans un ADR ([docs/decisions](docs/decisions/README.md)).
-5. Les règles du projet sont dans [CLAUDE.md](CLAUDE.md) et
+5. Les règles du projet sont dans [AGENTS.md](AGENTS.md) et
    [docs/ux/spacenotch-2.0.md](docs/ux/spacenotch-2.0.md) : les décisions verrouillées (§ 15) ne se
    rouvrent pas dans une PR.
 
