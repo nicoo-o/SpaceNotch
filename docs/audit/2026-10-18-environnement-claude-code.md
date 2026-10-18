@@ -606,7 +606,8 @@ YeonwooSung est écrit « macOS/Linux, Bash ou Zsh ». **Rien n'a été install�
 | YeonwooSung · pin-memo, model-effort-band, command-shelf, token-run | Confort, bandeau modèle/effort, jeu | Aucun besoin | Écartés |
 
 Bilan : **0 mod retenu d'office**. Deux candidats facultatifs (`context-bar`, puis `agent-profiler`), à
-essayer un à la fois, en portée locale, avec `get_usage` avant et après dans une session neuve.
+essayer en portée locale, avec `get_usage` avant et après dans une session neuve. Ils ont ensuite été
+installés à ta demande (§17.9) ; tout le reste reste écarté.
 
 ### 17.3 Routage : essai comparateur Sonnet / high
 
@@ -706,6 +707,7 @@ chaque machine.
    frontmatter est honoré. Lire ensuite le champ `model` du journal.
 3. Décider des connecteurs et de `syncClaudeAiSkills` (§15.3).
 4. Dans deux semaines : relancer `usage.js` pour mesurer l'effet de `autoCompactWindow`.
+5. Dans la session neuve du point 2 : relever `get_usage` au premier tour et constater les deux mods (§17.9).
 
 ### 17.7 Écartés, confirmés après relecture de tes demandes
 
@@ -723,3 +725,64 @@ modification (déconseillée, comme dans ta conversation).
 - `CLAUDE.md` fait maintenant 117 lignes (111 au §14, cible initiale 110, limite de la doc 200). Frontmatter
   de `/audit` et `/cloture` relu après modification ; build et tests non relancés : aucun fichier de code
   n'a changé dans cette révision.
+
+### 17.9 `context-bar` et `agent-profiler` installés (à ta demande, 2026-10-18)
+
+**Lus avant d'installer** : manifestes, `hooks/` des deux mods et `hooks/core/` d'`agent-profiler`. Aucune
+exécution de processus, aucun `eval` ; le seul accès réseau est le POST OTLP d'`agent-profiler`, qui reste
+inactif tant que `otlpEndpoint` est vide. `claude plugin validate` : **passed** pour les deux (`context-bar`
+écrit son état `isHidden`/`reading` ; `agent-profiler` lit `HOME`).
+
+```powershell
+claude plugin marketplace add hamzafer/claude-code-mods --scope local
+claude plugin install context-bar@claude-code-mods --scope local
+claude plugin marketplace add YeonwooSung/my-claude-code-mods --scope local
+claude plugin install agent-profiler@my-claude-code-mods --scope local
+claude plugin list
+```
+
+- **État constaté** : `context-bar` 0.1.3 et `agent-profiler` 0.1.5, portée locale, *enabled*. Déclarés dans
+  `.claude/settings.local.json`, **ignoré par Git** : ils ne figurent pas dans la PR et ne voyagent pas vers tes
+  autres PC.
+- **Réglages d'`agent-profiler`** : les trois options sont « non définies » ; les défauts du manifeste sont
+  les sûrs (`otlpEndpoint` vide, dossier `~/.claude/agent-profiler`, `exportCommandText` faux : ni prompts ni
+  commandes exportés). Ne pas renseigner `otlpEndpoint` sans besoin.
+- **Non vérifié** : aucun des deux n'a été **chargé dans une session** (ils ne se chargent qu'à l'ouverture
+  d'une session neuve ou après `/reload-plugins`) ; ce que `context-bar` affiche dans l'application de bureau ;
+  leur fonctionnement sous Windows (leur CI est sur Ubuntu).
+- **Critère pour les garder** (ma proposition, fixée avant l'essai) : `context-bar` si le surcoût fixe mesuré
+  par `get_usage` reste ≤ ~1 k jetons et que la barre s'affiche ; `agent-profiler` s'il produit un profil
+  exploitable (temps par étape) sans ralentir les tours. Sinon, retrait :
+
+```powershell
+claude plugin uninstall context-bar@claude-code-mods
+claude plugin uninstall agent-profiler@my-claude-code-mods
+claude plugin marketplace remove claude-code-mods
+claude plugin marketplace remove my-claude-code-mods
+```
+
+(Sous-commandes vérifiées par `--help`, retrait non exécuté.)
+
+### 17.10 OmniRoute : écarté (évaluation, rien d'installé)
+
+**Ce que c'est** (README, métadonnées GitHub et npm, lus le 2026-10-18) : une passerelle IA locale
+(`localhost:20128`, API compatible OpenAI, 374 fournisseurs dont 150+ gratuits, repli automatique) avec un
+serveur MCP qui la pilote (stdio `omniroute --mcp`, HTTP `/api/mcp/stream` : **110 outils**, 33 portées dont
+l'application est **facultative** ; le README dit que l'agent « obtient les clés de toute la passerelle » ; la
+recherche web cite 104 outils : les comptes diffèrent selon les sources). Dépôt MIT, 77 744 ★, 358 issues
+ouvertes, créé le 2026-02-13, poussé le jour même ; paquet npm `omniroute` 3.8.51, **546 Mo décompressé**,
+script `postinstall`, un seul mainteneur. Télémétrie désactivée par défaut, identifiants chiffrés (AES-256-GCM)
+d'après le README. **Aucun audit de sécurité indépendant trouvé.** Je n'ai lu ni le code ni
+`docs/frameworks/MCP-SERVER.md`.
+
+| Question | Réponse | Preuve |
+|---|---|---|
+| Le « MCP » est-il la solution ? | Non : c'est la télécommande de la passerelle, inutile sans elle. La vraie question est donc d'ajouter un **proxy** | README |
+| Besoin démontré de proxy ? | **Non.** Forfait Pro à ~5–6 % (§9), coût dû à la longueur des sessions (§7), routage déjà obtenu par `/model` et le frontmatter (§5, §17.3). Ton brief et ta conversation écartaient LiteLLM/OpenRouter « sans besoin démontré » | Rapport |
+| Compatible avec ton forfait ? | **Risqué.** La page légale d'Anthropic (lue) interdit aux tiers de router des requêtes avec des identifiants Free/Pro/Max ou d'intermédier des jetons Claude.ai ; l'alternative est une clé d'API Console, donc une **facturation à l'usage**. Autre voie : des modèles gratuits d'autres fournisseurs, où « les prompts partent au fournisseur choisi » (README) et dont certains sont marqués `tos: avoid` | `code.claude.com/docs/en/legal-and-compliance` |
+| Économie de tokens ? | Ses filtres RTK visent entre autres la sortie de `dotnet build/test`. **Mesuré dans tes journaux** (37 fichiers) : 23 appels `dotnet build/test`, ≈ **4 k jetons estimés** sur ≈ 347 k de sorties Bash (≈ 1 %). Rien à gagner. Les « 15 à 95 % » du README ne sont pas vérifiés | Script sur les `.jsonl` |
+| Coût de contexte du MCP ? | **Extrapolation** d'après les 9 outils mesurés du MCP Memory (§17.4, ≈ 300 jetons par définition) : 110 outils ≈ 30 k jetons si les définitions sont chargées, ≈ 6 k pour les noms différés | Calcul, non mesuré |
+| Surface et maintenance | 546 Mo, `postinstall`, un mainteneur, croissance très rapide en 8 mois : surface d'attaque large pour un outil qui verrait ton code et tes clés | npm, GitHub |
+
+**Décision : écarté.** À rouvrir seulement si tu passes à l'API facturée et qu'un coût devient un problème
+**mesuré** ; l'évaluation se ferait alors en conteneur, sans exposer le MCP d'administration à Claude Code.
