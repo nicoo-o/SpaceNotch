@@ -1000,6 +1000,8 @@ public sealed partial class IslandWindow : Window
     // Démarrage
     // ------------------------------------------------------------------
 
+    private DispatcherQueueTimer? _memoryReport;
+
     private async void OnRootLoaded(object sender, RoutedEventArgs e)
     {
         MiniLogger.Log("IslandWindow chargée : démarrage des fonctionnalités");
@@ -1022,6 +1024,11 @@ public sealed partial class IslandWindow : Window
         StartUpdates();
 
         MiniLogger.Log("IslandWindow prête");
+
+        // Une minute après le démarrage, une fois les fonctionnalités et leurs
+        // premières lectures posées : où va la mémoire (n° 24). Une ligne, une fois.
+        _memoryReport ??= CreateOneShotTimer(TimeSpan.FromMinutes(1), () => MiniLogger.Log(_diagnostics.BuildMemoryLine()));
+        _memoryReport.Start();
 
         // Une barre des tâches occupe déjà le haut : la notch demande où se placer (n° 93).
         _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, ApplyTopBar);

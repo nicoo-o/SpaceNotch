@@ -107,6 +107,31 @@ public sealed class RuntimeDiagnostics : IDisposable
 
     public double WorkingSetMegabytes => WorkingSetBytes / (1024.0 * 1024.0);
 
+    /// <summary>
+    /// Où va la mémoire (n° 24) : la mémoire de travail ne dit pas ce qui la
+    /// remplit. Le tas .NET et ce que le GC a engagé, comparés à la mémoire
+    /// privée, séparent la part gérée de la part native (WinUI, composition,
+    /// pilote graphique).
+    /// </summary>
+    public string BuildMemoryLine()
+    {
+        try
+        {
+            _process.Refresh();
+            GCMemoryInfo gc = GC.GetGCMemoryInfo();
+
+            return string.Create(
+                CultureInfo.InvariantCulture,
+                $"[MÉMOIRE] travail {Megabytes(_process.WorkingSet64):0} Mo · privée {Megabytes(_process.PrivateMemorySize64):0} Mo · tas .NET {Megabytes(gc.HeapSizeBytes):0} Mo (fragmenté {Megabytes(gc.FragmentedBytes):0}) · engagé par le GC {Megabytes(gc.TotalCommittedBytes):0} Mo · fils {_process.Threads.Count} · descripteurs {_process.HandleCount} · après {Uptime.TotalSeconds:0} s");
+        }
+        catch (Exception ex)
+        {
+            return "[MÉMOIRE] lecture impossible : " + ex.Message;
+        }
+    }
+
+    private static double Megabytes(long bytes) => bytes / (1024.0 * 1024.0);
+
     /// <summary>Résumé destiné au menu de la zone de notification.</summary>
     public string BuildCompactSummary()
     {
