@@ -43,7 +43,11 @@ public sealed class CopyAssistFeature : IslandFeatureBase
     private readonly Func<DateTimeOffset> _now;
     private string? _copied;
     private string? _written;
+    private string? _lastOffered;
+    private DateTimeOffset _lastOfferedAt;
     private int _busy;
+
+    private static readonly TimeSpan RepeatQuiet = TimeSpan.FromMinutes(2);
 
     public CopyAssistFeature(IActivityManager activities, IEventBus events, ClipboardMonitor monitor, IntPtr windowHandle, bool isEnabled, Func<DateTimeOffset>? now = null)
         : base(FeatureKey, Lang.T("Actions sur copie", "Copy actions"), activities, events, isEnabled)
@@ -103,6 +107,13 @@ public sealed class CopyAssistFeature : IslandFeatureBase
             return;
         }
 
+        // Beaucoup d'applications réécrivent le presse-papier à l'identique (rendu différé, mise à
+        // jour de format) : la même phrase ne se reproposerait sinon qu'après avoir été écartée.
+        if (string.Equals(text, _lastOffered, StringComparison.Ordinal) && _now() - _lastOfferedAt < RepeatQuiet)
+        {
+            return;
+        }
+
         Offer(text);
     }
 
@@ -117,6 +128,8 @@ public sealed class CopyAssistFeature : IslandFeatureBase
         }
 
         _copied = text;
+        _lastOffered = text;
+        _lastOfferedAt = _now();
         PublishActivity(new IslandActivity
         {
             Id = ActivityId,
