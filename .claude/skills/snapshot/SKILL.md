@@ -23,8 +23,31 @@ Arguments : $ARGUMENTS (nom par défaut : `capture` ; mode par défaut : démarr
 4. **Lire** chaque PNG avec l'outil Read et décrire ce qu'on voit : forme et coins, centrage sous
    la caméra, texte coupé ou trop petit, zones grises ou décalées pendant la transition, contraste.
    Comparer au comportement attendu (`docs/state-machine.md`, `docs/ux/`).
-5. **Fermer** l'instance lancée à l'étape 2 (et seulement celle-là), puis montrer à l'utilisateur
-   les images utiles.
+5. **Fermer** l'instance lancée à l'étape 2 (et seulement celle-là : `Stop-Process -Id <PID>`), puis
+   montrer à l'utilisateur les images utiles.
+
+## Arbre UIA — noms accessibles et cibles (facultatif)
+
+`winapp ui` lit l'arbre UI Automation de la vraie fenêtre, sans injecter d'entrée. Essayé le 2026-10-18
+(winapp 0.6.1, `--demo`) : l'arbre existe, avec noms, `AutomationId` et rectangles. À lancer pendant
+l'étape 3, avec le PID qu'affiche `winapp run` :
+
+```powershell
+$winapp = "$HOME/.nuget/packages/microsoft.windows.sdk.buildtools.winapp/0.6.1/tools/win-x64/winapp.exe"
+& $winapp ui inspect -a <PID> --depth 4            # id, type, nom, rectangle
+& $winapp ui inspect -a <PID> -w <HWND> -i         # éléments interactifs seulement
+& $winapp ui get-property IslandBody -a <PID> -w <HWND>
+```
+
+- L'app a deux fenêtres (« SpaceNotch » et « SpaceNotch Atmosphere ») : passer `-w <HWND>` pour viser la
+  première.
+- À vérifier : chaque contrôle interactif a un `Name` non vide ; sa cible fait au moins 32 DIP (les
+  rectangles sont en pixels physiques : diviser par l'échelle d'affichage) ; le nom suit le contenu
+  (corps de la notch : « AirPods Pro, Connecté »).
+- `-i` sans contrôle interactif (repos, `--demo` sans survol) répond « Found 0 elements » : ce n'est pas
+  une erreur, c'est l'état.
+- Ne pas employer `click`, `hover`, `drag` ni `send-keys` sans l'accord de l'utilisateur : ils injectent
+  de vraies entrées et déplacent sa souris.
 
 Une capture ne prouve que ce qu'elle montre : si l'état voulu n'est pas à l'écran, le dire plutôt
 que conclure.

@@ -7,7 +7,8 @@ application, machine) n'ont pas été touchés.
 Légende des preuves : **✔ mesuré** (commande, journal ou outil de l'application) · **◐ estimé**
 (calcul à partir d'une mesure, à confirmer) · **✖ non vérifié** (dit par une source, non contrôlé).
 
-Environnement relevé : Claude Code natif **2.1.288** (`claude doctor`), Windows 11 Home 10.0.26200,
+Environnement relevé : Claude Code natif **2.1.288** au premier relevé, **2.1.302** au second le même jour
+(mise à jour constatée entre les deux, malgré `DISABLE_AUTOUPDATER`), Windows 11 Home 10.0.26200,
 Node 24.15.0, .NET SDK 10.0.401, `gh` connecté (`nicoo-o`), `winapp` 0.6.1 (0.7.1 existe),
 forfait **Pro**. Dépôt `https://github.com/nicoo-o/SpaceNotch` : `main` à jour avec `origin/main`
 (0 retard, 0 avance), seul fichier non suivi : `docs/audit/2026-10-audit-produit.md` (à toi, intact).
@@ -309,9 +310,9 @@ ne se font qu'avec ton accord ligne par ligne.
   a conservé. Les moyennes sont celles de **tes** sessions longues sur Opus, pas d'un usage type.
 - Le contexte fixe (§7) est mesuré en bloc : la part des connecteurs (~18 k) est une **estimation
   recoupée**, pas une mesure directe.
-- La version installée est figée à 2.1.288 (mises à jour auto désactivées par `DISABLE_AUTOUPDATER`).
-  `onFailure` des hooks (2.1.295) et d'autres fonctions de la doc n'y sont pas disponibles. L'application de
-  bureau embarque sa propre version, non lue ici.
+- **Correction (second relevé)** : la CLI native est passée de 2.1.288 à **2.1.302** pendant la session, donc
+  l'affirmation « version figée » du premier relevé était fausse. `onFailure` des hooks (2.1.295) est
+  désormais disponible côté CLI. L'application de bureau embarque sa propre version, non lue ici.
 - La source 7 reste non lue. Aucune décision n'en dépend.
 - Les pages `hooks` (« Debug hooks »), `mcp` (« tool search ») et `settings-reference` (au-delà de l'index)
   n'ont pas été lues en entier.
@@ -399,3 +400,100 @@ Ne commite rien sans me le redemander. » Quatre fichiers suivis modifiés (+77 
 P3 (étape `winapp ui` dans `/snapshot`, validation du routage sur quatre tâches) et P4 (`/autocompact 400k`,
 connecteurs Vercel/Figma/Claude Docs, `syncClaudeAiSkills`, copie npm de Claude Code, reliquats ECC,
 `playwright`, `usage.js`) : à valider séparément. Les modifications ci-dessus ne sont pas commitées.
+
+---
+
+## 15. Suite : P3 et P4 (2026-10-18, après ton accord)
+
+Autorisation : les quatre options (étape `winapp ui`, validation du routage, réglages utilisateur,
+nettoyage machine). Une seule action de ta liste n'a **pas** été faite, avec sa raison (§15.3).
+
+### 15.1 Validation du routage — cinq sous-agents ✔
+
+Le paramètre `model` et `effort` de l'outil Agent a été honoré : le modèle réel vient du journal de chaque
+sous-agent (`subagents/agent-*.jsonl`), pas de la demande. Les tâches étaient en lecture seule sur le dépôt.
+
+| Tâche | Demandé | Réel (journal) | Durée | Appels d'outils | Résultat contrôlé |
+|---|---|---|---|---|---|
+| T1 recherche simple : où est `ChannelPipe` et ses membres | `haiku`, `low` | `claude-haiku-5-5` | 8,8 s | 2 | **Exact** : `ChannelPipe.cs:23`, `Name` :26, `SendAsync` :38 (vérité terrain par `grep`) |
+| T2 implémentation courante : tests xUnit de `ClaudeHook` | `sonnet`, `medium` | `claude-sonnet-5-5` | 26,0 s | 6 | **Compile et passe** : copié dans `tests/SpaceNotch.Core.Tests/`, `dotnet test --filter` → **12 réussis sur 12**, puis copie retirée |
+| T3 analyse du cycle de vie WinUI : tous les `FrameClock.Rendering +=` | `opus`, `high` | `claude-opus-5-5` | 129,6 s | 24 | **7 sites sur 7** (`grep` : 7 `+=`). Mécanisme commun **confirmé dans le code** (§15.2) |
+| T4a recherche de bogues, fichier à 2 défauts semés | `opus`, `high` | `claude-opus-5-5` | 27,7 s | 2 | **2 sur 2** (`DecisionSeconds` 55 → 65 ; délai de 60 s donné à `Stop` au lieu de `PermissionRequest`) |
+| T4b même tâche | `sonnet`, `medium` | `claude-sonnet-5-5` | 20,9 s | 2 | **2 sur 2**, mêmes conséquences décrites |
+
+Lecture, sans sur-interprétation :
+
+- **Sur un fichier de 239 lignes à deux défauts, Sonnet moyen égale Opus élevé** (2/2 chacun, 20,9 s contre
+  27,7 s). Un seul essai par cas : aucune portée statistique. La règle « Opus pour un bogue difficile » reste
+  une prudence pour les bogues qui traversent plusieurs fichiers ; elle n'est **pas démontrée nécessaire** à
+  cette échelle.
+- **T3 est la seule tâche qui a justifié du temps et de l'effort** : 24 appels, 130 s, 3,1 M tokens de cache
+  lus, et elle a trouvé quelque chose de réel (§15.2). Aucun comparateur moins cher n'a été lancé : je ne peux
+  pas dire si Sonnet l'aurait trouvé.
+- **Un sous-agent coûte environ 70 k tokens dès son premier tour** (T1 : 76 k tokens pour 3 appels d'outils).
+  C'est le coût fixe mesuré en §7, payé à chaque délégation : déléguer une recherche d'une minute coûte plus
+  qu'elle ne fait économiser. Ça confirme la règle de `CLAUDE.md` et de `outils.md` (ne déléguer que les pistes
+  grandes et indépendantes).
+- **Non vérifié** : le routage par `model:` au frontmatter d'un **skill** (`/audit`, `/cloture`) et celui de
+  `winui-reviewer`. Seul le paramètre d'appel de l'outil Agent est démontré.
+
+### 15.2 Défaut du produit trouvé par T3, vérifié dans le code (non corrigé)
+
+`FrameFanOut.Fail` retire un abonné qui lève une exception (`src/SpaceNotch.Core/Animation/FrameFanOut.cs:113-117`).
+Le seul rappel d'erreur branché, `FrameClock.cs:27`, **journalise seulement**. Les propriétaires gardent leur
+drapeau à vrai (`_isRunning` du ressort, `_detachFramesHooked`, `_fxRunning`, `_running` de `ValueRoller`,
+`_tintRunning`) : leur prochain démarrage sort tôt et ne se réabonne jamais.
+
+- **Établi** : le mécanisme (code relu ici).
+- **Non établi** : qu'une exception se produise en pratique (dans `ApplyGeometry`, `OnDetachFrame`…) et la
+  gravité « bloquant » annoncée par le sous-agent pour le ressort. Je n'ai rien reproduit.
+- Correction suggérée par T3 : un rappel vers le propriétaire dans `Fail`, ou un `try/finally` qui remet le
+  drapeau dans chaque gestionnaire. Hors périmètre de cette PR : à inscrire dans la feuille de route
+  (`/cloture`) si tu veux la suivre.
+
+### 15.3 Réglages utilisateur (P4)
+
+| Réglage | Fait ? | Détail |
+|---|---|---|
+| `autoCompactWindow: 400000` dans `~/.claude/settings.json` | **Oui** | JSON valide ✔ ; `claude doctor` ne signale aucun réglage invalide ✔. Effet **non mesuré** (il faut une session longue). Retour arrière : supprimer la ligne, ou `/autocompact auto` |
+| `syncClaudeAiSkills: false` | **Non** | Les skills synchronisés comprennent `built-in-browser`, `chrome-browser` et `computer-use`, que le harnais impose de lire avant d'employer le navigateur intégré, Chrome ou le contrôle de l'ordinateur — 65 + 43 appels dans tes journaux. Les couper retirerait ces consignes de sécurité pour ~4 à 5 k tokens (estimé). À ta décision |
+| Connecteurs Vercel, Figma, Claude Docs | **Non (à toi)** | Se coupent dans l'application ; ~18 k tokens (estimé). À mesurer avec `get_usage` dans une session neuve |
+
+### 15.4 Nettoyage de la machine (P4) ✔
+
+- **Copie npm de Claude Code** (2.1.274) désinstallée : `claude` pointe sur le natif 2.1.302 ;
+  `claude doctor` : **« No installation issues found »**. Les autres paquets npm globaux n'ont pas été touchés.
+- **Reliquats ECC déplacés, pas supprimés** : `bash-commands.log`, `cost-tracker.log`,
+  `settings.json.spacenotch.bak` → `~/.claude/backups/reliquats-2026-10-18/` (1,5 Mo). Tu peux supprimer ce
+  dossier quand tu veux.
+- **MCP `playwright`** retiré de la portée locale du projet (`claude mcp remove playwright -s local`), après
+  une copie de `~/.claude.json` dans le même dossier de sauvegarde. Vérifié : `claude mcp get playwright` ne
+  le trouve plus ; il reste `context7`, `cwm-roslyn-navigator`, `microsoft-learn` ; `~/.claude.json` reste valide.
+
+### 15.5 `winapp ui` sur la vraie notch (P3) ✔
+
+Build Release (0 avertissement, 0 erreur, 38,6 s) → `winapp run … --args "--demo" --detach` (aucune notch ne
+tournait) → `ui status`, `ui inspect --depth 4`, `ui get-property`, `ui screenshot`. Instance fermée ensuite
+(`Stop-Process` sur son seul PID).
+
+- L'arbre existe : `IslandBody` (groupe) porte un `Name` qui suit le contenu (« Alex, Discord », puis
+  « AirPods Pro, Connecté »), avec `AutomationId`, rectangle `1113,0,334,78` et `IsKeyboardFocusable`.
+- `inspect -i` : **0 élément interactif** dans cet état (repos de démonstration) : ce n'est pas une erreur.
+- Deux fenêtres : « SpaceNotch » et « SpaceNotch Atmosphere » (le `-w` désigne la première).
+- `/snapshot` a reçu l'étape UIA correspondante (commandes essayées, critères, interdiction d'injecter des
+  entrées sans accord).
+- **Non essayé** : `click`, `hover`, `send-keys` (ils déplacent ta souris), les scènes ouvertes, la fenêtre
+  des Réglages.
+
+### 15.6 Autres vérifications
+
+| Vérification | Résultat |
+|---|---|
+| `dotnet build SpaceNotch.sln -c Release -p:Platform=x64` | **0 avertissement, 0 erreur** |
+| `dotnet test SpaceNotch.sln -c Release` | **1 037 + 23 réussis, 0 échec** (cœur et greffon d'exemple) |
+| `claude doctor` | « No installation issues found » (CLI native 2.1.302) |
+
+### 15.7 État du dépôt
+
+Fichier suivi modifié depuis la PR : `.claude/skills/snapshot/SKILL.md` (étape UIA). Ce §15 est lui aussi
+nouveau dans le rapport. **Rien de cela n'est commité** : la PR #100 contient encore le contenu du §14.
