@@ -66,6 +66,9 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopi
 
     public event EventHandler<IslandActionRequest>? ActionRequested;
 
+    /// <summary>Raccourci de la recherche retenu (« Ctrl+Maj+Espace »), montré à l'étape 3 ; <c>null</c> : Alt+Espace.</summary>
+    public string? SearchHotkey { get; set; }
+
     public FrameworkElement Root => this;
 
     /// <summary>Le bouton principal prend le clavier : Entrée avance, Échap passe.</summary>
@@ -253,15 +256,31 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopi
                 break;
 
             case 2:
+                // Le raccourci réellement retenu (n° 100), pas toujours Alt+Espace.
+                string[] parts = (SearchHotkey ?? (French ? "Alt+Espace" : "Alt+Space")).Split('+');
                 var keys = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-                Border alt = KeyCap("Alt", 44);
-                Border space = KeyCap(French ? "Espace" : "Space", 96);
-                keys.Children.Add(alt);
-                keys.Children.Add(Label("+", 14, "NfTextTertiaryBrush"));
-                keys.Children.Add(space);
-                Place(keys, (CanvasWidth - 170) / 2, (CanvasHeight - 32) / 2);
-                Loop(alt, "Scale", [Vector3.One, new Vector3(0.92f, 0.92f, 1), Vector3.One, Vector3.One], 1.2, center: new Vector3(22, 16, 0));
-                Loop(space, "Scale", [Vector3.One, Vector3.One, new Vector3(0.94f, 0.94f, 1), Vector3.One], 1.2, center: new Vector3(48, 16, 0));
+                double keysWidth = 0;
+
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    bool last = i == parts.Length - 1;
+                    double width = last ? 96 : Math.Max(44, 14 + (parts[i].Length * 8));
+                    Border cap = KeyCap(parts[i], width);
+
+                    if (i > 0)
+                    {
+                        keys.Children.Add(Label("+", 14, "NfTextTertiaryBrush"));
+                        keysWidth += 26;
+                    }
+
+                    keys.Children.Add(cap);
+                    keysWidth += width;
+                    Loop(cap, "Scale", last
+                        ? [Vector3.One, Vector3.One, new Vector3(0.94f, 0.94f, 1), Vector3.One]
+                        : [Vector3.One, new Vector3(0.92f, 0.92f, 1), Vector3.One, Vector3.One], 1.2, center: new Vector3((float)width / 2, 16, 0));
+                }
+
+                Place(keys, (CanvasWidth - keysWidth) / 2, (CanvasHeight - 32) / 2);
                 break;
 
             case 3:
