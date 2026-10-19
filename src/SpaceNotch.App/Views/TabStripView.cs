@@ -32,6 +32,12 @@ public sealed partial class TabStripView : Grid
     /// </summary>
     private readonly List<Button> _slots = [];
 
+    /// <summary>
+    /// L'activité de chaque emplacement (nulle s'il est replié). Pas dans
+    /// <c>Tag</c> : le gabarit des boutons y lit son encre de survol.
+    /// </summary>
+    private readonly List<string?> _slotIds = [];
+
     private string? _selected;
 
     public TabStripView()
@@ -113,6 +119,7 @@ public sealed partial class TabStripView : Grid
                 Button created = CreateTab();
                 _tabs.Children.Add(created);
                 _slots.Add(created);
+                _slotIds.Add(null);
             }
 
             Button tab = _slots[i];
@@ -120,7 +127,7 @@ public sealed partial class TabStripView : Grid
             // Un onglet qui a le focus ou qu'on est en train d'appuyer ne change
             // jamais d'activité sous la main : il est remplacé par un neuf, et
             // perd le focus ou l'appui comme quand la bande était reconstruite.
-            if (tab.Tag is string previous
+            if (_slotIds[i] is { } previous
                 && !string.Equals(previous, activity.Id, StringComparison.Ordinal)
                 && (tab.IsPressed || tab.PointerCaptures is { Count: > 0 } || tab.FocusState != FocusState.Unfocused))
             {
@@ -129,7 +136,7 @@ public sealed partial class TabStripView : Grid
                 _slots[i] = tab;
             }
 
-            tab.Tag = activity.Id;
+            _slotIds[i] = activity.Id;
             tab.Visibility = Visibility.Visible;
             _items.Add((activity.Id, tab));
 
@@ -165,7 +172,7 @@ public sealed partial class TabStripView : Grid
         for (int i = activities.Count; i < _slots.Count; i++)
         {
             _slots[i].Visibility = Visibility.Collapsed;
-            _slots[i].Tag = null;
+            _slotIds[i] = null;
         }
     }
 
@@ -205,7 +212,9 @@ public sealed partial class TabStripView : Grid
         // mais jamais pendant un appui (voir Sync).
         tab.Click += (sender, _) =>
         {
-            if (sender is Button { Tag: string id })
+            int slot = sender is Button clicked ? _slots.IndexOf(clicked) : -1;
+
+            if (slot >= 0 && _slotIds[slot] is { } id)
             {
                 TabInvoked?.Invoke(this, id);
             }
