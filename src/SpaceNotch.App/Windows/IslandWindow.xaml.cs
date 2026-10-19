@@ -499,6 +499,7 @@ public sealed partial class IslandWindow : Window
         // par le même chemin que les préférences du menu : il n'existe donc pas
         // deux manières d'appliquer un réglage.
         _settingsService.Changed += OnSettingsChanged;
+        SpaceNotch_App.Diagnostics.Guard.Troubled += OnRepeatedFaults;
 
         SetupTrayIcon();
 
@@ -775,7 +776,7 @@ public sealed partial class IslandWindow : Window
 
             // Les commandes du menu rapide touchent la fenêtre : elles sont
             // exécutées ici, pas par une fonctionnalité.
-            if (HandleQuickMenuAction(request) || await HandleWelcomeActionAsync(request))
+            if (HandleQuickMenuAction(request) || HandleTroubleAction(request) || await HandleWelcomeActionAsync(request))
             {
                 return;
             }
@@ -4698,7 +4699,7 @@ public sealed partial class IslandWindow : Window
             return false;
         }
 
-        MiniLogger.Log("[NOTCH] Redémarrage demandé depuis les Réglages");
+        MiniLogger.Log("[NOTCH] Redémarrage demandé");
         QuitApplication();
         return true;
     }
@@ -4775,6 +4776,7 @@ public sealed partial class IslandWindow : Window
         // toutes les suivantes.
         Safely("greffons", _pluginLoader.Dispose);
         Safely("réglages", () => _settingsService.Changed -= OnSettingsChanged);
+        Safely("exceptions répétées", () => SpaceNotch_App.Diagnostics.Guard.Troubled -= OnRepeatedFaults);
         Safely("scènes", () =>
         {
             foreach (IIslandSceneView scene in _scenes.Values.Distinct())
