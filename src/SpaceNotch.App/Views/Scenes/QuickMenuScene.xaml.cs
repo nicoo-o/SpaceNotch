@@ -140,6 +140,19 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
         }
     }
 
+    /// <summary>
+    /// Crée les lignes avant la première ouverture : elles sont gardées (n° 46b),
+    /// l'ouverture ne refait que celles dont le contenu a changé. Sans cascade :
+    /// elle se joue à l'ouverture.
+    /// </summary>
+    public void Prewarm(QuickMenuPayload payload)
+    {
+        bool cascade = _cascadePending;
+        _cascadePending = false;
+        Build(payload);
+        _cascadePending = cascade;
+    }
+
     /// <summary>Premier élément sous le clavier, sans anneau : le menu s'ouvre au clic droit.</summary>
     public void FocusFirst()
     {
