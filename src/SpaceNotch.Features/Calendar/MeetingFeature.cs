@@ -91,6 +91,7 @@ public sealed class MeetingFeature : IslandFeatureBase, IIntegrationStatusSource
         if (_reader is not null)
         {
             _reader.Changed -= OnCalendarChanged;
+            _reader.Stop();
         }
 
         _timer.Change(Timeout.Infinite, Timeout.Infinite);
@@ -107,7 +108,13 @@ public sealed class MeetingFeature : IslandFeatureBase, IIntegrationStatusSource
         try
         {
             CalendarMeeting? meeting = _reader is null ? _meeting : await _reader.NextAsync(_now()).ConfigureAwait(false);
-            Show(meeting);
+
+            // Une lecture en vol quand la fonction s'arrête ne doit ni republier la
+            // carte retirée ni réarmer le minuteur.
+            if (State is FeatureState.Running or FeatureState.Starting)
+            {
+                Show(meeting);
+            }
         }
         catch (Exception ex)
         {

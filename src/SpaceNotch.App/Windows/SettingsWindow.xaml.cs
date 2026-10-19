@@ -304,6 +304,14 @@ public sealed partial class SettingsWindow : Window
 
             (string glyph, string title, string description) = DescribeFeature(feature);
 
+            // Une fonction active qui ne peut rien faire le dit dès l'ouverture, pas seulement à la bascule.
+            IntegrationStatus integration = IntegrationStatuses.For(feature);
+
+            if (IntegrationStatuses.NeedsAttention(integration))
+            {
+                description = $"{description} {IntegrationStatuses.Describe(integration)}";
+            }
+
             var toggle = new ToggleSwitch
             {
                 OnContent = string.Empty,
