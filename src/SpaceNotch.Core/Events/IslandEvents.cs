@@ -46,7 +46,15 @@ public sealed record DisplayChangedEvent(bool TopologyChanged, bool DpiChanged, 
 /// <summary>
 /// Les préférences visuelles du système ont changé : animations, effets de
 /// transparence ou contraste élevé. L'Island doit réévaluer son rendu.
+/// <para>
+/// <see cref="AnimationsEnabled"/> est faux quand Windows coupe les effets
+/// d'animation <em>ou</em> quand l'économiseur d'énergie est actif (n° 43) :
+/// l'événement part aussi quand l'économiseur s'allume ou s'éteint.
+/// </para>
 /// </summary>
+/// <param name="AnimationsEnabled">Animations autorisées : effets d'animation de Windows, sans économiseur d'énergie.</param>
+/// <param name="TransparencyEffectsEnabled">Effets de transparence de Windows.</param>
+/// <param name="HighContrast">Contraste élevé actif.</param>
 public sealed record SystemVisualStateChangedEvent(
     bool AnimationsEnabled,
     bool TransparencyEffectsEnabled,

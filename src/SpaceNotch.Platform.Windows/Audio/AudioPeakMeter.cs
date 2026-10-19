@@ -88,7 +88,16 @@ public sealed class AudioPeakMeter : IDisposable
         {
             if (device.Activate(ref iid, CLSCTX.CLSCTX_ALL, IntPtr.Zero, out object meter) == 0)
             {
-                _meter = (IAudioMeterInformation)meter;
+                // Un objet qui n'est pas un compteur est rendu tout de suite : la
+                // conversion levait, et l'objet activé attendait le ramasse-miettes.
+                if (meter is IAudioMeterInformation information)
+                {
+                    _meter = information;
+                }
+                else if (meter is not null && Marshal.IsComObject(meter))
+                {
+                    Marshal.ReleaseComObject(meter);
+                }
             }
         }
         finally

@@ -19,7 +19,7 @@ namespace SpaceNotch_App.Composition;
 /// choix de l'utilisateur. C'est la règle des thèmes sombres — l'élévation s'y
 /// exprime par la surface, l'ombre vient en accompagnement — et sa conséquence ici
 /// est que le reflet spéculaire de l'Island n'est pas une décoration mais le
-/// second porteur de la séparation. Voir ADR-013.
+/// second porteur de la séparation. Voir docs/ux/design-language.md, « La contrainte sans bord ».
 /// </para>
 ///
 /// <para>
