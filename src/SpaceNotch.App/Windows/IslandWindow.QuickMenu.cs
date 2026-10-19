@@ -25,6 +25,35 @@ public sealed partial class IslandWindow
 
     private DispatcherTimer? _menuDetachTimer;
 
+    private QuickMenuPayload CurrentQuickMenuPayload() => new(
+        Hotkey: _launcherFeature.Hotkey,
+        DockExpanded: false,
+        Edge: _edge,
+        IsFloating: UsesFloatingGeometry,
+        SideEdgesAllowed: _settings.AllowSideEdges,
+        HasClipboard: HasActivity(ClipboardFeature.ActivityId),
+        HasShelf: HasActivity(FileShelfManager.ShelfActivityId),
+        TimerRunning: _timerFeature.HasMeasure,
+        ClipboardOff: !_settings.ShowClipboard,
+        FocusActive: _pomodoroFeature.HasSession);
+
+    /// <summary>
+    /// Prépare la première ouverture du menu rapide et du lanceur (n° 46b, 25) :
+    /// leurs lignes se créent une fois, en tâche de fond, repliées. Visite du
+    /// 2026-10-19 : 39 à 44 ms de « scène remplie » au premier menu, 29 à 34 ms
+    /// à la première recherche.
+    /// </summary>
+    private void PrepareFirstOpen()
+    {
+        if (_isClosed)
+        {
+            return;
+        }
+
+        QuickMenuSceneView.Prewarm(CurrentQuickMenuPayload());
+        LauncherSceneView.Prewarm();
+    }
+
     /// <summary>Clic droit : ouvre le menu, ou le referme s'il est déjà là.</summary>
     private void ToggleQuickMenu()
     {
@@ -39,17 +68,7 @@ public sealed partial class IslandWindow
             return;
         }
 
-        _quickMenuFeature.Show(new QuickMenuPayload(
-            Hotkey: _launcherFeature.Hotkey,
-            DockExpanded: false,
-            Edge: _edge,
-            IsFloating: UsesFloatingGeometry,
-            SideEdgesAllowed: _settings.AllowSideEdges,
-            HasClipboard: HasActivity(ClipboardFeature.ActivityId),
-            HasShelf: HasActivity(FileShelfManager.ShelfActivityId),
-            TimerRunning: _timerFeature.HasMeasure,
-            ClipboardOff: !_settings.ShowClipboard,
-            FocusActive: _pomodoroFeature.HasSession));
+        _quickMenuFeature.Show(CurrentQuickMenuPayload());
 
         // Le menu passe devant ce qui était présenté — la musique, un minuteur —
         // le temps d'être utilisé ; il rend la main en se refermant.

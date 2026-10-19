@@ -94,13 +94,14 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView, 
     // Le mode paroles est un choix de l'utilisateur, gardé d'un morceau à l'autre.
     private static bool s_preferLyrics = true;
 
-    private static readonly SolidColorBrush SungBrush = new(global::Windows.UI.Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF));
-    private static readonly SolidColorBrush NextBrush = new(global::Windows.UI.Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF));
-    private static readonly SolidColorBrush FarBrush = new(global::Windows.UI.Color.FromArgb(0x22, 0xFF, 0xFF, 0xFF));
+    // Lus au thème de la notch à chaque usage : des blancs fixes disparaissaient sur une notch claire (n° 32).
+    private static Brush SungBrush => SpaceNotch_App.UI.ThemeBrushes.Get("NfTextPrimaryBrush");
+    private static Brush NextBrush => SpaceNotch_App.UI.ThemeBrushes.Get("NfLyricNextBrush");
+    private static Brush FarBrush => SpaceNotch_App.UI.ThemeBrushes.Get("NfLyricFarBrush");
     private static readonly SolidColorBrush LikedBrush = new(global::Windows.UI.Color.FromArgb(0xFF, 0xFF, 0x8F, 0xA3));
-    private static readonly SolidColorBrush UnlikedBrush = new(global::Windows.UI.Color.FromArgb(0x88, 0xFF, 0xFF, 0xFF));
+    private static Brush UnlikedBrush => SpaceNotch_App.UI.ThemeBrushes.Get("NfTextTertiaryBrush");
     private static readonly SolidColorBrush QueuedBrush = new(global::Windows.UI.Color.FromArgb(0xFF, 0x7F, 0xE8, 0xB0));
-    private static readonly SolidColorBrush QueueBrush = new(global::Windows.UI.Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF));
+    private static Brush QueueBrush => SpaceNotch_App.UI.ThemeBrushes.Get("NfTextSecondaryBrush");
 
     /// <summary>Hauteur d'une ligne de paroles et l'espace qui la suit : le pas du défilement.</summary>
     private const double LyricPitch = 26 + 4;
