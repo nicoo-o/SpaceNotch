@@ -159,6 +159,17 @@ public sealed partial class SettingsWindow : Window
         _settings.Changed += OnSettingsChanged;
         SpaceNotch_App.UI.SystemTheme.Changed += OnSystemThemeChanged;
 
+        try
+        {
+            _accessibility = new global::Windows.UI.ViewManagement.AccessibilitySettings();
+            _accessibility.HighContrastChanged += OnHighContrastChanged;
+        }
+        catch (Exception)
+        {
+            // Sans l'événement, le changement de couleurs du thème (SystemTheme) suffit.
+            _accessibility = null;
+        }
+
         Closed += OnWindowClosed;
 
         MiniLogger.Log("Fenêtre de réglages ouverte");
@@ -179,42 +190,103 @@ public sealed partial class SettingsWindow : Window
 
         // 920 × 660 DIP : le menu latéral et une colonne de cartes lisible, à
         // toutes les échelles d'affichage (AppWindow parle en pixels physiques).
+        // Bornée à la zone de travail de l'écran principal, où elle s'ouvre : sur
+        // 1366 × 768 à 125 %, le bas de la fenêtre sortait de l'écran (n° 29).
         double scale = GetDpiForWindow(handle) / 96.0;
-        appWindow.Resize(new SizeInt32((int)(920 * scale), (int)(660 * scale)));
+        RectInt32 area = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary).WorkArea;
+        (int width, int height) = WindowFit.Fit((int)(920 * scale), (int)(660 * scale), area.Width, area.Height, (int)(16 * scale));
+        appWindow.Resize(new SizeInt32(width, height));
 
-        // Barre de titre noire, comme la fenêtre : la barre blanche par défaut
-        // coupait l'OLED en deux.
-        // Contraste élevé (phase C) : ni fond noir imposé ni barre de titre
-        // peinte — les contrôles prennent les couleurs du système, et un fond
-        // noir forcé donnait du texte noir sur noir en contraste élevé clair.
-        if (IsHighContrast())
+        _appWindow = appWindow;
+        _darkBackground = RootLayout.Background;
+        ApplyChrome();
+
+        // La fenêtre de réglages se place au centre de l'écran principal : les
+        // réglages se lisent, ils ne doivent pas aller chercher l'utilisateur.
+        appWindow.Move(new PointInt32(
+            area.X + ((area.Width - appWindow.Size.Width) / 2),
+            area.Y + ((area.Height - appWindow.Size.Height) / 2)));
+    }
+
+    /// <summary>
+    /// Fond et barre de titre, selon le contraste élevé. Barre de titre noire,
+    /// comme la fenêtre : la barre blanche par défaut coupait l'OLED en deux.
+    /// Contraste élevé (phase C) : ni fond noir imposé ni barre de titre peinte —
+    /// les contrôles prennent les couleurs du système, et un fond noir forcé
+    /// donnait du texte noir sur noir en contraste élevé clair. Relue à chaque
+    /// changement de contraste : choisie à l'ouverture seulement, elle gardait le
+    /// fond noir jusqu'à ce qu'on rouvre les Réglages (n° 90).
+    /// </summary>
+    private void ApplyChrome()
+    {
+        if (_appWindow is null || _closed)
+        {
+            return;
+        }
+
+        bool highContrast = IsHighContrast();
+
+        // En contraste élevé, le pinceau du système est relu à chaque fois : passer
+        // d'un thème de contraste à un autre (Aquatique → Désert) ne change pas
+        // l'état, mais change la couleur du fond.
+        if (highContrast)
         {
             RootLayout.RequestedTheme = ElementTheme.Default;
             RootLayout.Background = Application.Current.Resources.TryGetValue("SystemColorWindowColorBrush", out object? brush) && brush is Brush window
                 ? window
                 : null;
         }
-        else if (AppWindowTitleBar.IsCustomizationSupported())
+
+        if (highContrast == _chromeHighContrast)
         {
-            Color black = Color.FromArgb(0xFF, 0x05, 0x05, 0x06);
-            Color ink = Color.FromArgb(0xFF, 0xE8, 0xE8, 0xEA);
-            appWindow.TitleBar.BackgroundColor = black;
-            appWindow.TitleBar.InactiveBackgroundColor = black;
-            appWindow.TitleBar.ForegroundColor = ink;
-            appWindow.TitleBar.ButtonBackgroundColor = black;
-            appWindow.TitleBar.ButtonInactiveBackgroundColor = black;
-            appWindow.TitleBar.ButtonForegroundColor = ink;
-            appWindow.TitleBar.ButtonHoverBackgroundColor = Color.FromArgb(0xFF, 0x1A, 0x1B, 0x1F);
-            appWindow.TitleBar.ButtonHoverForegroundColor = ink;
+            return;
         }
 
-        // La fenêtre de réglages se place au centre de l'écran principal : les
-        // réglages se lisent, ils ne doivent pas aller chercher l'utilisateur.
-        RectInt32 area = DisplayArea.GetFromWindowId(appWindow.Id, DisplayAreaFallback.Primary).WorkArea;
-        appWindow.Move(new PointInt32(
-            area.X + ((area.Width - appWindow.Size.Width) / 2),
-            area.Y + ((area.Height - appWindow.Size.Height) / 2)));
+        _chromeHighContrast = highContrast;
+
+        if (!highContrast)
+        {
+            RootLayout.RequestedTheme = ElementTheme.Dark;
+            RootLayout.Background = _darkBackground;
+        }
+
+        if (!AppWindowTitleBar.IsCustomizationSupported())
+        {
+            return;
+        }
+
+        // Sans couleur (null), la barre de titre reprend celles du système.
+        Color? black = highContrast ? null : Color.FromArgb(0xFF, 0x05, 0x05, 0x06);
+        Color? ink = highContrast ? null : Color.FromArgb(0xFF, 0xE8, 0xE8, 0xEA);
+        AppWindowTitleBar bar = _appWindow.TitleBar;
+        bar.BackgroundColor = black;
+        bar.InactiveBackgroundColor = black;
+        bar.ForegroundColor = ink;
+        bar.ButtonBackgroundColor = black;
+        bar.ButtonInactiveBackgroundColor = black;
+        bar.ButtonForegroundColor = ink;
+        bar.ButtonHoverBackgroundColor = highContrast ? null : Color.FromArgb(0xFF, 0x1A, 0x1B, 0x1F);
+        bar.ButtonHoverForegroundColor = ink;
     }
+
+    private AppWindow? _appWindow;
+
+    /// <summary>Le fond noir de la fenêtre (XAML), rendu en sortant du contraste élevé.</summary>
+    private Brush? _darkBackground;
+
+    /// <summary>Contraste élevé au dernier habillage ; null avant le premier.</summary>
+    private bool? _chromeHighContrast;
+
+    /// <summary>Fenêtre fermée : un changement de thème encore en file n'habille plus rien.</summary>
+    private bool _closed;
+
+    /// <summary>
+    /// Signale l'entrée et la sortie du contraste élevé ; gardée en champ, sans
+    /// quoi l'abonnement disparaîtrait avec l'objet.
+    /// </summary>
+    private global::Windows.UI.ViewManagement.AccessibilitySettings? _accessibility;
+
+    private void OnHighContrastChanged(global::Windows.UI.ViewManagement.AccessibilitySettings sender, object args) => OnSystemThemeChanged();
 
     /// <summary>
     /// Une carte par activité réglable. Les fonctionnalités internes — menu
@@ -379,6 +451,7 @@ public sealed partial class SettingsWindow : Window
             BounceSlider.Value = settings.SpringBounce;
 
             BouncyToggle.IsOn = settings.AllowBouncyAnimations;
+            BounceSlider.IsEnabled = settings.AllowBouncyAnimations;
             HypnoticToggle.IsOn = settings.AllowHypnoticMotion;
             RainToggle.IsOn = settings.ShowBinaryRain;
             HoverToggle.IsOn = settings.HoverToPreview;
@@ -859,7 +932,12 @@ public sealed partial class SettingsWindow : Window
         => Apply(s => s.HideOverFullscreen = FullscreenToggle.IsOn);
 
     private void OnBouncyToggled(object sender, RoutedEventArgs e)
-        => Apply(s => s.AllowBouncyAnimations = BouncyToggle.IsOn);
+    {
+        // Rebond éteint : le ressort est amorti au point critique, l'amortissement
+        // choisi n'agit plus (n° 91).
+        BounceSlider.IsEnabled = BouncyToggle.IsOn;
+        Apply(s => s.AllowBouncyAnimations = BouncyToggle.IsOn);
+    }
 
 
     private void OnClockToggled(object sender, RoutedEventArgs e)
@@ -1745,6 +1823,9 @@ public sealed partial class SettingsWindow : Window
 
             UpdateNotificationCard();
             ShowPendingPlugins();
+
+            // En dernier : une barre de titre refusée ne prive pas les encres de leur mise à jour.
+            ApplyChrome();
         });
 
     private void UpdateNotificationCard()
@@ -2046,8 +2127,15 @@ public sealed partial class SettingsWindow : Window
 
     private void OnWindowClosed(object sender, WindowEventArgs args)
     {
+        _closed = true;
         _settings.Changed -= OnSettingsChanged;
         SpaceNotch_App.UI.SystemTheme.Changed -= OnSystemThemeChanged;
+
+        if (_accessibility is not null)
+        {
+            _accessibility.HighContrastChanged -= OnHighContrastChanged;
+        }
+
         _previewHypnotic?.Dispose();
 
         // Une écriture en attente ne doit pas être perdue parce que la fenêtre se
