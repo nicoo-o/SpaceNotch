@@ -129,6 +129,49 @@ public sealed class NotchMachineTests
     }
 
     [Fact]
+    public void Arrachee_pendant_l_apercu_la_notch_revient_au_repos()
+    {
+        NotchMachine m = Machine();
+        m.Fire(In(NotchTrigger.HoverDwell));
+        m.Fire(In(NotchTrigger.Press));
+        m.Fire(new NotchInput(NotchTrigger.PullMoved, PullDip: 10));
+
+        NotchStep step = m.Fire(new NotchInput(NotchTrigger.PullMoved, PullDip: 41));
+
+        Assert.Equal([NotchEffect.Tear, NotchEffect.EndPreview], step.Effects);
+        Assert.Equal(Surface.Rest, m.Current.Surface);
+        Assert.Equal(HandPhase.Tearing, m.Current.Hand);
+    }
+
+    [Fact]
+    public void Deplacee_pendant_l_apercu_la_pastille_revient_au_repos()
+    {
+        NotchMachine m = Machine();
+        m.Fire(new NotchInput(NotchTrigger.PlacementChanged, Placement: Placement.Floating));
+        m.Fire(In(NotchTrigger.HoverDwell));
+        m.Fire(In(NotchTrigger.Press));
+
+        NotchStep step = m.Fire(new NotchInput(NotchTrigger.PullMoved, PullDip: 60));
+
+        Assert.Equal([NotchEffect.EndPreview], step.Effects);
+        Assert.Equal(Surface.Rest, m.Current.Surface);
+    }
+
+    [Fact]
+    public void Ouverte_l_arrachement_ne_touche_pas_a_la_surface()
+    {
+        NotchMachine m = Machine();
+        m.Fire(In(NotchTrigger.HotKey));
+        m.Fire(In(NotchTrigger.Press));
+        m.Fire(new NotchInput(NotchTrigger.PullMoved, PullDip: 10));
+
+        NotchStep step = m.Fire(new NotchInput(NotchTrigger.PullMoved, PullDip: 41));
+
+        Assert.Equal([NotchEffect.Tear], step.Effects);
+        Assert.Equal(Surface.Open, m.Current.Surface);
+    }
+
+    [Fact]
     public void Un_appui_long_au_doigt_ouvre_le_menu_rapide()
     {
         NotchMachine m = Machine();
