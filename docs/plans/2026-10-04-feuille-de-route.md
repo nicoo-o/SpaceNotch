@@ -122,7 +122,7 @@ répond ou si une autre voie de signature se présente.
 
 | # | Sujet | Preuve | Impact | Effort | Risque |
 |---|---|---|---|---|---|
-| 46b | Suite de n° 46. **Fusionnées** : #112 (onglets gardés dans l'arbre, état du PC hors du fil d'interface) et #122 (menu rapide : lignes gardées, le second rendu lent de l'ouverture disparaît, 13 visites sur 13 avant, 0 sur 2 après). Reste : première ouverture du menu rapide 39–44 ms et première recherche 29–34 ms (`BuildRows` du lanceur) — rien à garder encore, voir n° 25 ; « forme compacte » 150–186 ms par visite ; GC de génération 2 « provoqués » sans `GC.Collect` (cause non établie) | #48, #112, #122 | moyen | M | moyen |
+| 46b | Suite de n° 46. **Fusionnées** : #112 (onglets gardés dans l'arbre, état du PC hors du fil d'interface), #122 (menu rapide : lignes gardées, le second rendu lent disparaît) et #124 (menu rapide et lanceur préparés d'avance au démarrage : plus aucun rendu lent à leur première ouverture sur 2 visites, avant 39–44 ms et 29–34 ms). Reste : « forme compacte » 150–186 ms par visite ; GC de génération 2 « provoqués » sans `GC.Collect` (cause non établie) ; le coût de la première mise en page n'est pas mesuré à part | #48, #112, #122, #124 | moyen | M | moyen |
 | 36 | Coût par image du ressort (géométries neuves, mises en page) — voir n° 46b | voir n° 46 | (cause de 46) | M | moyen |
 
 ## P2 — qualité, dette, confort
@@ -135,9 +135,9 @@ répond ou si une autre voie de signature se présente.
 | 25 | Restes de la phase D | `performance.md:142-148` | M–L |
 | 26 | Machine à états en ombre ; `IslandWindow` = 31 fichiers. #111 fusionnée (arrachée ou déplacée pendant l'aperçu). La visite ne dit rien des écarts : elle force les états et l'ombre ne les journalise pas pendant une visite (56 comptés, aucun détaillé). **À lire en usage réel** après #111, puis une région confiée à la machine, et le découpage | audit §4, #111 | L |
 | 27 | Spotify et Discord exigent une application développeur | ADR-026 | L |
-| 28 | Greffon d'exemple qui figeait l'application : état inconnu. L'essai demande d'installer le greffon dans `%AppData%\SpaceNotch\plugins` et de l'approuver dans `config.json` : **accord de l'auteur nécessaire** | `performance.md:68-75` | M |
+| 28 | Greffon d'exemple qui figeait l'application. **Essayé le 2026-10-19** (instance Debug, greffon Debug approuvé dans `config.json`) : chargé (« 1 fonctionnalité, 0 échec »), fenêtre réactive, CPU 0 à 1 % sur ~2 min, aucun gel. **Le défaut ne se reproduit pas** ; non reproduit ne veut pas dire corrigé (l'essai n'a pas forcé de publication depuis un fil de travail). En Release, le greffon non signé est refusé (« signature Authenticode absente ou invalide ») : l'essai exige une build Debug | `performance.md:68-75` | M |
 | 102 | Manifeste d'identité : `MinVersion` 10.0.22000, sous le reste du dépôt (22631) ; le changer change la variante installée et sa signature — à trancher avec la signature | `packaging/identity/AppxManifest.xml`, #110 | S |
-| 32 | Couleurs écrites en dur. #121 fusionnée : neuf blancs d'InfoScene, QuietScene et FileShelfScene suivent le thème (blanc sur blanc en thème clair). Reste, construits une fois ou à teinte propre : `TrailingView`, `MediaExpandedScene` (paroles), `WelcomeScene`, `AtmosphericMaskHelper`, repli de `StatePalette` ; non vu à l'écran en thème clair | grep, #121 | S–M |
+| 32 | Couleurs écrites en dur. #121 (neuf blancs d'InfoScene, QuietScene, FileShelfScene) et #125 (paroles, piste de l'anneau, pastille et fond de la présentation) fusionnées ; **vu en thème clair le 2026-10-19** (`Appearance` = `Light`, visite) : la ligne chantée est sombre, la suivante plus claire, lisibles sur la notch claire. Reste : repli de `StatePalette`, maquettes de la présentation (volontairement fixes). Le contraste élevé reste à voir à l'écran | grep, #121, #125 | S |
 
 ## Ordre proposé
 
