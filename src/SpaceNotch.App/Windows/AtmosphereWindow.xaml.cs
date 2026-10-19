@@ -545,6 +545,12 @@ public sealed partial class AtmosphereWindow : Window
     }
 
     /// <summary>
+    /// Sous animations réduites, la forme de la notch saute et apparaît en fondu ;
+    /// le halo et l'ombre suivent dans le même fondu au lieu de sauter seuls (n° 91).
+    /// </summary>
+    public void Dissolve() => SpaceNotch_App.Animations.ContentTransition.Dissolve(AtmosphereRoot);
+
+    /// <summary>
     /// Les animations sont-elles autorisées ? Renseigné par la fenêtre principale,
     /// qui seule connaît les préférences système et utilisateur.
     /// </summary>

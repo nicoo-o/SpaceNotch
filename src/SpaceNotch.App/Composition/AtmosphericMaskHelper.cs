@@ -108,7 +108,7 @@ public static class AtmosphericMaskHelper
     /// nulle part, et l'Island se lisait comme une tache posée sur l'écran plutôt
     /// que comme un objet. Au repos, elle redevient un objet — sa silhouette
     /// <em>est</em> son contour — et la dissolution n'apparaît qu'au déploiement,
-    /// portée par la couche décorative. Voir ADR-013.
+    /// portée par la couche décorative. Voir docs/ux/design-language.md, « La contrainte sans bord ».
     /// </para>
     ///
     /// <para>
