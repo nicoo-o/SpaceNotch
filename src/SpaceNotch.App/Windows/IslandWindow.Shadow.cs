@@ -88,6 +88,12 @@ public sealed partial class IslandWindow
         try
         {
             string? divergence = _shadow.Compare(state, _touring ? "visite" : _shadowContext);
+            string? keyboard = _shadow.CompareKeyboard(_typingCapture, _touring ? "visite" : _shadowContext);
+
+            if (keyboard is not null && !_touring && _shadow.Divergences <= ShadowLogLimit)
+            {
+                MiniLogger.Log(keyboard);
+            }
 
             if (divergence is not null)
             {
