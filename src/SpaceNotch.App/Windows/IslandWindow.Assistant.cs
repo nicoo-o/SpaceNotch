@@ -36,7 +36,7 @@ public sealed partial class IslandWindow
         string folder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SpaceNotch");
 
         _reminderFeature = new ReminderFeature(_activityManager, _eventBus, folder);
-        _copyAssistFeature = new CopyAssistFeature(_activityManager, _eventBus, _clipboardMonitor, _hWnd, _settings.CopyActions);
+        _copyAssistFeature = new CopyAssistFeature(_activityManager, _eventBus, _clipboardMonitor, _hWnd, _settings.CopyActions) { Pause = _clipboardPause };
 
         return [_reminderFeature, _copyAssistFeature];
     }

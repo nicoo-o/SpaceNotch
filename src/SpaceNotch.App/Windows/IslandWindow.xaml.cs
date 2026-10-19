@@ -104,6 +104,9 @@ public sealed partial class IslandWindow : Window
     private readonly WindowsNotificationListener _notificationListener = new();
     private readonly BluetoothWatcher _bluetoothWatcher = new();
     private readonly ClipboardMonitor _clipboardMonitor = new();
+
+    /// <summary>Pause commune à l'historique et aux actions sur copie (n° 3).</summary>
+    private readonly SpaceNotch.Core.Clipboard.ClipboardPause _clipboardPause = new();
     private readonly BrightnessService _brightnessService = new();
 
     // Fonctionnalités : le registre en est propriétaire. La fenêtre n'en garde que
@@ -357,11 +360,14 @@ public sealed partial class IslandWindow : Window
             IgnoredApps = _settings.IgnoredNotificationApps
         };
 
+        _clipboardPause.Changed += OnClipboardPauseChanged;
+
         _clipboardFeature = new ClipboardFeature(
             _activityManager, _eventBus, _clipboardMonitor, _hWnd,
             _settings.IsFeatureEnabled(ClipboardFeature.FeatureKey))
         {
-            IgnoreSecrets = _settings.ClipboardIgnoreSecrets
+            IgnoreSecrets = _settings.ClipboardIgnoreSecrets,
+            Pause = _clipboardPause
         };
 
         _mediaFeature = new MediaFeature(
@@ -776,7 +782,7 @@ public sealed partial class IslandWindow : Window
 
             // Les commandes du menu rapide touchent la fenêtre : elles sont
             // exécutées ici, pas par une fonctionnalité.
-            if (HandleQuickMenuAction(request) || HandleTroubleAction(request) || await HandleWelcomeActionAsync(request))
+            if (HandleQuickMenuAction(request) || HandleTroubleAction(request) || HandleClipboardPauseAction(request) || await HandleWelcomeActionAsync(request))
             {
                 return;
             }
@@ -4210,6 +4216,7 @@ public sealed partial class IslandWindow : Window
         flyout.Items.Add(BuildLaunchMenu());
         flyout.Items.Add(new MenuFlyoutSeparator());
         flyout.Items.Add(BuildActivitiesMenu());
+        flyout.Items.Add(BuildClipboardPauseMenu());
         flyout.Items.Add(BuildMotionMenu());
         flyout.Items.Add(BuildAppearanceMenu());
         flyout.Items.Add(new MenuFlyoutSeparator());
@@ -4320,6 +4327,35 @@ public sealed partial class IslandWindow : Window
         menu.Items.Add(focusItem);
         menu.Items.Add(captureItem);
 
+        return menu;
+    }
+
+    /// <summary>
+    /// Pause du presse-papier (n° 3) : une seule commande arrête l'historique et les
+    /// actions sur copie ; l'indicateur de la notch dit qu'elle est en cours.
+    /// </summary>
+    private MenuFlyoutSubItem BuildClipboardPauseMenu()
+    {
+        var menu = new MenuFlyoutSubItem
+        {
+            Text = _clipboardPause.IsPaused ? Lang.T("Presse-papier : en pause", "Clipboard: paused") : Lang.T("Presse-papier : pause", "Clipboard: pause"),
+            Icon = new FontIcon { Glyph = "" }
+        };
+
+        if (_clipboardPause.IsPaused)
+        {
+            var resume = new MenuFlyoutItem { Text = Lang.T("Reprendre", "Resume") };
+            resume.Click += (_, _) => _clipboardPause.Resume();
+            menu.Items.Add(resume);
+            return menu;
+        }
+
+        var fifteen = new MenuFlyoutItem { Text = Lang.T("Suspendre 15 min", "Pause for 15 min") };
+        fifteen.Click += (_, _) => _clipboardPause.PauseFor(TimeSpan.FromMinutes(15));
+        var untilResumed = new MenuFlyoutItem { Text = Lang.T("Suspendre jusqu'à la reprise", "Pause until resumed") };
+        untilResumed.Click += (_, _) => _clipboardPause.PauseUntilResumed();
+        menu.Items.Add(fifteen);
+        menu.Items.Add(untilResumed);
         return menu;
     }
 
@@ -4878,6 +4914,11 @@ public sealed partial class IslandWindow : Window
             _cardHypnotic?.Dispose();
             _tabHypnotic?.Dispose();
             _dropHypnotic?.Dispose();
+        });
+        Safely("pause du presse-papier", () =>
+        {
+            _clipboardPause.Changed -= OnClipboardPauseChanged;
+            _clipboardPause.Dispose();
         });
         Safely("presse-papier", _clipboardMonitor.Dispose);
         Safely("Bluetooth", _bluetoothWatcher.Dispose);
