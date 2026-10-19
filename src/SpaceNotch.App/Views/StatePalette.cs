@@ -21,7 +21,7 @@ namespace SpaceNotch_App.Views;
 /// La teinte n'est jamais le seul porteur de l'information : la légende de la
 /// carte nomme l'état en mots. Une couleur seule serait perdue en contraste
 /// élevé, pour une partie des daltonismes, et pour quiconque confond deux teintes
-/// voisines. Voir ADR-014.
+/// voisines. Voir docs/ux/design-language.md, « Accessibilité ».
 /// </para>
 ///
 /// <para>

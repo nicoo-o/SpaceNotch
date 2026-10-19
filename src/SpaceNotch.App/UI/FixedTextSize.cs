@@ -10,7 +10,7 @@ namespace SpaceNotch_App.UI;
 /// <summary>
 /// La notch garde la taille de son texte quand Windows l'agrandit (n° 59, choix
 /// de l'auteur). Ses formes sont des sommes de hauteurs de ligne fixes
-/// (ADR-012) : un texte agrandi y serait rogné. Les Réglages et l'installation,
+/// (design-language.md, « Espacement ») : un texte agrandi y serait rogné. Les Réglages et l'installation,
 /// eux, suivent la taille du texte de Windows.
 /// </summary>
 /// <remarks>

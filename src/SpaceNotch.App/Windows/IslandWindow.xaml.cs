@@ -1777,7 +1777,7 @@ public sealed partial class IslandWindow : Window
     /// daltonismes, et se perd pour quiconque ne distingue pas deux teintes
     /// voisines. Les états qui n'ont rien à dire — la veille, un retour système —
     /// ne sont pas nommés : les écrire ajouterait un mot sans information. Voir
-    /// ADR-014.
+    /// docs/ux/design-language.md, « Accessibilité ».
     /// </summary>
     private static string BuildSubhead(IslandActivity activity)
     {
@@ -1939,7 +1939,7 @@ public sealed partial class IslandWindow : Window
     /// C'est la même teinte qui colore le halo — la lumière et le glyphe viennent
     /// donc bien de la même source. En contraste élevé, la teinte cède la place à
     /// l'encre du système : une couleur d'ambiance y dégraderait la lisibilité
-    /// sans rien apprendre. Voir ADR-014.
+    /// sans rien apprendre. Voir docs/ux/design-language.md, « Accessibilité ».
     /// </summary>
     private void ApplyStateTint(IslandActivity? activity)
     {
@@ -1965,7 +1965,7 @@ public sealed partial class IslandWindow : Window
     /// comme un seul objet qui change de taille plutôt que comme deux objets
     /// différents. Un rayon de 12 sur une forme de 28 de haut donne une pastille,
     /// le même rayon sur une forme de 52 donne un panneau — et c'est bien le même
-    /// objet. Voir ADR-012.
+    /// objet. Voir docs/ux/design-language.md, « Coins ».
     ///
     /// Les coins supérieurs restent droits : l'Island est ancrée au bord de
     /// l'écran, un arrondi en haut la détacherait de la surface sur laquelle elle
