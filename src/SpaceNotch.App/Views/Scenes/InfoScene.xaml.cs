@@ -382,8 +382,9 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView, ILoopingV
 
         Border chip = badge.Inline ? InlineBadge : TrailBadge;
         TextBlock text = badge.Inline ? InlineBadgeText : TrailBadgeText;
-        chip.Background = new SolidColorBrush(ToneColor(badge.Tone) ?? Color.FromArgb(0x24, 0xFF, 0xFF, 0xFF));
-        text.Foreground = new SolidColorBrush(badge.Tone == ActivityActionTone.Neutral ? Color.FromArgb(0xFF, 0xFF, 0xFF, 0xFF) : OnColor);
+        // Neutre, la pastille suit le thème de la notch : blanche, elle disparaissait sur une notch claire (n° 32).
+        chip.Background = ToneColor(badge.Tone) is { } tone ? new SolidColorBrush(tone) : Ink("NfControlFillHoverBrush", 0x24);
+        text.Foreground = badge.Tone == ActivityActionTone.Neutral ? Ink("NfTextPrimaryBrush", 0xEB) : new SolidColorBrush(OnColor);
         text.Text = badge.Text;
     }
 
@@ -433,7 +434,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView, ILoopingV
                 Height = 8,
                 RadiusX = 2,
                 RadiusY = 2,
-                Fill = new SolidColorBrush(i == 2 && arrived ? Mint : reached ? tint : Color.FromArgb(0x33, 0xFF, 0xFF, 0xFF))
+                Fill = i == 2 && arrived ? new SolidColorBrush(Mint) : reached ? new SolidColorBrush(tint) : Ink("NfStrokeStrongBrush", 0x24)
             };
             Canvas.SetLeft(dot, Math.Clamp((width * i / 2.0) - 4, 0, width - 8));
             Canvas.SetTop(dot, 4);
@@ -477,7 +478,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView, ILoopingV
             {
                 Padding = new Thickness(2),
                 CornerRadius = new CornerRadius(4),
-                Background = new SolidColorBrush(member.Speaking ? Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0, 0, 0, 0)),
+                Background = member.Speaking ? Ink("NfControlFillHoverBrush", 0x24) : new SolidColorBrush(Color.FromArgb(0, 0, 0, 0)),
                 Opacity = member.Muted && !member.Speaking ? 0.45 : 1,
                 Child = face
             };
@@ -587,7 +588,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView, ILoopingV
                 BorderBrush = Ink(action.IsPrimary ? "NfStrokeStrongBrush" : "NfStrokeSubtleBrush", 0x24),
                 Background = fill is { } c
                     ? new SolidColorBrush(c)
-                    : new SolidColorBrush(_chips && !iconOnly ? Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF) : Color.FromArgb(0x00, 0x00, 0x00, 0x00)),
+                    : _chips && !iconOnly ? Ink("NfControlFillBrush", 0x14) : new SolidColorBrush(Color.FromArgb(0x00, 0x00, 0x00, 0x00)),
                 Foreground = fill is not null
                     ? new SolidColorBrush(OnColor)
                     : iconOnly && action.IconKey == "MicrophoneOff"
@@ -616,7 +617,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView, ILoopingV
             ActionHost.Children.Add(new Border
             {
                 BorderThickness = new Thickness(1),
-                BorderBrush = new SolidColorBrush(Color.FromArgb(0x2A, 0xFF, 0xFF, 0xFF)),
+                BorderBrush = Ink("NfStrokeStrongBrush", 0x24),
                 CornerRadius = new CornerRadius(5),
                 Padding = new Thickness(6, 1, 6, 1),
                 VerticalAlignment = VerticalAlignment.Center,
@@ -625,7 +626,7 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView, ILoopingV
                     Text = SpaceNotch.Core.Localization.Lang.T("Entrée", "Enter"),
                     FontSize = 10.5,
                     FontFamily = new FontFamily("Cascadia Mono, Consolas"),
-                    Foreground = new SolidColorBrush(Color.FromArgb(0xB3, 0xFF, 0xFF, 0xFF))
+                    Foreground = Ink("NfTextSecondaryBrush", 0xA6)
                 }
             });
         }
