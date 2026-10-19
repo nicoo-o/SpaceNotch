@@ -209,7 +209,7 @@ public sealed partial class FileShelfScene : UserControl, IIslandSceneView
         Width = 22,
         Height = 22,
         CornerRadius = new CornerRadius(11),
-        Background = new SolidColorBrush(ColorHelper.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)),
+        Background = Brush("NfControlFillHoverBrush"),
         Child = content,
         HorizontalAlignment = HorizontalAlignment.Center,
         VerticalAlignment = VerticalAlignment.Center

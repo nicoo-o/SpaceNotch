@@ -71,8 +71,12 @@ public sealed partial class QuietScene : UserControl, IIslandSceneView
         }
     }
 
-    /// <summary>Fond des pastilles d'application, comme les puces de la maquette.</summary>
-    private static readonly SolidColorBrush ChipBrush = new(global::Windows.UI.Color.FromArgb(0x14, 0xFF, 0xFF, 0xFF));
+    /// <summary>
+    /// Fond des pastilles d'application, comme les puces de la maquette. Lu au
+    /// thème de la notch à chaque rangée : blanc fixe, il disparaissait sur une
+    /// notch claire (n° 32).
+    /// </summary>
+    private static Brush? ChipBrush => Brush("NfControlFillBrush");
 
     private static Grid Row(string appName, string text, string? countText, bool primary)
     {

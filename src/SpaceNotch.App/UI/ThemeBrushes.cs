@@ -28,13 +28,19 @@ public static class ThemeBrushes
     public static Brush Get(FrameworkElement? owner, string key, Brush? fallback = null)
         => Resolve(owner?.ActualTheme == ElementTheme.Light, key, fallback);
 
+    /// <summary>
+    /// Une seule instance : <c>HighContrast</c> y est lu à chaque appel, à jour,
+    /// sans en créer deux par rendu des onglets (n° 103).
+    /// </summary>
+    private static global::Windows.UI.ViewManagement.AccessibilitySettings? _accessibility;
+
     private static Brush Resolve(bool light, string key, Brush? fallback)
     {
         string theme = light ? "Light" : "Default";
 
         try
         {
-            if (new global::Windows.UI.ViewManagement.AccessibilitySettings().HighContrast)
+            if ((_accessibility ??= new global::Windows.UI.ViewManagement.AccessibilitySettings()).HighContrast)
             {
                 theme = "HighContrast";
             }
