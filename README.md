@@ -119,7 +119,7 @@ flows back home.
 ## Get started
 
 1. **[Download SpaceNotch-Setup.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe)**.
-2. Run it. Windows may say it *protected your PC*: choose **More info › Run anyway** (the app isn't code-signed yet). If Windows *Smart App Control* is on, it blocks unsigned apps without offering a way through.
+2. Run it. Windows may say it *protected your PC*: choose **More info › Run anyway** (the app isn't code-signed yet). If Windows *Smart App Control* is on, it blocks unsigned apps without offering a way through. To check the file, or if an antivirus flags it: [Windows and antivirus warnings](docs/avertissements-windows.md#english).
 3. The installer is the notch itself: it drops from the top of your screen and opens on a few
    choices — just you or everyone, start with Windows, a desktop shortcut. Press **Install**, and it
    folds back into your notch. Windows asks for administrator approval so SpaceNotch can read your
