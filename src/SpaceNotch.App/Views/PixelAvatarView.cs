@@ -169,7 +169,7 @@ public sealed partial class PixelAvatarView : Canvas
             _timer.Interval = TimeSpan.FromMilliseconds(1000.0 / PixelAvatar.FramesPerSecond);
             _timer.IsRepeating = true;
             // Une exception d'image est journalisée et arrête ce minuteur, pas la notch (n° 33).
-            _timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) => Draw());
+            _timer.OnTick((_, _) => Draw());
         }
 
         _timer.Start();

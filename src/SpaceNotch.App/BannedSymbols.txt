@@ -1,0 +1,4 @@
+M:Microsoft.UI.Dispatching.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueueHandler);TryEnqueueSafely : une exception d'un travail posté nu ferme la notch (n° 33)
+M:Microsoft.UI.Dispatching.DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority,Microsoft.UI.Dispatching.DispatcherQueueHandler);TryEnqueueSafely : une exception d'un travail posté nu ferme la notch (n° 33)
+E:Microsoft.UI.Dispatching.DispatcherQueueTimer.Tick;OnTick : une exception d'un battement nu ferme la notch (n° 33)
+E:Microsoft.UI.Xaml.DispatcherTimer.Tick;OnTick : une exception d'un battement nu ferme la notch (n° 33)
