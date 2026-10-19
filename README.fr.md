@@ -120,7 +120,7 @@ fichiers et le calcul rapide · **Une étagère** où glisser des fichiers · **
 ## Pour commencer
 
 1. **[Télécharge SpaceNotch-Setup.exe](https://github.com/nicoo-o/SpaceNotch/releases/latest/download/SpaceNotch-Setup.exe)**.
-2. Lance-le. Windows peut dire qu'il *a protégé ton ordinateur* : choisis **Informations complémentaires › Exécuter quand même** (l'application n'est pas encore signée). Si le *Contrôle intelligent des applications* de Windows est actif, il bloque les applications non signées sans proposer de passer outre.
+2. Lance-le. Windows peut dire qu'il *a protégé ton ordinateur* : choisis **Informations complémentaires › Exécuter quand même** (l'application n'est pas encore signée). Si le *Contrôle intelligent des applications* de Windows est actif, il bloque les applications non signées sans proposer de passer outre. Pour vérifier le fichier, ou si un antivirus le signale : [avertissements de Windows et des antivirus](docs/avertissements-windows.md).
 3. L'installeur est la notch elle-même : elle descend du haut de l'écran et s'ouvre sur quelques
    choix — pour toi ou pour tous, lancement au démarrage, raccourci sur le bureau. Appuie sur
    **Installer**, et elle se referme en notch. Windows demande une autorisation d'administrateur, pour
