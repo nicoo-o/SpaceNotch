@@ -211,6 +211,25 @@ public sealed class NotchMachineTests
     }
 
     [Fact]
+    public void L_ombre_compare_le_clavier_a_celui_de_la_fenetre()
+    {
+        var shadow = new NotchShadow();
+
+        // Ouverte par l'utilisateur, la machine prend le clavier ; la fenêtre aussi.
+        shadow.Feed(In(NotchTrigger.HoverDwell));
+        shadow.Feed(In(NotchTrigger.Press));
+        shadow.Feed(new NotchInput(NotchTrigger.Release, PullDip: 0, HeldSeconds: 0.05));
+        Assert.Equal(KeyboardState.Captured, shadow.Current.Keyboard);
+        Assert.Null(shadow.CompareKeyboard(captured: true, "clic"));
+
+        // La fenêtre ne l'a pas pris : un écart, compté une fois, puis réaligné.
+        Assert.StartsWith("[OMBRE] écart de clavier", shadow.CompareKeyboard(captured: false, "clic"));
+        Assert.Equal(1, shadow.Divergences);
+        Assert.Null(shadow.CompareKeyboard(captured: false, "clic"));
+        Assert.Equal(1, shadow.Divergences);
+    }
+
+    [Fact]
     public void L_ombre_compte_les_ecarts_et_se_realigne()
     {
         var shadow = new NotchShadow();

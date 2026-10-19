@@ -65,6 +65,26 @@ public sealed class NotchShadow
     }
 
     /// <summary>
+    /// Compare le clavier de la machine à celui de la fenêtre (région Clavier, n° 26) :
+    /// la fenêtre l'a-t-elle pris pour taper ? Compté et réaligné comme la surface.
+    /// </summary>
+    public string? CompareKeyboard(bool captured, string context)
+    {
+        Checks++;
+        KeyboardState real = captured ? KeyboardState.Captured : KeyboardState.Free;
+
+        if (real == _machine.Current.Keyboard)
+        {
+            return null;
+        }
+
+        Divergences++;
+        string description = $"[OMBRE] écart de clavier ({context}) : réel {real}, machine {_machine.Current.Keyboard} — {_machine.Current}";
+        _machine.Reset(_machine.Current with { Keyboard = real });
+        return description;
+    }
+
+    /// <summary>
     /// Réaligne la machine sur l'état réel après un écart : un écart ne doit
     /// pas en entraîner d'autres en cascade, chacun doit être compté une fois.
     /// </summary>
