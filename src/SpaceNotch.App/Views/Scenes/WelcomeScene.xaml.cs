@@ -172,7 +172,7 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopi
                 Width = on ? 16 : 6,
                 Height = 6,
                 CornerRadius = new CornerRadius(3),
-                Background = on ? Brush("NfActiveBrush") : new SolidColorBrush(ColorHelper.FromArgb(0x33, 0xFF, 0xFF, 0xFF))
+                Background = on ? Brush("NfActiveBrush") : Brush("NfKeyStrokeBrush")
             });
         }
     }
@@ -241,7 +241,7 @@ public sealed partial class WelcomeScene : UserControl, IIslandSceneView, ILoopi
                         Width = 39,
                         Height = 30,
                         CornerRadius = new CornerRadius(6),
-                        Background = new SolidColorBrush(ColorHelper.FromArgb(0x1A, 0xFF, 0xFF, 0xFF)),
+                        Background = Brush("NfControlStrokeBrush"),
                         Child = symbol
                     });
                 }

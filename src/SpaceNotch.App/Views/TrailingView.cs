@@ -54,7 +54,6 @@ public sealed partial class TrailingView : Grid
         IsHitTestVisible = false;
         Visibility = Visibility.Collapsed;
 
-        _track.Stroke = new SolidColorBrush(Microsoft.UI.ColorHelper.FromArgb(0x29, 0xFF, 0xFF, 0xFF));
         Children.Add(_track);
         Children.Add(_fill);
 
@@ -143,6 +142,9 @@ public sealed partial class TrailingView : Grid
             _shown = trailing;
             return;
         }
+
+        // Piste lue au thème à chaque affichage : un blanc fixe disparaissait sur une notch claire (n° 32).
+        _track.Stroke = SpaceNotch_App.UI.ThemeBrushes.Get("NfKeyStrokeBrush");
 
         bool equalizer = trailing.Kind == TrailingKind.Equalizer;
         bool pixels = trailing.Kind is TrailingKind.Spinner or TrailingKind.Check;
