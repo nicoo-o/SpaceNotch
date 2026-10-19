@@ -79,18 +79,15 @@ internal static class StatePalette
         _ => string.Empty
     };
 
-    /// <summary>Pinceau de la teinte d'un état.</summary>
+    /// <summary>
+    /// Pinceau de la teinte d'un état, lu au thème de la notch (n° 32) :
+    /// <c>Application.Resources</c> rendait toujours le thème de l'application, donc
+    /// le blanc translucide du neutre sur une notch claire.
+    /// </summary>
     public static Brush Brush(IslandActivityState state)
     {
         (string key, Color fallback) = For(state);
-
-        if (Application.Current?.Resources?.TryGetValue(key, out object? value) == true
-            && value is Brush brush)
-        {
-            return brush;
-        }
-
-        return new SolidColorBrush(fallback);
+        return SpaceNotch_App.UI.ThemeBrushes.Get(key, new SolidColorBrush(fallback));
     }
 
     /// <summary>
@@ -100,20 +97,8 @@ internal static class StatePalette
     public static Color Tint(IslandActivityState state)
     {
         (string key, Color fallback) = For(state);
-
-        if (Application.Current?.Resources?.TryGetValue(key, out object? value) == true)
-        {
-            if (value is SolidColorBrush solid)
-            {
-                return solid.Color;
-            }
-
-            if (value is Color color)
-            {
-                return color;
-            }
-        }
-
-        return fallback;
+        return SpaceNotch_App.UI.ThemeBrushes.Get(key, new SolidColorBrush(fallback)) is SolidColorBrush solid
+            ? solid.Color
+            : fallback;
     }
 }
