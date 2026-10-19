@@ -1046,6 +1046,7 @@ public sealed partial class IslandWindow : Window
 
         // Une barre des tâches occupe déjà le haut : la notch demande où se placer (n° 93).
         _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, ApplyTopBar);
+        _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, PrepareFirstOpen);
     }
 
     // ------------------------------------------------------------------

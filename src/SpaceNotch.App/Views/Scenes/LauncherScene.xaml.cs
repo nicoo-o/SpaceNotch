@@ -304,6 +304,18 @@ public sealed partial class LauncherScene : UserControl, IIslandSceneView
         }
     }
 
+    /// <summary>
+    /// Fait payer à vide le premier coût d'une ligne (styles, polices, icône de
+    /// repli) : deux lignes jetées, jamais montrées (n° 46b, 25).
+    /// </summary>
+    public void Prewarm()
+    {
+        _icons ??= new LauncherIconCache(DispatcherQueue);
+
+        _ = BuildRow(new LauncherResult("prewarm.app", LauncherResultKind.Application, "SpaceNotch", "Application", string.Empty, [new TextMatch(0, 2)]), 0, 0, LauncherLayout.Row);
+        _ = BuildRow(new LauncherResult("prewarm.calc", LauncherResultKind.Calculation, "4", "2 + 2", "4", []), 1, 0, LauncherLayout.CalculationRow);
+    }
+
     private RowSlot BuildRow(LauncherResult item, int index, double top, double height)
     {
         bool calculation = item.Kind == LauncherResultKind.Calculation;
