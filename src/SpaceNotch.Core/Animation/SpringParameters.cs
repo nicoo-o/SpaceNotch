@@ -20,7 +20,7 @@ namespace SpaceNotch.Core.Animation;
 /// en dessous de 1,0 le mouvement la dépasse d'autant plus qu'il s'en éloigne.
 /// Un rebond de 0,82 dépasse à peine — c'est la fermeture ; un rebond de 0,62
 /// dépasse d'environ 8 % — c'est l'ouverture au clic (physique B « Liquide
-/// doux »). Voir ADR-012 et <c>MotionPresets</c>.
+/// doux »). Voir docs/animation-system.md, « Paramètres », et <c>MotionPresets</c>.
 /// </para>
 ///
 /// <para>

@@ -187,7 +187,7 @@ public sealed class RuntimeDiagnostics : IDisposable
     /// remarque pas de la même manière selon le fond d'écran — sur un papier peint
     /// clair, l'Island flotte ; sur un fond sombre, personne ne voit rien. Sans
     /// cette remontée, une ombre silencieusement refusée serait indistinguable
-    /// d'une ombre simplement invisible. Voir ADR-013.
+    /// d'une ombre simplement invisible. Voir docs/ux/design-language.md, « La contrainte sans bord ».
     /// </summary>
     public bool? ShadowComposed { get; private set; }
 

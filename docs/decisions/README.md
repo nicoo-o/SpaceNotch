@@ -13,11 +13,12 @@ pourquoi la première avait été retenue.
 | [ADR-005](ADR-005-animation-ressort.md) | Animation par ressort, résolue analytiquement | Accepté |
 | [ADR-006](ADR-006-deux-surfaces.md) | Deux surfaces distinctes : interactive et décorative | Accepté |
 | [ADR-007](ADR-007-cycle-de-vie-activites.md) | Le cycle de vie des activités appartient au gestionnaire | Accepté |
-| [ADR-008](ADR-008-dissolution.md) | Dissolution calculée par le compositeur, repli XAML | Accepté |
-| [ADR-009](ADR-009-plateforme.md) | Windows 11 23H2 minimum | Accepté |
+| [ADR-008](ADR-008-dissolution.md) | Dissolution calculée par le compositeur, repli XAML | Accepté (amendé le 2026-09-20) |
+| [ADR-009](ADR-009-plateforme.md) | Windows 11 23H2 minimum | Accepté (amendé le 2026-10-18 : versions exactes) |
 | [ADR-010](ADR-010-scene-tiers.md) | Le répertoire des scènes appartient à l'hôte | Accepté |
+| [ADR-011](ADR-011-calendrier-meteo-partage.md) | Calendrier en lecture seule, météo éteinte sans ville, partage local | Accepté |
 | [ADR-011](ADR-011-fil-interface.md) | L'hôte rétablit le fil d'interface, pas la fonctionnalité | Accepté |
-| [ADR-017](ADR-017-notch-attachee.md) | Une notch attachée au bord supérieur, jamais une capsule flottante | Accepté |
+| [ADR-017](ADR-017-notch-attachee.md) | Une notch attachée au bord supérieur, jamais une capsule flottante | Accepté (prolongé par ADR-019) |
 | [ADR-018](ADR-018-mouvement-hypnotique.md) | Mouvement hypnotique : langage du travail en cours, rejoué par le compositeur | Accepté |
 | [ADR-019](ADR-019-notch-detachable.md) | Notch détachable par glisser (goutte, ressort, aimants) et bulle pour les activités importantes | Accepté |
 | [ADR-020](ADR-020-bords-et-ecrans.md) | Trois bords (haut, gauche, droite), passage d'un écran à l'autre, double-clic, matière réglable | Accepté |
@@ -32,6 +33,11 @@ pourquoi la première avait été retenue.
 | [ADR-029](ADR-029-compagnon-vivant-pixel-identite.md) | Le compagnon vivant : Pixel est l'identité et l'avatar des agents (remplace Clawd) ; §15 rouvert pour Pixel au repos | Accepté (version à préciser) |
 | [ADR-030](ADR-030-barre-des-taches-en-haut.md) | Barre des tâches en haut : la notch demande à l'utilisateur de se placer sous la barre ou en languette sur un côté | Accepté (version à préciser) |
 | [ADR-031](ADR-031-rien-ne-s-installe-sans-l-utilisateur.md) | Rien ne s'installe sans l'utilisateur tant que les mises à jour ne sont pas signées : « Automatiques » retiré | Accepté (version à préciser) |
+
+Deux décisions portent le numéro 011 : c'est un héritage, gardé pour ne pas casser les liens. Les
+numéros 012 à 016 n'ont jamais été écrits ; les règles que le code citait sous ADR-012 à 014 sont
+dans le [langage visuel](../ux/design-language.md) (« Espacement », « La contrainte sans bord »,
+« Accessibilité »). Une nouvelle décision prend le plus grand numéro + 1.
 
 ## Format
 

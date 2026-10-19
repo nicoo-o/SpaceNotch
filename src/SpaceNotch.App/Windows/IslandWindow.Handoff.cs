@@ -116,7 +116,7 @@ public sealed partial class IslandWindow
         // ramenait à zéro en plein fondu, après une relance de 50 ms.
         if (ReferenceEquals(view, SignalRestView) || ReferenceEquals(view, CardRestView))
         {
-            SpaceNotch_App.Animations.ContentTransition.Play(view, UseSpringAnimations(), TimeSpan.FromMilliseconds(120), TimeSpan.FromMilliseconds(260));
+            SpaceNotch_App.Animations.ContentTransition.Play(view, UseShapeSpring(), TimeSpan.FromMilliseconds(120), TimeSpan.FromMilliseconds(260));
         }
 
         global::Windows.UI.Color tint = TintOf(recipe, activity);
