@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Automation;
+using Microsoft.UI.Xaml.Automation.Peers;
+using Microsoft.UI.Xaml.Automation.Provider;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Hosting;
 using Microsoft.UI.Xaml.Media;
@@ -24,13 +27,13 @@ public sealed partial class TabStripView : Grid
 
     private readonly Border _pill = new() { Height = TabHeight, CornerRadius = new CornerRadius(12), HorizontalAlignment = HorizontalAlignment.Left, IsHitTestVisible = false };
     private readonly StackPanel _tabs = new() { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Left };
-    private readonly List<(string Id, Button Tab)> _items = [];
+    private readonly List<(string Id, TabButton Tab)> _items = [];
 
     /// <summary>
     /// Les boutons de la bande, dans l'arbre, dans l'ordre : les premiers
     /// portent les onglets (<see cref="_items"/>), les autres sont repliés.
     /// </summary>
-    private readonly List<Button> _slots = [];
+    private readonly List<TabButton> _slots = [];
 
     /// <summary>
     /// L'activité de chaque emplacement (nulle s'il est replié). Pas dans
@@ -88,11 +91,13 @@ public sealed partial class TabStripView : Grid
 
         // Seul l'onglet choisi porte son titre ; les autres, leur icône. La
         // rangée tient ainsi dans la notch quel que soit le nombre d'activités.
-        foreach ((string id, Button tab) in _items)
+        foreach ((string id, TabButton tab) in _items)
         {
+            bool chosen = string.Equals(id, selectedId, StringComparison.Ordinal);
+            tab.SetChosen(chosen);
+
             if (tab.Content is StackPanel content && content.Children.Count > 1 && content.Children[1] is TextBlock label)
             {
-                bool chosen = string.Equals(id, selectedId, StringComparison.Ordinal);
                 label.Foreground = chosen ? text : dim;
                 label.Visibility = chosen ? Visibility.Visible : Visibility.Collapsed;
                 content.Children[0].Opacity = chosen ? 1 : 0.55;
@@ -116,13 +121,13 @@ public sealed partial class TabStripView : Grid
 
             if (i == _slots.Count)
             {
-                Button created = CreateTab();
+                TabButton created = CreateTab();
                 _tabs.Children.Add(created);
                 _slots.Add(created);
                 _slotIds.Add(null);
             }
 
-            Button tab = _slots[i];
+            TabButton tab = _slots[i];
 
             // Un onglet qui a le focus ou qu'on est en train d'appuyer ne change
             // jamais d'activité sous la main : il est remplacé par un neuf, et
@@ -138,6 +143,10 @@ public sealed partial class TabStripView : Grid
 
             _slotIds[i] = activity.Id;
             tab.Visibility = Visibility.Visible;
+
+            // Le Narrateur dit « onglet 2 sur 3 » (n° 104).
+            AutomationProperties.SetPositionInSet(tab, i + 1);
+            AutomationProperties.SetSizeOfSet(tab, activities.Count);
             _items.Add((activity.Id, tab));
 
             if (tab.Content is not StackPanel { Children.Count: > 1 } content)
@@ -164,7 +173,7 @@ public sealed partial class TabStripView : Grid
             if (content.Children[1] is TextBlock label && !string.Equals(label.Text, activity.Title, StringComparison.Ordinal))
             {
                 label.Text = activity.Title;
-                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(tab, activity.Title);
+                AutomationProperties.SetName(tab, activity.Title);
             }
         }
 
@@ -176,7 +185,7 @@ public sealed partial class TabStripView : Grid
         }
     }
 
-    private Button CreateTab()
+    private TabButton CreateTab()
     {
         var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
         content.Children.Add(new GlyphView { Size = 12, VerticalAlignment = VerticalAlignment.Center });
@@ -188,7 +197,7 @@ public sealed partial class TabStripView : Grid
             VerticalAlignment = VerticalAlignment.Center
         });
 
-        var tab = new Button
+        var tab = new TabButton
         {
             Content = content,
             Height = TabHeight,
@@ -212,7 +221,7 @@ public sealed partial class TabStripView : Grid
         // mais jamais pendant un appui (voir Sync).
         tab.Click += (sender, _) =>
         {
-            int slot = sender is Button clicked ? _slots.IndexOf(clicked) : -1;
+            int slot = sender is TabButton clicked ? _slots.IndexOf(clicked) : -1;
 
             if (slot >= 0 && _slotIds[slot] is { } id)
             {
@@ -221,6 +230,69 @@ public sealed partial class TabStripView : Grid
         };
 
         return tab;
+    }
+
+    /// <summary>
+    /// Un onglet pour UI Automation (n° 104) : le Narrateur le dit « onglet »,
+    /// dit lequel est choisi, et peut le choisir. Les 24 DIP de haut restent :
+    /// c'est le minimum des WCAG 2.2 (2.5.8), et la rangée n'a pas la place
+    /// d'en montrer 32 sans grandir la notch ouverte.
+    /// </summary>
+    private sealed partial class TabButton : Button
+    {
+        public bool IsChosen { get; private set; }
+
+        public void SetChosen(bool chosen)
+        {
+            if (chosen == IsChosen)
+            {
+                return;
+            }
+
+            IsChosen = chosen;
+
+            if (AutomationPeer.ListenerExists(AutomationEvents.PropertyChanged)
+                && FrameworkElementAutomationPeer.FromElement(this) is { } peer)
+            {
+                peer.RaisePropertyChangedEvent(SelectionItemPatternIdentifiers.IsSelectedProperty, !chosen, chosen);
+            }
+
+            if (chosen
+                && AutomationPeer.ListenerExists(AutomationEvents.SelectionItemPatternOnElementSelected)
+                && FrameworkElementAutomationPeer.FromElement(this) is { } selected)
+            {
+                selected.RaiseAutomationEvent(AutomationEvents.SelectionItemPatternOnElementSelected);
+            }
+        }
+
+        protected override AutomationPeer OnCreateAutomationPeer() => new TabButtonPeer(this);
+    }
+
+    private sealed partial class TabButtonPeer : ButtonAutomationPeer, ISelectionItemProvider
+    {
+        private readonly TabButton _owner;
+
+        public TabButtonPeer(TabButton owner)
+            : base(owner) => _owner = owner;
+
+        public bool IsSelected => _owner.IsChosen;
+
+        public IRawElementProviderSimple? SelectionContainer => null;
+
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.TabItem;
+
+        protected override object GetPatternCore(PatternInterface patternInterface)
+            => patternInterface == PatternInterface.SelectionItem ? this : base.GetPatternCore(patternInterface);
+
+        /// <summary>Choisir l'onglet, c'est le cliquer : la notch fait le reste.</summary>
+        public void Select() => Invoke();
+
+        public void AddToSelection() => Select();
+
+        /// <summary>Un onglet reste toujours choisi : rien à retirer.</summary>
+        public void RemoveFromSelection()
+        {
+        }
     }
 
     private bool _placed;
@@ -236,7 +308,7 @@ public sealed partial class TabStripView : Grid
             return;
         }
 
-        foreach ((string id, Button tab) in _items)
+        foreach ((string id, TabButton tab) in _items)
         {
             if (!string.Equals(id, _selected, StringComparison.Ordinal) || tab.ActualWidth <= 0)
             {
