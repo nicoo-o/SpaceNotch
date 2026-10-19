@@ -37,13 +37,16 @@
                 <Border x:Name="TrailBadge" CornerRadius="999" Padding="9,3" VerticalAlignment="Center" Visibility="Collapsed">
                     <TextBlock x:Name="TrailBadgeText" FontSize="11.5" FontWeight="SemiBold" />
                 </Border>
-                <!-- Carte d'agent : un appui la développe sur ses dernières actions. -->
-                <TextBlock
+                <!-- Carte d'agent : un appui la développe sur ses dernières actions ; le bouton donne le même geste au clavier et à Narrateur. -->
+                <Button
                     x:Name="DetailsHint"
-                    Text="&#x25BE;"
+                    Style="{StaticResource NfGhostButtonStyle}"
+                    Content="&#x25BE;"
                     FontSize="12"
+                    Padding="6,2,6,2"
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource NfTextTertiaryBrush}"
+                    Click="OnDetailsClicked"
                     Visibility="Collapsed" />
             </StackPanel>
 

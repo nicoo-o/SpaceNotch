@@ -6,6 +6,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using SpaceNotch.Core.Activities;
+using SpaceNotch.Core.Localization;
 using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch_App.Composition;
@@ -225,7 +226,9 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView, ILoopingV
         var agent = activity.Payload as AgentPayload;
         _togglesDetails = agent?.Recent is { Count: > 0 };
         DetailsHint.Visibility = _togglesDetails ? Visibility.Visible : Visibility.Collapsed;
-        DetailsHint.Text = agent?.Expanded == true ? "\u25B4" : "\u25BE";
+        bool expanded = agent?.Expanded == true;
+        DetailsHint.Content = expanded ? "\u25B4" : "\u25BE";
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(DetailsHint, expanded ? Lang.T("Replier", "Collapse") : Lang.T("D\u00E9velopper", "Expand"));
 
         RecentList.Children.Clear();
         int shown = agent?.ShownLines ?? 0;
@@ -269,6 +272,14 @@ public sealed partial class InfoScene : UserControl, IIslandSceneView, ILoopingV
     /// ou repliée. L'appui ne remonte pas à la fenêtre, qui refermerait la notch.
     /// Les boutons gardent leur propre clic : ils marquent l'appui comme traité.
     /// </summary>
+    private void OnDetailsClicked(object sender, RoutedEventArgs e)
+    {
+        if (_togglesDetails && _activityId is not null)
+        {
+            ActionRequested?.Invoke(this, new IslandActionRequest(_activityId, AgentPayload.ToggleAction));
+        }
+    }
+
     private void OnScenePointerPressed(object sender, Microsoft.UI.Xaml.Input.PointerRoutedEventArgs e)
     {
         if (!_togglesDetails || _activityId is null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
