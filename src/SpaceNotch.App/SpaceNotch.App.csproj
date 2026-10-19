@@ -87,6 +87,11 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools.WinApp" />
     <PackageReference Include="WinUIEx" />
     <PackageReference Include="Anthropic" />
+    <PackageReference Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="BannedSymbols.txt" />
   </ItemGroup>
 
   <ItemGroup>

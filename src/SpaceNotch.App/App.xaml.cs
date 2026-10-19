@@ -68,6 +68,8 @@ public partial class App : Application
         throw new InvalidOperationException("Essai n° 33 : exception d'un async void après un await");
     }
 
+    // L'essai lève exprès hors de la garde : les appels nus y sont voulus (n° 70).
+#pragma warning disable RS0030
     private static void StartFaultTest(DispatcherQueue queue)
     {
         void After(double seconds, global::Windows.Foundation.TypedEventHandler<DispatcherQueueTimer, object> tick)
@@ -85,6 +87,7 @@ public partial class App : Application
         After(6, (_, _) => queue.TryEnqueueSafely(() => throw new InvalidOperationException("Essai n° 33 : exception d'un travail posté")));
         After(8, (_, _) => MiniLogger.Log("[ESSAI] n° 33 : la notch tourne toujours après les trois exceptions"));
     }
+#pragma warning restore RS0030
 #endif
 
     /// <summary>Vrai une fois la notch lancée : l'installeur a son propre gestionnaire, qui s'arrête.</summary>

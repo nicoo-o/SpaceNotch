@@ -681,7 +681,7 @@ public sealed partial class SetupWindow : Window
         var timer = DispatcherQueue.CreateTimer();
         timer.IsRepeating = false;
         timer.Interval = delay;
-        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
+        timer.OnTick((_, _) =>
         {
             timer.Stop();
             action();

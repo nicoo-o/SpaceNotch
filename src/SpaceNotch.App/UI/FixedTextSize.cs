@@ -64,7 +64,7 @@ public static class FixedTextSize
         DispatcherQueueTimer timer = queue.CreateTimer();
         timer.Interval = Settle;
         timer.IsRepeating = false;
-        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) => Apply(root));
+        timer.OnTick((_, _) => Apply(root));
 
         root.LayoutUpdated += (_, _) =>
         {

@@ -236,7 +236,7 @@ public sealed partial class TrailingView : Grid
     {
         Microsoft.UI.Dispatching.DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
         timer.Interval = TimeSpan.FromMilliseconds(33);
-        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
+        timer.OnTick((_, _) =>
         {
             if (_morphing)
             {
@@ -350,7 +350,7 @@ public sealed partial class TrailingView : Grid
             {
                 _danceTimer = DispatcherQueue.CreateTimer();
                 _danceTimer.Interval = TimeSpan.FromMilliseconds(50);
-                _danceTimer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) => Dance());
+                _danceTimer.OnTick((_, _) => Dance());
             }
 
             RunDance(true);

@@ -186,7 +186,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView, 
     private DispatcherTimer CreateQueuedReset()
     {
         var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
-        timer.Tick += SpaceNotch_App.Diagnostics.Guard.XamlTick((_, _) =>
+        timer.OnTick((_, _) =>
         {
             timer.Stop();
             QueueText.Text = Lang.T("file", "queue");
@@ -311,7 +311,7 @@ public sealed partial class MediaExpandedScene : UserControl, IIslandSceneView, 
     private DispatcherTimer CreateLyricsClock()
     {
         var clock = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
-        clock.Tick += SpaceNotch_App.Diagnostics.Guard.XamlTick((_, _) =>
+        clock.OnTick((_, _) =>
         {
             if (Visibility != Visibility.Visible)
             {

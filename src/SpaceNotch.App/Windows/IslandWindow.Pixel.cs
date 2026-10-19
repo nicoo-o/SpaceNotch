@@ -290,7 +290,7 @@ public sealed partial class IslandWindow
         DispatcherQueueTimer timer = DispatcherQueue.CreateTimer();
         timer.Interval = interval;
         timer.IsRepeating = true;
-        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
+        timer.OnTick((_, _) =>
         {
             if (!_isClosed)
             {

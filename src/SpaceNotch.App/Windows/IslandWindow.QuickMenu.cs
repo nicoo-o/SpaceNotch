@@ -297,7 +297,7 @@ public sealed partial class IslandWindow
     {
         _menuDetachTimer?.Stop();
         _menuDetachTimer = new DispatcherTimer { Interval = DetachAfterCollapse };
-        _menuDetachTimer.Tick += SpaceNotch_App.Diagnostics.Guard.XamlTick((_, _) =>
+        _menuDetachTimer.OnTick((_, _) =>
         {
             _menuDetachTimer?.Stop();
             DetachFromMenu();
