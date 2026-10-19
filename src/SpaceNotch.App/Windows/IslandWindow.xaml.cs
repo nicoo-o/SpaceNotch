@@ -459,7 +459,7 @@ public sealed partial class IslandWindow : Window
             UsesSideTab
                 ? SideTab.Rest(_settings.TabSize, _settings.SideShoulderRadius)
                 : IslandFootprint.For(IslandPresentation.Resolve(null), _settings.Density),
-            UseSpringAnimations,
+            UseShapeSpring,
             ApplyGeometry,
             (update, settled) => new IslandSpringAnimator(_settings.Motion, update, settled),
             (message, exception) => MiniLogger.Log(message, exception));
@@ -528,6 +528,15 @@ public sealed partial class IslandWindow : Window
     /// <summary>Le ressort n'est utilisé que si Windows l'autorise.</summary>
     private bool UseSpringAnimations()
         => _visualState.UseSpringAnimations && _settings.AllowBouncyAnimations;
+
+    /// <summary>
+    /// Le mouvement que Windows autorise : le ressort de la forme et les fondus
+    /// du contenu qui l'accompagnent. « Rebond » éteint ne retire que le
+    /// dépassement (<see cref="AppSettings.Motion"/>, n° 91) — au lieu d'un saut
+    /// suivi d'un fondu — et les effets qui ne vivent que du rebond, qui restent
+    /// sous <see cref="UseSpringAnimations"/>.
+    /// </summary>
+    private bool UseShapeSpring() => _visualState.UseSpringAnimations;
 
     // ------------------------------------------------------------------
     // Matière hypnotique
@@ -823,7 +832,11 @@ public sealed partial class IslandWindow : Window
         };
         _activityManager.ActivityRemoved += (_, activity) => OnUiThread(() => ShadowForget(activity));
         // Animations réduites : la forme ne saute plus, elle apparaît en fondu (n° 22).
-        _controller.ShapeSnapped += (_, _) => OnUiThread(() => SpaceNotch_App.Animations.ContentTransition.Dissolve(RootLayout));
+        _controller.ShapeSnapped += (_, _) => OnUiThread(() =>
+        {
+            SpaceNotch_App.Animations.ContentTransition.Dissolve(RootLayout);
+            _atmosphere.Dissolve();
+        });
         _controller.AnimationCompleted += (_, _) =>
         {
             RequestRender();
@@ -1228,7 +1241,7 @@ public sealed partial class IslandWindow : Window
             }
         }
 
-        if (!ContentTransition.Leave(root, UseSpringAnimations(), () => _dispatcherQueue.TryEnqueueSafely(Finish)))
+        if (!ContentTransition.Leave(root, UseShapeSpring(), () => _dispatcherQueue.TryEnqueueSafely(Finish)))
         {
             EndSceneLeave(collapse: true);
             return;
@@ -1404,7 +1417,7 @@ public sealed partial class IslandWindow : Window
             // posait sur le texte de la scène encore lisible.
             if (wasShowingScene && _leavingSceneRoot is not null)
             {
-                ContentTransition.Play(IdleRestView, UseSpringAnimations(), ContentTransition.LeaveDuration);
+                ContentTransition.Play(IdleRestView, UseShapeSpring(), ContentTransition.LeaveDuration);
             }
 
             // « Annuler » prend la place des yeux le temps de l'annulation.
@@ -1493,12 +1506,12 @@ public sealed partial class IslandWindow : Window
 
                 // Une seule ligne de temps : la forme grandit, puis le contenu
                 // arrive, flou, et se précise.
-                ContentTransition.Play(scene.Root, UseSpringAnimations(), TimeSpan.FromMilliseconds(80));
+                ContentTransition.Play(scene.Root, UseShapeSpring(), TimeSpan.FromMilliseconds(80));
                 PlayVeil(TimeSpan.FromMilliseconds(40));
 
                 if (morph is not null)
                 {
-                    MorphPlayer.PlayWhenLaidOut(morph, scene, ContentArea, UseSpringAnimations());
+                    MorphPlayer.PlayWhenLaidOut(morph, scene, ContentArea, UseShapeSpring());
                 }
 
                 RenderMark("entrée");
@@ -1526,7 +1539,7 @@ public sealed partial class IslandWindow : Window
             {
                 // Sans fondu de sortie (compositeur qui refuse), rien à attendre.
                 TimeSpan wait = _leavingSceneRoot is not null ? ContentTransition.LeaveDuration : TimeSpan.FromMilliseconds(60);
-                ContentTransition.Play(rest, UseSpringAnimations(), wait);
+                ContentTransition.Play(rest, UseShapeSpring(), wait);
             }
         }
         else if (changedActivity)
@@ -1797,7 +1810,7 @@ public sealed partial class IslandWindow : Window
             if (now - _lastRoll >= 200)
             {
                 _lastRoll = now;
-                ContentTransition.Roll(target, UseSpringAnimations());
+                ContentTransition.Roll(target, UseShapeSpring());
             }
 
             return;
@@ -1805,7 +1818,7 @@ public sealed partial class IslandWindow : Window
 
         if (visible && !metric)
         {
-            ContentTransition.Play(target, UseSpringAnimations(), TimeSpan.FromMilliseconds(60), ContentTransition.SwapDuration);
+            ContentTransition.Play(target, UseShapeSpring(), TimeSpan.FromMilliseconds(60), ContentTransition.SwapDuration);
 
             // Un titre qui change se lit flou, puis net ; une mesure qui défile
             // — une taille reçue, un pourcentage — change sans voile.
@@ -1830,7 +1843,7 @@ public sealed partial class IslandWindow : Window
     /// daltonismes, et se perd pour quiconque ne distingue pas deux teintes
     /// voisines. Les états qui n'ont rien à dire — la veille, un retour système —
     /// ne sont pas nommés : les écrire ajouterait un mot sans information. Voir
-    /// ADR-014.
+    /// docs/ux/design-language.md, « Accessibilité ».
     /// </summary>
     private static string BuildSubhead(IslandActivity activity)
     {
@@ -1992,7 +2005,7 @@ public sealed partial class IslandWindow : Window
     /// C'est la même teinte qui colore le halo — la lumière et le glyphe viennent
     /// donc bien de la même source. En contraste élevé, la teinte cède la place à
     /// l'encre du système : une couleur d'ambiance y dégraderait la lisibilité
-    /// sans rien apprendre. Voir ADR-014.
+    /// sans rien apprendre. Voir docs/ux/design-language.md, « Accessibilité ».
     /// </summary>
     private void ApplyStateTint(IslandActivity? activity)
     {
@@ -2018,7 +2031,7 @@ public sealed partial class IslandWindow : Window
     /// comme un seul objet qui change de taille plutôt que comme deux objets
     /// différents. Un rayon de 12 sur une forme de 28 de haut donne une pastille,
     /// le même rayon sur une forme de 52 donne un panneau — et c'est bien le même
-    /// objet. Voir ADR-012.
+    /// objet. Voir docs/ux/design-language.md, « Coins ».
     ///
     /// Les coins supérieurs restent droits : l'Island est ancrée au bord de
     /// l'écran, un arrondi en haut la détacherait de la surface sur laquelle elle

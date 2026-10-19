@@ -31,13 +31,21 @@ la physique est indépendante du matériel.
 
 ## Paramètres
 
+Le ressort se règle dans le vocabulaire **perceptif** — temps de réaction et rebond — et le
+solveur le traduit en raideur et amortissement (`SpringParameters.FromResponse`).
+
 | Paramètre | Défaut | Effet | Plage |
 |---|---|---|---|
-| `SpringStiffness` | 220 | Raideur : plus élevée = ouverture plus vive | 40–600 |
-| `SpringDamping` | 22 | Amortissement : plus faible = rebond plus marqué | 4–80 |
-| `SpringMass` | 1.0 | Inertie | 0.2–4 |
+| `SpringResponseSeconds` | 0,46 s | Temps de réaction : plus court = ouverture plus vive | 0,18–1,20 |
+| `SpringBounce` | 0,62 | Rapport d'amortissement : plus bas = rebond plus marqué ; 1,0 ne dépasse jamais | 0,05–1,20 |
 
-Les trois sont réglables en direct depuis la fenêtre de réglages. La plage est bornée par
+Deux lois pour un même geste (`MotionPresets`, physique B « Liquide doux ») : l'**ouverture**
+(0,46 s / 0,62, environ 8 % de dépassement) et le **survol**, plus vif et plus élastique (0,30 s /
+0,61), qui porte le rebond visible — la notch n'a qu'un bord libre. La **fermeture** amortit davantage
+(au moins 0,82). Les anciens `SpringStiffness`, `SpringDamping` et `SpringMass` ne sont plus lus que
+pour migrer une ancienne configuration.
+
+Les deux sont réglables en direct depuis la fenêtre de réglages. La plage est bornée par
 `AppSettings.Sanitize` : une valeur aberrante — ou un fichier de configuration édité à la main — ne
 peut pas produire une Island qui tremble indéfiniment ou n'arrive jamais.
 
@@ -92,6 +100,11 @@ d'une Island ouverte, dont le bas doit se perdre beaucoup plus loin.
 
 ## Réduction des animations
 
-Si `SystemVisualState` signale que Windows demande la réduction des animations, le contrôleur reçoit
-`UseSpringAnimations = false` et les transitions deviennent des fondus. Le comportement demandé par
-l'utilisateur prime sur l'esthétique du projet.
+Si `SystemVisualState` signale que Windows demande la réduction des animations — ou que
+l'économiseur d'énergie est actif (n° 43), ou que le contraste élevé est actif —, le contrôleur reçoit `UseSpringAnimations = false` et
+les transitions deviennent des fondus. La notch, son halo et son ombre passent dans le même fondu.
+Le comportement demandé par l'utilisateur prime sur l'esthétique du projet.
+
+« Rebond » éteint dans les Réglages ne retire que le dépassement : la forme garde son ressort, amorti
+au point critique (rapport 1,0) ; les fondus du contenu restent, et les effets qui ne vivent que du
+rebond — goutte, bosse, respiration, rayons, pulsation et teinte animée du halo — sont coupés (n° 91).

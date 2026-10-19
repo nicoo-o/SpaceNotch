@@ -2,7 +2,7 @@
 
 ## Cible
 
-Windows 11 23H2 minimum (`10.0.26100`). Aucun chemin de compatibilité Windows 10 n'est maintenu :
+Windows 11 23H2 minimum (`10.0.22631`, SDK `10.0.26100`). Aucun chemin de compatibilité Windows 10 n'est maintenu :
 le projet ne veut pas de code legacy pour une base qui n'apporte pas les matériaux et les API
 utilisés.
 

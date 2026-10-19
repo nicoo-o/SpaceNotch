@@ -100,7 +100,7 @@ public sealed partial class IslandWindow
     /// <param name="delay">Attente avant la dissipation : le voile couvre d'abord le changement.</param>
     private void PlayVeil(TimeSpan delay = default)
     {
-        if (!UseSpringAnimations() || VeilFill.Fill is null || _veilOutline is null)
+        if (!UseShapeSpring() || VeilFill.Fill is null || _veilOutline is null)
         {
             return;
         }
@@ -168,7 +168,7 @@ public sealed partial class IslandWindow
     /// </summary>
     private void SlideWithGrowth(UIElement element)
     {
-        if (!UseSpringAnimations())
+        if (!UseShapeSpring())
         {
             return;
         }
