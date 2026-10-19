@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using Microsoft.UI.Composition;
 using Microsoft.UI.Xaml;
@@ -26,8 +25,20 @@ public sealed partial class TabStripView : Grid
     private readonly Border _pill = new() { Height = TabHeight, CornerRadius = new CornerRadius(12), HorizontalAlignment = HorizontalAlignment.Left, IsHitTestVisible = false };
     private readonly StackPanel _tabs = new() { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly List<(string Id, Button Tab)> _items = [];
+
+    /// <summary>
+    /// Les boutons de la bande, dans l'arbre, dans l'ordre : les premiers
+    /// portent les onglets (<see cref="_items"/>), les autres sont repliés.
+    /// </summary>
+    private readonly List<Button> _slots = [];
+
+    /// <summary>
+    /// L'activité de chaque emplacement (nulle s'il est replié). Pas dans
+    /// <c>Tag</c> : le gabarit des boutons y lit son encre de survol.
+    /// </summary>
+    private readonly List<string?> _slotIds = [];
+
     private string? _selected;
-    private string _signature = string.Empty;
 
     public TabStripView()
     {
@@ -60,19 +71,17 @@ public sealed partial class TabStripView : Grid
     /// <summary>Faux quand Windows réduit les animations : la pilule saute.</summary>
     public bool Animate { get; set; } = true;
 
-    /// <summary>Affiche les onglets ; <paramref name="activities"/> vide les retire.</summary>
+    /// <summary>Affiche les onglets ; <paramref name="activities"/> vide replie la bande.</summary>
     public void Show(IReadOnlyList<IslandActivity> activities, string? selectedId, Brush? text, Brush? dim)
     {
         ArgumentNullException.ThrowIfNull(activities);
         Visibility = activities.Count >= 2 ? Visibility.Visible : Visibility.Collapsed;
 
-        string signature = string.Join('|', activities.Select(a => a.Id + "·" + a.IconKey + "·" + a.Title));
-
-        if (!string.Equals(signature, _signature, StringComparison.Ordinal))
-        {
-            _signature = signature;
-            Rebuild(activities, text);
-        }
+        // Les boutons restent dans l'arbre et sont réutilisés par position : y
+        // entrer et en sortir coûtait 4 à 8 ms par rendu (n° 46b, visites du
+        // 2026-10-18), avant cela, reconstruits à chaque rendu, ils faisaient
+        // provoquer à XAML des GC de génération 2 de 11 à 20 ms.
+        Sync(activities, text);
 
         bool changed = !string.Equals(selectedId, _selected, StringComparison.Ordinal);
         _selected = selectedId;
@@ -96,47 +105,122 @@ public sealed partial class TabStripView : Grid
         _placed = false;
     }
 
-    private void Rebuild(IReadOnlyList<IslandActivity> activities, Brush? text)
+    /// <summary>Les onglets affichés deviennent ceux de <paramref name="activities"/>, dans leur ordre.</summary>
+    private void Sync(IReadOnlyList<IslandActivity> activities, Brush? text)
     {
-        _tabs.Children.Clear();
         _items.Clear();
 
-        foreach (IslandActivity activity in activities)
+        for (int i = 0; i < activities.Count; i++)
         {
-            var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
-            content.Children.Add(new GlyphView { Key = activity.IconKey, Size = 12, Tint = text, VerticalAlignment = VerticalAlignment.Center });
-            content.Children.Add(new TextBlock
-            {
-                Text = activity.Title,
-                FontSize = 11.5,
-                MaxWidth = 140,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                VerticalAlignment = VerticalAlignment.Center
-            });
+            IslandActivity activity = activities[i];
 
-            var tab = new Button
+            if (i == _slots.Count)
             {
-                Content = content,
-                Height = TabHeight,
-                MinHeight = 0,
-                Padding = new Thickness(10, 0, 10, 0),
-                Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
-                BorderThickness = new Thickness(0),
-                CornerRadius = new CornerRadius(12)
-            };
-
-            if (Application.Current.Resources.TryGetValue("NfGhostButtonStyle", out object? style) && style is Style ghost)
-            {
-                tab.Style = ghost;
+                Button created = CreateTab();
+                _tabs.Children.Add(created);
+                _slots.Add(created);
+                _slotIds.Add(null);
             }
 
-            string id = activity.Id;
-            tab.Click += (_, _) => TabInvoked?.Invoke(this, id);
-            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(tab, activity.Title);
+            Button tab = _slots[i];
 
-            _tabs.Children.Add(tab);
-            _items.Add((id, tab));
+            // Un onglet qui a le focus ou qu'on est en train d'appuyer ne change
+            // jamais d'activité sous la main : il est remplacé par un neuf, et
+            // perd le focus ou l'appui comme quand la bande était reconstruite.
+            if (_slotIds[i] is { } previous
+                && !string.Equals(previous, activity.Id, StringComparison.Ordinal)
+                && (tab.IsPressed || tab.PointerCaptures is { Count: > 0 } || tab.FocusState != FocusState.Unfocused))
+            {
+                tab = CreateTab();
+                _tabs.Children[i] = tab;
+                _slots[i] = tab;
+            }
+
+            _slotIds[i] = activity.Id;
+            tab.Visibility = Visibility.Visible;
+            _items.Add((activity.Id, tab));
+
+            if (tab.Content is not StackPanel { Children.Count: > 1 } content)
+            {
+                continue;
+            }
+
+            // Une autre activité à cette place : son icône remplace la précédente
+            // en faisant voyager les pixels (P6), comme dans la notch.
+            if (content.Children[0] is GlyphView glyph)
+            {
+                if (!string.Equals(glyph.Key, activity.IconKey, StringComparison.Ordinal))
+                {
+                    glyph.Key = activity.IconKey;
+                }
+
+                // Le thème ou le contraste a pu changer : le pinceau du titre est déjà reposé à chaque passage.
+                if (!ReferenceEquals(glyph.Tint, text))
+                {
+                    glyph.Tint = text;
+                }
+            }
+
+            if (content.Children[1] is TextBlock label && !string.Equals(label.Text, activity.Title, StringComparison.Ordinal))
+            {
+                label.Text = activity.Title;
+                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(tab, activity.Title);
+            }
         }
+
+        // Repliés, ils n'ont plus d'activité : un clic ou Entrée n'y peut plus rien ouvrir.
+        for (int i = activities.Count; i < _slots.Count; i++)
+        {
+            _slots[i].Visibility = Visibility.Collapsed;
+            _slotIds[i] = null;
+        }
+    }
+
+    private Button CreateTab()
+    {
+        var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        content.Children.Add(new GlyphView { Size = 12, VerticalAlignment = VerticalAlignment.Center });
+        content.Children.Add(new TextBlock
+        {
+            FontSize = 11.5,
+            MaxWidth = 140,
+            TextTrimming = TextTrimming.CharacterEllipsis,
+            VerticalAlignment = VerticalAlignment.Center
+        });
+
+        var tab = new Button
+        {
+            Content = content,
+            Height = TabHeight,
+            MinHeight = 0,
+            Padding = new Thickness(10, 0, 10, 0),
+            Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(12),
+
+            // Un clic ne prend pas le focus à la scène (une note en cours de
+            // frappe) ; le clavier atteint toujours les onglets par Tab.
+            AllowFocusOnInteraction = false
+        };
+
+        if (Application.Current.Resources.TryGetValue("NfGhostButtonStyle", out object? style) && style is Style ghost)
+        {
+            tab.Style = ghost;
+        }
+
+        // L'activité est lue au clic : elle change quand le bouton est réutilisé,
+        // mais jamais pendant un appui (voir Sync).
+        tab.Click += (sender, _) =>
+        {
+            int slot = sender is Button clicked ? _slots.IndexOf(clicked) : -1;
+
+            if (slot >= 0 && _slotIds[slot] is { } id)
+            {
+                TabInvoked?.Invoke(this, id);
+            }
+        };
+
+        return tab;
     }
 
     private bool _placed;

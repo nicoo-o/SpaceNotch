@@ -459,7 +459,7 @@ public sealed partial class IslandWindow : Window
             UsesSideTab
                 ? SideTab.Rest(_settings.TabSize, _settings.SideShoulderRadius)
                 : IslandFootprint.For(IslandPresentation.Resolve(null), _settings.Density),
-            UseSpringAnimations,
+            UseShapeSpring,
             ApplyGeometry,
             (update, settled) => new IslandSpringAnimator(_settings.Motion, update, settled),
             (message, exception) => MiniLogger.Log(message, exception));
@@ -528,6 +528,15 @@ public sealed partial class IslandWindow : Window
     /// <summary>Le ressort n'est utilisé que si Windows l'autorise.</summary>
     private bool UseSpringAnimations()
         => _visualState.UseSpringAnimations && _settings.AllowBouncyAnimations;
+
+    /// <summary>
+    /// Le mouvement que Windows autorise : le ressort de la forme et les fondus
+    /// du contenu qui l'accompagnent. « Rebond » éteint ne retire que le
+    /// dépassement (<see cref="AppSettings.Motion"/>, n° 91) — au lieu d'un saut
+    /// suivi d'un fondu — et les effets qui ne vivent que du rebond, qui restent
+    /// sous <see cref="UseSpringAnimations"/>.
+    /// </summary>
+    private bool UseShapeSpring() => _visualState.UseSpringAnimations;
 
     // ------------------------------------------------------------------
     // Matière hypnotique
@@ -823,7 +832,11 @@ public sealed partial class IslandWindow : Window
         };
         _activityManager.ActivityRemoved += (_, activity) => OnUiThread(() => ShadowForget(activity));
         // Animations réduites : la forme ne saute plus, elle apparaît en fondu (n° 22).
-        _controller.ShapeSnapped += (_, _) => OnUiThread(() => SpaceNotch_App.Animations.ContentTransition.Dissolve(RootLayout));
+        _controller.ShapeSnapped += (_, _) => OnUiThread(() =>
+        {
+            SpaceNotch_App.Animations.ContentTransition.Dissolve(RootLayout);
+            _atmosphere.Dissolve();
+        });
         _controller.AnimationCompleted += (_, _) =>
         {
             RequestRender();
@@ -1000,6 +1013,8 @@ public sealed partial class IslandWindow : Window
     // Démarrage
     // ------------------------------------------------------------------
 
+    private DispatcherQueueTimer? _memoryReport;
+
     private async void OnRootLoaded(object sender, RoutedEventArgs e)
     {
         MiniLogger.Log("IslandWindow chargée : démarrage des fonctionnalités");
@@ -1022,6 +1037,11 @@ public sealed partial class IslandWindow : Window
         StartUpdates();
 
         MiniLogger.Log("IslandWindow prête");
+
+        // Une minute après le démarrage, une fois les fonctionnalités et leurs
+        // premières lectures posées : où va la mémoire (n° 24). Une ligne, une fois.
+        _memoryReport ??= CreateOneShotTimer(TimeSpan.FromMinutes(1), () => MiniLogger.Log(_diagnostics.BuildMemoryLine()));
+        _memoryReport.Start();
 
         // Une barre des tâches occupe déjà le haut : la notch demande où se placer (n° 93).
         _ = _dispatcherQueue.TryEnqueueSafely(DispatcherQueuePriority.Low, ApplyTopBar);
@@ -1087,6 +1107,40 @@ public sealed partial class IslandWindow : Window
     // ------------------------------------------------------------------
 
     /// <summary>
+    /// Étapes du rendu, sous <c>--frames</c> seulement : un tableau posé une fois,
+    /// sans allocation par rendu, lu par <c>FrameClock.ReportBreakdown</c>.
+    /// </summary>
+    private readonly (string Name, long At)[] _renderMarks = new (string, long)[32];
+
+    private int _renderMarkCount;
+
+    private long _renderMarksStarted;
+
+    /// <summary>
+    /// Marque la fin d'une étape du rendu, si la mesure de fluidité est allumée.
+    /// La dernière case reste à « fin » : un rendu en plusieurs passes remplit
+    /// le tableau, et son total doit aller jusqu'au bout.
+    /// </summary>
+    private void RenderMark(string name)
+    {
+        if (_renderMarksStarted == 0)
+        {
+            return;
+        }
+
+        bool last = string.Equals(name, "fin", StringComparison.Ordinal);
+
+        if (_renderMarkCount < _renderMarks.Length - 1 || (last && _renderMarkCount < _renderMarks.Length))
+        {
+            _renderMarks[_renderMarkCount++] = (name, System.Diagnostics.Stopwatch.GetTimestamp());
+        }
+        else if (last)
+        {
+            _renderMarks[^1] = (name, System.Diagnostics.Stopwatch.GetTimestamp());
+        }
+    }
+
+    /// <summary>
     /// Projette l'activité présentée dans la vue correspondant à sa clé de scène.
     /// </summary>
     private void Render()
@@ -1108,9 +1162,17 @@ public sealed partial class IslandWindow : Window
         {
             int passes = 0;
             long started = SpaceNotch_App.Animations.FrameClock.Measuring ? System.Diagnostics.Stopwatch.GetTimestamp() : 0;
+            int collectionsBefore = started != 0 ? GC.CollectionCount(0) : 0;
+            _renderMarksStarted = started;
+            _renderMarkCount = 0;
 
             do
             {
+                if (passes > 0)
+                {
+                    RenderMark("passe suivante");
+                }
+
                 _renderAgain = false;
                 RenderOnce();
             }
@@ -1118,11 +1180,16 @@ public sealed partial class IslandWindow : Window
 
             if (started != 0)
             {
+                // Marquée avant l'écriture au journal, qui n'est pas le rendu.
+                RenderMark("fin");
                 SpaceNotch_App.Animations.FrameClock.ReportSlow("rendu", System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds);
+                SpaceNotch_App.Animations.FrameClock.ReportBreakdown("rendu", started, collectionsBefore, _renderMarks.AsSpan(0, _renderMarkCount));
             }
         }
         finally
         {
+            // Même si le rendu a levé : une marque posée hors du rendu n'a pas à compter.
+            _renderMarksStarted = 0;
             _rendering = false;
         }
 
@@ -1181,7 +1248,7 @@ public sealed partial class IslandWindow : Window
             }
         }
 
-        if (!ContentTransition.Leave(root, UseSpringAnimations(), () => _dispatcherQueue.TryEnqueueSafely(Finish)))
+        if (!ContentTransition.Leave(root, UseShapeSpring(), () => _dispatcherQueue.TryEnqueueSafely(Finish)))
         {
             EndSceneLeave(collapse: true);
             return;
@@ -1230,8 +1297,10 @@ public sealed partial class IslandWindow : Window
         // Les yeux deviennent un morceau de ce qui arrive, et inversement (vague 7) :
         // relevé avant que les vues ne changent.
         PrepareHandoff(activity);
+        RenderMark("passage");
 
         UpdateBubble();
+        RenderMark("bulle");
 
         // Ce qui a changé depuis le rendu précédent décide de la transition :
         // une ouverture, une fermeture, une autre activité, l'entrée dans l'aperçu.
@@ -1245,6 +1314,7 @@ public sealed partial class IslandWindow : Window
         double tabRowBefore = ContentArea.Padding.Top;
         UpdateTabs(activity, expanded);
         UpdateFocusTrace();
+        RenderMark("focus");
         _lastRenderedState = _controller.State;
 
         // Le palier au repos ne dépend jamais de l'ouverture : il est résolu à
@@ -1253,6 +1323,7 @@ public sealed partial class IslandWindow : Window
         _tier = IslandPresentation.Resolve(activity);
         _restFootprint = WithGestureHelp(FitRest(activity, _tier));
         _controller.UpdateCollapsedFootprint(_restFootprint);
+        RenderMark("repos");
 
         // Seules les scènes qui ne sont pas la cible sont repliées. Replier puis
         // réafficher la scène visible faisait perdre le focus à ce qu'elle
@@ -1320,6 +1391,7 @@ public sealed partial class IslandWindow : Window
         ApplyActivityTint(activity);
         ApplyStateTint(activity);
         ShakeOnError(activity);
+        RenderMark("teintes");
 
         if (activity is null)
         {
@@ -1330,7 +1402,7 @@ public sealed partial class IslandWindow : Window
             // horloge à la minute dans un produit dont la promesse est de ne rien
             // faire au repos. Sans elle, la lèvre est vide — le point de veille
             // ne l'accompagne que pour lui donner un repère.
-            IdleClock.Visibility = _settings.ShowClockAtRest && !UsesSideTab
+            IdleClock.Visibility = ShowClockNow && !UsesSideTab
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
@@ -1338,18 +1410,21 @@ public sealed partial class IslandWindow : Window
             // se feraient concurrence.
             IdleStatusDot.Visibility = PixelAtRest ? Visibility.Collapsed : IdleClock.Visibility;
             ShowRestPixel(PixelAtRest);
+            RenderMark("pixel");
             ShowRestWeather();
             IdleClock.Animate = UseSpringAnimations();
             IdleClock.Show(_tourClock ?? DateTime.Now.ToString("HH:mm", System.Globalization.CultureInfo.InvariantCulture));
+            RenderMark("heure");
 
             // Les deux visages du repos (yeux, heure et météo) et la transition C.
             ApplyRestFace();
+            RenderMark("visage");
 
             // Après une scène, le repos attend qu'elle soit sortie : l'heure se
             // posait sur le texte de la scène encore lisible.
             if (wasShowingScene && _leavingSceneRoot is not null)
             {
-                ContentTransition.Play(IdleRestView, UseSpringAnimations(), ContentTransition.LeaveDuration);
+                ContentTransition.Play(IdleRestView, UseShapeSpring(), ContentTransition.LeaveDuration);
             }
 
             // « Annuler » prend la place des yeux le temps de l'annulation.
@@ -1392,12 +1467,16 @@ public sealed partial class IslandWindow : Window
                 launcherTiles.TimerActive = _timerFeature.HasMeasure;
             }
 
+            RenderMark("scène prête");
             scene.Apply(activity);
+            RenderMark("scène remplie");
 
             // Ce que la scène vient de créer est figé avant d'être mesuré (n° 59).
             SpaceNotch_App.UI.FixedTextSize.Apply(scene.Root);
             scene.Root.Visibility = Visibility.Visible;
+            RenderMark("texte");
             FitOpenedScene(scene, activity);
+            RenderMark("mesure");
 
             // Entrée de la scène, une seule fois : son contenu apparaît sur place
             // pendant que la forme grandit, et les éléments ancrés grandissent
@@ -1434,13 +1513,15 @@ public sealed partial class IslandWindow : Window
 
                 // Une seule ligne de temps : la forme grandit, puis le contenu
                 // arrive, flou, et se précise.
-                ContentTransition.Play(scene.Root, UseSpringAnimations(), TimeSpan.FromMilliseconds(80));
+                ContentTransition.Play(scene.Root, UseShapeSpring(), TimeSpan.FromMilliseconds(80));
                 PlayVeil(TimeSpan.FromMilliseconds(40));
 
                 if (morph is not null)
                 {
-                    MorphPlayer.PlayWhenLaidOut(morph, scene, ContentArea, UseSpringAnimations());
+                    MorphPlayer.PlayWhenLaidOut(morph, scene, ContentArea, UseShapeSpring());
                 }
+
+                RenderMark("entrée");
             }
 
             return;
@@ -1448,8 +1529,10 @@ public sealed partial class IslandWindow : Window
 
         InfoSceneView.Rest();
         RestMirror();
+        RenderMark("scènes au repos");
 
         PresentResting(activity);
+        RenderMark("forme compacte");
         ConsiderGestureLesson(activity);
 
         if (wasShowingScene)
@@ -1463,7 +1546,7 @@ public sealed partial class IslandWindow : Window
             {
                 // Sans fondu de sortie (compositeur qui refuse), rien à attendre.
                 TimeSpan wait = _leavingSceneRoot is not null ? ContentTransition.LeaveDuration : TimeSpan.FromMilliseconds(60);
-                ContentTransition.Play(rest, UseSpringAnimations(), wait);
+                ContentTransition.Play(rest, UseShapeSpring(), wait);
             }
         }
         else if (changedActivity)
@@ -1539,10 +1622,13 @@ public sealed partial class IslandWindow : Window
             SignalLevelScale.ScaleX = trailing.Kind == TrailingKind.Level ? trailing.Value : 0;
             SignalTrailing.Show(trailing);
             SignalRestView.Visibility = Visibility.Visible;
+            RenderMark("compacte·textes");
 
             _cardHypnotic?.SetPreset(HypnoticPreset.None, animate: false);
             ApplyHypnoticSlot(_signalHypnotic, SignalHypnoticHost, SignalGlyph, preset);
+            RenderMark("compacte·grille");
             ApplyRestArtwork(activity, SignalArtwork, SignalArtworkImage, SignalGlyph, preset);
+            RenderMark("compacte·pochette");
             CardArtwork.Visibility = Visibility.Collapsed;
             ApplyAvatar(activity, SignalAvatar, SignalAvatarScale, _signalHypnotic, SignalHypnoticHost, SignalGlyph, SignalArtwork);
             return;
@@ -1731,7 +1817,7 @@ public sealed partial class IslandWindow : Window
             if (now - _lastRoll >= 200)
             {
                 _lastRoll = now;
-                ContentTransition.Roll(target, UseSpringAnimations());
+                ContentTransition.Roll(target, UseShapeSpring());
             }
 
             return;
@@ -1739,7 +1825,7 @@ public sealed partial class IslandWindow : Window
 
         if (visible && !metric)
         {
-            ContentTransition.Play(target, UseSpringAnimations(), TimeSpan.FromMilliseconds(60), ContentTransition.SwapDuration);
+            ContentTransition.Play(target, UseShapeSpring(), TimeSpan.FromMilliseconds(60), ContentTransition.SwapDuration);
 
             // Un titre qui change se lit flou, puis net ; une mesure qui défile
             // — une taille reçue, un pourcentage — change sans voile.
@@ -1764,7 +1850,7 @@ public sealed partial class IslandWindow : Window
     /// daltonismes, et se perd pour quiconque ne distingue pas deux teintes
     /// voisines. Les états qui n'ont rien à dire — la veille, un retour système —
     /// ne sont pas nommés : les écrire ajouterait un mot sans information. Voir
-    /// ADR-014.
+    /// docs/ux/design-language.md, « Accessibilité ».
     /// </summary>
     private static string BuildSubhead(IslandActivity activity)
     {
@@ -1926,7 +2012,7 @@ public sealed partial class IslandWindow : Window
     /// C'est la même teinte qui colore le halo — la lumière et le glyphe viennent
     /// donc bien de la même source. En contraste élevé, la teinte cède la place à
     /// l'encre du système : une couleur d'ambiance y dégraderait la lisibilité
-    /// sans rien apprendre. Voir ADR-014.
+    /// sans rien apprendre. Voir docs/ux/design-language.md, « Accessibilité ».
     /// </summary>
     private void ApplyStateTint(IslandActivity? activity)
     {
@@ -1952,7 +2038,7 @@ public sealed partial class IslandWindow : Window
     /// comme un seul objet qui change de taille plutôt que comme deux objets
     /// différents. Un rayon de 12 sur une forme de 28 de haut donne une pastille,
     /// le même rayon sur une forme de 52 donne un panneau — et c'est bien le même
-    /// objet. Voir ADR-012.
+    /// objet. Voir docs/ux/design-language.md, « Coins ».
     ///
     /// Les coins supérieurs restent droits : l'Island est ancrée au bord de
     /// l'écran, un arrondi en haut la détacherait de la surface sur laquelle elle
@@ -2971,11 +3057,18 @@ public sealed partial class IslandWindow : Window
             tabs.Clear();
         }
 
+        RenderMark("onglets·liste");
         double row = tabs.Count >= 2 ? TabStripView.RowHeight : 0;
         _controller.TabRowHeight = row;
+        RenderMark("onglets·rangée");
         ContentArea.Padding = new Thickness(0, row, 0, 0);
         SceneTabs.Animate = UseSpringAnimations();
-        SceneTabs.Show(tabs, activity?.Id, SpaceNotch_App.UI.ThemeBrushes.Get("NfTextPrimaryBrush"), SpaceNotch_App.UI.ThemeBrushes.Get("NfTextTertiaryBrush"));
+        RenderMark("onglets·marge");
+        Brush primary = SpaceNotch_App.UI.ThemeBrushes.Get("NfTextPrimaryBrush");
+        Brush tertiary = SpaceNotch_App.UI.ThemeBrushes.Get("NfTextTertiaryBrush");
+        RenderMark("onglets·pinceaux");
+        SceneTabs.Show(tabs, activity?.Id, primary, tertiary);
+        RenderMark("onglets·bande");
     }
 
     private IslandActivity? _lastRenderedActivity;

@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.UI.Dispatching;
 using SpaceNotch.Core.Motion;
 using SpaceNotch.Infrastructure.Logging;
@@ -31,6 +33,9 @@ public sealed partial class IslandWindow
     private static readonly TimeSpan CpuReadingAge = TimeSpan.FromSeconds(5.5);
     private DispatcherQueueTimer? _vitalsTimer;
     private PixelCondition _condition;
+
+    /// <summary>1 pendant une lecture de l'état du PC (<see cref="ReadVitals"/>).</summary>
+    private int _vitalsReading;
     private ForegroundWatcher? _foreground;
     private DateTime _glanceUntil;
     private (double X, double Y) _glance;
@@ -94,8 +99,70 @@ public sealed partial class IslandWindow
         RestEyes.SetBeat(0, 0);
     }
 
-    /// <summary>Batterie, processeur, réseau : l'état le plus grave l'emporte.</summary>
+    /// <summary>
+    /// Relit l'état du PC hors du fil de l'interface. Lue sur ce fil, la mesure
+    /// coûtait environ 13 ms (surtout l'énumération des cartes réseau) au
+    /// réveil des yeux puis toutes les 2 s : une image manquée à chaque fois.
+    /// Une seule lecture à la fois.
+    /// </summary>
     private void ReadVitals()
+    {
+        if (Interlocked.Exchange(ref _vitalsReading, 1) == 1)
+        {
+            return;
+        }
+
+        _ = Task.Run(() =>
+        {
+            PixelCondition? condition = null;
+
+            try
+            {
+                condition = MeasureVitals();
+            }
+            catch (Exception)
+            {
+                // Mesure impossible cette fois : l'état précédent reste.
+            }
+
+            bool queued = false;
+
+            try
+            {
+                queued = _dispatcherQueue.TryEnqueueSafely(() =>
+                {
+                    Volatile.Write(ref _vitalsReading, 0);
+
+                    if (condition is not { } measured || _isClosed || measured == _condition)
+                    {
+                        return;
+                    }
+
+                    _condition = measured;
+
+                    // Les yeux rouverts montraient l'état d'avant : la lecture
+                    // arrive après leur premier regard, et Pixel calmé ne
+                    // regarde que toutes les 5 s.
+                    if (_pixelLive && RestEyes.Visibility == Microsoft.UI.Xaml.Visibility.Visible)
+                    {
+                        PixelTick();
+                    }
+                });
+            }
+            finally
+            {
+                // File fermée ou en échec : sans cette remise à zéro, Pixel ne
+                // relirait plus jamais l'état du PC.
+                if (!queued)
+                {
+                    Volatile.Write(ref _vitalsReading, 0);
+                }
+            }
+        });
+    }
+
+    /// <summary>Batterie, processeur, réseau : l'état le plus grave l'emporte. Sans fil imposé.</summary>
+    private static PixelCondition MeasureVitals()
     {
         int? battery = null;
         bool charging = true;
@@ -115,7 +182,7 @@ public sealed partial class IslandWindow
 
         double cpu = SpaceNotch.Platform.Windows.Power.CpuLoad.Shared.Get(CpuReadingAge) / 100;
         bool online = System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable();
-        _condition = PixelVitals.Condition(battery, charging, cpu, online);
+        return PixelVitals.Condition(battery, charging, cpu, online);
     }
 
     /// <summary>Une fenêtre prend la main : Pixel jette un coup d'œil dans sa direction.</summary>

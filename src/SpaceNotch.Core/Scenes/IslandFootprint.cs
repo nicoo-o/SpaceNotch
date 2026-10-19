@@ -38,7 +38,7 @@ public enum IslandContentDensity
 /// contenu qu'ils portent — jamais choisies : la carte vaut exactement
 /// 10 + 14 + 2 + 16 + 10, soit la marge, la ligne de légende, l'écart, la ligne
 /// de titre et la marge. Une hauteur réglable au curseur permettrait de séparer
-/// ces deux lignes jusqu'à en faire un panneau vide. Voir ADR-012.
+/// ces deux lignes jusqu'à en faire un panneau vide. Voir docs/ux/design-language.md, « Espacement ».
 /// </para>
 /// </summary>
 public readonly record struct IslandFootprint(double Width, double Height)
@@ -106,7 +106,7 @@ public readonly record struct IslandFootprint(double Width, double Height)
     /// La hauteur d'une carte en découle exactement : deux marges, une ligne de
     /// légende de 14, un écart de 2, une ligne de titre de 16. Ces nombres ne sont
     /// pas indépendants les uns des autres — les modifier séparément déformerait
-    /// la forme, puisque sa hauteur en est la somme. Voir ADR-012.
+    /// la forme, puisque sa hauteur en est la somme. Voir docs/ux/design-language.md, « Espacement ».
     /// </para>
     /// </summary>
     public static double CardVerticalPadding(IslandContentDensity density) => density switch
