@@ -29,7 +29,7 @@ namespace SpaceNotch.Features.Calendar;
 /// à rebours seulement, l'anneau avance toutes les cinq secondes.
 /// </para>
 /// </summary>
-public sealed class MeetingFeature : IslandFeatureBase
+public sealed class MeetingFeature : IslandFeatureBase, IIntegrationStatusSource
 {
     public const string FeatureKey = FeatureKeys.Meeting;
 
@@ -60,6 +60,9 @@ public sealed class MeetingFeature : IslandFeatureBase
     /// <summary>Le rendez-vous montré, pour le focus calé sur l'agenda (W3).</summary>
     public CalendarMeeting? Current => _meeting;
 
+    /// <summary>Sans lecteur, ou si la lecture échoue : l'agenda n'est pas joignable.</summary>
+    public IntegrationProbe Probe => _reader?.Probe ?? IntegrationProbe.Missing;
+
     public MeetingFeature(IActivityManager activities, IEventBus events, CalendarReader? reader, bool isEnabled = true, Func<DateTimeOffset>? now = null)
         : base(FeatureKey, Lang.T("Rendez-vous", "Meetings"), activities, events, isEnabled)
     {
@@ -75,9 +78,13 @@ public sealed class MeetingFeature : IslandFeatureBase
             _reader.Changed += OnCalendarChanged;
         }
 
-        _ = RefreshAsync();
-        return Task.CompletedTask;
+        // La première lecture dit si l'agenda est joignable : on l'attend un instant
+        // pour que l'état affiché à l'activation ne soit pas « prête » par défaut.
+        // Au-delà, la lecture continue seule.
+        return Task.WhenAny(RefreshAsync(), Task.Delay(FirstReadWait, cancellationToken));
     }
+
+    private static readonly TimeSpan FirstReadWait = TimeSpan.FromSeconds(1.5);
 
     protected override Task OnStopAsync()
     {

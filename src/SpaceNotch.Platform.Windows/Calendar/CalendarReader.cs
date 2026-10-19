@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using SpaceNotch.Core.Features;
 using Windows.ApplicationModel.Appointments;
 
 namespace SpaceNotch.Platform.Windows.Calendar;
@@ -18,12 +19,18 @@ public sealed class CalendarReader
 {
     private AppointmentStore? _store;
 
+    /// <summary>Ce que la dernière lecture a constaté : accès refusé, calendrier absent, ou lecture réussie.</summary>
+    public IntegrationProbe Probe { get; private set; }
+
     /// <summary>Le calendrier a changé : relire le prochain rendez-vous.</summary>
     public event Action? Changed;
 
     /// <summary>Le prochain rendez-vous qui n'est pas terminé, dans les douze heures ; null s'il n'y en a pas.</summary>
     public async Task<CalendarMeeting?> NextAsync(DateTimeOffset now)
     {
+        // Un constat d'une lecture précédente ne vaut rien pour celle-ci.
+        Probe = IntegrationProbe.Unknown;
+
         try
         {
             if (_store is null)
@@ -60,13 +67,16 @@ public sealed class CalendarReader
                 .OrderBy(a => a.StartTime)
                 .FirstOrDefault();
 
+            Probe = IntegrationProbe.Ok;
+
             return next is null
                 ? null
                 : new CalendarMeeting(next.LocalId, next.Subject ?? string.Empty, next.StartTime, next.StartTime + next.Duration, next.Location, next.Details, next.OnlineMeetingLink);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // Pas d'identité, capacité refusée, calendrier absent : rien à montrer.
+            // Pas d'identité, capacité refusée, calendrier absent : rien à montrer, mais on le sait.
+            Probe = ex is UnauthorizedAccessException ? IntegrationProbe.Denied : IntegrationProbe.Missing;
             return null;
         }
     }
