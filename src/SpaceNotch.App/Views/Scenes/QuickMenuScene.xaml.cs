@@ -42,6 +42,16 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
     private QuickMenuPayload? _shown;
     private bool _cascadePending = true;
 
+    /// <summary>
+    /// Les lignes déjà construites, par place, avec ce qui les a construites :
+    /// une ligne inchangée est gardée telle quelle (n° 46b). Les recréer toutes
+    /// à chaque ouverture coûtait 25 à 36 ms de rendu (visite du 2026-10-19).
+    /// </summary>
+    private readonly Dictionary<string, (string Key, UIElement Element)> _built = new(StringComparer.Ordinal);
+
+    /// <summary>Un pinceau du thème lu à la dernière construction : un autre thème refait toutes les lignes.</summary>
+    private Brush? _look;
+
     public QuickMenuScene()
     {
         InitializeComponent();
@@ -61,8 +71,32 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
             else
             {
                 _clock.Stop();
+
+                // Les lignes gardées ne doivent pas rouvrir survolées ni appuyées
+                // (le clic qui a refermé le menu), ni avec les puces du Minuteur dépliées.
+                _hideTimerChips?.Invoke();
+                ResetPointerStates(RowsPanel);
             }
         });
+    }
+
+    /// <summary>Replie les puces du Minuteur gardé.</summary>
+    private Action? _hideTimerChips;
+
+    private static void ResetPointerStates(UIElement element)
+    {
+        if (element is Control control)
+        {
+            VisualStateManager.GoToState(control, control.IsEnabled ? "Normal" : "Disabled", false);
+        }
+
+        if (element is Panel panel)
+        {
+            foreach (UIElement child in panel.Children)
+            {
+                ResetPointerStates(child);
+            }
+        }
     }
 
     public event EventHandler<IslandActionRequest>? ActionRequested;
@@ -121,71 +155,140 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
 
     private void Build(QuickMenuPayload payload)
     {
-        RowsPanel.Children.Clear();
+        // Un autre thème (clair, sombre, contraste élevé) : les lignes gardées ont les pinceaux de l'ancien.
+        Brush look = Brush("NfTextSecondaryBrush");
 
-        RowsPanel.Children.Add(Row(
+        if (!ReferenceEquals(look, _look))
+        {
+            _look = look;
+            _built.Clear();
+        }
+
+        var rows = new List<UIElement>(14);
+
+        rows.Add(Kept("search", payload.Hotkey ?? string.Empty, () => Row(
             "Search",
             French ? "Rechercher" : "Search",
             QuickMenuFeature.SearchAction,
-            keys: payload.Hotkey?.Replace("Win+", "⊞+", StringComparison.Ordinal).Split('+')));
+            keys: payload.Hotkey?.Replace("Win+", "⊞+", StringComparison.Ordinal).Split('+'))));
 
-        RowsPanel.Children.Add(TimerRow(payload.TimerRunning, payload.FocusActive));
+        rows.Add(Kept("timer", $"{payload.TimerRunning}|{payload.FocusActive}", () => TimerRow(payload.TimerRunning, payload.FocusActive)));
 
         // Un focus (en cours ou en pause) a sa propre ligne d'arrêt : le Minuteur
         // garde la sienne, ou ses puces pour un thé pendant le focus.
         if (payload.FocusActive)
         {
-            RowsPanel.Children.Add(Row("Stop", French ? "Arrêter le focus" : "Stop focus", QuickMenuFeature.TimerAction, value: FocusStopValue));
+            rows.Add(Kept("focus.stop", string.Empty, () => Row("Stop", French ? "Arrêter le focus" : "Stop focus", QuickMenuFeature.TimerAction, value: FocusStopValue)));
         }
 
         // Note éclair (F7) : aussi par un double-clic sur la notch. Nom et icône
         // des lignes communes viennent des tuiles : une seule source (n° 50).
         QuickMenuTile note = QuickMenuTiles.For(QuickMenuFeature.NoteAction)!;
-        RowsPanel.Children.Add(Row(note.IconKey, note.Label, QuickMenuFeature.NoteAction));
+        rows.Add(Kept("note", $"{note.IconKey}|{note.Label}", () => Row(note.IconKey, note.Label, QuickMenuFeature.NoteAction)));
 
         QuickMenuTile clipboard = QuickMenuTiles.For(QuickMenuFeature.ClipboardAction)!;
-        RowsPanel.Children.Add(Row(
+        rows.Add(Kept("clipboard", $"{clipboard.IconKey}|{clipboard.Label}|{payload.HasClipboard}|{payload.ClipboardOff}", () => Row(
             clipboard.IconKey,
             clipboard.Label,
             QuickMenuFeature.ClipboardAction,
             // Éteint, l'historique n'est pas « vide » : la ligne propose de l'activer (n° 63).
             enabled: payload.HasClipboard || payload.ClipboardOff,
-            trailing: payload.HasClipboard ? null : payload.ClipboardOff ? (French ? "désactivé" : "off") : (French ? "vide" : "empty")));
+            trailing: payload.HasClipboard ? null : payload.ClipboardOff ? (French ? "désactivé" : "off") : (French ? "vide" : "empty"))));
 
-        RowsPanel.Children.Add(Row(
+        rows.Add(Kept("shelf", $"{payload.HasShelf}", () => Row(
             "Folder",
             French ? "Étagère" : "Shelf",
             QuickMenuFeature.ShelfAction,
             enabled: payload.HasShelf,
-            trailing: payload.HasShelf ? null : (French ? "vide" : "empty")));
+            trailing: payload.HasShelf ? null : (French ? "vide" : "empty"))));
 
-        RowsPanel.Children.Add(Separator());
+        rows.Add(Kept("separator.1", string.Empty, Separator));
 
-        RowsPanel.Children.Add(payload.IsFloating
+        rows.Add(Kept("detach", payload.IsFloating ? $"floating|{payload.Edge}" : "docked", () => payload.IsFloating
             ? Row("Pin", French ? "Raccrocher au bord" : "Reattach to edge", QuickMenuFeature.DockAction, value: payload.Edge.ToString())
-            : Row("Detach", French ? "Détacher de l'écran" : "Detach from screen", QuickMenuFeature.DetachAction));
+            : Row("Detach", French ? "Détacher de l'écran" : "Detach from screen", QuickMenuFeature.DetachAction)));
 
-        RowsPanel.Children.Add(Row(
+        rows.Add(Kept("dock", $"{payload.DockExpanded}", () => Row(
             "Dock",
             French ? "Accrocher à…" : "Dock to…",
             QuickMenuFeature.DockExpandAction,
             value: payload.DockExpanded ? "0" : "1",
-            chevron: payload.DockExpanded ? "ChevronDown" : "ChevronRight"));
+            chevron: payload.DockExpanded ? "ChevronDown" : "ChevronRight")));
 
+        // Les bords se déplient en glissant : refaits à chaque fois.
         if (payload.DockExpanded)
         {
-            RowsPanel.Children.Add(DockChoices(payload));
+            rows.Add(DockChoices(payload));
         }
 
-        RowsPanel.Children.Add(Separator());
+        rows.Add(Kept("separator.2", string.Empty, Separator));
 
-        RowsPanel.Children.Add(Row("Settings", French ? "Réglages" : "Settings", QuickMenuFeature.SettingsAction, keys: ["Ctrl", ","]));
-        RowsPanel.Children.Add(Row("Power", French ? "Quitter" : "Quit", QuickMenuFeature.QuitAction));
+        rows.Add(Kept("settings", string.Empty, () => Row("Settings", French ? "Réglages" : "Settings", QuickMenuFeature.SettingsAction, keys: ["Ctrl", ","])));
+        rows.Add(Kept("quit", string.Empty, () => Row("Power", French ? "Quitter" : "Quit", QuickMenuFeature.QuitAction)));
+
+        Place(rows);
 
         if (_cascadePending)
         {
             _cascadePending = false;
             PlayCascade();
+        }
+    }
+
+    /// <summary>
+    /// La ligne de la place <paramref name="slot"/> : celle déjà construite si
+    /// <paramref name="key"/> (ce qui la construit) n'a pas changé, sinon une neuve.
+    /// </summary>
+    private UIElement Kept(string slot, string key, Func<UIElement> build)
+    {
+        if (_built.TryGetValue(slot, out (string Key, UIElement Element) known) && string.Equals(known.Key, key, StringComparison.Ordinal))
+        {
+            return known.Element;
+        }
+
+        UIElement element = build();
+        _built[slot] = (key, element);
+        return element;
+    }
+
+    /// <summary>
+    /// Les lignes du menu deviennent <paramref name="rows"/>. Une ligne gardée à
+    /// sa place ne bouge pas, une ligne refaite remplace l'ancienne sur place ;
+    /// seul un décalage (focus, bords dépliés) fait sortir puis revenir la
+    /// suite : une ligne qui entre dans l'arbre ou en sort coûte des ms (n° 46b).
+    /// </summary>
+    private void Place(List<UIElement> rows)
+    {
+        UIElementCollection children = RowsPanel.Children;
+        int same = 0;
+
+        while (same < rows.Count && same < children.Count)
+        {
+            if (!ReferenceEquals(children[same], rows[same]))
+            {
+                // Une ligne neuve à la place d'une ligne qui ne sert plus : échange sur place.
+                bool fresh = VisualTreeHelper.GetParent(rows[same]) is null;
+                bool dropped = !rows.Contains(children[same]);
+
+                if (!fresh || !dropped)
+                {
+                    break;
+                }
+
+                children[same] = rows[same];
+            }
+
+            same++;
+        }
+
+        while (children.Count > same)
+        {
+            children.RemoveAt(children.Count - 1);
+        }
+
+        for (int i = same; i < rows.Count; i++)
+        {
+            children.Add(rows[i]);
         }
     }
 
@@ -266,6 +369,7 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
 
         if (running)
         {
+            _hideTimerChips = null;
             host.Children.Add(Row("Stop", French ? "Arrêter le minuteur" : "Stop timer", QuickMenuFeature.TimerAction, value: "0"));
             return host;
         }
@@ -332,6 +436,7 @@ public sealed partial class QuickMenuScene : UserControl, IIslandSceneView, ILoo
             }
         }
 
+        _hideTimerChips = () => Reveal(false);
         host.PointerEntered += (_, _) => Reveal(true);
         host.PointerExited += (_, _) => Reveal(false);
         row.GotFocus += (_, _) => Reveal(true);
