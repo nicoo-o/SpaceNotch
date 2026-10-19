@@ -67,7 +67,7 @@ actives sur 10**, dont la surveillance du presse-papier.
 
 ### Défaut connu, état inconnu : le greffon d'exemple figeait l'application
 
-Constaté avant SpaceNotch 2.0 et **non revérifié depuis** (n° 28 de la feuille de route). Les mesures
+Constaté avant SpaceNotch 2.0. **Revérifié le 2026-10-19** (n° 28) : en Debug, greffon chargé, aucun gel ni CPU anormal sur ~2 min ; non reproduit, pas pour autant prouvé corrigé. Les mesures
 ci-dessus valent **greffon d'exemple retiré**. Installé, il fige l'Island en cours de
 morphing (136 × 39 DIP, reproduit à chaque démarrage) et fait tourner deux fils à 25–55 % d'un cœur,
 sans erreur au journal. La publication depuis un fil de travail en est le déclencheur ; le mécanisme
