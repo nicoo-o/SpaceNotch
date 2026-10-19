@@ -1330,7 +1330,7 @@ public sealed partial class IslandWindow : Window
             // horloge à la minute dans un produit dont la promesse est de ne rien
             // faire au repos. Sans elle, la lèvre est vide — le point de veille
             // ne l'accompagne que pour lui donner un repère.
-            IdleClock.Visibility = _settings.ShowClockAtRest && !UsesSideTab
+            IdleClock.Visibility = ShowClockNow && !UsesSideTab
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
