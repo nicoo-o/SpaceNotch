@@ -12,8 +12,13 @@ Audit par lecture du code, **sans Narrateur lancé** : les points marqués « à
 - Presse-papier : les lignes sont des boutons (coller, épingler, supprimer) ; le balayage n'est qu'un raccourci souris.
 - Couleur, tuiles du lanceur et du menu rapide : boutons nommés.
 
-## À confirmer avec le Narrateur
+## Confirmé par lecture du code
 
-- Échap dans `WelcomeScene` et `QuickMenuScene` (géré sans doute par `OnIslandKeyDown`, `IslandWindow.xaml.cs`).
-- Retour du focus à l'application précédente à la fermeture (chemin inverse de `CaptureKeyboardForTyping`).
-- Filtrage des annonces répétées (`Announcement.For`) et ordre de tabulation de `ColorScene` et du menu rapide.
+- Échap : un seul gestionnaire sur la notch (`HandleIslandKeyAsync`) referme toutes les scènes ; Bienvenue et menu rapide ne le captent pas.
+- Focus : `CaptureKeyboardForTyping` mémorise la fenêtre d'avant ; à la fermeture (`IslandState.Closed`), `ReturnForeground` la rétablit.
+- Annonces : `Announcement.Key` ignore les chiffres (un minuteur n'est pas redit chaque seconde) ; `For` ne dit rien d'une republication ni d'un retour système. Test ajouté : `AnnouncementTests` (4 cas, écrits après coup, verts du premier coup : ils figent le comportement existant).
+
+## Non vérifié (demande l'application lancée et le Narrateur)
+
+- Ordre de tabulation de `ColorScene` et du menu rapide.
+- Entrée sur un bouton focalisé : le bouton agit-il sans que `InvokePrimaryActionAsync` se déclenche aussi ?
