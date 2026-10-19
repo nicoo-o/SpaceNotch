@@ -13,6 +13,7 @@ using SpaceNotch.Core.Motion;
 using SpaceNotch.Core.Presentation;
 using SpaceNotch.Core.Scenes;
 using SpaceNotch.Core.State;
+using SpaceNotch.Features.Clipboard;
 using SpaceNotch.Platform.Windows.Clipboard;
 using SpaceNotch.Platform.Windows.Win32;
 
@@ -57,6 +58,11 @@ public sealed class CopyAssistFeature : IslandFeatureBase
         _now = now ?? (() => DateTimeOffset.Now);
     }
 
+    /// <summary>La pause partagée avec l'historique (n° 3).</summary>
+    public SpaceNotch.Core.Clipboard.ClipboardPause Pause { get; init; } = new();
+
+    private IDisposable? _listener;
+
     /// <summary>Le modèle choisi, ou <c>null</c> : seul le rappel est alors proposé.</summary>
     public Func<AssistantRequest, Task<string?>>? Ask { get; set; }
 
@@ -69,13 +75,14 @@ public sealed class CopyAssistFeature : IslandFeatureBase
     protected override Task OnStartAsync(CancellationToken cancellationToken)
     {
         _monitor.Start(_windowHandle);
-        _monitor.ClipboardUpdated += OnClipboardUpdated;
+        _listener = ClipboardPauseListener.Attach(_monitor, OnClipboardUpdated, Pause);
         return Task.CompletedTask;
     }
 
     protected override Task OnStopAsync()
     {
-        _monitor.ClipboardUpdated -= OnClipboardUpdated;
+        _listener?.Dispose();
+        _listener = null;
         _monitor.Stop();
         _copied = null;
         RemoveActivity(ActivityId);

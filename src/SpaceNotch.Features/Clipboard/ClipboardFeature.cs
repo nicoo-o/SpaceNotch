@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using SpaceNotch.Core.Activities;
+using SpaceNotch.Core.Clipboard;
 using SpaceNotch.Core.Events;
 using SpaceNotch.Core.Features;
 using SpaceNotch.Core.Scenes;
@@ -124,14 +125,15 @@ public sealed class ClipboardFeature : IslandFeatureBase
         // L'inscription est tentée avant l'abonnement : si Windows la refuse, la
         // fonctionnalité passe en échec sans laisser d'abonné derrière elle.
         _monitor.Start(_windowHandle);
-        _monitor.ClipboardUpdated += OnClipboardUpdated;
+        _listener = ClipboardPauseListener.Attach(_monitor, OnClipboardUpdated, Pause);
 
         return Task.CompletedTask;
     }
 
     protected override Task OnStopAsync()
     {
-        _monitor.ClipboardUpdated -= OnClipboardUpdated;
+        _listener?.Dispose();
+        _listener = null;
         _monitor.Stop();
 
         lock (_lock)
@@ -161,6 +163,11 @@ public sealed class ClipboardFeature : IslandFeatureBase
         _monitor.OnClipboardMessageReceived();
         return true;
     }
+
+    /// <summary>Pause partagée avec les actions sur copie : une seule porte pour les deux lecteurs.</summary>
+    public ClipboardPause Pause { get; init; } = new();
+
+    private IDisposable? _listener;
 
     public override Task<bool> HandleActionAsync(IslandActionRequest request)
     {
