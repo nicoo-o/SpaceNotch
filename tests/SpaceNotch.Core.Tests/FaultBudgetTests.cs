@@ -26,6 +26,37 @@ public sealed class FaultBudgetTests
     }
 
     [Fact]
+    public void Vingt_exceptions_en_une_minute_proposent_une_seule_fois_de_relancer()
+    {
+        var budget = new FaultBudget();
+        int troubled = 0;
+
+        for (int i = 0; i < FaultBudget.TroubledPerWindow - 1; i++)
+        {
+            Assert.False(budget.Record(Start.AddSeconds(i)).Troubled);
+        }
+
+        // La vingtième dit que ça ne va plus ; ensuite, plus jamais dans la session.
+        for (int i = 0; i < 3 * FaultBudget.TroubledPerWindow; i++)
+        {
+            troubled += budget.Record(Start.AddSeconds(30 + i)).Troubled ? 1 : 0;
+        }
+
+        Assert.Equal(1, troubled);
+    }
+
+    [Fact]
+    public void Des_exceptions_espacees_ne_proposent_jamais_de_relancer()
+    {
+        var budget = new FaultBudget();
+
+        for (int i = 0; i < 5 * FaultBudget.TroubledPerWindow; i++)
+        {
+            Assert.False(budget.Record(Start.AddMinutes(i * 0.25)).Troubled);
+        }
+    }
+
+    [Fact]
     public void Au_dela_elles_sont_comptees_sans_etre_ecrites()
     {
         var budget = new FaultBudget();

@@ -107,7 +107,7 @@ public sealed partial class IslandWindow
         yield return ("pixel · le regard suit", () =>
         {
             TourClear("tour.heap");
-            _settings.ShowPixel = true;
+            _tourShowPixel = true;
             _pixelNight = new TimeOnly(14, 32);
             _pixelLook = (-PixelGaze.MaxLookX, 0.5);
             Render();
@@ -138,7 +138,7 @@ public sealed partial class IslandWindow
 
         yield return ("goutte · un fichier au-dessus", () =>
         {
-            _settings.ShowPixel = false;
+            _tourShowPixel = false;
             _pixelNight = null;
             _pixelLook = null;
             Render();
@@ -191,7 +191,7 @@ public sealed partial class IslandWindow
         yield return ("rémanence · horloge", () =>
         {
             TourClear("tour.glyph");
-            _settings.ShowClockAtRest = true;
+            _tourShowClock = true;
             _tourClock = "12:58";
             TourLater(900, () => IdleClock.Show(_tourClock = "12:58"));
             TourLater(1900, () => IdleClock.Show(_tourClock = "12:59"));
@@ -210,7 +210,7 @@ public sealed partial class IslandWindow
         yield return ("extinction · notification ignorée", () =>
         {
             _controller.EndPreview();
-            _settings.ShowClockAtRest = false;
+            _tourShowClock = false;
             _tourClock = null;
             TourShow(discord(), open: true);
             TourLater(2300, NotificationSceneView.DismissForTour);

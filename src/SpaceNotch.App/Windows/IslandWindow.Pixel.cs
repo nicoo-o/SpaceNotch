@@ -24,7 +24,7 @@ public sealed partial class IslandWindow
     private DateTime _pixelSurpriseUntil;
 
     /// <summary>Vrai quand Pixel habite la notch au repos.</summary>
-    private bool PixelAtRest => _settings.ShowPixel && !UsesSideTab;
+    private bool PixelAtRest => ShowPixelNow && !UsesSideTab;
 
     /// <summary>
     /// Windows réduit les animations, ou l'intensité « Calme » est choisie :
