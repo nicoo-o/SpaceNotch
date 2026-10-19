@@ -24,7 +24,7 @@ public sealed partial class IslandWindow
     private DateTime _pixelSurpriseUntil;
 
     /// <summary>Vrai quand Pixel habite la notch au repos.</summary>
-    private bool PixelAtRest => _settings.ShowPixel && !UsesSideTab;
+    private bool PixelAtRest => ShowPixelNow && !UsesSideTab;
 
     /// <summary>
     /// Windows réduit les animations, ou l'intensité « Calme » est choisie :
@@ -111,11 +111,13 @@ public sealed partial class IslandWindow
         if (_pixelLive)
         {
             PixelTick();
+            RenderMark("pixel·regard");
             return;
         }
 
         _pixelLive = true;
         StartPixelLife();
+        RenderMark("pixel·vie");
 
         _gazeTimer ??= CreateRepeatingTimer(GazeInterval, PixelTick);
         PixelTick();

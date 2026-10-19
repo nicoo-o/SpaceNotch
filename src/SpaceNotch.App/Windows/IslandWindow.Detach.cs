@@ -812,6 +812,15 @@ public sealed partial class IslandWindow
         _detachDisplay = under;
         _shape.Forget();
 
+        // La goutte de l'arrachement est tracée dans le repère de l'écran quitté :
+        // poursuivie, sa trace se redessinait sur le nouvel écran. Elle finit
+        // d'un coup (n° 98).
+        if (_gooRate > 0)
+        {
+            _goo = 1;
+            _gooRate = 0;
+        }
+
         MiniLog("changement d'écran");
     }
 

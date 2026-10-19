@@ -1,4 +1,4 @@
-# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-17)
+# Feuille de route — projet gratuit et open source (re-triée le 2026-10-06, mise à jour le 2026-10-19)
 
 Première version : 2026-10-04, écrite « pour vendre ». L'auteur l'a précisé le 2026-10-05 :
 SpaceNotch reste **gratuite et open source**, sans vente. Cette version re-trie tout pour ce cadre.
@@ -73,6 +73,10 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 20 | Installeur : échec muet, deux UAC | #97 | fusionnée : raison et chemin du journal affichés ; une seule élévation pour tous |
 | 12 | Notifications Windows impossibles à activer après coup | #98 | fusionnée : « Activer » dans les Réglages, puis redémarrage de la notch |
 | 19 | Alt+Espace pris globalement | — | **clos sans changement** : l'auteur garde Alt+Espace (2026-10-16) |
+| 37, 43, 44 | Caméra du miroir, crête-mètre ; économiseur d'énergie ; carte « actions sur copie » qui revient | #102 | fusionnée : économiseur d'énergie = mouvement réduit automatique (choix de l'auteur) |
+| 100 | Présentation, carte 3 : le raccourci réellement retenu | #103 | fusionnée |
+| 99 | Test d'allocation instable | #104 | fusionnée |
+| 89 | Notch agrandie avec la taille du texte de Windows | — | **clos sans changement** : l'auteur garde la notch à texte fixe (2026-10-19, voir n° 59) |
 
 ## Sans objet pour un projet gratuit
 
@@ -106,46 +110,43 @@ répond ou si une autre voie de signature se présente.
 
 | # | Sujet | Preuve | Impact | Effort | Risque |
 |---|---|---|---|---|---|
-| 46b | Suite de n° 46 : première mise en page d'une scène pendant le ressort (74,7 ms une fois) ; tableaux de points du ressort (GC de génération 0) ; scènes à créer d'avance (n° 25) | #48 | moyen | M | moyen |
-| 36 | Coût par image du ressort (géométries neuves, mises en page) | voir n° 46 | (cause de 46) | M | moyen |
-| 37 | ~~Caméra du miroir, crête-mètre, cache d'icônes sans borne~~ — PR #102 ouverte | `IslandWindow.Phone.cs:225` | faible | S | faible |
+| 46b | Suite de n° 46. **PR #112 ouverte** : rendus découpés en étapes sous `--frames` ; onglets gardés dans l'arbre (« onglets·bande » 178–227 → 42–49 ms par visite) ; état du PC lu hors du fil d'interface (13 ms → 0). Reste : « scène remplie » ≈ 250 ms par visite (lanceur : `BuildRows` reconstruit toutes ses lignes), « forme compacte » ≈ 160 ms, GC de génération 2 « provoqués » sans `GC.Collect` (cause non établie), 0 à 2 rendus > 50 ms à l'ouverture du menu rapide ou du lanceur ; scènes à créer d'avance (n° 25) | #48, #112 | moyen | M | moyen |
+| 36 | Coût par image du ressort (géométries neuves, mises en page) — voir n° 46b, PR #112 | voir n° 46 | (cause de 46) | M | moyen |
 | 40 | Remontée des plantages sur accord explicite | `MiniLogger` | moyen | M | vie privée |
 | 42 | Faux positifs antivirus | `IdentityManifestFile.cs:23-56` | moyen | M | réputation |
-| 43 | ~~Consommation sur batterie non mesurée ; économiseur d'énergie ignoré~~ — PR #102 ouverte | aucun `EnergySaverStatus` | moyen (portables) | S | faible |
-| 44 | ~~Carte « actions sur copie » qui revient~~ — PR #102 ouverte | `CopyAssistFeature.cs:134` | faible | S | faible |
 
 ## P2 — qualité, dette, confort
 
 | # | Sujet | Preuve | Effort |
 |---|---|---|---|
-| 89 | Notch agrandie avec la taille du texte de Windows, plafonnée à 150 % (forme et contenu) ; ADR à écrire | n° 59, choix « notch fixe » pour l'instant | L |
-| 90 | Réglages : fond et barre de titre choisis à l'ouverture seulement ; un passage en contraste élevé pendant qu'ils sont ouverts demande de les rouvrir | relecture de #72 | S |
-| 91 | Mouvement réduit : le halo et l'ombre (`AtmosphereWindow`) sautent encore ; « Rebond » éteint passe aussi en fondu au lieu d'un ressort sans dépassement | #71 | S |
+| 90 | ~~Réglages : contraste élevé suivi seulement à la réouverture~~ — **PR #106 ouverte** (avec n° 29) | relecture de #72 | S |
+| 91 | ~~Mouvement réduit : halo et ombre qui sautent ; « Rebond » éteint en fondu~~ — **PR #107 ouverte** | #71 | S |
 | 98 | Écran changé pendant l'arrachement (0,34 s) : la trace se redessine sur le nouvel écran ; forcer la fin de la goutte au changement | relecture de #81, `IslandWindow.Detach.cs:809` | S |
-| 100 | ~~Présentation, carte 3 : elle montre Alt+Espace même quand le raccourci de recherche est un autre (Ctrl+Maj+Espace sur la machine de l'auteur)~~ — PR #103 ouverte | relecture de #92, `WelcomeScene.xaml.cs` | S |
-| 99 | ~~Test instable : `PhaseDTests.L_horloge_dit_ce_que_chaque_abonne_alloue` a échoué une fois sur trois passages (mesure d'allocation)~~ — PR #104 ouverte | constaté le 2026-10-14 | S |
 | 80 | Une instance de développement (`winapp run`) ne reçoit pas `SpaceNotch.exe --hook` lancé par Git Bash, alors que la notch installée le reçoit ; cause non établie (identité de paquet, propriétaire du tube) | essais du 2026-10-06 et du 2026-10-10 | S |
 | 39 | **Store en MSIX complet** : à étudier, pas à construire (voir direction) ; le Store n'accepte un installeur exe que signé | ADR-023 ; [exigences exe/MSI du Store](https://learn.microsoft.com/windows/apps/publish/publish-your-app/msi/app-package-requirements) | L |
 | 70 | Rapide : arrêter un nouveau `TryEnqueue`/`Tick` nu (analyseur de symboles interdits — dépendance NuGet à approuver) | #45 | S |
 | 71 | Après des fautes répétées dans le rendu, proposer de relancer plutôt que de continuer en silence | #45 | S |
 | 72 | Reflet par le compositeur (~0 % du fil d'interface) | #47 | M |
-| 24 | Mémoire 214–311 Mo mesurés ; Native AOT non évalué | `performance.md:59` | L |
+| 24 | Mémoire 214–311 Mo. **PR #113 ouverte** : ligne `[MÉMOIRE]` au journal ; au repos, tas .NET 3 Mo, mémoire privée 125 Mo (native : WinUI, composition, pilote, runtime), ≈ 89 Mo partagés (DLL). Pistes : Native AOT (compatibilité WinUI à vérifier), coût des fenêtres cachées (halo, bulle), descripteurs (1 748) après une journée | `performance.md:59`, #113 | L |
 | 25 | Restes de la phase D | `performance.md:142-148` | M–L |
-| 26 | Machine à états en ombre ; `IslandWindow` = 31 fichiers | audit §4 | L |
+| 26 | Machine à états en ombre ; `IslandWindow` = 31 fichiers. **PR #111 ouverte** : seul écart de l'usage récent corrigé (arrachée ou déplacée pendant l'aperçu). Reste : écarts « Presence = Withdrawn » plus anciens (version antérieure à #30 ? non établi), puis une région confiée à la machine, et le découpage | audit §4, #111 | L |
 | 27 | Spotify et Discord exigent une application développeur | ADR-026 | L |
 | 28 | Greffon d'exemple qui figeait l'application : état inconnu | `performance.md:68-75` | M |
-| 29 | Fenêtre de réglages trop grande à 1366 × 768 (tutoiement : fait, #54) | `SettingsWindow.xaml.cs:148`, `SetupText.cs` | S |
-| 30 | Documents périmés (README, performance.md, ADR-009 contre le manifeste, index des ADR) | enquête du 2026-10-06 | S |
-| 31 | `capture.ps1` non DPI-aware | constats | S |
+| 29 | ~~Fenêtre de réglages trop grande à 1366 × 768~~ — **PR #106 ouverte** | `SettingsWindow.xaml.cs:148` | S |
+| 30 | ~~Documents périmés~~ — **PR #110 ouverte** (à fusionner après #107) | enquête du 2026-10-06 | S |
+| 31 | ~~`capture.ps1` non DPI-aware~~ — **PR #109 ouverte** | constats | S |
+| 101 | La visite (`--tour`) rend la valeur de Pixel en mémoire seulement : les Réglages qu'elle ouvre enregistrent entre-temps `ShowPixel` faux dans `config.json` | `IslandWindow.Tour.cs:65`, constaté à chaque visite du 2026-10-18 | S |
+| 102 | Manifeste d'identité : `MinVersion` 10.0.22000, sous le reste du dépôt (22631) ; le changer change la variante installée et sa signature — à trancher avec la signature | `packaging/identity/AppxManifest.xml`, #110 | S |
+| 103 | `ThemeBrushes.Get` crée un `AccessibilitySettings` à chaque appel (deux par rendu dans `UpdateTabs`) | relecture de #112, `ThemeBrushes.cs:37` | S |
+| 104 | Onglets de la notch : 24 DIP de haut (cible de 32) ; pas de motif de sélection UI Automation, le Narrateur ne dit pas l'onglet choisi | relecture de #112, `TabStripView.cs` | S |
 | 32 | ~529 couleurs écrites en dur | grep | S–M |
 
 ## Ordre proposé
 
-1. #94 à #98 : fusion si l'auteur le demande.
-2. Preuves restées à faire : #71 (effets d'animation coupés), #72 (contraste élevé) — l'auteur change
-   le réglage système ; et, sur l'installation après la prochaine version : « Démarrer avec Windows »
-   (#91), `[VEILLE]` au journal après une vraie veille (#95).
-3. P1 courts restants : 37 (caméra du miroir, crête-mètre, cache d'icônes), 43 (batterie, économiseur
-   d'énergie), 44 (carte « actions sur copie » qui revient) ; puis 100, 98, 99.
-4. Plus tard, les chantiers longs : 46b, 36, 89, 26, 24 ; 40 et 42 (vie privée, réputation) à
-   trancher avec l'auteur.
+1. **Fusion, si l'auteur le demande** : #106, #107, #108, #109, #111 (CI verte) ; #110 après #107 ; #112 et #113 (CI à lire).
+2. **Preuves à faire** :
+   - à l'écran, avec le réglage système changé par l'auteur : contraste élevé Réglages ouverts (#106), mouvement réduit (#107), thème changé notch ouverte à plusieurs onglets (#112) ;
+   - centrage des onglets après un passage de 4 à 2 (#112) ;
+   - sur l'installation après la prochaine version : « Démarrer avec Windows » (#91), `[VEILLE]` après une vraie veille (#95).
+3. **Courts** : 101, 103, 104, 98.
+4. **Chantiers longs** : 46b (lanceur, scènes d'avance), 26 (une région confiée à la machine, découpage), 24 (AOT, fenêtres cachées) ; 40 et 42 à trancher avec l'auteur.

@@ -53,7 +53,7 @@ public sealed partial class IslandWindow
                 TourClear(shown);
             }
 
-            _settings.ShowPixel = true;
+            _tourShowPixel = true;
             _pixelNight = new TimeOnly(14, 32);
             _pixelLook = null;
             IslandActivity activity = make();
@@ -68,7 +68,7 @@ public sealed partial class IslandWindow
         yield return ("passage · repos", () =>
         {
             TourClear();
-            _settings.ShowPixel = true;
+            _tourShowPixel = true;
             _pixelNight = new TimeOnly(14, 32);
             Render();
         });
@@ -124,7 +124,7 @@ public sealed partial class IslandWindow
             }
 
             _controller.RequestCollapse();
-            _settings.ShowPixel = true;
+            _tourShowPixel = true;
             _pixelNight = new TimeOnly(14, 32);
             _pixelLook = null;
             Render();
@@ -244,7 +244,7 @@ public sealed partial class IslandWindow
 
             _tourCondition = null;
             _tourBeat = false;
-            _settings.ShowPixel = false;
+            _tourShowPixel = false;
             _pixelNight = null;
             Render();
         });
