@@ -304,6 +304,14 @@ public sealed partial class SettingsWindow : Window
 
             (string glyph, string title, string description) = DescribeFeature(feature);
 
+            // Une fonction active qui ne peut rien faire le dit dès l'ouverture, pas seulement à la bascule.
+            IntegrationStatus integration = IntegrationStatuses.For(feature);
+
+            if (IntegrationStatuses.NeedsAttention(integration))
+            {
+                description = $"{description} {IntegrationStatuses.Describe(integration)}";
+            }
+
             var toggle = new ToggleSwitch
             {
                 OnContent = string.Empty,
@@ -1348,13 +1356,17 @@ public sealed partial class SettingsWindow : Window
         await _features.SetEnabledAsync(feature.Id, enabled);
         _settings.SetFeatureEnabled(feature.Id, enabled);
 
-        string outcome = feature.State switch
-        {
-            FeatureState.Running => Lang.T("active", "on"),
-            FeatureState.Stopped => Lang.T("inactive", "off"),
-            FeatureState.Faulted => Lang.T("en échec — API système indisponible", "failed — system API unavailable"),
-            _ => feature.State.ToString()
-        };
+        // Une fonction active qui ne peut rien faire le dit, avec l'action possible.
+        IntegrationStatus status = IntegrationStatuses.For(feature);
+
+        string outcome = IntegrationStatuses.NeedsAttention(status)
+            ? IntegrationStatuses.Describe(status)
+            : feature.State switch
+            {
+                FeatureState.Running => Lang.T("active", "on"),
+                FeatureState.Stopped => Lang.T("inactive", "off"),
+                _ => feature.State.ToString()
+            };
 
         StatusText.Text = $"{feature.DisplayName} : {outcome}";
 

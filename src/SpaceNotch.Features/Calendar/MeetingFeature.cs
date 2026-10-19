@@ -29,7 +29,7 @@ namespace SpaceNotch.Features.Calendar;
 /// à rebours seulement, l'anneau avance toutes les cinq secondes.
 /// </para>
 /// </summary>
-public sealed class MeetingFeature : IslandFeatureBase
+public sealed class MeetingFeature : IslandFeatureBase, IIntegrationStatusSource
 {
     public const string FeatureKey = FeatureKeys.Meeting;
 
@@ -60,6 +60,9 @@ public sealed class MeetingFeature : IslandFeatureBase
     /// <summary>Le rendez-vous montré, pour le focus calé sur l'agenda (W3).</summary>
     public CalendarMeeting? Current => _meeting;
 
+    /// <summary>Sans lecteur, ou si la lecture échoue : l'agenda n'est pas joignable.</summary>
+    public IntegrationProbe Probe => _reader?.Probe ?? IntegrationProbe.Missing;
+
     public MeetingFeature(IActivityManager activities, IEventBus events, CalendarReader? reader, bool isEnabled = true, Func<DateTimeOffset>? now = null)
         : base(FeatureKey, Lang.T("Rendez-vous", "Meetings"), activities, events, isEnabled)
     {
@@ -75,15 +78,20 @@ public sealed class MeetingFeature : IslandFeatureBase
             _reader.Changed += OnCalendarChanged;
         }
 
-        _ = RefreshAsync();
-        return Task.CompletedTask;
+        // La première lecture dit si l'agenda est joignable : on l'attend un instant
+        // pour que l'état affiché à l'activation ne soit pas « prête » par défaut.
+        // Au-delà, la lecture continue seule.
+        return Task.WhenAny(RefreshAsync(), Task.Delay(FirstReadWait, cancellationToken));
     }
+
+    private static readonly TimeSpan FirstReadWait = TimeSpan.FromSeconds(1.5);
 
     protected override Task OnStopAsync()
     {
         if (_reader is not null)
         {
             _reader.Changed -= OnCalendarChanged;
+            _reader.Stop();
         }
 
         _timer.Change(Timeout.Infinite, Timeout.Infinite);
@@ -100,7 +108,13 @@ public sealed class MeetingFeature : IslandFeatureBase
         try
         {
             CalendarMeeting? meeting = _reader is null ? _meeting : await _reader.NextAsync(_now()).ConfigureAwait(false);
-            Show(meeting);
+
+            // Une lecture en vol quand la fonction s'arrête ne doit ni republier la
+            // carte retirée ni réarmer le minuteur.
+            if (State is FeatureState.Running or FeatureState.Starting)
+            {
+                Show(meeting);
+            }
         }
         catch (Exception ex)
         {

@@ -4362,6 +4362,8 @@ public sealed partial class IslandWindow : Window
                     // On journalise l'état obtenu, pas l'intention : activer une
                     // fonctionnalité dont l'API système est indisponible doit se
                     // voir, et non s'afficher comme un succès.
+                    IntegrationStatus status = IntegrationStatuses.For(captured);
+
                     string outcome = captured.State switch
                     {
                         FeatureState.Running => "activée",
@@ -4369,6 +4371,15 @@ public sealed partial class IslandWindow : Window
                         FeatureState.Faulted => "échec d'activation",
                         _ => captured.State.ToString()
                     };
+
+                    // Dans la notch : le menu dit pourquoi, et Narrateur l'annonce.
+                    bool attention = enabled && IntegrationStatuses.NeedsAttention(status);
+                    featureToggle.Text = attention ? $"{captured.DisplayName} — {IntegrationStatuses.Label(status)}" : captured.DisplayName;
+
+                    if (attention)
+                    {
+                        AnnounceText($"{captured.DisplayName} : {IntegrationStatuses.Describe(status)}");
+                    }
 
                     MiniLogger.Log($"[FEATURE] {captured.DisplayName} : {outcome}");
                 }

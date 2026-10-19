@@ -18,7 +18,7 @@ namespace SpaceNotch.Features.SystemHud;
 /// valeur, une échelle, un libellé et une clé d'icône. Une seconde scène aurait
 /// dupliqué une mise en page identique pour la seule différence d'un glyphe.
 /// </summary>
-public sealed class BrightnessHudFeature : IslandFeatureBase
+public sealed class BrightnessHudFeature : IslandFeatureBase, IIntegrationStatusSource
 {
     public const string FeatureKey = "feature.brightness";
 
@@ -43,6 +43,9 @@ public sealed class BrightnessHudFeature : IslandFeatureBase
     /// poste à écran externe, où la fonctionnalité n'a rien à observer.
     /// </summary>
     public bool IsAvailable => _brightness.IsAvailable;
+
+    /// <summary>Écran externe ou machine virtuelle : WMI ne publie rien, il n'y a rien à régler.</summary>
+    public IntegrationProbe Probe => _brightness.IsAvailable ? IntegrationProbe.Ok : IntegrationProbe.Missing;
 
     protected override Task OnStartAsync(CancellationToken cancellationToken)
     {
