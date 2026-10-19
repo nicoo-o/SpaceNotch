@@ -146,7 +146,7 @@ public sealed partial class SettingsWindow : Window
         _persistTimer = DispatcherQueue.CreateTimer();
         _persistTimer.IsRepeating = false;
         _persistTimer.Interval = PersistDelay;
-        _persistTimer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
+        _persistTimer.OnTick((_, _) =>
         {
             _persistTimer.Stop();
             _settings.Persist();

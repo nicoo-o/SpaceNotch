@@ -418,7 +418,7 @@ public sealed partial class IslandWindow
             // Les yeux reprennent leur place, invisibles, pour qu'on sache où aller.
             _restFace = RestFace.Eyes;
             IdleClock.HideColon();
-            IdleClock.Visibility = _settings.ShowClockAtRest ? Visibility.Visible : Visibility.Collapsed;
+            IdleClock.Visibility = ShowClockNow ? Visibility.Visible : Visibility.Collapsed;
             WeatherGlyph.Visibility = Visibility.Collapsed;
             WeatherText.Visibility = Visibility.Collapsed;
             RestEyes.Opacity = 0;
@@ -464,7 +464,7 @@ public sealed partial class IslandWindow
                     RemoveMorphPixels();
                     RestEyes.Opacity = 1;
                     IdleClock.UnfoldAll();
-                    IdleClock.Visibility = _settings.ShowClockAtRest ? Visibility.Visible : Visibility.Collapsed;
+                    IdleClock.Visibility = ShowClockNow ? Visibility.Visible : Visibility.Collapsed;
                     SetWeatherOpacity(1);
                     FinishWake();
                 });
@@ -592,7 +592,7 @@ public sealed partial class IslandWindow
         DispatcherQueueTimer timer = _dispatcherQueue.CreateTimer();
         timer.Interval = delay;
         timer.IsRepeating = false;
-        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
+        timer.OnTick((_, _) =>
         {
             timer.Stop();
 

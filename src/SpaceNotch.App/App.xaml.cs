@@ -60,7 +60,8 @@ public partial class App : Application
     /// Preuve du n° 33 sur la vraie notch, en build Debug seulement
     /// (<c>--fault-test</c>) : une exception levée par un minuteur à 3 s, une autre
     /// après un <c>await</c> dans un gestionnaire <c>async void</c> à 5 s, puis
-    /// une ligne de journal à 8 s si la notch tourne encore.
+    /// une ligne de journal à 8 s si la notch tourne encore ; à 10 s, vingt
+    /// exceptions d'un coup, qui font proposer de relancer (n° 71).
     /// </summary>
     private static async void ThrowAfterAwait()
     {
@@ -68,6 +69,8 @@ public partial class App : Application
         throw new InvalidOperationException("Essai n° 33 : exception d'un async void après un await");
     }
 
+    // L'essai lève exprès hors de la garde : les appels nus y sont voulus (n° 70).
+#pragma warning disable RS0030
     private static void StartFaultTest(DispatcherQueue queue)
     {
         void After(double seconds, global::Windows.Foundation.TypedEventHandler<DispatcherQueueTimer, object> tick)
@@ -84,7 +87,17 @@ public partial class App : Application
         After(5, (_, _) => queue.TryEnqueue(ThrowAfterAwait));
         After(6, (_, _) => queue.TryEnqueueSafely(() => throw new InvalidOperationException("Essai n° 33 : exception d'un travail posté")));
         After(8, (_, _) => MiniLogger.Log("[ESSAI] n° 33 : la notch tourne toujours après les trois exceptions"));
+
+        // n° 71 : une rafale de vingt exceptions en une minute fait proposer de relancer.
+        After(10, (_, _) =>
+        {
+            for (int i = 0; i < SpaceNotch.Core.State.FaultBudget.TroubledPerWindow; i++)
+            {
+                queue.TryEnqueueSafely(() => throw new InvalidOperationException("Essai n° 71 : exceptions répétées"));
+            }
+        });
     }
+#pragma warning restore RS0030
 #endif
 
     /// <summary>Vrai une fois la notch lancée : l'installeur a son propre gestionnaire, qui s'arrête.</summary>

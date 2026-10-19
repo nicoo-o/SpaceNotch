@@ -499,6 +499,7 @@ public sealed partial class IslandWindow : Window
         // par le même chemin que les préférences du menu : il n'existe donc pas
         // deux manières d'appliquer un réglage.
         _settingsService.Changed += OnSettingsChanged;
+        SpaceNotch_App.Diagnostics.Guard.Troubled += OnRepeatedFaults;
 
         SetupTrayIcon();
 
@@ -775,7 +776,7 @@ public sealed partial class IslandWindow : Window
 
             // Les commandes du menu rapide touchent la fenêtre : elles sont
             // exécutées ici, pas par une fonctionnalité.
-            if (HandleQuickMenuAction(request) || await HandleWelcomeActionAsync(request))
+            if (HandleQuickMenuAction(request) || HandleTroubleAction(request) || await HandleWelcomeActionAsync(request))
             {
                 return;
             }
@@ -1402,7 +1403,7 @@ public sealed partial class IslandWindow : Window
             // horloge à la minute dans un produit dont la promesse est de ne rien
             // faire au repos. Sans elle, la lèvre est vide — le point de veille
             // ne l'accompagne que pour lui donner un repère.
-            IdleClock.Visibility = _settings.ShowClockAtRest && !UsesSideTab
+            IdleClock.Visibility = ShowClockNow && !UsesSideTab
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
@@ -3173,7 +3174,7 @@ public sealed partial class IslandWindow : Window
         DispatcherQueueTimer timer = TrackTimer(_dispatcherQueue.CreateTimer());
         timer.IsRepeating = false;
         timer.Interval = interval;
-        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) =>
+        timer.OnTick((_, _) =>
         {
             timer.Stop();
             if (!_isClosed)
@@ -4778,7 +4779,7 @@ public sealed partial class IslandWindow : Window
             return false;
         }
 
-        MiniLogger.Log("[NOTCH] Redémarrage demandé depuis les Réglages");
+        MiniLogger.Log("[NOTCH] Redémarrage demandé");
         QuitApplication();
         return true;
     }
@@ -4855,6 +4856,7 @@ public sealed partial class IslandWindow : Window
         // toutes les suivantes.
         Safely("greffons", _pluginLoader.Dispose);
         Safely("réglages", () => _settingsService.Changed -= OnSettingsChanged);
+        Safely("exceptions répétées", () => SpaceNotch_App.Diagnostics.Guard.Troubled -= OnRepeatedFaults);
         Safely("scènes", () =>
         {
             foreach (IIslandSceneView scene in _scenes.Values.Distinct())

@@ -15,6 +15,9 @@
     <PackageVersion Include="QRCoder" Version="1.6.0" />
     <!-- Assistant (vague 6c) : SDK officiel d'Anthropic pour Claude. Voir ADR-025. -->
     <PackageVersion Include="Anthropic" Version="12.53.0" />
+    <!-- Analyseur de build seulement, rien n'est livré (n° 70) : interdit le
+         TryEnqueue et le Tick non gardés, qui ferment la notch (n° 33). -->
+    <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" />
   </ItemGroup>
 
   <ItemGroup>
