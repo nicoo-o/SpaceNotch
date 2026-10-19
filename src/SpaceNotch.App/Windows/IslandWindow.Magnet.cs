@@ -51,7 +51,7 @@ public sealed partial class IslandWindow
         DispatcherQueueTimer timer = _dispatcherQueue.CreateTimer();
         timer.Interval = MagnetFar;
         timer.IsRepeating = true;
-        timer.Tick += SpaceNotch_App.Diagnostics.Guard.Tick((_, _) => StepMagnet(timer));
+        timer.OnTick((_, _) => StepMagnet(timer));
         return TrackTimer(timer);
     }
 

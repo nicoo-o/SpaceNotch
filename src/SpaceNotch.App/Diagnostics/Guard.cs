@@ -27,6 +27,12 @@ internal static class Guard
     /// </summary>
     public static Action<Exception>? Fatal { get; set; }
 
+    /// <summary>
+    /// Les exceptions se répètent (n° 71) : levé une fois par session, de
+    /// n'importe quel fil. La notch propose alors de relancer.
+    /// </summary>
+    public static event Action? Troubled;
+
     /// <summary>Un battement de minuteur gardé.</summary>
     public static global::Windows.Foundation.TypedEventHandler<DispatcherQueueTimer, object> Tick(
         global::Windows.Foundation.TypedEventHandler<DispatcherQueueTimer, object> tick)
@@ -123,6 +129,19 @@ internal static class Guard
         {
             string silenced = verdict.Silenced > 0 ? $" ({verdict.Silenced} autres tues depuis la précédente)" : string.Empty;
             MiniLogger.Log($"[ERREUR] Exception non gérée ({where}), la notch continue{silenced} : {exception}");
+        }
+
+        if (verdict.Troubled)
+        {
+            try
+            {
+                Troubled?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                // Le signal ne doit pas à son tour lever là où l'on survit à une exception.
+                MiniLogger.Log("[ERREUR] Signal des exceptions répétées", ex);
+            }
         }
     }
 }

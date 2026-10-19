@@ -10,6 +10,11 @@ namespace SpaceNotch_App;
 /// l'application sans <c>using</c> ; un <c>TryEnqueue</c> nu ne devrait plus
 /// apparaître dans <c>SpaceNotch.App</c>, hormis l'essai <c>--fault-test</c>.
 /// </summary>
+/// <remarks>
+/// Les appels nus sont interdits par <c>BannedSymbols.txt</c> (n° 70) : seule
+/// cette classe y touche.
+/// </remarks>
+#pragma warning disable RS0030 // Les appels gardés eux-mêmes.
 internal static class DispatcherQueueSafety
 {
     /// <summary>Poste un travail gardé sur le fil de cette file.</summary>
@@ -25,4 +30,19 @@ internal static class DispatcherQueueSafety
         ArgumentNullException.ThrowIfNull(queue);
         return queue.TryEnqueue(priority, Guard.Run(work));
     }
+
+    /// <summary>Abonne un battement gardé : une exception arrête ce minuteur et la notch continue.</summary>
+    public static void OnTick(this DispatcherQueueTimer timer, global::Windows.Foundation.TypedEventHandler<DispatcherQueueTimer, object> tick)
+    {
+        ArgumentNullException.ThrowIfNull(timer);
+        timer.Tick += Guard.Tick(tick);
+    }
+
+    /// <summary>Abonne un battement de <c>DispatcherTimer</c> XAML gardé.</summary>
+    public static void OnTick(this Microsoft.UI.Xaml.DispatcherTimer timer, EventHandler<object> tick)
+    {
+        ArgumentNullException.ThrowIfNull(timer);
+        timer.Tick += Guard.XamlTick(tick);
+    }
 }
+#pragma warning restore RS0030
