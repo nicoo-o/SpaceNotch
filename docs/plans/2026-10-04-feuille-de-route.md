@@ -77,6 +77,18 @@ Preuves : [constats du 2026-10-03](2026-10-03-constats.md), enquête du 2026-10-
 | 100 | Présentation, carte 3 : le raccourci réellement retenu | #103 | fusionnée |
 | 99 | Test d'allocation instable | #104 | fusionnée |
 | 89 | Notch agrandie avec la taille du texte de Windows | — | **clos sans changement** : l'auteur garde la notch à texte fixe (2026-10-19, voir n° 59) |
+| 90, 29 | Réglages : contraste élevé suivi Réglages ouverts ; fenêtre trop grande à 1366 × 768 | #106 | fusionnée |
+| 91 | Mouvement réduit : halo et ombre en fondu ; « Rebond » éteint sans dépassement | #107 | fusionnée |
+| 31 | `capture.ps1` en pixels physiques | #109 | fusionnée |
+| 30 | Documents périmés (ADR-009, index des ADR, performance, ressort) | #110 | fusionnée |
+| 101 | La visite enregistrait `ShowPixel` faux | #115 | fusionnée ; **vérifié** sur deux visites : Pixel et l'heure inchangés dans `config.json`. Le fichier change encore, mais seulement au format de la version (clés nouvelles à leur défaut, `ClawdStyle` retiré, `UpdateMode` Automatic → Notify d'ADR-031) : toute sauvegarde par la version actuelle fait de même |
+| 98 | Écran changé pendant l'arrachement : la goutte finit au changement | #116 | fusionnée |
+| 71 | Fautes répétées : la notch propose de se relancer | #117 | fusionnée ; carte vue avec `--fault-test` |
+| 70 | `TryEnqueue`/`Tick` nus refusés à la construction | #118 | fusionnée ; `BannedApiAnalyzers` (accord de l'auteur) ; un `Tick` nu ajouté échoue en Release (RS0030) |
+| 42 | Faux positifs antivirus | #119 | documentation seulement (décision de l'auteur, 2026-10-19) : `docs/avertissements-windows.md`, empreinte SHA-256 |
+| 103, 104 | Pinceau du thème ; onglets pour le Narrateur | #120 | **vérifié par UIA** pendant deux visites : `TabItem`, un seul `IsSelected` qui suit l'onglet choisi ; `PositionInSet` posé mais non relu ; hauteur gardée à 24 DIP (minimum WCAG 2.2) |
+| 40 | Remontée des plantages | — | **clos sans changement** : rien n'est envoyé automatiquement (décision de l'auteur, 2026-10-19) ; « Signaler un problème » (n° 56) reste le chemin |
+| 80 | Instance de dev qui ne recevait pas `--hook` | — | **clos, pas un défaut** (2026-10-19) : le tube existe et accepte un client de l'utilisateur ; un hook passé par un vrai tube d'entrée, comme le fait Claude Code, s'affiche (« Claude Code, essai-quatre-vingts », UIA). Seul `printf … \| exe --hook` dans Git Bash n'apporte rien à l'exécutable fenêtré : l'essai était en cause |
 
 ## Sans objet pour un projet gratuit
 
@@ -110,43 +122,28 @@ répond ou si une autre voie de signature se présente.
 
 | # | Sujet | Preuve | Impact | Effort | Risque |
 |---|---|---|---|---|---|
-| 46b | Suite de n° 46. **PR #112 ouverte** : rendus découpés en étapes sous `--frames` ; onglets gardés dans l'arbre (« onglets·bande » 178–227 → 42–49 ms par visite) ; état du PC lu hors du fil d'interface (13 ms → 0). Reste : « scène remplie » ≈ 250 ms par visite (lanceur : `BuildRows` reconstruit toutes ses lignes), « forme compacte » ≈ 160 ms, GC de génération 2 « provoqués » sans `GC.Collect` (cause non établie), 0 à 2 rendus > 50 ms à l'ouverture du menu rapide ou du lanceur ; scènes à créer d'avance (n° 25) | #48, #112 | moyen | M | moyen |
-| 36 | Coût par image du ressort (géométries neuves, mises en page) — voir n° 46b, PR #112 | voir n° 46 | (cause de 46) | M | moyen |
-| 40 | Remontée des plantages sur accord explicite | `MiniLogger` | moyen | M | vie privée |
-| 42 | Faux positifs antivirus | `IdentityManifestFile.cs:23-56` | moyen | M | réputation |
+| 46b | Suite de n° 46. **Fusionnées** : #112 (onglets gardés dans l'arbre, état du PC hors du fil d'interface) et #122 (menu rapide : lignes gardées, le second rendu lent de l'ouverture disparaît, 13 visites sur 13 avant, 0 sur 2 après). Reste : première ouverture du menu rapide 39–44 ms et première recherche 29–34 ms (`BuildRows` du lanceur) — rien à garder encore, voir n° 25 ; « forme compacte » 150–186 ms par visite ; GC de génération 2 « provoqués » sans `GC.Collect` (cause non établie) | #48, #112, #122 | moyen | M | moyen |
+| 36 | Coût par image du ressort (géométries neuves, mises en page) — voir n° 46b | voir n° 46 | (cause de 46) | M | moyen |
 
 ## P2 — qualité, dette, confort
 
 | # | Sujet | Preuve | Effort |
 |---|---|---|---|
-| 90 | ~~Réglages : contraste élevé suivi seulement à la réouverture~~ — **PR #106 ouverte** (avec n° 29) | relecture de #72 | S |
-| 91 | ~~Mouvement réduit : halo et ombre qui sautent ; « Rebond » éteint en fondu~~ — **PR #107 ouverte** | #71 | S |
-| 98 | Écran changé pendant l'arrachement (0,34 s) : la trace se redessine sur le nouvel écran ; forcer la fin de la goutte au changement | relecture de #81, `IslandWindow.Detach.cs:809` | S |
-| 80 | Une instance de développement (`winapp run`) ne reçoit pas `SpaceNotch.exe --hook` lancé par Git Bash, alors que la notch installée le reçoit ; cause non établie (identité de paquet, propriétaire du tube) | essais du 2026-10-06 et du 2026-10-10 | S |
 | 39 | **Store en MSIX complet** : à étudier, pas à construire (voir direction) ; le Store n'accepte un installeur exe que signé | ADR-023 ; [exigences exe/MSI du Store](https://learn.microsoft.com/windows/apps/publish/publish-your-app/msi/app-package-requirements) | L |
-| 70 | Rapide : arrêter un nouveau `TryEnqueue`/`Tick` nu (analyseur de symboles interdits — dépendance NuGet à approuver) | #45 | S |
-| 71 | Après des fautes répétées dans le rendu, proposer de relancer plutôt que de continuer en silence | #45 | S |
 | 72 | Reflet par le compositeur (~0 % du fil d'interface) | #47 | M |
-| 24 | Mémoire 214–311 Mo. **PR #113 ouverte** : ligne `[MÉMOIRE]` au journal ; au repos, tas .NET 3 Mo, mémoire privée 125 Mo (native : WinUI, composition, pilote, runtime), ≈ 89 Mo partagés (DLL). Pistes : Native AOT (compatibilité WinUI à vérifier), coût des fenêtres cachées (halo, bulle), descripteurs (1 748) après une journée | `performance.md:59`, #113 | L |
+| 24 | Mémoire 214–311 Mo ; tas .NET 3 Mo, mémoire privée 125 Mo surtout native (#113). **Native AOT écarté tant que les greffons sont chargés dans le processus** : `PluginLoader` passe par `AssemblyLoadContext.LoadFromAssemblyPath`, que Native AOT ne permet pas ; il faudrait des greffons hors processus (ADR à écrire). Pistes restantes : coût des fenêtres cachées (halo, bulle), descripteurs (1 748) après une journée | `performance.md:59`, #113, `PluginLoader.cs:258` | L |
 | 25 | Restes de la phase D | `performance.md:142-148` | M–L |
-| 26 | Machine à états en ombre ; `IslandWindow` = 31 fichiers. **PR #111 ouverte** : seul écart de l'usage récent corrigé (arrachée ou déplacée pendant l'aperçu). Reste : écarts « Presence = Withdrawn » plus anciens (version antérieure à #30 ? non établi), puis une région confiée à la machine, et le découpage | audit §4, #111 | L |
+| 26 | Machine à états en ombre ; `IslandWindow` = 31 fichiers. #111 fusionnée (arrachée ou déplacée pendant l'aperçu). La visite ne dit rien des écarts : elle force les états et l'ombre ne les journalise pas pendant une visite (56 comptés, aucun détaillé). **À lire en usage réel** après #111, puis une région confiée à la machine, et le découpage | audit §4, #111 | L |
 | 27 | Spotify et Discord exigent une application développeur | ADR-026 | L |
-| 28 | Greffon d'exemple qui figeait l'application : état inconnu | `performance.md:68-75` | M |
-| 29 | ~~Fenêtre de réglages trop grande à 1366 × 768~~ — **PR #106 ouverte** | `SettingsWindow.xaml.cs:148` | S |
-| 30 | ~~Documents périmés~~ — **PR #110 ouverte** (à fusionner après #107) | enquête du 2026-10-06 | S |
-| 31 | ~~`capture.ps1` non DPI-aware~~ — **PR #109 ouverte** | constats | S |
-| 101 | La visite (`--tour`) rend la valeur de Pixel en mémoire seulement : les Réglages qu'elle ouvre enregistrent entre-temps `ShowPixel` faux dans `config.json` | `IslandWindow.Tour.cs:65`, constaté à chaque visite du 2026-10-18 | S |
+| 28 | Greffon d'exemple qui figeait l'application : état inconnu. L'essai demande d'installer le greffon dans `%AppData%\SpaceNotch\plugins` et de l'approuver dans `config.json` : **accord de l'auteur nécessaire** | `performance.md:68-75` | M |
 | 102 | Manifeste d'identité : `MinVersion` 10.0.22000, sous le reste du dépôt (22631) ; le changer change la variante installée et sa signature — à trancher avec la signature | `packaging/identity/AppxManifest.xml`, #110 | S |
-| 103 | `ThemeBrushes.Get` crée un `AccessibilitySettings` à chaque appel (deux par rendu dans `UpdateTabs`) | relecture de #112, `ThemeBrushes.cs:37` | S |
-| 104 | Onglets de la notch : 24 DIP de haut (cible de 32) ; pas de motif de sélection UI Automation, le Narrateur ne dit pas l'onglet choisi | relecture de #112, `TabStripView.cs` | S |
-| 32 | ~529 couleurs écrites en dur | grep | S–M |
+| 32 | Couleurs écrites en dur. #121 fusionnée : neuf blancs d'InfoScene, QuietScene et FileShelfScene suivent le thème (blanc sur blanc en thème clair). Reste, construits une fois ou à teinte propre : `TrailingView`, `MediaExpandedScene` (paroles), `WelcomeScene`, `AtmosphericMaskHelper`, repli de `StatePalette` ; non vu à l'écran en thème clair | grep, #121 | S–M |
 
 ## Ordre proposé
 
-1. **Fusion, si l'auteur le demande** : #106, #107, #108, #109, #111 (CI verte) ; #110 après #107 ; #112 et #113 (CI à lire).
-2. **Preuves à faire** :
-   - à l'écran, avec le réglage système changé par l'auteur : contraste élevé Réglages ouverts (#106), mouvement réduit (#107), thème changé notch ouverte à plusieurs onglets (#112) ;
-   - centrage des onglets après un passage de 4 à 2 (#112) ;
-   - sur l'installation après la prochaine version : « Démarrer avec Windows » (#91), `[VEILLE]` après une vraie veille (#95).
-3. **Courts** : 101, 103, 104, 98.
-4. **Chantiers longs** : 46b (lanceur, scènes d'avance), 26 (une région confiée à la machine, découpage), 24 (AOT, fenêtres cachées) ; 40 et 42 à trancher avec l'auteur.
+1. **Avec l'auteur** :
+   - preuves à l'écran qui demandent un réglage système : contraste élevé Réglages ouverts (#106), mouvement réduit (#107), thème changé notch ouverte à plusieurs onglets (#112), thème clair de la notch (#121) ;
+   - n° 28 : accord pour installer le greffon d'exemple le temps d'un essai ;
+   - sur l'installation après la prochaine version : « Démarrer avec Windows » (#91), `[VEILLE]` après une vraie veille (#95), écarts `[OMBRE]` en usage réel (#111).
+2. **Moyens** : 46b (première ouverture : scènes préparées d'avance, n° 25), 32 (le reste), 72 (reflet par le compositeur).
+3. **Longs** : 26 (une région confiée à la machine, découpage), 24 (fenêtres cachées ; AOT seulement avec des greffons hors processus).
